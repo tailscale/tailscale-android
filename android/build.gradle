@@ -1,0 +1,43 @@
+buildscript {
+    repositories {
+        google()
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:3.6.0'
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        jcenter()
+		flatDir {
+			dirs 'libs'
+		}
+    }
+}
+
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 29
+    defaultConfig {
+        minSdkVersion 23
+        targetSdkVersion 29
+        versionCode 2
+        versionName "0.1"
+    }
+	compileOptions {
+		sourceCompatibility 1.8
+		targetCompatibility 1.8
+	}
+}
+
+dependencies {
+	//implementation 'com.google.android.gms:play-services-auth:18.0.0'
+	implementation "androidx.core:core:1.2.0"
+	implementation "androidx.browser:browser:1.2.0"
+	implementation "androidx.security:security-crypto:1.0.0-rc01"
+	implementation ':ipn@aar'
+}
