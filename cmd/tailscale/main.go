@@ -158,7 +158,7 @@ func (a *App) runBackend(events <-chan UIEvent) error {
 				}
 			}
 			// Stop VPN if we logged out.
-			if oldState > ipn.NeedsLogin && state.State <= ipn.NeedsLogin {
+			if oldState > ipn.Stopped && state.State <= ipn.Stopped {
 				if err := a.callVoidMethod(a.appCtx, "stopVPN", "()V"); err != nil {
 					fatalErr(err)
 				}
@@ -355,7 +355,7 @@ func (a *App) runUI(backend chan<- UIEvent) error {
 			if peer != 0 {
 				newState := state.net.State
 				// Start VPN if we just logged in.
-				if state.WantsEnabled && oldState <= ipn.NeedsLogin && newState > ipn.NeedsLogin {
+				if state.WantsEnabled && oldState <= ipn.Stopped && newState > ipn.Stopped {
 					if err := a.callVoidMethod(peer, "prepareVPN", "()V"); err != nil {
 						fatalErr(err)
 					}
@@ -490,7 +490,7 @@ func (a *App) processUIEvents(backend chan<- UIEvent, w *app.Window, events []UI
 
 func (a *App) setVPNState(peer jni.Object, state *clientState) {
 	var err error
-	if state.WantsEnabled && state.net.State > ipn.NeedsLogin {
+	if state.WantsEnabled && state.net.State > ipn.Stopped {
 		err = a.callVoidMethod(peer, "prepareVPN", "()V")
 	} else {
 		err = a.callVoidMethod(a.appCtx, "stopVPN", "()V")
