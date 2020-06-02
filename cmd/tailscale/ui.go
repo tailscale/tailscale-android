@@ -264,9 +264,7 @@ type Dismiss struct {
 }
 
 func (d *Dismiss) Add(gtx layout.Context) {
-	var stack op.StackOp
-	stack.Push(gtx.Ops)
-	defer stack.Pop()
+	defer op.Push(gtx.Ops).Pop()
 	pointer.Rect(image.Rectangle{Max: gtx.Constraints.Min}).Add(gtx.Ops)
 	pointer.InputOp{Tag: d}.Add(gtx.Ops)
 }
@@ -453,8 +451,7 @@ func (ui *UI) layoutMenu(gtx layout.Context, sysIns system.Insets, expiry time.T
 						f := layout.Flex{Axis: layout.Vertical}
 						// First pass: record and discard operations
 						// and determine widest item.
-						var m op.MacroOp
-						m.Record(gtx.Ops)
+						m := op.Record(gtx.Ops)
 						f.Layout(gtx, children...)
 						m.Stop()
 						// Second pass: layout items with equal width.
@@ -689,13 +686,11 @@ func drawLogo(ops *op.Ops, size int) {
 	tx := op.TransformOp{}.Offset(f32.Pt(off, 0))
 	ty := op.TransformOp{}.Offset(f32.Pt(0, off))
 
-	var st op.StackOp
-	st.Push(ops)
+	st := op.Push(ops)
 	defer st.Pop()
 
-	var row op.StackOp
 	// First row of discs.
-	row.Push(ops)
+	row := op.Push(ops)
 	drawDisc(ops, discDia, rgb(0x54514d))
 	tx.Add(ops)
 	drawDisc(ops, discDia, rgb(0x54514d))
@@ -705,7 +700,7 @@ func drawLogo(ops *op.Ops, size int) {
 
 	ty.Add(ops)
 	// Second row.
-	row.Push(ops)
+	row = op.Push(ops)
 	drawDisc(ops, discDia, rgb(0xfffdfa))
 	tx.Add(ops)
 	drawDisc(ops, discDia, rgb(0xfffdfa))
@@ -715,7 +710,7 @@ func drawLogo(ops *op.Ops, size int) {
 
 	ty.Add(ops)
 	// Third row.
-	row.Push(ops)
+	row = op.Push(ops)
 	drawDisc(ops, discDia, rgb(0x54514d))
 	tx.Add(ops)
 	drawDisc(ops, discDia, rgb(0xfffdfa))
@@ -725,9 +720,7 @@ func drawLogo(ops *op.Ops, size int) {
 }
 
 func drawDisc(ops *op.Ops, radius float32, col color.RGBA) {
-	var st op.StackOp
-	st.Push(ops)
-	defer st.Pop()
+	defer op.Push(ops).Pop()
 	r2 := radius * .5
 	dr := f32.Rectangle{Max: f32.Pt(radius, radius)}
 	clip.Rect{
@@ -746,11 +739,10 @@ type Background struct {
 }
 
 func (b Background) Layout(gtx layout.Context, w layout.Widget) layout.Dimensions {
-	var m op.MacroOp
-	m.Record(gtx.Ops)
+	m := op.Record(gtx.Ops)
 	dims := w(gtx)
 	sz := dims.Size
-	m.Stop()
+	call := m.Stop()
 	// Clip corners, if any.
 	if r := gtx.Px(b.CornerRadius); r > 0 {
 		rr := float32(r)
@@ -763,7 +755,7 @@ func (b Background) Layout(gtx layout.Context, w layout.Widget) layout.Dimension
 		}.Op(gtx.Ops).Add(gtx.Ops)
 	}
 	fill{b.Color}.Layout(gtx, sz)
-	m.Add()
+	call.Add(gtx.Ops)
 	return dims
 }
 
@@ -772,9 +764,7 @@ type fill struct {
 }
 
 func (f fill) Layout(gtx layout.Context, sz image.Point) layout.Dimensions {
-	var st op.StackOp
-	st.Push(gtx.Ops)
-	defer st.Pop()
+	defer op.Push(gtx.Ops).Pop()
 	dr := f32.Rectangle{Max: layout.FPt(sz)}
 	paint.ColorOp{Color: f.col}.Add(gtx.Ops)
 	paint.PaintOp{Rect: dr}.Add(gtx.Ops)
