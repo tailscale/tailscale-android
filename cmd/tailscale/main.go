@@ -141,7 +141,11 @@ func (a *App) runBackend(events <-chan UIEvent) error {
 			alarmChan = timer.C
 		}
 	}
+	var prefs *ipn.Prefs
 	err = b.Start(func(n ipn.Notify) {
+		if p := n.Prefs; p != nil {
+			prefs = p
+		}
 		if s := n.State; s != nil {
 			oldState := state.State
 			state.State = *s
@@ -179,6 +183,8 @@ func (a *App) runBackend(events <-chan UIEvent) error {
 	if err != nil {
 		return err
 	}
+	prefs.Hostname = a.hostname()
+	b.backend.SetPrefs(prefs)
 	for {
 		select {
 		case <-alarmChan:
@@ -235,6 +241,23 @@ func (a *App) runBackend(events <-chan UIEvent) error {
 			}
 		}
 	}
+}
+
+// hostname builds a hostname from android.os.Build fields, in place of a
+// useless os.Hostname().
+func (a *App) hostname() string {
+	var hostname string
+	err := jni.Do(a.jvm, func(env jni.Env) error {
+		cls := jni.GetObjectClass(env, a.appCtx)
+		getHostname := jni.GetMethodID(env, cls, "getHostname", "()Ljava/lang/String;")
+		n, err := jni.CallObjectMethod(env, a.appCtx, getHostname)
+		hostname = jni.GoString(env, jni.String(n))
+		return err
+	})
+	if err != nil {
+		panic(err)
+	}
+	return hostname
 }
 
 // updateNotification updates the foreground persistent status notification.

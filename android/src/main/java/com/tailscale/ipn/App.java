@@ -11,6 +11,7 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.BroadcastReceiver;
 import android.net.ConnectivityManager;
+import android.os.Build;
 
 import java.io.IOException;
 import java.io.File;
@@ -75,6 +76,10 @@ public class App extends Application {
 				EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
 				EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
 		);
+	}
+
+	String getHostname() {
+		return Build.MODEL;
 	}
 
 	private static native void onConnectivityChanged(boolean connected);
