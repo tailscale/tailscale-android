@@ -39,6 +39,10 @@ type App struct {
 	// logged in.
 	vpnClosed chan struct{}
 
+	// backend is the channel for events from the frontend to the
+	// backend.
+	backend chan UIEvent
+
 	// mu protects the following fields.
 	mu sync.Mutex
 	// netState is the most recent network state.
@@ -46,6 +50,8 @@ type App struct {
 	// browseURL is set whenever the backend wants to
 	// browse.
 	browseURL *string
+	// prefs is set when new preferences arrive.
+	prefs *ipn.Prefs
 }
 
 type clientState struct {
@@ -55,9 +61,6 @@ type clientState struct {
 	query string
 
 	Peers []UIPeer
-	// WantsEnabled is the desired state of the VPN: enabled or
-	// disabled.
-	WantsEnabled bool
 }
 
 type NetworkState struct {
@@ -93,6 +96,7 @@ func main() {
 		appCtx:    jni.Object(app.AppContext()),
 		updates:   make(chan struct{}, 1),
 		vpnClosed: make(chan struct{}, 1),
+		backend:   make(chan UIEvent),
 	}
 	appDir, err := app.DataDir()
 	if err != nil {
@@ -100,21 +104,20 @@ func main() {
 	}
 	a.appDir = appDir
 	a.store = newStateStore(a.appDir, a.jvm, a.appCtx)
-	events := make(chan UIEvent)
 	go func() {
-		if err := a.runBackend(events); err != nil {
+		if err := a.runBackend(); err != nil {
 			fatalErr(err)
 		}
 	}()
 	go func() {
-		if err := a.runUI(events); err != nil {
+		if err := a.runUI(); err != nil {
 			fatalErr(err)
 		}
 	}()
 	app.Main()
 }
 
-func (a *App) runBackend(events <-chan UIEvent) error {
+func (a *App) runBackend() error {
 	var cfg *router.Config
 	var state NetworkState
 	var service jni.Object
@@ -141,10 +144,16 @@ func (a *App) runBackend(events <-chan UIEvent) error {
 			alarmChan = timer.C
 		}
 	}
-	var prefs *ipn.Prefs
+	var prefs struct {
+		mu    sync.Mutex
+		prefs *ipn.Prefs
+	}
 	err = b.Start(func(n ipn.Notify) {
 		if p := n.Prefs; p != nil {
-			prefs = p
+			prefs.mu.Lock()
+			prefs.prefs = p.Clone()
+			prefs.mu.Unlock()
+			a.setPrefs(prefs.prefs)
 		}
 		if s := n.State; s != nil {
 			oldState := state.State
@@ -183,20 +192,31 @@ func (a *App) runBackend(events <-chan UIEvent) error {
 	if err != nil {
 		return err
 	}
-	prefs.Hostname = a.hostname()
-	b.backend.SetPrefs(prefs)
+	{
+		prefs.mu.Lock()
+		prefs.prefs.Hostname = a.hostname()
+		p := prefs.prefs
+		prefs.mu.Unlock()
+		b.backend.SetPrefs(p)
+	}
 	for {
 		select {
 		case <-alarmChan:
 			if m := state.NetworkMap; m != nil && service != 0 {
 				alarm(a.notifyExpiry(service, m.Expiry))
 			}
-		case e := <-events:
-			switch e.(type) {
+		case e := <-a.backend:
+			switch e := e.(type) {
 			case ReauthEvent:
 				b.backend.StartLoginInteractive()
 			case LogoutEvent:
 				b.backend.Logout()
+			case ConnectEvent:
+				prefs.mu.Lock()
+				p := prefs.prefs
+				prefs.mu.Unlock()
+				p.WantRunning = e.Enable
+				b.backend.SetPrefs(p)
 			}
 		case s := <-onConnect:
 			jni.Do(a.jvm, func(env jni.Env) error {
@@ -334,6 +354,16 @@ func (a *App) notify(state NetworkState) {
 	}
 }
 
+func (a *App) setPrefs(prefs *ipn.Prefs) {
+	a.mu.Lock()
+	a.prefs = prefs
+	a.mu.Unlock()
+	select {
+	case a.updates <- struct{}{}:
+	default:
+	}
+}
+
 func (a *App) setURL(url string) {
 	a.mu.Lock()
 	a.browseURL = &url
@@ -344,7 +374,7 @@ func (a *App) setURL(url string) {
 	}
 }
 
-func (a *App) runUI(backend chan<- UIEvent) error {
+func (a *App) runUI() error {
 	w := app.NewWindow()
 	gofont.Register()
 	ui, err := newUI(a.store)
@@ -357,13 +387,10 @@ func (a *App) runUI(backend chan<- UIEvent) error {
 	var ops op.Ops
 	state := new(clientState)
 	var peer jni.Object
-	state.WantsEnabled, _ = a.store.ReadBool(enabledKey, true)
-	ui.enabled.Value = state.WantsEnabled
 	for {
 		select {
 		case <-a.vpnClosed:
-			state.WantsEnabled = false
-			w.Invalidate()
+			a.request(ConnectEvent{Enable: false})
 		case <-a.updates:
 			a.mu.Lock()
 			oldState := state.net.State
@@ -372,13 +399,17 @@ func (a *App) runUI(backend chan<- UIEvent) error {
 				state.browseURL = *a.browseURL
 				a.browseURL = nil
 			}
+			if a.prefs != nil {
+				ui.enabled.Value = a.prefs.WantRunning
+				a.prefs = nil
+			}
 			a.mu.Unlock()
 			a.updateState(peer, state)
 			w.Invalidate()
 			if peer != 0 {
 				newState := state.net.State
 				// Start VPN if we just logged in.
-				if state.WantsEnabled && oldState <= ipn.Stopped && newState > ipn.Stopped {
+				if oldState <= ipn.Stopped && newState > ipn.Stopped {
 					if err := a.callVoidMethod(peer, "prepareVPN", "()V"); err != nil {
 						fatalErr(err)
 					}
@@ -386,7 +417,11 @@ func (a *App) runUI(backend chan<- UIEvent) error {
 			}
 		case peer = <-onPeerCreated:
 			w.Invalidate()
-			a.setVPNState(peer, state)
+			if state.net.State > ipn.Stopped {
+				if err := a.callVoidMethod(peer, "prepareVPN", "()V"); err != nil {
+					return err
+				}
+			}
 		case p := <-onPeerDestroyed:
 			jni.Do(a.jvm, func(env jni.Env) error {
 				defer jni.DeleteGlobalRef(env, p)
@@ -397,8 +432,10 @@ func (a *App) runUI(backend chan<- UIEvent) error {
 				return nil
 			})
 		case <-vpnPrepared:
-			if err := a.callVoidMethod(a.appCtx, "startVPN", "()V"); err != nil {
-				return err
+			if state.net.State > ipn.Stopped {
+				if err := a.callVoidMethod(a.appCtx, "startVPN", "()V"); err != nil {
+					return err
+				}
 			}
 		case e := <-w.Events():
 			switch e := e.(type) {
@@ -408,7 +445,7 @@ func (a *App) runUI(backend chan<- UIEvent) error {
 				gtx := layout.NewContext(&ops, e.Queue, e.Config, e.Size)
 				events := ui.layout(gtx, e.Insets, state)
 				e.Frame(gtx.Ops)
-				a.processUIEvents(backend, w, events, peer, state)
+				a.processUIEvents(w, events, peer, state)
 			}
 		}
 	}
@@ -480,46 +517,27 @@ func (a *App) updateState(javaPeer jni.Object, state *clientState) {
 	state.Peers = peers
 }
 
-func (a *App) processUIEvents(backend chan<- UIEvent, w *app.Window, events []UIEvent, peer jni.Object, state *clientState) {
+func (a *App) request(e UIEvent) {
+	go func() {
+		a.backend <- e
+	}()
+}
+
+func (a *App) processUIEvents(w *app.Window, events []UIEvent, peer jni.Object, state *clientState) {
 	for _, e := range events {
 		switch e := e.(type) {
 		case ReauthEvent:
-			go func() {
-				backend <- e
-			}()
+			a.request(e)
 		case LogoutEvent:
-			go func() {
-				backend <- e
-			}()
+			a.request(e)
+		case ConnectEvent:
+			a.request(e)
 		case CopyEvent:
 			w.WriteClipboard(e.Text)
 		case SearchEvent:
 			state.query = strings.ToLower(e.Query)
 			a.updateState(peer, state)
-		case ConnectEvent:
-			if e.Enable == state.WantsEnabled {
-				return
-			}
-			if e.Enable && peer == 0 {
-				return
-			}
-			state.WantsEnabled = e.Enable
-			a.store.WriteBool(enabledKey, e.Enable)
-			a.updateState(peer, state)
-			a.setVPNState(peer, state)
 		}
-	}
-}
-
-func (a *App) setVPNState(peer jni.Object, state *clientState) {
-	var err error
-	if state.WantsEnabled && state.net.State > ipn.Stopped {
-		err = a.callVoidMethod(peer, "prepareVPN", "()V")
-	} else {
-		err = a.callVoidMethod(a.appCtx, "stopVPN", "()V")
-	}
-	if err != nil {
-		fatalErr(err)
 	}
 }
 

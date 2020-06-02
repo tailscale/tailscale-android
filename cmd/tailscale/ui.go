@@ -139,7 +139,6 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 	if ui.enabled.Changed() {
 		ui.events = append(ui.events, ConnectEvent{Enable: ui.enabled.Value})
 	}
-	ui.enabled.Value = state.WantsEnabled
 
 	for _, e := range ui.search.Events() {
 		if _, ok := e.(widget.ChangeEvent); ok {
