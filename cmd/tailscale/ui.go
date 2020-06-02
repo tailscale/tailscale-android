@@ -199,12 +199,12 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 			case 0:
 				return ui.layoutTop(gtx, sysIns, &state.net)
 			case 1:
-				if netmap == nil {
+				if netmap == nil || state.net.State < ipn.Stopped {
 					return D{}
 				}
 				return ui.layoutLocal(gtx, sysIns, localName, localAddr)
 			case 2:
-				if state.net.State <= ipn.NeedsLogin {
+				if state.net.State < ipn.Stopped {
 					return D{}
 				}
 				return ui.layoutSearchbar(gtx, sysIns)
