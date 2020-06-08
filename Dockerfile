@@ -23,9 +23,10 @@ RUN echo '444e22ce8ca0f67353bda4b85175ed3731cae3ffa695ca18119cbacef1c1bea0  sdk-
 RUN unzip sdk-tools-linux-3859397.zip
 RUN echo y | $ANDROID_HOME/tools/bin/sdkmanager --update
 RUN echo y | $ANDROID_HOME/tools/bin/sdkmanager 'platforms;android-29'
-RUN echo y | $ANDROID_HOME/tools/bin/sdkmanager 'build-tools;29.0.0'
 RUN echo y | $ANDROID_HOME/tools/bin/sdkmanager 'extras;android;m2repository'
 RUN echo y | $ANDROID_HOME/tools/bin/sdkmanager 'ndk;20.0.5594570'
+RUN echo y | $ANDROID_HOME/tools/bin/sdkmanager 'platform-tools'
+RUN echo y | $ANDROID_HOME/tools/bin/sdkmanager 'build-tools;28.0.3'
 
 # Get Go stable release
 WORKDIR $HOME
