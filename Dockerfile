@@ -25,7 +25,7 @@ RUN echo y | $ANDROID_HOME/tools/bin/sdkmanager --update
 RUN echo y | $ANDROID_HOME/tools/bin/sdkmanager 'platforms;android-29'
 RUN echo y | $ANDROID_HOME/tools/bin/sdkmanager 'build-tools;29.0.0'
 RUN echo y | $ANDROID_HOME/tools/bin/sdkmanager 'extras;android;m2repository'
-RUN echo y | $ANDROID_HOME/tools/bin/sdkmanager 'ndk-bundle'
+RUN echo y | $ANDROID_HOME/tools/bin/sdkmanager 'ndk;20.0.5594570'
 
 # Get Go stable release
 WORKDIR $HOME
@@ -35,10 +35,6 @@ RUN echo "1c39eac4ae95781b066c144c58e45d6859652247f7515f0d2cba7be7d57d2226  go${
 RUN tar -xzf go${GO_VERSION}.linux-amd64.tar.gz && mv go goroot
 ENV GOROOT $HOME/goroot
 ENV PATH $PATH:$GOROOT/bin:$HOME/bin
-
-RUN echo y | $ANDROID_HOME/tools/bin/sdkmanager 'platforms;android-26'
-RUN echo y | $ANDROID_HOME/tools/bin/sdkmanager 'ndk;20.1.5948944'
-RUN echo y | $ANDROID_HOME/tools/bin/sdkmanager 'ndk;20.0.5594570'
 
 # TODO: pre-install Grade 6.3 so gogio doesn't download it later at runtime at the build.sh step.
 # TODO: ... likewise, all this:
