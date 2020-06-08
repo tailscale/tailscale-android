@@ -266,7 +266,7 @@ type Dismiss struct {
 func (d *Dismiss) Add(gtx layout.Context) {
 	defer op.Push(gtx.Ops).Pop()
 	pointer.Rect(image.Rectangle{Max: gtx.Constraints.Min}).Add(gtx.Ops)
-	pointer.InputOp{Tag: d}.Add(gtx.Ops)
+	pointer.InputOp{Tag: d, Types: pointer.Press}.Add(gtx.Ops)
 }
 
 func (d *Dismiss) Dismissed(gtx layout.Context) bool {
