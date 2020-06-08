@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"gioui.org/f32"
+	"gioui.org/font/gofont"
 	"gioui.org/io/pointer"
 	"gioui.org/io/system"
 	"gioui.org/layout"
@@ -120,7 +121,7 @@ func newUI(store *stateStore) (*UI, error) {
 		return nil, err
 	}
 	ui := &UI{
-		theme: material.NewTheme(),
+		theme: material.NewTheme(gofont.Collection()),
 		store: store,
 	}
 	ui.intro.show, _ = store.ReadBool(keyShowIntro, true)

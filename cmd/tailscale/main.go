@@ -16,8 +16,6 @@ import (
 	"gioui.org/layout"
 	"gioui.org/op"
 
-	"gioui.org/font/gofont"
-
 	"tailscale.com/control/controlclient"
 	"tailscale.com/ipn"
 	"tailscale.com/tailcfg"
@@ -376,7 +374,6 @@ func (a *App) setURL(url string) {
 
 func (a *App) runUI() error {
 	w := app.NewWindow()
-	gofont.Register()
 	ui, err := newUI(a.store)
 	if err != nil {
 		return err
