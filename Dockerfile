@@ -37,29 +37,18 @@ RUN tar -xzf go${GO_VERSION}.linux-amd64.tar.gz && mv go goroot
 ENV GOROOT $HOME/goroot
 ENV PATH $PATH:$GOROOT/bin:$HOME/bin
 
-# TODO: pre-install Grade 6.3 so gogio doesn't download it later at runtime at the build.sh step.
-# TODO: ... likewise, all this:
-# Checking the license for package Android SDK Build-Tools 28.0.3 in /build/android-sdk/licenses
-# License for package Android SDK Build-Tools 28.0.3 accepted.
-# Preparing "Install Android SDK Build-Tools 28.0.3 (revision: 28.0.3)".
-# "Install Android SDK Build-Tools 28.0.3 (revision: 28.0.3)" ready.
-# Installing Android SDK Build-Tools 28.0.3 in /build/android-sdk/build-tools/28.0.3
-# "Install Android SDK Build-Tools 28.0.3 (revision: 28.0.3)" complete.
-# "Install Android SDK Build-Tools 28.0.3 (revision: 28.0.3)" finished.
-# Checking the license for package Android SDK Platform-Tools in /build/android-sdk/licenses
-# License for package Android SDK Platform-Tools accepted.
-# Preparing "Install Android SDK Platform-Tools (revision: 30.0.1)".
-# "Install Android SDK Platform-Tools (revision: 30.0.1)" ready.
-# Installing Android SDK Platform-Tools in /build/android-sdk/platform-tools
-# "Install Android SDK Platform-Tools (revision: 30.0.1)" complete.
-# "Install Android SDK Platform-Tools (revision: 30.0.1)" finished.
-
 RUN mkdir -p $HOME/tailscale-android
 WORKDIR $HOME/tailscale-android
 
 ADD go.mod .
 ADD go.sum .
 RUN go mod download
+
+# Preload Gradle
+COPY android/gradlew android/gradlew
+COPY android/gradle android/gradle
+RUN ./android/gradlew
+
 ADD . .
 RUN ./build.sh
 
