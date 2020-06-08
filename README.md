@@ -23,6 +23,14 @@ $ make tailscale-debug.apk
 $ adb install -r tailscale-debug.apk
 ```
 
+The `dockershell` target builds a container with the necessary
+dependencies and runs a shell inside it.
+
+```
+$ make dockershell
+# make tailscale-debug.apk
+```
+
 We only guarantee to support the latest Go release and any Go beta or
 release candidate builds (currently Go 1.14) in module mode. It might
 work in earlier Go versions or in GOPATH mode, but we're making no

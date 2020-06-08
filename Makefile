@@ -25,7 +25,11 @@ release: $(RELEASE_AAB)
 install: $(DEBUG_APK)
 	adb install -r $(DEBUG_APK)
 
+dockershell:
+	docker build -t tailscale-android .
+	docker run -v $(CURDIR):/build/tailscale-android -it --rm tailscale-android
+
 clean:
 	rm -rf android/build $(RELEASE_AAB) $(DEBUG_APK) $(AAR)
 
-.PHONY: all clean install aar release
+.PHONY: all clean install aar release dockershell

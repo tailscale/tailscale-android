@@ -1,5 +1,5 @@
-# This is the start of a Dockerfile to build tailscale-android.
-# It works, but it's not very efficient yet; see TODOs below.
+# This is a Dockerfile for creating a build environment for
+# tailscale-android.
 
 FROM openjdk:8-jdk
 
@@ -9,6 +9,8 @@ RUN apt-get install -y lib32z1 lib32stdc++6
 # For Go:
 RUN apt-get -y --no-install-recommends install curl gcc
 RUN apt-get -y --no-install-recommends install ca-certificates libc6-dev git
+
+RUN apt-get -y install make
 
 RUN mkdir -p BUILD
 ENV HOME /build
@@ -35,7 +37,7 @@ RUN curl -O https://storage.googleapis.com/golang/go${GO_VERSION}.linux-amd64.ta
 RUN echo "1c39eac4ae95781b066c144c58e45d6859652247f7515f0d2cba7be7d57d2226  go${GO_VERSION}.linux-amd64.tar.gz" | sha256sum -c
 RUN tar -xzf go${GO_VERSION}.linux-amd64.tar.gz && mv go goroot
 ENV GOROOT $HOME/goroot
-ENV PATH $PATH:$GOROOT/bin:$HOME/bin
+ENV PATH $PATH:$GOROOT/bin:$HOME/bin:$ANDROID_HOME/platform-tools
 
 RUN mkdir -p $HOME/tailscale-android
 WORKDIR $HOME/tailscale-android
@@ -49,6 +51,4 @@ COPY android/gradlew android/gradlew
 COPY android/gradle android/gradle
 RUN ./android/gradlew
 
-ADD . .
-RUN ./build.sh
-
+CMD /bin/bash
