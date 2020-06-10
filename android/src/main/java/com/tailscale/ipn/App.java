@@ -79,7 +79,7 @@ public class App extends Application {
 	}
 
 	String getHostname() {
-		return Build.MODEL;
+		return Build.MANUFACTURER + " " + Build.MODEL;
 	}
 
 	private static native void onConnectivityChanged(boolean connected);
