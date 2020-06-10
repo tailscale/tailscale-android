@@ -439,7 +439,7 @@ func (a *App) runUI() error {
 			case system.DestroyEvent:
 				return e.Err
 			case system.FrameEvent:
-				gtx := layout.NewContext(&ops, e.Queue, e.Config, e.Size)
+				gtx := layout.NewContext(&ops, e)
 				events := ui.layout(gtx, e.Insets, state)
 				e.Frame(gtx.Ops)
 				a.processUIEvents(w, events, peer, state)

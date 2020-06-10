@@ -469,7 +469,7 @@ func (ui *UI) layoutMessage(gtx layout.Context, sysIns system.Insets) layout.Dim
 	if s == "" {
 		return D{}
 	}
-	now := gtx.Now()
+	now := gtx.Now
 	d := now.Sub(ui.message.t0)
 	rem := 4*time.Second - d
 	if rem < 0 {
@@ -491,7 +491,7 @@ func (ui *UI) layoutMessage(gtx layout.Context, sysIns system.Insets) layout.Dim
 
 func (ui *UI) showMessage(gtx layout.Context, msg string) {
 	ui.message.text = msg
-	ui.message.t0 = gtx.Now()
+	ui.message.t0 = gtx.Now
 	op.InvalidateOp{}.Add(gtx.Ops)
 }
 
@@ -567,7 +567,11 @@ func (ui *UI) layoutTop(gtx layout.Context, sysIns system.Insets, state *Network
 				layout.Rigid(func(gtx C) D {
 					return in.Layout(gtx, func(gtx C) D {
 						sw := material.Switch(ui.theme, &ui.enabled)
-						sw.Color = rgb(white)
+						sw.Color.Enabled = rgb(white)
+						if state.State < ipn.Stopped {
+							sw.Color.Enabled = rgb(0xbbbbbb)
+							sw.Color.Disabled = rgb(0xbbbbbb)
+						}
 						return sw.Layout(gtx)
 					})
 				}),
