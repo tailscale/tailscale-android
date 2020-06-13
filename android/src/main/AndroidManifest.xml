@@ -9,7 +9,7 @@
 		<activity android:name="org.gioui.GioActivity"
 			android:label="Tailscale"
 			android:theme="@style/Theme.GioApp"
-			android:configChanges="orientation|keyboardHidden"
+			android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
 			android:windowSoftInputMode="adjustResize"
 			android:launchMode="singleTask">
 			<intent-filter>
