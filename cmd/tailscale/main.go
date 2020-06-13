@@ -378,9 +378,7 @@ func (a *App) runUI() error {
 	if err != nil {
 		return err
 	}
-	// Register an Android Fragment instance for lifecycle tracking
-	// of our Activity.
-	w.RegisterFragment("com.tailscale.ipn.Peer")
+	a.trackLifecycle(w)
 	var ops op.Ops
 	state := new(clientState)
 	var peer jni.Object
@@ -446,6 +444,23 @@ func (a *App) runUI() error {
 			}
 		}
 	}
+}
+
+// trackLifecycle registers an Android Fragment instance for lifecycle
+// tracking of our Activity.
+func (a *App) trackLifecycle(w *app.Window) {
+	go func() {
+		w.Do(func(view uintptr) {
+			err := jni.Do(a.jvm, func(env jni.Env) error {
+				cls := jni.GetObjectClass(env, a.appCtx)
+				trackLifecycle := jni.GetStaticMethodID(env, cls, "trackLifecycle", "(Landroid/view/View;)V")
+				return jni.CallStaticVoidMethod(env, cls, trackLifecycle, jni.Value(view))
+			})
+			if err != nil {
+				fatalErr(err)
+			}
+		})
+	}()
 }
 
 func (a *App) updateState(javaPeer jni.Object, state *clientState) {
@@ -560,5 +575,6 @@ func (a *App) callVoidMethod(obj jni.Object, name, sig string, args ...jni.Value
 }
 
 func fatalErr(err error) {
-	log.Print(err)
+	// TODO: expose in UI.
+	log.Printf("fatal error: %v", err)
 }

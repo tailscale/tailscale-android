@@ -61,7 +61,6 @@ func Do(vm JVM, f func(env Env) error) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 	var env *C.JNIEnv
-	var detach bool
 	if res := C._jni_GetEnv(vm.jvm, &env, C.JNI_VERSION_1_6); res != C.JNI_OK {
 		if res != C.JNI_EDETACHED {
 			panic(fmt.Errorf("JNI GetEnv failed with error %d", res))
@@ -69,14 +68,9 @@ func Do(vm JVM, f func(env Env) error) error {
 		if C._jni_AttachCurrentThread(vm.jvm, &env, nil) != C.JNI_OK {
 			panic(errors.New("runInJVM: AttachCurrentThread failed"))
 		}
-		detach = true
+		defer C._jni_DetachCurrentThread(vm.jvm)
 	}
 
-	if detach {
-		defer func() {
-			C._jni_DetachCurrentThread(vm.jvm)
-		}()
-	}
 	return f(Env{env})
 }
 

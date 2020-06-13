@@ -5,12 +5,16 @@
 package com.tailscale.ipn;
 
 import android.app.Application;
+import android.app.Activity;
+import android.app.Fragment;
+import android.app.FragmentTransaction;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.BroadcastReceiver;
 import android.net.ConnectivityManager;
+import android.view.View;
 import android.os.Build;
 
 import java.io.IOException;
@@ -80,6 +84,15 @@ public class App extends Application {
 
 	String getHostname() {
 		return Build.MANUFACTURER + " " + Build.MODEL;
+	}
+
+	// Tracklifecycle adds a Peer fragment for tracking the Activity
+	// lifecycle.
+	static void trackLifecycle(View view) {
+		Activity act = (Activity)view.getContext();
+		FragmentTransaction ft = act.getFragmentManager().beginTransaction();
+		ft.add(new Peer(), "Peer");
+		ft.commitNow();
 	}
 
 	private static native void onConnectivityChanged(boolean connected);

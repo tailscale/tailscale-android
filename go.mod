@@ -3,7 +3,7 @@ module tailscale.com/tailscale-android
 go 1.14
 
 require (
-	gioui.org v0.0.0-20200611133933-6d5fbcba3f21
+	gioui.org v0.0.0-20200613154758-8688ed95c255
 	gioui.org/cmd v0.0.0-20200530141830-d2c67cdf8039
 	github.com/tailscale/wireguard-go v0.0.0-20200515231107-62868271d710
 	golang.org/x/exp v0.0.0-20191002040644-a1355ae1e2c3
