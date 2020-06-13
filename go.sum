@@ -1,8 +1,8 @@
 cloud.google.com/go v0.34.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
 gioui.org v0.0.0-20200530124200-1377bea3cdc5/go.mod h1:AHI9rFr6AEEHCb8EPVtb/p5M+NMJRKH58IOp8O3Je04=
-gioui.org v0.0.0-20200613154758-8688ed95c255 h1:f4jG6oVrLsPZ0zsGpmUVyNfvdZIx7T+JQ0a4Y2EhvY4=
-gioui.org v0.0.0-20200613154758-8688ed95c255/go.mod h1:AHI9rFr6AEEHCb8EPVtb/p5M+NMJRKH58IOp8O3Je04=
+gioui.org v0.0.0-20200613165229-feacd1e2df1f h1:YWWQk73rSv7wttsldgg5jRWoWyq0yv5oWCcbwGc4eaE=
+gioui.org v0.0.0-20200613165229-feacd1e2df1f/go.mod h1:AHI9rFr6AEEHCb8EPVtb/p5M+NMJRKH58IOp8O3Je04=
 gioui.org/cmd v0.0.0-20200530141830-d2c67cdf8039 h1:mO1CTk+PwcDQGMXpN1JJiFflYBvwqSQ6+3Gvp64IKHo=
 gioui.org/cmd v0.0.0-20200530141830-d2c67cdf8039/go.mod h1:B1g+HOceSj7g3S4Yao3skwInTpcK978KANys5YuapMc=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
