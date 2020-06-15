@@ -122,6 +122,7 @@ func (b *backend) setCfg(cfg *router.Config) error {
 }
 
 func (b *backend) updateTUN(service jni.Object, cfg *router.Config) error {
+	b.CloseTUNs()
 	if reflect.DeepEqual(cfg, b.lastCfg) {
 		return nil
 	}
