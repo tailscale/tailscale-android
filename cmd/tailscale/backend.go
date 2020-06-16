@@ -135,6 +135,8 @@ func (b *backend) updateTUN(service jni.Object, cfg *router.Config) error {
 	}
 	err := jni.Do(b.jvm, func(env jni.Env) error {
 		cls := jni.GetObjectClass(env, service)
+		// Construct a VPNService.Builder. IPNService.newBuilder calls
+		// setConfigureIntent, and allowFamily for both IPv4 and IPv6.
 		m := jni.GetMethodID(env, cls, "newBuilder", "()Landroid/net/VpnService$Builder;")
 		builder, err := jni.CallObjectMethod(env, service, m)
 		if err != nil {

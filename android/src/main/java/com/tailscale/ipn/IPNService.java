@@ -9,6 +9,7 @@ import android.app.PendingIntent;
 import android.app.NotificationChannel;
 import android.content.Intent;
 import android.net.VpnService;
+import android.system.OsConstants;
 
 import org.gioui.GioActivity;
 
@@ -56,7 +57,10 @@ public class IPNService extends VpnService {
 	}
 
 	protected VpnService.Builder newBuilder() {
-		return new VpnService.Builder().setConfigureIntent(configIntent());
+		return new VpnService.Builder()
+			.setConfigureIntent(configIntent())
+			.allowFamily(OsConstants.AF_INET)
+			.allowFamily(OsConstants.AF_INET6);
 	}
 
 	public void notify(String title, String message) {
