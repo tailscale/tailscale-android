@@ -122,7 +122,14 @@ func (b *backend) setCfg(cfg *router.Config) error {
 }
 
 func (b *backend) updateTUN(service jni.Object, cfg *router.Config) error {
+	// Close previous tunnel(s).
+	// This is necessary for ChromeOS, native Android devices
+	// seem to handle seamless handover between tunnels correctly.
+	//
+	// TODO(eliasnaur): If seamless handover becomes a desirable feature, skip
+	// the closing on ChromeOS.
 	b.CloseTUNs()
+
 	if reflect.DeepEqual(cfg, b.lastCfg) {
 		return nil
 	}
