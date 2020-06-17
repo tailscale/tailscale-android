@@ -1,5 +1,7 @@
 cloud.google.com/go v0.34.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
+eliasnaur.com/font v0.0.0-20200617114307-e02d32decb4b h1:J9r7EuPdhvBTafg34EqrObAm/bDEaDh7LvhKJPGficE=
+eliasnaur.com/font v0.0.0-20200617114307-e02d32decb4b/go.mod h1:CYwJpIhpzVfoHpFXGlXjSx9mXMWtHt4XXmZb6RjumRc=
 gioui.org v0.0.0-20200530124200-1377bea3cdc5/go.mod h1:AHI9rFr6AEEHCb8EPVtb/p5M+NMJRKH58IOp8O3Je04=
 gioui.org v0.0.0-20200617094714-596e32161041 h1:mogSEMG8m1oAoF9kc7s0ABUkqZK6wq6rswSUCTbqhVs=
 gioui.org v0.0.0-20200617094714-596e32161041/go.mod h1:AHI9rFr6AEEHCb8EPVtb/p5M+NMJRKH58IOp8O3Je04=

@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"gioui.org/f32"
-	"gioui.org/font/gofont"
+	"gioui.org/font/opentype"
 	"gioui.org/io/pointer"
 	"gioui.org/io/system"
 	"gioui.org/layout"
@@ -27,6 +27,8 @@ import (
 	"golang.org/x/exp/shiny/materialdesign/icons"
 	"tailscale.com/ipn"
 	"tailscale.com/tailcfg"
+
+	"eliasnaur.com/font/roboto/robotoregular"
 
 	_ "image/png"
 )
@@ -120,8 +122,15 @@ func newUI(store *stateStore) (*UI, error) {
 	if err != nil {
 		return nil, err
 	}
+	//fonts := gofont.Collection()
+	fonts := new(text.Collection)
+	face, err := opentype.Parse(robotoregular.TTF)
+	if err != nil {
+		panic(fmt.Sprintf("failed to parse font: %v", err))
+	}
+	fonts.Register(text.Font{Typeface: "Roboto"}, face)
 	ui := &UI{
-		theme: material.NewTheme(gofont.Collection()),
+		theme: material.NewTheme(fonts),
 		store: store,
 	}
 	ui.intro.show, _ = store.ReadBool(keyShowIntro, true)
