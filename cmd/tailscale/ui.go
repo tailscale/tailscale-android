@@ -384,8 +384,8 @@ func (ui *UI) layoutMenu(gtx layout.Context, sysIns system.Insets, expiry time.T
 		ui.menu.show = false
 	}
 	layout.Inset{
-		Top:   unit.Add(gtx, sysIns.Top, unit.Dp(2)),
-		Right: unit.Add(gtx, sysIns.Right, unit.Dp(2)),
+		Top:   unit.Add(gtx.Metric, sysIns.Top, unit.Dp(2)),
+		Right: unit.Add(gtx.Metric, sysIns.Right, unit.Dp(2)),
 	}.Layout(gtx, func(gtx C) D {
 		return layout.NE.Layout(gtx, func(gtx C) D {
 			return Background{Color: argb(0x33000000), CornerRadius: unit.Dp(2)}.Layout(gtx, func(gtx C) D {
@@ -477,7 +477,7 @@ func (ui *UI) layoutMessage(gtx layout.Context, sysIns system.Insets) layout.Dim
 	}
 	op.InvalidateOp{At: now.Add(rem)}.Add(gtx.Ops)
 	return layout.S.Layout(gtx, func(gtx C) D {
-		return layout.Inset{Bottom: unit.Add(gtx, sysIns.Bottom, unit.Dp(8))}.Layout(gtx, func(gtx C) D {
+		return layout.Inset{Bottom: unit.Add(gtx.Metric, sysIns.Bottom, unit.Dp(8))}.Layout(gtx, func(gtx C) D {
 			return Background{Color: rgb(0x323232), CornerRadius: unit.Dp(5)}.Layout(gtx, func(gtx C) D {
 				return layout.UniformInset(unit.Dp(12)).Layout(gtx, func(gtx C) D {
 					l := material.Body2(ui.theme, s)
@@ -506,8 +506,8 @@ func (ui *UI) layoutPeer(gtx layout.Context, sysIns system.Insets, p *UIPeer, cl
 	return material.Clickable(gtx, clk, func(gtx C) D {
 		return layout.Inset{
 			Top:    unit.Dp(8),
-			Right:  unit.Max(gtx, sysIns.Right, unit.Dp(16)),
-			Left:   unit.Max(gtx, sysIns.Left, unit.Dp(16)),
+			Right:  unit.Max(gtx.Metric, sysIns.Right, unit.Dp(16)),
+			Left:   unit.Max(gtx.Metric, sysIns.Left, unit.Dp(16)),
 			Bottom: unit.Dp(8),
 		}.Layout(gtx, func(gtx C) D {
 			gtx.Constraints.Min.X = gtx.Constraints.Max.X
@@ -540,8 +540,8 @@ func (ui *UI) layoutSection(gtx layout.Context, sysIns system.Insets, title stri
 	return Background{Color: rgb(0xe1e0e9)}.Layout(gtx, func(gtx C) D {
 		return layout.Inset{
 			Top:    unit.Dp(16),
-			Right:  unit.Max(gtx, sysIns.Right, unit.Dp(16)),
-			Left:   unit.Max(gtx, sysIns.Left, unit.Dp(16)),
+			Right:  unit.Max(gtx.Metric, sysIns.Right, unit.Dp(16)),
+			Left:   unit.Max(gtx.Metric, sysIns.Left, unit.Dp(16)),
 			Bottom: unit.Dp(16),
 		}.Layout(gtx, func(gtx C) D {
 			l := material.Body1(ui.theme, title)
@@ -560,8 +560,8 @@ func (ui *UI) layoutTop(gtx layout.Context, sysIns system.Insets, state *Network
 	return Background{Color: rgb(headerColor)}.Layout(gtx, func(gtx C) D {
 		return layout.Inset{
 			Top:   sysIns.Top,
-			Right: unit.Max(gtx, sysIns.Right, unit.Dp(8)),
-			Left:  unit.Max(gtx, sysIns.Left, unit.Dp(16)),
+			Right: unit.Max(gtx.Metric, sysIns.Right, unit.Dp(8)),
+			Left:  unit.Max(gtx.Metric, sysIns.Left, unit.Dp(16)),
 		}.Layout(gtx, func(gtx C) D {
 			return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
 				layout.Rigid(func(gtx C) D {
@@ -629,8 +629,8 @@ func (ui *UI) layoutLocal(gtx layout.Context, sysIns system.Insets, host, addr s
 	}
 	return Background{Color: rgb(headerColor)}.Layout(gtx, func(gtx C) D {
 		return layout.Inset{
-			Right:  unit.Max(gtx, sysIns.Right, unit.Dp(8)),
-			Left:   unit.Max(gtx, sysIns.Left, unit.Dp(8)),
+			Right:  unit.Max(gtx.Metric, sysIns.Right, unit.Dp(8)),
+			Left:   unit.Max(gtx.Metric, sysIns.Left, unit.Dp(8)),
 			Bottom: unit.Dp(8),
 		}.Layout(gtx, func(gtx C) D {
 			return Background{Color: rgb(infoColor), CornerRadius: unit.Dp(8)}.Layout(gtx, func(gtx C) D {
@@ -662,8 +662,8 @@ func (ui *UI) layoutSearchbar(gtx layout.Context, sysIns system.Insets) layout.D
 	return Background{Color: rgb(0xf0eff6)}.Layout(gtx, func(gtx C) D {
 		return layout.Inset{
 			Top:    unit.Dp(8),
-			Right:  unit.Max(gtx, sysIns.Right, unit.Dp(8)),
-			Left:   unit.Max(gtx, sysIns.Left, unit.Dp(8)),
+			Right:  unit.Max(gtx.Metric, sysIns.Right, unit.Dp(8)),
+			Left:   unit.Max(gtx.Metric, sysIns.Left, unit.Dp(8)),
 			Bottom: unit.Dp(8),
 		}.Layout(gtx, func(gtx C) D {
 			return Background{Color: rgb(0xe3e2ea), CornerRadius: unit.Dp(8)}.Layout(gtx, func(gtx C) D {
