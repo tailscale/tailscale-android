@@ -57,10 +57,15 @@ public class IPNService extends VpnService {
 	}
 
 	protected VpnService.Builder newBuilder() {
-		return new VpnService.Builder()
+		VpnService.Builder b = new VpnService.Builder()
 			.setConfigureIntent(configIntent())
 			.allowFamily(OsConstants.AF_INET)
 			.allowFamily(OsConstants.AF_INET6);
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
+			b.setMetered(false); // Inherit the metered status from the underlying networks.
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
+			b.setUnderlyingNetworks(null); // Use all available networks.
+		return b;
 	}
 
 	public void notify(String title, String message) {
