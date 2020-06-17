@@ -116,16 +116,14 @@ func main() {
 }
 
 func (a *App) runBackend() error {
-	var cfg *router.Config
-	var state NetworkState
-	var service jni.Object
-	var b *backend
+	configs := make(chan *router.Config)
+	configErrs := make(chan error)
 	b, err := newBackend(a.appDir, a.jvm, a.store, func(s *router.Config) error {
-		cfg = s
-		if b == nil || service == 0 || cfg == nil {
+		if s == nil {
 			return nil
 		}
-		return b.updateTUN(service, cfg)
+		configs <- s
+		return <-configErrs
 	})
 	if err != nil {
 		return err
@@ -143,62 +141,82 @@ func (a *App) runBackend() error {
 		}
 	}
 	var prefs struct {
+		once  sync.Once
 		mu    sync.Mutex
 		prefs *ipn.Prefs
 	}
-	err = b.Start(func(n ipn.Notify) {
-		if p := n.Prefs; p != nil {
-			prefs.mu.Lock()
-			prefs.prefs = p.Clone()
-			prefs.mu.Unlock()
-			a.setPrefs(prefs.prefs)
-		}
-		if s := n.State; s != nil {
-			oldState := state.State
-			state.State = *s
-			if service != 0 {
-				a.updateNotification(service, state.State)
-			}
-			if service != 0 {
-				if cfg != nil && state.State >= ipn.Starting {
-					if err := b.updateTUN(service, cfg); err != nil {
-						a.notifyVPNClosed()
-					}
-				} else {
-					b.CloseTUNs()
-				}
-			}
-			// Stop VPN if we logged out.
-			if oldState > ipn.Stopped && state.State <= ipn.Stopped {
-				if err := a.callVoidMethod(a.appCtx, "stopVPN", "()V"); err != nil {
-					fatalErr(err)
-				}
-			}
-			a.notify(state)
-		}
-		if u := n.BrowseToURL; u != nil {
-			a.setURL(*u)
-		}
-		if m := n.NetMap; m != nil {
-			state.NetworkMap = m
-			a.notify(state)
-			if service != 0 {
-				alarm(a.notifyExpiry(service, m.Expiry))
-			}
-		}
-	})
-	if err != nil {
-		return err
-	}
-	{
-		prefs.mu.Lock()
-		prefs.prefs.Hostname = a.hostname()
-		p := prefs.prefs
-		prefs.mu.Unlock()
-		b.backend.SetPrefs(p)
-	}
+	notifications := make(chan ipn.Notify, 1)
+	startErr := make(chan error)
+	// Start from a goroutine to avoid deadlock when Start
+	// calls the callback.
+	go func() {
+		startErr <- b.Start(func(n ipn.Notify) {
+			notifications <- n
+		})
+	}()
+	var cfg *router.Config
+	var state NetworkState
+	var service jni.Object
 	for {
 		select {
+		case err := <-startErr:
+			if err != nil {
+				return err
+			}
+		case s := <-configs:
+			cfg = s
+			if b == nil || service == 0 || cfg == nil {
+				configErrs <- nil
+				break
+			}
+			configErrs <- b.updateTUN(service, cfg)
+		case n := <-notifications:
+			if p := n.Prefs; p != nil {
+				prefs.mu.Lock()
+				prefs.prefs = p.Clone()
+				prefs.mu.Unlock()
+				a.setPrefs(prefs.prefs)
+				prefs.once.Do(func() {
+					prefs.mu.Lock()
+					prefs.prefs.Hostname = a.hostname()
+					p := prefs.prefs
+					prefs.mu.Unlock()
+					b.backend.SetPrefs(p)
+				})
+			}
+			if s := n.State; s != nil {
+				oldState := state.State
+				state.State = *s
+				if service != 0 {
+					a.updateNotification(service, state.State)
+				}
+				if service != 0 {
+					if cfg != nil && state.State >= ipn.Starting {
+						if err := b.updateTUN(service, cfg); err != nil {
+							a.notifyVPNClosed()
+						}
+					} else {
+						b.CloseTUNs()
+					}
+				}
+				// Stop VPN if we logged out.
+				if oldState > ipn.Stopped && state.State <= ipn.Stopped {
+					if err := a.callVoidMethod(a.appCtx, "stopVPN", "()V"); err != nil {
+						fatalErr(err)
+					}
+				}
+				a.notify(state)
+			}
+			if u := n.BrowseToURL; u != nil {
+				a.setURL(*u)
+			}
+			if m := n.NetMap; m != nil {
+				state.NetworkMap = m
+				a.notify(state)
+				if service != 0 {
+					alarm(a.notifyExpiry(service, m.Expiry))
+				}
+			}
 		case <-alarmChan:
 			if m := state.NetworkMap; m != nil && service != 0 {
 				alarm(a.notifyExpiry(service, m.Expiry))
