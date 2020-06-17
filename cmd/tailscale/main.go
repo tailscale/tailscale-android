@@ -62,9 +62,9 @@ type clientState struct {
 }
 
 type NetworkState struct {
-	State       ipn.State
-	NetworkMap  *controlclient.NetworkMap
-	HasInternet bool
+	State        ipn.State
+	NetworkMap   *controlclient.NetworkMap
+	LostInternet bool
 }
 
 // UIEvent is an event flowing from the UI to the backend.
@@ -257,7 +257,7 @@ func (a *App) runBackend() error {
 				}
 			}
 		case <-onConnectivityChange:
-			state.HasInternet = connected.Load().(bool)
+			state.LostInternet = !connected.Load().(bool)
 			if b != nil {
 				b.LinkChange()
 			}

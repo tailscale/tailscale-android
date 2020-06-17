@@ -224,7 +224,7 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 				}
 				return ui.layoutSignIn(gtx)
 			case 4:
-				if needsLogin || state.net.HasInternet {
+				if needsLogin || !state.net.LostInternet {
 					return D{}
 				}
 				return ui.layoutDisconnected(gtx)
