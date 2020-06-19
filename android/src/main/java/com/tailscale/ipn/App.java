@@ -13,6 +13,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.BroadcastReceiver;
+import android.provider.Settings;
 import android.net.ConnectivityManager;
 import android.view.View;
 import android.os.Build;
@@ -83,6 +84,13 @@ public class App extends Application {
 	}
 
 	String getHostname() {
+		String userConfiguredDeviceName = getUserConfiguredDeviceName();
+		if (!isEmpty(userConfiguredDeviceName)) return userConfiguredDeviceName;
+
+		return getModelName();
+	}
+
+	private String getModelName() {
 		String manu = Build.MANUFACTURER;
 		String model = Build.MODEL;
 		// Strip manufacturer from model.
@@ -92,6 +100,23 @@ public class App extends Application {
 			model = model.trim();
 		}
 		return manu + " " + model;
+	}
+
+	// get user defined nickname from Settings
+	// returns null if not available
+	private String getUserConfiguredDeviceName() {
+		String nameFromSystemBluetooth = Settings.System.getString(getContentResolver(), "bluetooth_name");
+		String nameFromSecureBluetooth = Settings.Secure.getString(getContentResolver(), "bluetooth_name");
+		String nameFromSystemDevice = Settings.Secure.getString(getContentResolver(), "device_name");
+
+		if (!isEmpty(nameFromSystemBluetooth)) return nameFromSystemBluetooth;
+		if (!isEmpty(nameFromSecureBluetooth)) return nameFromSecureBluetooth;
+		if (!isEmpty(nameFromSystemDevice)) return nameFromSystemDevice;
+		return null;
+	}
+
+	private static boolean isEmpty(String str) {
+		return str == null || str.length() == 0;
 	}
 
 	// Tracklifecycle adds a Peer fragment for tracking the Activity
