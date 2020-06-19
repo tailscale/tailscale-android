@@ -23,12 +23,13 @@ type multiTUN struct {
 	close    chan struct{}
 	closeErr chan error
 
-	reads     chan ioRequest
-	writes    chan ioRequest
-	flushes   chan chan error
-	mtus      chan chan mtuReply
-	names     chan chan nameReply
-	shutdowns chan struct{}
+	reads        chan ioRequest
+	writes       chan ioRequest
+	flushes      chan chan error
+	mtus         chan chan mtuReply
+	names        chan chan nameReply
+	shutdowns    chan struct{}
+	shutdownDone chan struct{}
 }
 
 // tunDevice wraps and drives a single run.Device.
@@ -64,16 +65,17 @@ type nameReply struct {
 
 func newTUNDevices() *multiTUN {
 	d := &multiTUN{
-		devices:   make(chan tun.Device),
-		events:    make(chan tun.Event),
-		close:     make(chan struct{}),
-		closeErr:  make(chan error),
-		reads:     make(chan ioRequest),
-		writes:    make(chan ioRequest),
-		flushes:   make(chan chan error),
-		mtus:      make(chan chan mtuReply),
-		names:     make(chan chan nameReply),
-		shutdowns: make(chan struct{}),
+		devices:      make(chan tun.Device),
+		events:       make(chan tun.Event),
+		close:        make(chan struct{}),
+		closeErr:     make(chan error),
+		reads:        make(chan ioRequest),
+		writes:       make(chan ioRequest),
+		flushes:      make(chan chan error),
+		mtus:         make(chan chan mtuReply),
+		names:        make(chan chan nameReply),
+		shutdowns:    make(chan struct{}),
+		shutdownDone: make(chan struct{}),
 	}
 	go d.run()
 	return d
@@ -112,6 +114,7 @@ func (d *multiTUN) run() {
 				<-dev.readDone
 			}
 			devices = nil
+			d.shutdownDone <- struct{}{}
 		case <-d.close:
 			var derr error
 			for _, dev := range devices {
@@ -279,6 +282,7 @@ func (d *multiTUN) Events() chan tun.Event {
 
 func (d *multiTUN) Shutdown() {
 	d.shutdowns <- struct{}{}
+	<-d.shutdownDone
 }
 
 func (d *multiTUN) Close() error {
