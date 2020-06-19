@@ -4,6 +4,9 @@
 	<uses-permission android:name="android.permission.INTERNET" />
 	<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
+	<!-- Disable input emulation on ChromeOS -->
+	<uses-feature android:name="android.hardware.type.pc" android:required="false"/>
+
 	<application android:label="Tailscale" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round"
 		android:name=".App">
 		<activity android:name="org.gioui.GioActivity"
