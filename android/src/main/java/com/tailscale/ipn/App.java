@@ -83,7 +83,15 @@ public class App extends Application {
 	}
 
 	String getHostname() {
-		return Build.MANUFACTURER + " " + Build.MODEL;
+		String manu = Build.MANUFACTURER;
+		String model = Build.MODEL;
+		// Strip manufacturer from model.
+		int idx = model.toLowerCase().indexOf(manu.toLowerCase());
+		if (idx != -1) {
+			model = model.substring(idx + manu.length());
+			model = model.trim();
+		}
+		return manu + " " + model;
 	}
 
 	// Tracklifecycle adds a Peer fragment for tracking the Activity
