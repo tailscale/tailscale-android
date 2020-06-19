@@ -9,7 +9,7 @@ all: $(APK)
 
 aar:
 	mkdir -p android/libs
-	go run gioui.org/cmd/gogio -buildmode archive -target android -appid $(APPID) -o $(AAR) tailscale.com/tailscale-android/cmd/tailscale
+	go run gioui.org/cmd/gogio -buildmode archive -target android -appid $(APPID) -o $(AAR) github.com/tailscale/tailscale-android/cmd/tailscale
 
 $(DEBUG_APK): aar
 	(cd android && ./gradlew assembleDebug)

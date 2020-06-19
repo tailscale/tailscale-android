@@ -1,4 +1,4 @@
-module tailscale.com/tailscale-android
+module github.com/tailscale/tailscale-android
 
 go 1.14
 

@@ -16,10 +16,10 @@ import (
 	"gioui.org/layout"
 	"gioui.org/op"
 
+	"github.com/tailscale/tailscale-android/jni"
 	"tailscale.com/control/controlclient"
 	"tailscale.com/ipn"
 	"tailscale.com/tailcfg"
-	"tailscale.com/tailscale-android/jni"
 	"tailscale.com/wgengine/router"
 )
 

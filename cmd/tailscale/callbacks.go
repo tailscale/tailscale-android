@@ -10,7 +10,7 @@ import (
 	"sync/atomic"
 	"unsafe"
 
-	"tailscale.com/tailscale-android/jni"
+	"github.com/tailscale/tailscale-android/jni"
 )
 
 // #include <jni.h>

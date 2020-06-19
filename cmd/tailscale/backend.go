@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/tailscale/tailscale-android/jni"
 	"github.com/tailscale/wireguard-go/device"
 	"github.com/tailscale/wireguard-go/tun"
 	"golang.org/x/sys/unix"
@@ -19,7 +20,6 @@ import (
 	"tailscale.com/logpolicy"
 	"tailscale.com/logtail"
 	"tailscale.com/logtail/filch"
-	"tailscale.com/tailscale-android/jni"
 	"tailscale.com/types/logger"
 	"tailscale.com/wgengine"
 	"tailscale.com/wgengine/router"
