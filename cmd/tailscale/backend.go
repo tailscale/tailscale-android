@@ -235,7 +235,7 @@ func (b *backend) updateTUN(service jni.Object, cfg *router.Config) error {
 		return nil
 	})
 	if err != nil {
-		b.lastCfg = cfg
+		b.lastCfg = nil
 		b.CloseTUNs()
 		return err
 	}

@@ -193,6 +193,7 @@ func (a *App) runBackend() error {
 				if service != 0 {
 					if cfg != nil && state.State >= ipn.Starting {
 						if err := b.updateTUN(service, cfg); err != nil {
+							log.Printf("VPN update failed: %v", err)
 							a.notifyVPNClosed()
 						}
 					} else {
@@ -253,6 +254,7 @@ func (a *App) runBackend() error {
 			}
 			if cfg != nil && state.State >= ipn.Starting {
 				if err := b.updateTUN(service, cfg); err != nil {
+					log.Printf("VPN update failed: %v", err)
 					a.notifyVPNClosed()
 				}
 			}
