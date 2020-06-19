@@ -224,15 +224,15 @@ func (a *App) runBackend() error {
 		case e := <-a.backend:
 			switch e := e.(type) {
 			case ReauthEvent:
-				b.backend.StartLoginInteractive()
+				go b.backend.StartLoginInteractive()
 			case LogoutEvent:
-				b.backend.Logout()
+				go b.backend.Logout()
 			case ConnectEvent:
 				prefs.mu.Lock()
 				p := prefs.prefs
 				prefs.mu.Unlock()
 				p.WantRunning = e.Enable
-				b.backend.SetPrefs(p)
+				go b.backend.SetPrefs(p)
 			}
 		case s := <-onConnect:
 			jni.Do(a.jvm, func(env jni.Env) error {
