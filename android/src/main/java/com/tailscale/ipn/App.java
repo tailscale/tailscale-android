@@ -13,7 +13,9 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.BroadcastReceiver;
+import android.provider.Settings;
 import android.net.ConnectivityManager;
+import android.util.Log;
 import android.view.View;
 import android.os.Build;
 
@@ -83,6 +85,13 @@ public class App extends Application {
 	}
 
 	String getHostname() {
+		String userConfiguredDeviceName = getUserConfiguredDeviceName();
+		if (notEmpty(userConfiguredDeviceName)) return userConfiguredDeviceName;
+
+		return getModelName();
+	}
+
+	private String getModelName() {
 		String manu = Build.MANUFACTURER;
 		String model = Build.MODEL;
 		// Strip manufacturer from model.
@@ -92,6 +101,25 @@ public class App extends Application {
 			model = model.trim();
 		}
 		return manu + " " + model;
+	}
+
+	// get user defined nickname from Settings
+	private String getUserConfiguredDeviceName() {
+		String nameFromSystemBluetooth = Settings.System.getString(getContentResolver(), "bluetooth_name");
+		String nameFromSecureBluetooth = Settings.Secure.getString(getContentResolver(), "bluetooth_name");
+		String nameFromSystemDevice = Settings.Secure.getString(getContentResolver(), "device_name");
+
+		Log.d("com.tailscale.ipn.App", "Device name from System Bluetooth: " + nameFromSystemBluetooth);
+		Log.d("com.tailscale.ipn.App", "Device name from Secure Bluetooth: " + nameFromSecureBluetooth);
+		Log.d("com.tailscale.ipn.App", "Device name from System Device: " + nameFromSystemDevice);
+
+		if (notEmpty(nameFromSystemBluetooth)) return nameFromSystemBluetooth;
+		if (notEmpty(nameFromSecureBluetooth)) return nameFromSecureBluetooth;
+		return nameFromSystemDevice;
+	}
+
+	private static boolean notEmpty(String str) {
+		return !(str == null || str.length() == 0);
 	}
 
 	// Tracklifecycle adds a Peer fragment for tracking the Activity
