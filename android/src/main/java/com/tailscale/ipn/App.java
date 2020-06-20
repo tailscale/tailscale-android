@@ -115,7 +115,8 @@ public class App extends Application {
 
 		if (!isEmpty(nameFromSystemBluetooth)) return nameFromSystemBluetooth;
 		if (!isEmpty(nameFromSecureBluetooth)) return nameFromSecureBluetooth;
-		return nameFromSystemDevice;
+		if (!isEmpty(nameFromSystemDevice)) return nameFromSystemDevice;
+		return null;
 	}
 
 	private static boolean isEmpty(String str) {
