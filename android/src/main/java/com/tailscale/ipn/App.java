@@ -104,6 +104,7 @@ public class App extends Application {
 	}
 
 	// get user defined nickname from Settings
+	// returns null if not available
 	private String getUserConfiguredDeviceName() {
 		String nameFromSystemBluetooth = Settings.System.getString(getContentResolver(), "bluetooth_name");
 		String nameFromSecureBluetooth = Settings.Secure.getString(getContentResolver(), "bluetooth_name");
