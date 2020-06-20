@@ -86,7 +86,7 @@ public class App extends Application {
 
 	String getHostname() {
 		String userConfiguredDeviceName = getUserConfiguredDeviceName();
-		if (notEmpty(userConfiguredDeviceName)) return userConfiguredDeviceName;
+		if (!isEmpty(userConfiguredDeviceName)) return userConfiguredDeviceName;
 
 		return getModelName();
 	}
@@ -113,13 +113,13 @@ public class App extends Application {
 		Log.d("com.tailscale.ipn.App", "Device name from Secure Bluetooth: " + nameFromSecureBluetooth);
 		Log.d("com.tailscale.ipn.App", "Device name from System Device: " + nameFromSystemDevice);
 
-		if (notEmpty(nameFromSystemBluetooth)) return nameFromSystemBluetooth;
-		if (notEmpty(nameFromSecureBluetooth)) return nameFromSecureBluetooth;
+		if (!isEmpty(nameFromSystemBluetooth)) return nameFromSystemBluetooth;
+		if (!isEmpty(nameFromSecureBluetooth)) return nameFromSecureBluetooth;
 		return nameFromSystemDevice;
 	}
 
-	private static boolean notEmpty(String str) {
-		return !(str == null || str.length() == 0);
+	private static boolean isEmpty(String str) {
+		return str == null || str.length() == 0;
 	}
 
 	// Tracklifecycle adds a Peer fragment for tracking the Activity
