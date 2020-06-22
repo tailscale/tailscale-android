@@ -17,7 +17,6 @@ import (
 	"github.com/tailscale/wireguard-go/tun"
 	"golang.org/x/sys/unix"
 	"tailscale.com/ipn"
-	"tailscale.com/logpolicy"
 	"tailscale.com/logtail"
 	"tailscale.com/logtail/filch"
 	"tailscale.com/types/logger"
@@ -51,7 +50,6 @@ var errVPNNotPrepared = errors.New("VPN service not prepared or was revoked")
 
 func newBackend(dataDir string, jvm jni.JVM, store *stateStore, settings func(*router.Config) error) (*backend, error) {
 	logf := wgengine.RusagePrefixLog(log.Printf)
-	pol := logpolicy.New("tailnode.log.tailscale.io")
 	b := &backend{
 		jvm:      jvm,
 		devices:  newTUNDevices(),
@@ -89,7 +87,7 @@ func newBackend(dataDir string, jvm jni.JVM, store *stateStore, settings func(*r
 	if err != nil {
 		return nil, fmt.Errorf("runBackend: NewUserspaceEngineAdvanced: %v", err)
 	}
-	local, err := ipn.NewLocalBackend(logf, pol.PublicID.String(), store, engine)
+	local, err := ipn.NewLocalBackend(logf, logID.Public().String(), store, engine)
 	if err != nil {
 		engine.Close()
 		return nil, fmt.Errorf("runBackend: NewLocalBackend: %v", err)
