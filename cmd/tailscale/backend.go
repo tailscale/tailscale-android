@@ -22,6 +22,7 @@ import (
 	"tailscale.com/logtail/filch"
 	"tailscale.com/types/logger"
 	"tailscale.com/wgengine"
+	"tailscale.com/wgengine/filter"
 	"tailscale.com/wgengine/router"
 	"tailscale.com/wgengine/tstun"
 )
@@ -78,7 +79,13 @@ func newBackend(dataDir string, jvm jni.JVM, store *stateStore, settings func(*r
 		logID.UnmarshalText([]byte(storedLogID))
 	}
 	b.SetupLogs(dataDir, logID)
-	engine, err := wgengine.NewUserspaceEngineAdvanced(logf, tstun.WrapTUN(logf, b.devices), genRouter, 0)
+	tun := tstun.WrapTUN(logf, b.devices)
+	tun.SetFilter(filter.NewAllowAll([]filter.Net{filter.NetAny}, logf))
+	engine, err := wgengine.NewUserspaceEngineAdvanced(wgengine.EngineConfig{
+		Logf:      logf,
+		TUN:       tun,
+		RouterGen: genRouter,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("runBackend: NewUserspaceEngineAdvanced: %v", err)
 	}
