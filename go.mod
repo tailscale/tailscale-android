@@ -9,5 +9,5 @@ require (
 	github.com/tailscale/wireguard-go v0.0.0-20200615180905-687c10194779
 	golang.org/x/exp v0.0.0-20191002040644-a1355ae1e2c3
 	golang.org/x/sys v0.0.0-20200501052902-10377860bb8e
-	tailscale.com v0.99.2-0.20200622170642-6fbd1abcd3dc
+	tailscale.com v0.99.2-0.20200622195938-c2682553fffd
 )
