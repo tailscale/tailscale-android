@@ -15,7 +15,6 @@ import android.content.SharedPreferences;
 import android.content.BroadcastReceiver;
 import android.provider.Settings;
 import android.net.ConnectivityManager;
-import android.util.Log;
 import android.view.View;
 import android.os.Build;
 
@@ -109,10 +108,6 @@ public class App extends Application {
 		String nameFromSystemBluetooth = Settings.System.getString(getContentResolver(), "bluetooth_name");
 		String nameFromSecureBluetooth = Settings.Secure.getString(getContentResolver(), "bluetooth_name");
 		String nameFromSystemDevice = Settings.Secure.getString(getContentResolver(), "device_name");
-
-		Log.d("com.tailscale.ipn.App", "Device name from System Bluetooth: " + nameFromSystemBluetooth);
-		Log.d("com.tailscale.ipn.App", "Device name from Secure Bluetooth: " + nameFromSecureBluetooth);
-		Log.d("com.tailscale.ipn.App", "Device name from System Device: " + nameFromSystemDevice);
 
 		if (!isEmpty(nameFromSystemBluetooth)) return nameFromSystemBluetooth;
 		if (!isEmpty(nameFromSecureBluetooth)) return nameFromSecureBluetooth;
