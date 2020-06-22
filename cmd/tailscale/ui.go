@@ -122,13 +122,11 @@ func newUI(store *stateStore) (*UI, error) {
 	if err != nil {
 		return nil, err
 	}
-	//fonts := gofont.Collection()
-	fonts := new(text.Collection)
 	face, err := opentype.Parse(robotoregular.TTF)
 	if err != nil {
 		panic(fmt.Sprintf("failed to parse font: %v", err))
 	}
-	fonts.Register(text.Font{Typeface: "Roboto"}, face)
+	fonts := []text.FontFace{{Font: text.Font{Typeface: "Roboto"}, Face: face}}
 	ui := &UI{
 		theme: material.NewTheme(fonts),
 		store: store,
@@ -696,8 +694,8 @@ func drawLogo(ops *op.Ops, size int) {
 	scale := float32(size) / 680
 	discDia := 170 * scale
 	off := 172 * 1.5 * scale
-	tx := op.TransformOp{}.Offset(f32.Pt(off, 0))
-	ty := op.TransformOp{}.Offset(f32.Pt(0, off))
+	tx := op.Offset(f32.Pt(off, 0))
+	ty := op.Offset(f32.Pt(0, off))
 
 	st := op.Push(ops)
 	defer st.Pop()
