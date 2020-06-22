@@ -58,40 +58,11 @@ short() {
     esac
 }
 
-xcode() {
-    ver=$(short | sed -e 's/-/./')
-    major=$(echo "$ver" | cut -f1 -d.)
-    minor=$(echo "$ver" | cut -f2 -d.)
-    patch=$(echo "$ver" | cut -f3 -d.)
-    changecount=$(echo "$ver" | cut -f4 -d.)
-
-    # Apple version numbers must be major.minor.patch. We have 4 fields
-    # because we need major.minor.patch for go module compatibility, and
-    # changecount for automatic version numbering of unstable builds. To
-    # resolve this, for Apple builds, we combine changecount into patch:
-    patch=$((patch*10000 + changecount))
-
-    # CFBundleShortVersionString: the "short name" used in the App Store.
-    # eg. 0.92.98
-    echo "VERSION_NAME = $major.$minor.$patch"
-    # CFBundleVersion: the build number. Needs to be 3 numeric sections
-    # that increment for each release according to SemVer rules.
-    #
-    # We start counting at 100 because we submitted using raw build
-    # numbers before, and Apple doesn't let you start over.
-    # e.g. 0.98.3-123 -> 100.98.3123
-    major=$((major + 100))
-    echo "VERSION_ID = $major.$minor.$patch"
-}
-
 case "$mode" in
     long)
         long
     ;;
     short)
         short
-    ;;
-    xcode)
-        xcode
     ;;
 esac

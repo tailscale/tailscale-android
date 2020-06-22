@@ -20,15 +20,6 @@ allprojects {
 
 apply plugin: 'com.android.application'
 
-def getVersionName = { ->
-	def stdout = new ByteArrayOutputStream()
-	exec {
-		commandLine 'git', 'describe', '--tags', '--dirty'
-		standardOutput = stdout
-	}
-	return stdout.toString().trim()
-}
-
 android {
     compileSdkVersion 29
     defaultConfig {
