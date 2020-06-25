@@ -19,7 +19,7 @@ aar:
 	go run gioui.org/cmd/gogio -ldflags "-X tailscale.com/version.LONG=$(VERSION_LONG) -X tailscale.com/version.SHORT=$(VERSION_SHORT)" -tags xversion -buildmode archive -target android -appid $(APPID) -o $(AAR) github.com/tailscale/tailscale-android/cmd/tailscale
 
 $(DEBUG_APK): aar
-	(cd android && VERSION_LONG=$(VERSION_LONG) ./gradlew assembleDebug)
+	(cd android && VERSION=$(VERSION_LONG) ./gradlew assembleDebug)
 	mv android/build/outputs/apk/debug/android-debug.apk $@
 	
 $(RELEASE_AAB): aar

@@ -26,7 +26,7 @@ android {
         minSdkVersion 23
         targetSdkVersion 29
         versionCode 10
-        versionName System.getenv("VERSION_LONG")
+        versionName System.getenv("VERSION")
     }
 	compileOptions {
 		sourceCompatibility 1.8
