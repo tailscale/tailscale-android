@@ -322,6 +322,9 @@ func (a *App) updateNotification(service jni.Object, state ipn.State) error {
 // returns a new timer that triggers when the user should be notified
 // again.
 func (a *App) notifyExpiry(service jni.Object, expiry time.Time) *time.Timer {
+	if expiry.IsZero() {
+		return nil
+	}
 	d := time.Until(expiry)
 	var title string
 	const msg = "Reauthenticate to maintain the connection to your network."
