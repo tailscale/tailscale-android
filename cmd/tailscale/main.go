@@ -23,7 +23,7 @@ import (
 	"tailscale.com/wgengine/router"
 )
 
-//go:generate go run github.com/go-bindata/go-bindata/go-bindata -nocompress -o logo.go tailscale.png
+//go:generate go run github.com/go-bindata/go-bindata/go-bindata -nocompress -o logo.go tailscale.png google.png
 
 type App struct {
 	jvm    jni.JVM
@@ -84,7 +84,13 @@ type SearchEvent struct {
 
 type ReauthEvent struct{}
 
+type GoogleAuthEvent struct{}
+
 type LogoutEvent struct{}
+
+// serverOAuthID is the OAuth ID of the tailscale-android server, used
+// by GoogleSignInOptions.Builder.requestIdToken.
+const serverOAuthID = "744055068597-hv4opg0h7vskq1hv37nq3u26t8c15qk0.apps.googleusercontent.com"
 
 const enabledKey = "ipn_enabled"
 
@@ -218,6 +224,9 @@ func (a *App) runBackend() error {
 					alarm(a.notifyExpiry(service, m.Expiry))
 				}
 			}
+		case tok := <-onGoogleToken:
+			// TODO(elias.naur)
+			_ = tok
 		case <-alarmChan:
 			if m := state.NetworkMap; m != nil && service != 0 {
 				alarm(a.notifyExpiry(service, m.Expiry))
@@ -569,6 +578,14 @@ func (a *App) processUIEvents(w *app.Window, events []UIEvent, peer jni.Object, 
 			a.request(e)
 		case CopyEvent:
 			w.WriteClipboard(e.Text)
+		case GoogleAuthEvent:
+			err := jni.Do(a.jvm, func(env jni.Env) error {
+				sid := jni.JavaString(env, serverOAuthID)
+				return a.callVoidMethod(peer, "googleSignIn", "(Ljava/lang/String;)V", jni.Value(sid))
+			})
+			if err != nil {
+				fatalErr(err)
+			}
 		case SearchEvent:
 			state.query = strings.ToLower(e.Query)
 			a.updateState(peer, state)

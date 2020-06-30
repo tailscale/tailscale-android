@@ -33,8 +33,10 @@ var (
 	// instances being created.
 	onPeerCreated = make(chan jni.Object)
 	// onPeerDestroyed receives new global instances of Java Peer
-	// instances about to be destroyed
+	// instances about to be destroyed.
 	onPeerDestroyed = make(chan jni.Object)
+	// onGoogleToken receives google ID tokens.
+	onGoogleToken = make(chan string)
 )
 
 var (
@@ -66,8 +68,10 @@ func Java_com_tailscale_ipn_Peer_onVPNPrepared(env *C.JNIEnv, this C.jobject) {
 }
 
 //export Java_com_tailscale_ipn_Peer_onSignin
-func Java_com_tailscale_ipn_Peer_onSignin(env *C.JNIEnv, this C.jobject) {
-	// TODO(eliasnaur)
+func Java_com_tailscale_ipn_Peer_onSignin(env *C.JNIEnv, this C.jobject, idToken C.jstring) {
+	jenv := jni.EnvFor(uintptr(unsafe.Pointer(env)))
+	tok := jni.GoString(jenv, jni.String(idToken))
+	onGoogleToken <- tok
 }
 
 //export Java_com_tailscale_ipn_IPNService_connect

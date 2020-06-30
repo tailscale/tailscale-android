@@ -19,24 +19,23 @@ import android.webkit.WebViewClient;
 
 import androidx.browser.customtabs.CustomTabsIntent;
 
-/*import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions;*/
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 
 public class Peer extends Fragment {
-	//private final static int REQUEST_SIGNIN = 1001;
+	private final static int REQUEST_SIGNIN = 1001;
 	private final static int REQUEST_PREPARE_VPN = 1002;
 
 	@Override public void onActivityResult(int requestCode, int resultCode, Intent data) {
 		switch (requestCode) {
-		/*case REQUEST_SIGNIN:
+		case REQUEST_SIGNIN:
 			if (resultCode == Activity.RESULT_OK) {
 				GoogleSignInAccount acc = GoogleSignIn.getLastSignedInAccount(getActivity());
-				android.util.Log.i("gio", "Account: " + acc.getId());
-				onSignin();
+				onSignin(acc.getIdToken());
 				return;
-			}*/
+			}
 		case REQUEST_PREPARE_VPN:
 			if (resultCode == Activity.RESULT_OK) {
 				onVPNPrepared();
@@ -56,13 +55,15 @@ public class Peer extends Fragment {
 		super.onDestroy();
 	}
 
-	/*public void googleSignIn() {
+	public void googleSignIn(String serverOAuthID) {
 		GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+			.requestIdToken(serverOAuthID)
+			.requestEmail()
 			.build();
 		GoogleSignInClient client = GoogleSignIn.getClient(getActivity(), gso);
 		Intent signInIntent = client.getSignInIntent();
 		startActivityForResult(signInIntent, REQUEST_SIGNIN);
-	}*/
+	}
 
 	public void prepareVPN() {
 		Intent intent = VpnService.prepare(getActivity());
@@ -83,6 +84,6 @@ public class Peer extends Fragment {
 
 	private native void fragmentCreated();
 	private native void fragmentDestroyed();
-	private native void onSignin();
+	private native void onSignin(String idToken);
 	private native void onVPNPrepared();
 }

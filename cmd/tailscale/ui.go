@@ -33,6 +33,8 @@ import (
 	_ "image/png"
 )
 
+const enableGoogleSignin = false
+
 type UI struct {
 	theme *material.Theme
 	store *stateStore
@@ -43,7 +45,11 @@ type UI struct {
 	enabled widget.Bool
 	search  widget.Editor
 
-	signin widget.Clickable
+	// webSigin is the button for the web-based sign-in flow.
+	webSignin widget.Clickable
+
+	// googleSignin is the button for native Google Sign-in
+	googleSignin widget.Clickable
 
 	self  widget.Clickable
 	peers []widget.Clickable
@@ -74,6 +80,7 @@ type UI struct {
 		search *widget.Icon
 		more   *widget.Icon
 		logo   paint.ImageOp
+		google paint.ImageOp
 	}
 
 	events []UIEvent
@@ -94,6 +101,7 @@ const (
 	headerColor = 0x496495
 	infoColor   = 0x3a517b
 	white       = 0xffffff
+	signinColor = 0xe1e3e4
 )
 
 const (
@@ -122,6 +130,14 @@ func newUI(store *stateStore) (*UI, error) {
 	if err != nil {
 		return nil, err
 	}
+	googleData, err := googlePngBytes()
+	if err != nil {
+		return nil, err
+	}
+	google, _, err := image.Decode(bytes.NewReader(googleData))
+	if err != nil {
+		return nil, err
+	}
 	face, err := opentype.Parse(robotoregular.TTF)
 	if err != nil {
 		panic(fmt.Sprintf("failed to parse font: %v", err))
@@ -135,6 +151,7 @@ func newUI(store *stateStore) (*UI, error) {
 	ui.icons.search = searchIcon
 	ui.icons.more = moreIcon
 	ui.icons.logo = paint.NewImageOp(logo)
+	ui.icons.google = paint.NewImageOp(google)
 	ui.icons.more.Color = rgb(white)
 	ui.icons.search.Color = ui.theme.Color.Hint
 	ui.root.Axis = layout.Vertical
@@ -169,7 +186,11 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 		}
 	}
 
-	if ui.signin.Clicked() {
+	if ui.googleSignin.Clicked() {
+		ui.events = append(ui.events, GoogleAuthEvent{})
+	}
+
+	if ui.webSignin.Clicked() {
 		ui.events = append(ui.events, ReauthEvent{})
 	}
 
@@ -289,12 +310,47 @@ func (d *Dismiss) Dismissed(gtx layout.Context) bool {
 
 // layoutSignIn lays out the sign in button(s).
 func (ui *UI) layoutSignIn(gtx layout.Context) layout.Dimensions {
-	return layout.Inset{Top: unit.Dp(48)}.Layout(gtx, func(gtx C) D {
-		return layout.Center.Layout(gtx, func(gtx C) D {
-			signin := material.Button(ui.theme, &ui.signin, "Sign In")
-			signin.Background = rgb(headerColor)
-			return signin.Layout(gtx)
-		})
+	return layout.Inset{Top: unit.Dp(48), Left: unit.Dp(48), Right: unit.Dp(48)}.Layout(gtx, func(gtx C) D {
+		return layout.Flex{Axis: layout.Vertical, Alignment: layout.Middle}.Layout(gtx,
+			layout.Rigid(func(gtx C) D {
+				if !enableGoogleSignin {
+					return D{}
+				}
+				signin := material.ButtonLayout(ui.theme, &ui.googleSignin)
+				//signin.Background = rgb(headerColor)
+				signin.Background = rgb(signinColor)
+
+				return layout.Inset{Bottom: unit.Dp(16)}.Layout(gtx, func(gtx C) D {
+					return signin.Layout(gtx, func(gtx C) D {
+						gtx.Constraints.Max.Y = gtx.Px(unit.Dp(48))
+						return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
+							layout.Rigid(func(gtx C) D {
+								return layout.Inset{Right: unit.Dp(4)}.Layout(gtx, func(gtx C) D {
+									return drawImage(gtx, ui.icons.google, unit.Dp(16))
+								})
+							}),
+							layout.Rigid(func(gtx C) D {
+								return layout.Inset{Top: unit.Dp(10), Bottom: unit.Dp(10)}.Layout(gtx, func(gtx C) D {
+									l := material.Body2(ui.theme, "Sign in with Google")
+									l.Color = ui.theme.Color.Text
+									return l.Layout(gtx)
+								})
+							}),
+						)
+					})
+				})
+			}),
+			layout.Rigid(func(gtx C) D {
+				label := "Sign in with other"
+				if !enableGoogleSignin {
+					label = "Sign in"
+				}
+				signin := material.Button(ui.theme, &ui.webSignin, label)
+				signin.Background = rgb(signinColor)
+				signin.Color = ui.theme.Color.Text
+				return signin.Layout(gtx)
+			}),
+		)
 	})
 }
 
@@ -338,14 +394,7 @@ func (ui *UI) layoutIntro(gtx layout.Context) {
 		// "tailscale".
 		layout.Rigid(func(gtx C) D {
 			return layout.N.Layout(gtx, func(gtx C) D {
-				img := ui.icons.logo
-				img.Add(gtx.Ops)
-				sz := img.Size()
-				aspect := float32(sz.Y) / float32(sz.X)
-				w := gtx.Px(unit.Dp(200))
-				h := int(float32(w)*aspect + .5)
-				paint.PaintOp{Rect: f32.Rectangle{Max: f32.Pt(float32(w), float32(h))}}.Add(gtx.Ops)
-				return layout.Dimensions{Size: image.Pt(w, h)}
+				return drawImage(gtx, ui.icons.logo, unit.Dp(200))
 			})
 		}),
 		// Terms.
@@ -728,6 +777,16 @@ func drawLogo(ops *op.Ops, size int) {
 	tx.Add(ops)
 	drawDisc(ops, discDia, rgb(0x54514d))
 	row.Pop()
+}
+
+func drawImage(gtx layout.Context, img paint.ImageOp, size unit.Value) layout.Dimensions {
+	img.Add(gtx.Ops)
+	sz := img.Size()
+	aspect := float32(sz.Y) / float32(sz.X)
+	w := gtx.Px(size)
+	h := int(float32(w)*aspect + .5)
+	paint.PaintOp{Rect: f32.Rectangle{Max: f32.Pt(float32(w), float32(h))}}.Add(gtx.Ops)
+	return layout.Dimensions{Size: image.Pt(w, h)}
 }
 
 func drawDisc(ops *op.Ops, radius float32, col color.RGBA) {

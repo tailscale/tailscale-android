@@ -3,8 +3,8 @@ dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7
 eliasnaur.com/font v0.0.0-20200617114307-e02d32decb4b h1:J9r7EuPdhvBTafg34EqrObAm/bDEaDh7LvhKJPGficE=
 eliasnaur.com/font v0.0.0-20200617114307-e02d32decb4b/go.mod h1:CYwJpIhpzVfoHpFXGlXjSx9mXMWtHt4XXmZb6RjumRc=
 gioui.org v0.0.0-20200622101735-5368743478e0/go.mod h1:jiUwifN9cRl/zmco43aAqh0aV+s9GbhG13KcD+gEpkU=
-gioui.org v0.0.0-20200622162632-3a542cc80cee h1:qJXyQltqYTE3EURAc5ud8alfncvhIHKhsq/ooxdsqMo=
-gioui.org v0.0.0-20200622162632-3a542cc80cee/go.mod h1:jiUwifN9cRl/zmco43aAqh0aV+s9GbhG13KcD+gEpkU=
+gioui.org v0.0.0-20200630184435-6ef1ff7cfbfb h1:+jJBzbEtW03w0+fAfhPCwmN0/8xN1CJ94lbfV2eSKhs=
+gioui.org v0.0.0-20200630184435-6ef1ff7cfbfb/go.mod h1:jiUwifN9cRl/zmco43aAqh0aV+s9GbhG13KcD+gEpkU=
 gioui.org/cmd v0.0.0-20200622185735-5bd0ecea5e43 h1:Wj8OoCIw06dNSSSPAAipnmcG7dbFn+7Et9IY37e1HBU=
 gioui.org/cmd v0.0.0-20200622185735-5bd0ecea5e43/go.mod h1:KrsGUGWoPetiRyuDmOd/GTNCBFi2u4UbESTFXZ5YqXY=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
