@@ -6,4 +6,7 @@
 
 package main
 
-import _ "gioui.org/cmd/gogio"
+import (
+	_ "gioui.org/cmd/gogio"
+	_ "github.com/go-bindata/go-bindata/go-bindata"
+)
