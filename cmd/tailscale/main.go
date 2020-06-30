@@ -579,7 +579,7 @@ func (a *App) processUIEvents(w *app.Window, events []UIEvent, peer jni.Object, 
 func (a *App) browseToURL(peer jni.Object, url string) {
 	err := jni.Do(a.jvm, func(env jni.Env) error {
 		jurl := jni.JavaString(env, url)
-		return a.callVoidMethod(peer, "showURLCustomTabs", "(Ljava/lang/String;)V", jni.Value(jurl))
+		return a.callVoidMethod(peer, "showURL", "(Ljava/lang/String;)V", jni.Value(jurl))
 	})
 	if err != nil {
 		fatalErr(err)

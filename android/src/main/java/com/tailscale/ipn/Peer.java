@@ -73,53 +73,16 @@ public class Peer extends Fragment {
 		}
 	}
 
-	public void showURLActionView(String url) {
-		Intent i = new Intent(Intent.ACTION_VIEW);
-		i.setData(Uri.parse(url));
-		startActivity(i);
-	}
-
-	public void showURLCustomTabs(String url) {
+	void showURL(String url) {
 		CustomTabsIntent.Builder builder = new CustomTabsIntent.Builder();
+		int headerColor = 0xff496495;
+		builder.setToolbarColor(headerColor);
 		CustomTabsIntent intent = builder.build();
 		intent.launchUrl(getActivity(), Uri.parse(url));
-	}
-
-	public void showURLWebView(String url) {
-		DialogFragment f = new WebViewFragment();
-		Bundle args = new Bundle();
-		args.putString("url", url);
-		f.setArguments(args);
-		f.show(getFragmentManager(), "urldialog");
 	}
 
 	private native void fragmentCreated();
 	private native void fragmentDestroyed();
 	private native void onSignin();
 	private native void onVPNPrepared();
-
-	public static class WebViewFragment extends DialogFragment {
-		@Override public Dialog onCreateDialog(Bundle savedInstanceState) {
-			String url = getArguments().getString("url");
-			AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-			WebView wv = new WebView(builder.getContext()) {
-				@Override public boolean onCheckIsTextEditor() {
-					// Force the soft keyboard to appear when a text
-					// input is focused.
-					return true;
-				}
-			};
-			wv.setFocusable(true);
-			wv.setFocusableInTouchMode(true);
-			wv.getSettings().setJavaScriptEnabled(true);
-			// Work around Google OAuth refusing to work in embedded
-			// browsers.
-			final String USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.13; rv:61.0) Gecko/20100101 Firefox/61.0";
-			wv.getSettings().setUserAgentString(USER_AGENT);
-			wv.setWebViewClient(new WebViewClient() {
-			});
-			wv.loadUrl(url);
-			return builder.setView(wv).create();
-		}
-	}
 }
