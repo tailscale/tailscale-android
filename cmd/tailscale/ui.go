@@ -311,32 +311,43 @@ func (d *Dismiss) Dismissed(gtx layout.Context) bool {
 // layoutSignIn lays out the sign in button(s).
 func (ui *UI) layoutSignIn(gtx layout.Context) layout.Dimensions {
 	return layout.Inset{Top: unit.Dp(48), Left: unit.Dp(48), Right: unit.Dp(48)}.Layout(gtx, func(gtx C) D {
+		const (
+			textColor = 0x555555
+		)
+
+		// The border cornered rectangle is slightly bigger than the
+		// inner buttons. Adjust the border radius accordingly.
+		cr := gtx.Px(unit.Dp(4)) + 1
+		border := Background{Color: rgb(textColor), CornerRadius: unit.Px(float32(cr))}
 		return layout.Flex{Axis: layout.Vertical, Alignment: layout.Middle}.Layout(gtx,
 			layout.Rigid(func(gtx C) D {
 				if !enableGoogleSignin {
 					return D{}
 				}
-				signin := material.ButtonLayout(ui.theme, &ui.googleSignin)
-				//signin.Background = rgb(headerColor)
-				signin.Background = rgb(signinColor)
-
 				return layout.Inset{Bottom: unit.Dp(16)}.Layout(gtx, func(gtx C) D {
-					return signin.Layout(gtx, func(gtx C) D {
-						gtx.Constraints.Max.Y = gtx.Px(unit.Dp(48))
-						return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
-							layout.Rigid(func(gtx C) D {
-								return layout.Inset{Right: unit.Dp(4)}.Layout(gtx, func(gtx C) D {
-									return drawImage(gtx, ui.icons.google, unit.Dp(16))
-								})
-							}),
-							layout.Rigid(func(gtx C) D {
-								return layout.Inset{Top: unit.Dp(10), Bottom: unit.Dp(10)}.Layout(gtx, func(gtx C) D {
-									l := material.Body2(ui.theme, "Sign in with Google")
-									l.Color = ui.theme.Color.Text
-									return l.Layout(gtx)
-								})
-							}),
-						)
+					signin := material.ButtonLayout(ui.theme, &ui.googleSignin)
+					signin.Background = rgb(white)
+
+					return border.Layout(gtx, func(gtx C) D {
+						return layout.UniformInset(unit.Px(2)).Layout(gtx, func(gtx C) D {
+							return signin.Layout(gtx, func(gtx C) D {
+								gtx.Constraints.Max.Y = gtx.Px(unit.Dp(48))
+								return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
+									layout.Rigid(func(gtx C) D {
+										return layout.Inset{Right: unit.Dp(4)}.Layout(gtx, func(gtx C) D {
+											return drawImage(gtx, ui.icons.google, unit.Dp(16))
+										})
+									}),
+									layout.Rigid(func(gtx C) D {
+										return layout.Inset{Top: unit.Dp(10), Bottom: unit.Dp(10)}.Layout(gtx, func(gtx C) D {
+											l := material.Body2(ui.theme, "Sign in with Google")
+											l.Color = rgb(textColor)
+											return l.Layout(gtx)
+										})
+									}),
+								)
+							})
+						})
 					})
 				})
 			}),
@@ -345,10 +356,15 @@ func (ui *UI) layoutSignIn(gtx layout.Context) layout.Dimensions {
 				if !enableGoogleSignin {
 					label = "Sign in"
 				}
-				signin := material.Button(ui.theme, &ui.webSignin, label)
-				signin.Background = rgb(signinColor)
-				signin.Color = ui.theme.Color.Text
-				return signin.Layout(gtx)
+				return border.Layout(gtx, func(gtx C) D {
+					return layout.UniformInset(unit.Px(2)).Layout(gtx, func(gtx C) D {
+						signin := material.Button(ui.theme, &ui.webSignin, label)
+						signin.Background = rgb(signinColor)
+						signin.Color = rgb(textColor)
+						signin.Background = rgb(white)
+						return signin.Layout(gtx)
+					})
+				})
 			}),
 		)
 	})
@@ -801,11 +817,11 @@ func drawDisc(ops *op.Ops, radius float32, col color.RGBA) {
 	paint.PaintOp{Rect: dr}.Add(ops)
 }
 
-// background lays out a widget and draws a color background behind
-// it.
+// background lays out a widget and draws a color background behind it.
 type Background struct {
-	Color        color.RGBA
-	CornerRadius unit.Value
+	Color         color.RGBA
+	CornerRadius  unit.Value
+	CornerRadius2 float32
 }
 
 func (b Background) Layout(gtx layout.Context, w layout.Widget) layout.Dimensions {
@@ -815,6 +831,16 @@ func (b Background) Layout(gtx layout.Context, w layout.Widget) layout.Dimension
 	call := m.Stop()
 	// Clip corners, if any.
 	if r := gtx.Px(b.CornerRadius); r > 0 {
+		rr := float32(r)
+		clip.Rect{
+			Rect: f32.Rectangle{Max: f32.Point{
+				X: float32(sz.X),
+				Y: float32(sz.Y),
+			}},
+			NE: rr, NW: rr, SE: rr, SW: rr,
+		}.Op(gtx.Ops).Add(gtx.Ops)
+	}
+	if r := b.CornerRadius2; r > 0 {
 		rr := float32(r)
 		clip.Rect{
 			Rect: f32.Rectangle{Max: f32.Point{
