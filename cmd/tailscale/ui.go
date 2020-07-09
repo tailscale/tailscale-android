@@ -494,76 +494,74 @@ func (ui *UI) layoutMenu(gtx layout.Context, sysIns system.Insets, expiry time.T
 		Right: unit.Add(gtx.Metric, sysIns.Right, unit.Dp(2)),
 	}.Layout(gtx, func(gtx C) D {
 		return layout.NE.Layout(gtx, func(gtx C) D {
-			return Background{Color: argb(0x33000000), CornerRadius: unit.Dp(2)}.Layout(gtx, func(gtx C) D {
-				return layout.UniformInset(unit.Px(1)).Layout(gtx, func(gtx C) D {
-					return Background{Color: rgb(0xfafafa), CornerRadius: unit.Px(4)}.Layout(gtx, func(gtx C) D {
-						menu := &ui.menu
-						items := []struct {
-							btn   *widget.Clickable
-							title string
-						}{
-							{title: "Copy My IP Address", btn: &menu.copy},
-							{title: "Reauthenticate", btn: &menu.reauth},
-							{title: "Log out", btn: &menu.logout},
-						}
-						// Lay out menu items twice; once for
-						// measuring the widest item, once for actual layout.
-						var maxWidth int
-						var minWidth int
-						children := []layout.FlexChild{
-							layout.Rigid(func(gtx C) D {
-								return layout.Inset{
-									Top:    unit.Dp(16),
-									Right:  unit.Dp(16),
-									Left:   unit.Dp(16),
-									Bottom: unit.Dp(4),
-								}.Layout(gtx, func(gtx C) D {
+			return widget.Border{Color: argb(0x33000000), CornerRadius: unit.Dp(2), Width: unit.Px(1)}.Layout(gtx, func(gtx C) D {
+				return Background{Color: rgb(0xfafafa), CornerRadius: unit.Dp(2)}.Layout(gtx, func(gtx C) D {
+					menu := &ui.menu
+					items := []struct {
+						btn   *widget.Clickable
+						title string
+					}{
+						{title: "Copy My IP Address", btn: &menu.copy},
+						{title: "Reauthenticate", btn: &menu.reauth},
+						{title: "Log out", btn: &menu.logout},
+					}
+					// Lay out menu items twice; once for
+					// measuring the widest item, once for actual layout.
+					var maxWidth int
+					var minWidth int
+					children := []layout.FlexChild{
+						layout.Rigid(func(gtx C) D {
+							return layout.Inset{
+								Top:    unit.Dp(16),
+								Right:  unit.Dp(16),
+								Left:   unit.Dp(16),
+								Bottom: unit.Dp(4),
+							}.Layout(gtx, func(gtx C) D {
+								gtx.Constraints.Min.X = minWidth
+								var expiryStr string
+								const fmtStr = time.Stamp
+								switch {
+								case expiry.IsZero():
+									expiryStr = "Expires: (never)"
+								case time.Now().After(expiry):
+									expiryStr = fmt.Sprintf("Expired: %s", expiry.Format(fmtStr))
+								default:
+									expiryStr = fmt.Sprintf("Expires: %s", expiry.Format(fmtStr))
+								}
+								l := material.Caption(ui.theme, expiryStr)
+								l.Color = rgb(0x8f8f8f)
+								dims := l.Layout(gtx)
+								if w := dims.Size.X; w > maxWidth {
+									maxWidth = w
+								}
+								return dims
+							})
+						}),
+					}
+					for i := 0; i < len(items); i++ {
+						it := &items[i]
+						children = append(children, layout.Rigid(func(gtx C) D {
+							return material.Clickable(gtx, it.btn, func(gtx C) D {
+								return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx C) D {
 									gtx.Constraints.Min.X = minWidth
-									var expiryStr string
-									const fmtStr = time.Stamp
-									switch {
-									case expiry.IsZero():
-										expiryStr = "Expires: (never)"
-									case time.Now().After(expiry):
-										expiryStr = fmt.Sprintf("Expired: %s", expiry.Format(fmtStr))
-									default:
-										expiryStr = fmt.Sprintf("Expires: %s", expiry.Format(fmtStr))
-									}
-									l := material.Caption(ui.theme, expiryStr)
-									l.Color = rgb(0x8f8f8f)
-									dims := l.Layout(gtx)
+									dims := material.Body1(ui.theme, it.title).Layout(gtx)
 									if w := dims.Size.X; w > maxWidth {
 										maxWidth = w
 									}
 									return dims
 								})
-							}),
-						}
-						for i := 0; i < len(items); i++ {
-							it := &items[i]
-							children = append(children, layout.Rigid(func(gtx C) D {
-								return material.Clickable(gtx, it.btn, func(gtx C) D {
-									return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx C) D {
-										gtx.Constraints.Min.X = minWidth
-										dims := material.Body1(ui.theme, it.title).Layout(gtx)
-										if w := dims.Size.X; w > maxWidth {
-											maxWidth = w
-										}
-										return dims
-									})
-								})
-							}))
-						}
-						f := layout.Flex{Axis: layout.Vertical}
-						// First pass: record and discard operations
-						// and determine widest item.
-						m := op.Record(gtx.Ops)
-						f.Layout(gtx, children...)
-						m.Stop()
-						// Second pass: layout items with equal width.
-						minWidth = maxWidth
-						return f.Layout(gtx, children...)
-					})
+							})
+						}))
+					}
+					f := layout.Flex{Axis: layout.Vertical}
+					// First pass: record and discard operations
+					// and determine widest item.
+					m := op.Record(gtx.Ops)
+					f.Layout(gtx, children...)
+					m.Stop()
+					// Second pass: layout items with equal width.
+					minWidth = maxWidth
+					return f.Layout(gtx, children...)
 				})
 			})
 		})
@@ -853,9 +851,8 @@ func drawDisc(ops *op.Ops, radius float32, col color.RGBA) {
 
 // Background lays out a widget and draws a color background behind it.
 type Background struct {
-	Color         color.RGBA
-	CornerRadius  unit.Value
-	CornerRadius2 float32
+	Color        color.RGBA
+	CornerRadius unit.Value
 }
 
 func (b Background) Layout(gtx layout.Context, w layout.Widget) layout.Dimensions {
@@ -865,16 +862,6 @@ func (b Background) Layout(gtx layout.Context, w layout.Widget) layout.Dimension
 	call := m.Stop()
 	// Clip corners, if any.
 	if r := gtx.Px(b.CornerRadius); r > 0 {
-		rr := float32(r)
-		clip.RRect{
-			Rect: f32.Rectangle{Max: f32.Point{
-				X: float32(sz.X),
-				Y: float32(sz.Y),
-			}},
-			NE: rr, NW: rr, SE: rr, SW: rr,
-		}.Add(gtx.Ops)
-	}
-	if r := b.CornerRadius2; r > 0 {
 		rr := float32(r)
 		clip.RRect{
 			Rect: f32.Rectangle{Max: f32.Point{
