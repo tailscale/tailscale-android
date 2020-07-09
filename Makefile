@@ -23,7 +23,7 @@ $(DEBUG_APK): aar
 	mv android/build/outputs/apk/debug/android-debug.apk $@
 	
 $(RELEASE_AAB): aar
-	(cd android && VERSION_LONG=$(VERSION_LONG) ./gradlew bundleRelease)
+	(cd android && VERSION=$(VERSION_LONG) ./gradlew bundleRelease)
 	mv ./android/build/outputs/bundle/release/android-release.aab $@
 
 release: $(RELEASE_AAB)
