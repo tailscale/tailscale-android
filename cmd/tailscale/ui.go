@@ -51,6 +51,8 @@ type UI struct {
 	// googleSignin is the button for native Google Sign-in
 	googleSignin widget.Clickable
 
+	signinType signinType
+
 	self  widget.Clickable
 	peers []widget.Clickable
 
@@ -86,6 +88,8 @@ type UI struct {
 	events []UIEvent
 }
 
+type signinType uint8
+
 // An UIPeer is either a peer or a section header
 // with the user information.
 type UIPeer struct {
@@ -106,6 +110,12 @@ const (
 
 const (
 	keyShowIntro = "ui.showintro"
+)
+
+const (
+	noSignin signinType = iota
+	webSignin
+	googleSignin
 )
 
 type (
@@ -175,7 +185,7 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 		ui.menu.show = !ui.menu.show
 	}
 
-	netmap := state.net.NetworkMap
+	netmap := state.backend.NetworkMap
 	var localName, localAddr string
 	var expiry time.Time
 	if netmap != nil {
@@ -186,12 +196,16 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 		}
 	}
 
-	if ui.googleSignin.Clicked() {
-		ui.events = append(ui.events, GoogleAuthEvent{})
-	}
+	if ui.signinType == noSignin {
+		if ui.googleSignin.Clicked() {
+			ui.signinType = googleSignin
+			ui.events = append(ui.events, GoogleAuthEvent{})
+		}
 
-	if ui.webSignin.Clicked() {
-		ui.events = append(ui.events, ReauthEvent{})
+		if ui.webSignin.Clicked() {
+			ui.signinType = webSignin
+			ui.events = append(ui.events, ReauthEvent{})
+		}
 	}
 
 	if ui.menuClicked(&ui.menu.copy) && localAddr != "" {
@@ -215,7 +229,7 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 
 	const numHeaders = 5
 	n := numHeaders + len(state.Peers)
-	needsLogin := state.net.State == ipn.NeedsLogin
+	needsLogin := state.backend.State == ipn.NeedsLogin
 	ui.root.Layout(gtx, n, func(gtx C, idx int) D {
 		var in layout.Inset
 		if idx == n-1 {
@@ -226,14 +240,14 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 		return in.Layout(gtx, func(gtx C) D {
 			switch idx {
 			case 0:
-				return ui.layoutTop(gtx, sysIns, &state.net)
+				return ui.layoutTop(gtx, sysIns, &state.backend)
 			case 1:
-				if netmap == nil || state.net.State < ipn.Stopped {
+				if netmap == nil || state.backend.State < ipn.Stopped {
 					return D{}
 				}
 				return ui.layoutLocal(gtx, sysIns, localName, localAddr)
 			case 2:
-				if state.net.State < ipn.Stopped {
+				if state.backend.State < ipn.Stopped {
 					return D{}
 				}
 				return ui.layoutSearchbar(gtx, sysIns)
@@ -241,9 +255,9 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 				if !needsLogin {
 					return D{}
 				}
-				return ui.layoutSignIn(gtx)
+				return ui.layoutSignIn(gtx, &state.backend)
 			case 4:
-				if needsLogin || !state.net.LostInternet {
+				if needsLogin || !state.backend.LostInternet {
 					return D{}
 				}
 				return ui.layoutDisconnected(gtx)
@@ -309,7 +323,7 @@ func (d *Dismiss) Dismissed(gtx layout.Context) bool {
 }
 
 // layoutSignIn lays out the sign in button(s).
-func (ui *UI) layoutSignIn(gtx layout.Context) layout.Dimensions {
+func (ui *UI) layoutSignIn(gtx layout.Context, state *BackendState) layout.Dimensions {
 	return layout.Inset{Top: unit.Dp(48), Left: unit.Dp(48), Right: unit.Dp(48)}.Layout(gtx, func(gtx C) D {
 		const (
 			textColor = 0x555555
@@ -328,24 +342,26 @@ func (ui *UI) layoutSignIn(gtx layout.Context) layout.Dimensions {
 					signin := material.ButtonLayout(ui.theme, &ui.googleSignin)
 					signin.Background = rgb(white)
 
-					return border.Layout(gtx, func(gtx C) D {
-						return layout.UniformInset(unit.Px(2)).Layout(gtx, func(gtx C) D {
-							return signin.Layout(gtx, func(gtx C) D {
-								gtx.Constraints.Max.Y = gtx.Px(unit.Dp(48))
-								return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
-									layout.Rigid(func(gtx C) D {
-										return layout.Inset{Right: unit.Dp(4)}.Layout(gtx, func(gtx C) D {
-											return drawImage(gtx, ui.icons.google, unit.Dp(16))
-										})
-									}),
-									layout.Rigid(func(gtx C) D {
-										return layout.Inset{Top: unit.Dp(10), Bottom: unit.Dp(10)}.Layout(gtx, func(gtx C) D {
-											l := material.Body2(ui.theme, "Sign in with Google")
-											l.Color = rgb(textColor)
-											return l.Layout(gtx)
-										})
-									}),
-								)
+					return ui.withLoader(gtx, ui.signinType == googleSignin, func(gtx C) D {
+						return border.Layout(gtx, func(gtx C) D {
+							return layout.UniformInset(unit.Px(2)).Layout(gtx, func(gtx C) D {
+								return signin.Layout(gtx, func(gtx C) D {
+									gtx.Constraints.Max.Y = gtx.Px(unit.Dp(48))
+									return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
+										layout.Rigid(func(gtx C) D {
+											return layout.Inset{Right: unit.Dp(4)}.Layout(gtx, func(gtx C) D {
+												return drawImage(gtx, ui.icons.google, unit.Dp(16))
+											})
+										}),
+										layout.Rigid(func(gtx C) D {
+											return layout.Inset{Top: unit.Dp(10), Bottom: unit.Dp(10)}.Layout(gtx, func(gtx C) D {
+												l := material.Body2(ui.theme, "Sign in with Google")
+												l.Color = rgb(textColor)
+												return l.Layout(gtx)
+											})
+										}),
+									)
+								})
 							})
 						})
 					})
@@ -356,18 +372,41 @@ func (ui *UI) layoutSignIn(gtx layout.Context) layout.Dimensions {
 				if !enableGoogleSignin {
 					label = "Sign in"
 				}
-				return border.Layout(gtx, func(gtx C) D {
-					return layout.UniformInset(unit.Px(2)).Layout(gtx, func(gtx C) D {
-						signin := material.Button(ui.theme, &ui.webSignin, label)
-						signin.Background = rgb(signinColor)
-						signin.Color = rgb(textColor)
-						signin.Background = rgb(white)
-						return signin.Layout(gtx)
+				return ui.withLoader(gtx, ui.signinType == webSignin, func(gtx C) D {
+					return border.Layout(gtx, func(gtx C) D {
+						return layout.UniformInset(unit.Px(2)).Layout(gtx, func(gtx C) D {
+							signin := material.Button(ui.theme, &ui.webSignin, label)
+							signin.Background = rgb(signinColor)
+							signin.Color = rgb(textColor)
+							signin.Background = rgb(white)
+							return signin.Layout(gtx)
+						})
 					})
 				})
 			}),
 		)
 	})
+}
+
+func (ui *UI) withLoader(gtx layout.Context, loading bool, w layout.Widget) layout.Dimensions {
+	cons := gtx.Constraints
+	return layout.Stack{Alignment: layout.W}.Layout(gtx,
+		layout.Stacked(func(gtx C) D {
+			gtx.Constraints = cons
+			return w(gtx)
+		}),
+		layout.Stacked(func(gtx C) D {
+			if !loading {
+				return D{}
+			}
+			return layout.Inset{Left: unit.Dp(16)}.Layout(gtx, func(gtx C) D {
+				gtx.Constraints.Min = image.Point{
+					X: gtx.Px(unit.Dp(16)),
+				}
+				return material.Loader(ui.theme).Layout(gtx)
+			})
+		}),
+	)
 }
 
 // layoutDisconnected lays out the "please connect to the internet"
@@ -624,7 +663,7 @@ func (ui *UI) layoutSection(gtx layout.Context, sysIns system.Insets, title stri
 }
 
 // layoutTop lays out the top controls: toggle, status and menu dots.
-func (ui *UI) layoutTop(gtx layout.Context, sysIns system.Insets, state *NetworkState) layout.Dimensions {
+func (ui *UI) layoutTop(gtx layout.Context, sysIns system.Insets, state *BackendState) layout.Dimensions {
 	in := layout.Inset{
 		Top:    unit.Dp(16),
 		Bottom: unit.Dp(16),

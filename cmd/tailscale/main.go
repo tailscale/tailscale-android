@@ -44,7 +44,7 @@ type App struct {
 	// mu protects the following fields.
 	mu sync.Mutex
 	// netState is the most recent network state.
-	netState NetworkState
+	netState BackendState
 	// browseURL is set whenever the backend wants to
 	// browse.
 	browseURL *string
@@ -54,14 +54,14 @@ type App struct {
 
 type clientState struct {
 	browseURL string
-	net       NetworkState
+	backend   BackendState
 	// query is the search query, in lowercase.
 	query string
 
 	Peers []UIPeer
 }
 
-type NetworkState struct {
+type BackendState struct {
 	State        ipn.State
 	NetworkMap   *controlclient.NetworkMap
 	LostInternet bool
@@ -160,9 +160,12 @@ func (a *App) runBackend() error {
 			notifications <- n
 		})
 	}()
-	var cfg *router.Config
-	var state NetworkState
-	var service jni.Object
+	var (
+		cfg       *router.Config
+		state     BackendState
+		service   jni.Object
+		signingIn bool
+	)
 	for {
 		select {
 		case err := <-startErr:
@@ -215,6 +218,7 @@ func (a *App) runBackend() error {
 				a.notify(state)
 			}
 			if u := n.BrowseToURL; u != nil {
+				signingIn = false
 				a.setURL(*u)
 			}
 			if m := n.NetMap; m != nil {
@@ -234,7 +238,10 @@ func (a *App) runBackend() error {
 		case e := <-a.backend:
 			switch e := e.(type) {
 			case ReauthEvent:
-				go b.backend.StartLoginInteractive()
+				if !signingIn {
+					go b.backend.StartLoginInteractive()
+					signingIn = true
+				}
 			case LogoutEvent:
 				go b.backend.Logout()
 			case ConnectEvent:
@@ -374,7 +381,7 @@ func (a *App) notifyVPNClosed() {
 	}
 }
 
-func (a *App) notify(state NetworkState) {
+func (a *App) notify(state BackendState) {
 	a.mu.Lock()
 	a.netState = state
 	a.mu.Unlock()
@@ -420,11 +427,12 @@ func (a *App) runUI() error {
 			a.request(ConnectEvent{Enable: false})
 		case <-a.updates:
 			a.mu.Lock()
-			oldState := state.net.State
-			state.net = a.netState
+			oldState := state.backend.State
+			state.backend = a.netState
 			if a.browseURL != nil {
 				state.browseURL = *a.browseURL
 				a.browseURL = nil
+				ui.signinType = noSignin
 			}
 			if a.prefs != nil {
 				ui.enabled.Value = a.prefs.WantRunning
@@ -434,7 +442,7 @@ func (a *App) runUI() error {
 			a.updateState(peer, state)
 			w.Invalidate()
 			if peer != 0 {
-				newState := state.net.State
+				newState := state.backend.State
 				// Start VPN if we just logged in.
 				if oldState <= ipn.Stopped && newState > ipn.Stopped {
 					if err := a.callVoidMethod(peer, "prepareVPN", "()V"); err != nil {
@@ -444,7 +452,7 @@ func (a *App) runUI() error {
 			}
 		case peer = <-onPeerCreated:
 			w.Invalidate()
-			if state.net.State > ipn.Stopped {
+			if state.backend.State > ipn.Stopped {
 				if err := a.callVoidMethod(peer, "prepareVPN", "()V"); err != nil {
 					return err
 				}
@@ -459,7 +467,7 @@ func (a *App) runUI() error {
 				return nil
 			})
 		case <-vpnPrepared:
-			if state.net.State > ipn.Stopped {
+			if state.backend.State > ipn.Stopped {
 				if err := a.callVoidMethod(a.appCtx, "startVPN", "()V"); err != nil {
 					return err
 				}
@@ -502,7 +510,7 @@ func (a *App) updateState(javaPeer jni.Object, state *clientState) {
 	}
 
 	state.Peers = nil
-	netMap := state.net.NetworkMap
+	netMap := state.backend.NetworkMap
 	if netMap == nil {
 		return
 	}
@@ -534,7 +542,7 @@ func (a *App) updateState(javaPeer jni.Object, state *clientState) {
 		name = strings.ToUpper(name)
 		peers = append(peers, UIPeer{Owner: u, Name: name})
 	}
-	myID := state.net.NetworkMap.User
+	myID := state.backend.NetworkMap.User
 	sort.Slice(peers, func(i, j int) bool {
 		lhs, rhs := peers[i], peers[j]
 		if lu, ru := lhs.Owner, rhs.Owner; ru != lu {
