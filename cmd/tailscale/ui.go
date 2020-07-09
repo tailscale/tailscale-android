@@ -105,7 +105,6 @@ const (
 	headerColor = 0x496495
 	infoColor   = 0x3a517b
 	white       = 0xffffff
-	signinColor = 0xe1e3e4
 )
 
 const (
@@ -196,16 +195,14 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 		}
 	}
 
-	if ui.signinType == noSignin {
-		if ui.googleSignin.Clicked() {
-			ui.signinType = googleSignin
-			ui.events = append(ui.events, GoogleAuthEvent{})
-		}
+	if ui.googleSignin.Clicked() {
+		ui.signinType = googleSignin
+		ui.events = append(ui.events, GoogleAuthEvent{})
+	}
 
-		if ui.webSignin.Clicked() {
-			ui.signinType = webSignin
-			ui.events = append(ui.events, ReauthEvent{})
-		}
+	if ui.webSignin.Clicked() {
+		ui.signinType = webSignin
+		ui.events = append(ui.events, ReauthEvent{})
 	}
 
 	if ui.menuClicked(&ui.menu.copy) && localAddr != "" {
@@ -329,10 +326,7 @@ func (ui *UI) layoutSignIn(gtx layout.Context, state *BackendState) layout.Dimen
 			textColor = 0x555555
 		)
 
-		// The border cornered rectangle is slightly bigger than the
-		// inner buttons. Adjust the border radius accordingly.
-		cr := gtx.Px(unit.Dp(4)) + 1
-		border := Background{Color: rgb(textColor), CornerRadius: unit.Px(float32(cr))}
+		border := widget.Border{Color: rgb(textColor), CornerRadius: unit.Dp(4), Width: unit.Dp(1)}
 		return layout.Flex{Axis: layout.Vertical, Alignment: layout.Middle}.Layout(gtx,
 			layout.Rigid(func(gtx C) D {
 				if !enableGoogleSignin {
@@ -340,28 +334,29 @@ func (ui *UI) layoutSignIn(gtx layout.Context, state *BackendState) layout.Dimen
 				}
 				return layout.Inset{Bottom: unit.Dp(16)}.Layout(gtx, func(gtx C) D {
 					signin := material.ButtonLayout(ui.theme, &ui.googleSignin)
-					signin.Background = rgb(white)
+					signin.Background = color.RGBA{} // transparent
 
 					return ui.withLoader(gtx, ui.signinType == googleSignin, func(gtx C) D {
 						return border.Layout(gtx, func(gtx C) D {
-							return layout.UniformInset(unit.Px(2)).Layout(gtx, func(gtx C) D {
-								return signin.Layout(gtx, func(gtx C) D {
-									gtx.Constraints.Max.Y = gtx.Px(unit.Dp(48))
-									return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
-										layout.Rigid(func(gtx C) D {
-											return layout.Inset{Right: unit.Dp(4)}.Layout(gtx, func(gtx C) D {
-												return drawImage(gtx, ui.icons.google, unit.Dp(16))
-											})
-										}),
-										layout.Rigid(func(gtx C) D {
-											return layout.Inset{Top: unit.Dp(10), Bottom: unit.Dp(10)}.Layout(gtx, func(gtx C) D {
-												l := material.Body2(ui.theme, "Sign in with Google")
-												l.Color = rgb(textColor)
-												return l.Layout(gtx)
-											})
-										}),
-									)
-								})
+							if ui.signinType != noSignin {
+								gtx.Queue = nil
+							}
+							return signin.Layout(gtx, func(gtx C) D {
+								gtx.Constraints.Max.Y = gtx.Px(unit.Dp(48))
+								return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
+									layout.Rigid(func(gtx C) D {
+										return layout.Inset{Right: unit.Dp(4)}.Layout(gtx, func(gtx C) D {
+											return drawImage(gtx, ui.icons.google, unit.Dp(16))
+										})
+									}),
+									layout.Rigid(func(gtx C) D {
+										return layout.Inset{Top: unit.Dp(10), Bottom: unit.Dp(10)}.Layout(gtx, func(gtx C) D {
+											l := material.Body2(ui.theme, "Sign in with Google")
+											l.Color = rgb(textColor)
+											return l.Layout(gtx)
+										})
+									}),
+								)
 							})
 						})
 					})
@@ -374,13 +369,13 @@ func (ui *UI) layoutSignIn(gtx layout.Context, state *BackendState) layout.Dimen
 				}
 				return ui.withLoader(gtx, ui.signinType == webSignin, func(gtx C) D {
 					return border.Layout(gtx, func(gtx C) D {
-						return layout.UniformInset(unit.Px(2)).Layout(gtx, func(gtx C) D {
-							signin := material.Button(ui.theme, &ui.webSignin, label)
-							signin.Background = rgb(signinColor)
-							signin.Color = rgb(textColor)
-							signin.Background = rgb(white)
-							return signin.Layout(gtx)
-						})
+						if ui.signinType != noSignin {
+							gtx.Queue = nil
+						}
+						signin := material.Button(ui.theme, &ui.webSignin, label)
+						signin.Background = color.RGBA{} // transparent
+						signin.Color = rgb(textColor)
+						return signin.Layout(gtx)
 					})
 				})
 			}),
@@ -848,15 +843,15 @@ func drawDisc(ops *op.Ops, radius float32, col color.RGBA) {
 	defer op.Push(ops).Pop()
 	r2 := radius * .5
 	dr := f32.Rectangle{Max: f32.Pt(radius, radius)}
-	clip.Rect{
+	clip.RRect{
 		Rect: dr,
 		NE:   r2, NW: r2, SE: r2, SW: r2,
-	}.Op(ops).Add(ops)
+	}.Add(ops)
 	paint.ColorOp{Color: col}.Add(ops)
 	paint.PaintOp{Rect: dr}.Add(ops)
 }
 
-// background lays out a widget and draws a color background behind it.
+// Background lays out a widget and draws a color background behind it.
 type Background struct {
 	Color         color.RGBA
 	CornerRadius  unit.Value
@@ -871,23 +866,23 @@ func (b Background) Layout(gtx layout.Context, w layout.Widget) layout.Dimension
 	// Clip corners, if any.
 	if r := gtx.Px(b.CornerRadius); r > 0 {
 		rr := float32(r)
-		clip.Rect{
+		clip.RRect{
 			Rect: f32.Rectangle{Max: f32.Point{
 				X: float32(sz.X),
 				Y: float32(sz.Y),
 			}},
 			NE: rr, NW: rr, SE: rr, SW: rr,
-		}.Op(gtx.Ops).Add(gtx.Ops)
+		}.Add(gtx.Ops)
 	}
 	if r := b.CornerRadius2; r > 0 {
 		rr := float32(r)
-		clip.Rect{
+		clip.RRect{
 			Rect: f32.Rectangle{Max: f32.Point{
 				X: float32(sz.X),
 				Y: float32(sz.Y),
 			}},
 			NE: rr, NW: rr, SE: rr, SW: rr,
-		}.Op(gtx.Ops).Add(gtx.Ops)
+		}.Add(gtx.Ops)
 	}
 	fill{b.Color}.Layout(gtx, sz)
 	call.Add(gtx.Ops)
