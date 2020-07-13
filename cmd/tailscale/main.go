@@ -40,7 +40,7 @@ type App struct {
 
 	// backend is the channel for events from the frontend to the
 	// backend.
-	backend chan UIEvent
+	backendEvents chan UIEvent
 
 	// mu protects the following fields.
 	mu sync.Mutex
@@ -83,13 +83,14 @@ type SearchEvent struct {
 	Query string
 }
 
-type ReauthEvent struct{}
-
-type WebAuthEvent struct{}
-
-type GoogleAuthEvent struct{}
-
-type LogoutEvent struct{}
+// UIEvent types.
+type (
+	ToggleEvent     struct{}
+	ReauthEvent     struct{}
+	WebAuthEvent    struct{}
+	GoogleAuthEvent struct{}
+	LogoutEvent     struct{}
+)
 
 // serverOAuthID is the OAuth ID of the tailscale-android server, used
 // by GoogleSignInOptions.Builder.requestIdToken.
@@ -97,13 +98,15 @@ const serverOAuthID = "744055068597-hv4opg0h7vskq1hv37nq3u26t8c15qk0.apps.google
 
 const enabledKey = "ipn_enabled"
 
+// backendEvents receives events from the UI (Activity, Tile etc.) to the backend.
+var backendEvents = make(chan UIEvent)
+
 func main() {
 	a := &App{
 		jvm:       jni.JVMFor(app.JavaVM()),
 		appCtx:    jni.Object(app.AppContext()),
 		updates:   make(chan struct{}, 1),
 		vpnClosed: make(chan struct{}, 1),
-		backend:   make(chan UIEvent),
 	}
 	appDir, err := app.DataDir()
 	if err != nil {
@@ -232,8 +235,11 @@ func (a *App) runBackend() error {
 			if m := state.NetworkMap; m != nil && service != 0 {
 				alarm(a.notifyExpiry(service, m.Expiry))
 			}
-		case e := <-a.backend:
+		case e := <-backendEvents:
 			switch e := e.(type) {
+			case ToggleEvent:
+				prefs.WantRunning = !prefs.WantRunning
+				go b.backend.SetPrefs(prefs)
 			case WebAuthEvent:
 				if !signingIn {
 					go b.backend.StartLoginInteractive()
@@ -388,7 +394,14 @@ func (a *App) notify(state BackendState) {
 func (a *App) setPrefs(prefs *ipn.Prefs) {
 	a.mu.Lock()
 	a.prefs = prefs
+	wantRunning := jni.True
+	if !prefs.WantRunning {
+		wantRunning = jni.False
+	}
 	a.mu.Unlock()
+	if err := a.callVoidMethod(a.appCtx, "setTileStatus", "(Z)V", jni.Value(wantRunning)); err != nil {
+		fatalErr(err)
+	}
 	select {
 	case a.updates <- struct{}{}:
 	default:
@@ -418,7 +431,7 @@ func (a *App) runUI() error {
 	for {
 		select {
 		case <-a.vpnClosed:
-			a.request(ConnectEvent{Enable: false})
+			requestBackend(ConnectEvent{Enable: false})
 		case <-a.updates:
 			a.mu.Lock()
 			oldState := state.backend.State
@@ -563,9 +576,9 @@ func (a *App) updateState(javaPeer jni.Object, state *clientState) {
 	state.Peers = peers
 }
 
-func (a *App) request(e UIEvent) {
+func requestBackend(e UIEvent) {
 	go func() {
-		a.backend <- e
+		backendEvents <- e
 	}()
 }
 
@@ -578,15 +591,15 @@ func (a *App) processUIEvents(w *app.Window, events []UIEvent, peer jni.Object, 
 			case loginMethodGoogle:
 				a.googleSignIn(peer)
 			default:
-				a.request(WebAuthEvent{})
+				requestBackend(WebAuthEvent{})
 			}
 		case WebAuthEvent:
 			a.store.WriteString(loginMethodPrefKey, loginMethodWeb)
-			a.request(e)
+			requestBackend(e)
 		case LogoutEvent:
-			a.request(e)
+			requestBackend(e)
 		case ConnectEvent:
-			a.request(e)
+			requestBackend(e)
 		case CopyEvent:
 			w.WriteClipboard(e.Text)
 		case GoogleAuthEvent:

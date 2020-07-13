@@ -40,7 +40,13 @@ type (
 	MethodID  C.jmethodID
 	String    C.jstring
 	ByteArray C.jbyteArray
+	Boolean   C.jboolean
 	Value     uint64 // All JNI types fit into 64-bits.
+)
+
+const (
+	True  Boolean = C.JNI_TRUE
+	False Boolean = C.JNI_FALSE
 )
 
 func JVMFor(jvmPtr uintptr) JVM {

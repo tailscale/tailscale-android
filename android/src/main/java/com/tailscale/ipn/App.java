@@ -83,6 +83,10 @@ public class App extends Application {
 		);
 	}
 
+	void setTileStatus(boolean wantRunning) {
+		QuickToggleService.setStatus(this, wantRunning);
+	}
+
 	String getHostname() {
 		String userConfiguredDeviceName = getUserConfiguredDeviceName();
 		if (!isEmpty(userConfiguredDeviceName)) return userConfiguredDeviceName;

@@ -94,3 +94,8 @@ func Java_com_tailscale_ipn_App_onConnectivityChanged(env *C.JNIEnv, cls C.jclas
 	default:
 	}
 }
+
+//export Java_com_tailscale_ipn_QuickToggleService_onTileClick
+func Java_com_tailscale_ipn_QuickToggleService_onTileClick(env *C.JNIEnv, cls C.jclass) {
+	requestBackend(ToggleEvent{})
+}
