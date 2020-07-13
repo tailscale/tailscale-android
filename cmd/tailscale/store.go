@@ -52,6 +52,21 @@ func prefKeyFor(id ipn.StateKey) string {
 	return "statestore-" + string(id)
 }
 
+func (s *stateStore) ReadString(key string, def string) (string, error) {
+	data, err := s.read(key)
+	if err != nil {
+		return def, err
+	}
+	if data == nil {
+		return def, nil
+	}
+	return string(data), nil
+}
+
+func (s *stateStore) WriteString(key string, val string) error {
+	return s.write(key, []byte(val))
+}
+
 func (s *stateStore) ReadBool(key string, def bool) (bool, error) {
 	data, err := s.read(key)
 	if err != nil {

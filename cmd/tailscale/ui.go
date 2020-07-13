@@ -33,7 +33,7 @@ import (
 	_ "image/png"
 )
 
-const enableGoogleSignin = false
+const enableGoogleSignin = true
 
 type UI struct {
 	theme *material.Theme
@@ -326,7 +326,7 @@ func (ui *UI) layoutSignIn(gtx layout.Context, state *BackendState) layout.Dimen
 			textColor = 0x555555
 		)
 
-		border := widget.Border{Color: rgb(textColor), CornerRadius: unit.Dp(4), Width: unit.Dp(1)}
+		border := widget.Border{Color: rgb(textColor), CornerRadius: unit.Dp(4), Width: unit.Px(1)}
 		return layout.Flex{Axis: layout.Vertical, Alignment: layout.Middle}.Layout(gtx,
 			layout.Rigid(func(gtx C) D {
 				if !enableGoogleSignin {

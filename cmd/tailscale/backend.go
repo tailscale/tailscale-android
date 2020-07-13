@@ -43,6 +43,16 @@ type androidRouter struct {
 
 const defaultMTU = 1280 // minimalMTU from wgengine/userspace.go
 
+const (
+	logPrefKey         = "privatelogid"
+	loginMethodPrefKey = "loginmethod"
+)
+
+const (
+	loginMethodGoogle = "google"
+	loginMethodWeb    = "web"
+)
+
 // errVPNNotPrepared is used when VPNService.Builder.establish returns
 // null, either because the VPNService is not yet prepared or because
 // VPN status was revoked.
@@ -60,7 +70,6 @@ func newBackend(dataDir string, jvm jni.JVM, store *stateStore, settings func(*r
 	}
 	var logID logtail.PrivateID
 	logID.UnmarshalText([]byte("dead0000dead0000dead0000dead0000dead0000dead0000dead0000dead0000"))
-	const logPrefKey = "privatelogid"
 	storedLogID, err := store.read(logPrefKey)
 	// In all failure cases we ignore any errors and continue with the dead value above.
 	if err != nil || storedLogID == nil {

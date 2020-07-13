@@ -15,6 +15,7 @@ import (
 	"gioui.org/io/system"
 	"gioui.org/layout"
 	"gioui.org/op"
+	"golang.org/x/oauth2"
 
 	"github.com/tailscale/tailscale-android/jni"
 	"tailscale.com/control/controlclient"
@@ -83,6 +84,8 @@ type SearchEvent struct {
 }
 
 type ReauthEvent struct{}
+
+type WebAuthEvent struct{}
 
 type GoogleAuthEvent struct{}
 
@@ -221,15 +224,17 @@ func (a *App) runBackend() error {
 				}
 			}
 		case tok := <-onGoogleToken:
-			// TODO(elias.naur)
-			_ = tok
+			go b.backend.Login(&oauth2.Token{
+				AccessToken: tok,
+				TokenType:   ipn.GoogleIDTokenType,
+			})
 		case <-alarmChan:
 			if m := state.NetworkMap; m != nil && service != 0 {
 				alarm(a.notifyExpiry(service, m.Expiry))
 			}
 		case e := <-a.backend:
 			switch e := e.(type) {
-			case ReauthEvent:
+			case WebAuthEvent:
 				if !signingIn {
 					go b.backend.StartLoginInteractive()
 					signingIn = true
@@ -568,6 +573,15 @@ func (a *App) processUIEvents(w *app.Window, events []UIEvent, peer jni.Object, 
 	for _, e := range events {
 		switch e := e.(type) {
 		case ReauthEvent:
+			method, _ := a.store.ReadString(loginMethodPrefKey, loginMethodWeb)
+			switch method {
+			case loginMethodGoogle:
+				a.googleSignIn(peer)
+			default:
+				a.request(WebAuthEvent{})
+			}
+		case WebAuthEvent:
+			a.store.WriteString(loginMethodPrefKey, loginMethodWeb)
 			a.request(e)
 		case LogoutEvent:
 			a.request(e)
@@ -576,17 +590,22 @@ func (a *App) processUIEvents(w *app.Window, events []UIEvent, peer jni.Object, 
 		case CopyEvent:
 			w.WriteClipboard(e.Text)
 		case GoogleAuthEvent:
-			err := jni.Do(a.jvm, func(env jni.Env) error {
-				sid := jni.JavaString(env, serverOAuthID)
-				return a.callVoidMethod(peer, "googleSignIn", "(Ljava/lang/String;)V", jni.Value(sid))
-			})
-			if err != nil {
-				fatalErr(err)
-			}
+			a.store.WriteString(loginMethodPrefKey, loginMethodGoogle)
+			a.googleSignIn(peer)
 		case SearchEvent:
 			state.query = strings.ToLower(e.Query)
 			a.updateState(peer, state)
 		}
+	}
+}
+
+func (a *App) googleSignIn(peer jni.Object) {
+	err := jni.Do(a.jvm, func(env jni.Env) error {
+		sid := jni.JavaString(env, serverOAuthID)
+		return a.callVoidMethod(peer, "googleSignIn", "(Ljava/lang/String;)V", jni.Value(sid))
+	})
+	if err != nil {
+		fatalErr(err)
 	}
 }
 
