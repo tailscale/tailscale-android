@@ -187,7 +187,7 @@ func (a *App) runBackend() error {
 				prefs = p.Clone()
 				if first {
 					prefs.Hostname = a.hostname()
-					b.backend.SetPrefs(prefs)
+					go b.backend.SetPrefs(prefs)
 				}
 				a.setPrefs(prefs)
 			}
@@ -277,7 +277,7 @@ func (a *App) runBackend() error {
 		case <-onConnectivityChange:
 			state.LostInternet = !connected.Load().(bool)
 			if b != nil {
-				b.LinkChange()
+				go b.LinkChange()
 			}
 			a.notify(state)
 		case s := <-onDisconnect:
