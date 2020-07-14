@@ -147,6 +147,9 @@ func (b *backend) updateTUN(service jni.Object, cfg *router.Config) error {
 	if reflect.DeepEqual(cfg, b.lastCfg) {
 		return nil
 	}
+	if len(cfg.LocalAddrs) == 0 {
+		return nil
+	}
 	err := jni.Do(b.jvm, func(env jni.Env) error {
 		cls := jni.GetObjectClass(env, service)
 		// Construct a VPNService.Builder. IPNService.newBuilder calls
