@@ -84,6 +84,9 @@ public class App extends Application {
 	}
 
 	void setTileStatus(boolean wantRunning) {
+		if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+			return;
+		}
 		QuickToggleService.setStatus(this, wantRunning);
 	}
 
