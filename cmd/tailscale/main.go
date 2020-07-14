@@ -146,11 +146,7 @@ func (a *App) runBackend() error {
 			alarmChan = timer.C
 		}
 	}
-	var prefs struct {
-		once  sync.Once
-		mu    sync.Mutex
-		prefs *ipn.Prefs
-	}
+	var prefs *ipn.Prefs
 	notifications := make(chan ipn.Notify, 1)
 	startErr := make(chan error)
 	// Start from a goroutine to avoid deadlock when Start
@@ -181,17 +177,13 @@ func (a *App) runBackend() error {
 			configErrs <- b.updateTUN(service, cfg)
 		case n := <-notifications:
 			if p := n.Prefs; p != nil {
-				prefs.mu.Lock()
-				prefs.prefs = p.Clone()
-				prefs.mu.Unlock()
-				a.setPrefs(prefs.prefs)
-				prefs.once.Do(func() {
-					prefs.mu.Lock()
-					prefs.prefs.Hostname = a.hostname()
-					p := prefs.prefs
-					prefs.mu.Unlock()
-					b.backend.SetPrefs(p)
-				})
+				first := prefs == nil
+				prefs = p.Clone()
+				if first {
+					prefs.Hostname = a.hostname()
+					b.backend.SetPrefs(prefs)
+				}
+				a.setPrefs(prefs)
 			}
 			if s := n.State; s != nil {
 				oldState := state.State
@@ -245,11 +237,8 @@ func (a *App) runBackend() error {
 			case LogoutEvent:
 				go b.backend.Logout()
 			case ConnectEvent:
-				prefs.mu.Lock()
-				p := prefs.prefs
-				prefs.mu.Unlock()
-				p.WantRunning = e.Enable
-				go b.backend.SetPrefs(p)
+				prefs.WantRunning = e.Enable
+				go b.backend.SetPrefs(prefs)
 			}
 		case s := <-onConnect:
 			jni.Do(a.jvm, func(env jni.Env) error {
