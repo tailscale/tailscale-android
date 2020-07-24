@@ -202,7 +202,7 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 
 	if ui.webSignin.Clicked() {
 		ui.signinType = webSignin
-		ui.events = append(ui.events, ReauthEvent{})
+		ui.events = append(ui.events, WebAuthEvent{})
 	}
 
 	if ui.menuClicked(&ui.menu.copy) && localAddr != "" {
