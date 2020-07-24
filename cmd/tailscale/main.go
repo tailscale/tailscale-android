@@ -83,6 +83,10 @@ type SearchEvent struct {
 	Query string
 }
 
+type OAuth2Event struct {
+	Token *oauth2.Token
+}
+
 // UIEvent types.
 type (
 	ToggleEvent     struct{}
@@ -226,17 +230,14 @@ func (a *App) runBackend() error {
 					alarm(a.notifyExpiry(service, m.Expiry))
 				}
 			}
-		case tok := <-onGoogleToken:
-			go b.backend.Login(&oauth2.Token{
-				AccessToken: tok,
-				TokenType:   ipn.GoogleIDTokenType,
-			})
 		case <-alarmChan:
 			if m := state.NetworkMap; m != nil && service != 0 {
 				alarm(a.notifyExpiry(service, m.Expiry))
 			}
 		case e := <-backendEvents:
 			switch e := e.(type) {
+			case OAuth2Event:
+				go b.backend.Login(e.Token)
 			case ToggleEvent:
 				prefs.WantRunning = !prefs.WantRunning
 				go b.backend.SetPrefs(prefs)
@@ -432,6 +433,14 @@ func (a *App) runUI() error {
 		select {
 		case <-a.vpnClosed:
 			requestBackend(ConnectEvent{Enable: false})
+		case tok := <-onGoogleToken:
+			ui.signinType = noSignin
+			requestBackend(OAuth2Event{
+				Token: &oauth2.Token{
+					AccessToken: tok,
+					TokenType:   ipn.GoogleIDTokenType,
+				},
+			})
 		case <-a.updates:
 			a.mu.Lock()
 			oldState := state.backend.State
