@@ -191,6 +191,8 @@ func (a *App) runBackend() error {
 				prefs = p.Clone()
 				if first {
 					prefs.Hostname = a.hostname()
+					prefs.OSVersion = a.osVersion()
+					prefs.DeviceModel = a.modelName()
 					go b.backend.SetPrefs(prefs)
 				}
 				a.setPrefs(prefs)
@@ -313,6 +315,39 @@ func (a *App) hostname() string {
 		panic(err)
 	}
 	return hostname
+}
+
+// osVersion returns android.os.Build.MODEL.
+func (a *App) osVersion() string {
+	var version string
+	err := jni.Do(a.jvm, func(env jni.Env) error {
+		cls := jni.GetObjectClass(env, a.appCtx)
+		m := jni.GetMethodID(env, cls, "getOSVersion", "()Ljava/lang/String;")
+		n, err := jni.CallObjectMethod(env, a.appCtx, m)
+		version = jni.GoString(env, jni.String(n))
+		return err
+	})
+	if err != nil {
+		panic(err)
+	}
+	return version
+}
+
+// modelName return the MANUFACTURER + MODEL from
+// android.os.Build.
+func (a *App) modelName() string {
+	var model string
+	err := jni.Do(a.jvm, func(env jni.Env) error {
+		cls := jni.GetObjectClass(env, a.appCtx)
+		m := jni.GetMethodID(env, cls, "getModelName", "()Ljava/lang/String;")
+		n, err := jni.CallObjectMethod(env, a.appCtx, m)
+		model = jni.GoString(env, jni.String(n))
+		return err
+	})
+	if err != nil {
+		panic(err)
+	}
+	return model
 }
 
 // updateNotification updates the foreground persistent status notification.

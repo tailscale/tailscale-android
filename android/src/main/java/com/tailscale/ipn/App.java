@@ -97,7 +97,7 @@ public class App extends Application {
 		return getModelName();
 	}
 
-	private String getModelName() {
+	String getModelName() {
 		String manu = Build.MANUFACTURER;
 		String model = Build.MODEL;
 		// Strip manufacturer from model.
@@ -107,6 +107,10 @@ public class App extends Application {
 			model = model.trim();
 		}
 		return manu + " " + model;
+	}
+
+	String getOSVersion() {
+		return Build.VERSION.RELEASE;
 	}
 
 	// get user defined nickname from Settings
