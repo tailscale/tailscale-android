@@ -606,6 +606,7 @@ func (a *App) processUIEvents(w *app.Window, events []UIEvent, peer jni.Object, 
 			a.store.WriteString(loginMethodPrefKey, loginMethodWeb)
 			requestBackend(e)
 		case LogoutEvent:
+			a.signOut(peer)
 			requestBackend(e)
 		case ConnectEvent:
 			requestBackend(e)
@@ -621,7 +622,22 @@ func (a *App) processUIEvents(w *app.Window, events []UIEvent, peer jni.Object, 
 	}
 }
 
+func (a *App) signOut(peer jni.Object) {
+	if peer == 0 {
+		return
+	}
+	err := jni.Do(a.jvm, func(env jni.Env) error {
+		return a.callVoidMethod(peer, "googleSignOut", "()V")
+	})
+	if err != nil {
+		fatalErr(err)
+	}
+}
+
 func (a *App) googleSignIn(peer jni.Object) {
+	if peer == 0 {
+		return
+	}
 	err := jni.Do(a.jvm, func(env jni.Env) error {
 		sid := jni.JavaString(env, serverOAuthID)
 		return a.callVoidMethod(peer, "googleSignIn", "(Ljava/lang/String;)V", jni.Value(sid))
@@ -632,6 +648,9 @@ func (a *App) googleSignIn(peer jni.Object) {
 }
 
 func (a *App) browseToURL(peer jni.Object, url string) {
+	if peer == 0 {
+		return
+	}
 	err := jni.Do(a.jvm, func(env jni.Env) error {
 		jurl := jni.JavaString(env, url)
 		return a.callVoidMethod(peer, "showURL", "(Ljava/lang/String;)V", jni.Value(jurl))
