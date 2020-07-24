@@ -47,6 +47,7 @@ public class Peer extends Fragment {
 
 	@Override public void onCreate(Bundle b) {
 		super.onCreate(b);
+		setRetainInstance(true);
 		fragmentCreated();
 	}
 
