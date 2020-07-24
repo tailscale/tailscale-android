@@ -35,6 +35,8 @@ public class Peer extends Fragment {
 				GoogleSignInAccount acc = GoogleSignIn.getLastSignedInAccount(getActivity());
 				onSignin(acc.getIdToken());
 				return;
+			} else {
+				onSignin(null);
 			}
 		case REQUEST_PREPARE_VPN:
 			if (resultCode == Activity.RESULT_OK) {

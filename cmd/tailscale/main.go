@@ -435,12 +435,14 @@ func (a *App) runUI() error {
 			requestBackend(ConnectEvent{Enable: false})
 		case tok := <-onGoogleToken:
 			ui.signinType = noSignin
-			requestBackend(OAuth2Event{
-				Token: &oauth2.Token{
-					AccessToken: tok,
-					TokenType:   ipn.GoogleIDTokenType,
-				},
-			})
+			if tok != "" {
+				requestBackend(OAuth2Event{
+					Token: &oauth2.Token{
+						AccessToken: tok,
+						TokenType:   ipn.GoogleIDTokenType,
+					},
+				})
+			}
 		case <-a.updates:
 			a.mu.Lock()
 			oldState := state.backend.State
