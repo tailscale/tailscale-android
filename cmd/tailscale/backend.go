@@ -7,6 +7,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"path/filepath"
 	"reflect"
@@ -301,7 +302,10 @@ func (b *backend) SetupLogs(logDir string, logID logtail.PrivateID) {
 	b.logger = logtail.Log(logcfg, logf)
 
 	log.SetFlags(0)
-	log.SetOutput(b.logger)
+	log.SetOutput(io.MultiWriter(
+		log.Writer(),
+		b.logger,
+	))
 
 	log.Printf("goSetupLogs: success")
 
