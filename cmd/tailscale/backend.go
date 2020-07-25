@@ -17,6 +17,7 @@ import (
 	"github.com/tailscale/wireguard-go/device"
 	"github.com/tailscale/wireguard-go/tun"
 	"golang.org/x/sys/unix"
+	"inet.af/netaddr"
 	"tailscale.com/ipn"
 	"tailscale.com/logtail"
 	"tailscale.com/logtail/filch"
@@ -34,6 +35,10 @@ type backend struct {
 	devices  *multiTUN
 	settings func(*router.Config) error
 	lastCfg  *router.Config
+
+	// avoidEmptyDNS controls whether to use fallback nameservers
+	// when no nameservers are provided by Tailscale.
+	avoidEmptyDNS bool
 
 	jvm jni.JVM
 }
@@ -53,6 +58,8 @@ const (
 	loginMethodGoogle = "google"
 	loginMethodWeb    = "web"
 )
+
+var fallbackNameservers = []netaddr.IP{netaddr.IPv4(8, 8, 8, 8), netaddr.IPv4(8, 8, 4, 4)}
 
 // errVPNNotPrepared is used when VPNService.Builder.establish returns
 // null, either because the VPNService is not yet prepared or because
@@ -171,7 +178,11 @@ func (b *backend) updateTUN(service jni.Object, cfg *router.Config) error {
 
 		// builder.addDnsServer
 		addDnsServer := jni.GetMethodID(env, bcls, "addDnsServer", "(Ljava/lang/String;)Landroid/net/VpnService$Builder;")
-		for _, dns := range cfg.Nameservers {
+		nameservers := cfg.Nameservers
+		if b.avoidEmptyDNS && len(nameservers) == 0 {
+			nameservers = fallbackNameservers
+		}
+		for _, dns := range nameservers {
 			_, err = jni.CallObjectMethod(env,
 				builder,
 				addDnsServer,

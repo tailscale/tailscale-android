@@ -76,6 +76,10 @@ jobject _jni_CallObjectMethodA(JNIEnv *env, jobject obj, jmethodID method, jvalu
 	return (*env)->CallObjectMethodA(env, obj, method, args);
 }
 
+jboolean _jni_CallBooleanMethodA(JNIEnv *env, jobject obj, jmethodID method, jvalue *args) {
+	return (*env)->CallBooleanMethodA(env, obj, method, args);
+}
+
 jint _jni_CallIntMethodA(JNIEnv *env, jobject obj, jmethodID method, jvalue *args) {
 	return (*env)->CallIntMethodA(env, obj, method, args);
 }

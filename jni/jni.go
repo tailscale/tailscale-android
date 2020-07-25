@@ -117,6 +117,11 @@ func CallObjectMethod(e Env, obj Object, method MethodID, args ...Value) (Object
 	return Object(res), exception(e)
 }
 
+func CallBooleanMethod(e Env, obj Object, method MethodID, args ...Value) (bool, error) {
+	res := C._jni_CallBooleanMethodA(e.env, C.jobject(obj), C.jmethodID(method), varArgs(args))
+	return res == C.JNI_TRUE, exception(e)
+}
+
 func CallIntMethod(e Env, obj Object, method MethodID, args ...Value) (int32, error) {
 	res := C._jni_CallIntMethodA(e.env, C.jobject(obj), C.jmethodID(method), varArgs(args))
 	return int32(res), exception(e)

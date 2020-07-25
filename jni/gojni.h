@@ -17,6 +17,7 @@ __attribute__ ((visibility ("hidden"))) jint _jni_CallStaticIntMethodA(JNIEnv *e
 __attribute__ ((visibility ("hidden"))) jobject _jni_CallStaticObjectMethodA(JNIEnv *env, jclass cls, jmethodID method, jvalue *args);
 __attribute__ ((visibility ("hidden"))) void _jni_CallStaticVoidMethodA(JNIEnv *env, jclass cls, jmethodID method, jvalue *args);
 __attribute__ ((visibility ("hidden"))) jobject _jni_CallObjectMethodA(JNIEnv *env, jobject obj, jmethodID method, jvalue *args);
+__attribute__ ((visibility ("hidden"))) jboolean _jni_CallBooleanMethodA(JNIEnv *env, jobject obj, jmethodID method, jvalue *args);
 __attribute__ ((visibility ("hidden"))) jint _jni_CallIntMethodA(JNIEnv *env, jobject obj, jmethodID method, jvalue *args);
 __attribute__ ((visibility ("hidden"))) void _jni_CallVoidMethodA(JNIEnv *env, jobject obj, jmethodID method, jvalue *args);
 __attribute__ ((visibility ("hidden"))) jbyteArray _jni_NewByteArray(JNIEnv *env, jsize length);

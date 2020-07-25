@@ -139,5 +139,9 @@ public class App extends Application {
 		ft.commitNow();
 	}
 
+	boolean isChromeOS() {
+		return getPackageManager().hasSystemFeature("android.hardware.type.pc");
+	}
+
 	private static native void onConnectivityChanged(boolean connected);
 }

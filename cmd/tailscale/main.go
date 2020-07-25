@@ -145,6 +145,12 @@ func (a *App) runBackend() error {
 		return err
 	}
 	defer b.CloseTUNs()
+
+	// Contrary to the documentation for VpnService.Builder.addDnsServer,
+	// ChromeOS doesn't fall back to the underlying network nameservers if
+	// we don't provide any.
+	b.avoidEmptyDNS = a.isChromeOS()
+
 	var timer *time.Timer
 	var alarmChan <-chan time.Time
 	alarm := func(t *time.Timer) {
@@ -298,6 +304,21 @@ func (a *App) runBackend() error {
 			}
 		}
 	}
+}
+
+func (a *App) isChromeOS() bool {
+	var chromeOS bool
+	err := jni.Do(a.jvm, func(env jni.Env) error {
+		cls := jni.GetObjectClass(env, a.appCtx)
+		m := jni.GetMethodID(env, cls, "isChromeOS", "()Z")
+		b, err := jni.CallBooleanMethod(env, a.appCtx, m)
+		chromeOS = b
+		return err
+	})
+	if err != nil {
+		panic(err)
+	}
+	return chromeOS
 }
 
 // hostname builds a hostname from android.os.Build fields, in place of a
