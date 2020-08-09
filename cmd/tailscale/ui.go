@@ -257,12 +257,12 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 				}
 				return ui.layoutSearchbar(gtx, sysIns)
 			case 3:
-				if !needsLogin {
+				if !needsLogin || state.backend.LostInternet {
 					return D{}
 				}
 				return ui.layoutSignIn(gtx, &state.backend)
 			case 4:
-				if needsLogin || !state.backend.LostInternet {
+				if !state.backend.LostInternet {
 					return D{}
 				}
 				return ui.layoutDisconnected(gtx)
