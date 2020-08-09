@@ -187,7 +187,7 @@ func (b *backend) updateTUN(service jni.Object, cfg *router.Config) error {
 				jni.Value(jni.JavaString(env, dns.String())),
 			)
 			if err != nil {
-				return fmt.Errorf("VpnService.Builder.addDnsServer: %v", err)
+				return fmt.Errorf("VpnService.Builder.addDnsServer(%v): %v", dns, err)
 			}
 		}
 
@@ -200,7 +200,7 @@ func (b *backend) updateTUN(service jni.Object, cfg *router.Config) error {
 				jni.Value(jni.JavaString(env, dom)),
 			)
 			if err != nil {
-				return fmt.Errorf("VpnService.Builder.addSearchDomain: %v", err)
+				return fmt.Errorf("VpnService.Builder.addSearchDomain(%v): %v", dom, err)
 			}
 		}
 
@@ -214,7 +214,7 @@ func (b *backend) updateTUN(service jni.Object, cfg *router.Config) error {
 				jni.Value(route.Bits),
 			)
 			if err != nil {
-				return fmt.Errorf("VpnService.Builder.addRoute: %v", err)
+				return fmt.Errorf("VpnService.Builder.addRoute(%v): %v", route, err)
 			}
 		}
 
@@ -228,7 +228,7 @@ func (b *backend) updateTUN(service jni.Object, cfg *router.Config) error {
 				jni.Value(addr.Bits),
 			)
 			if err != nil {
-				return fmt.Errorf("VpnService.Builder.addAddress: %v", err)
+				return fmt.Errorf("VpnService.Builder.addAddress(%v): %v", addr, err)
 			}
 		}
 
