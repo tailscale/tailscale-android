@@ -7,7 +7,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"io"
 	"log"
 	"path/filepath"
 	"reflect"
@@ -31,7 +30,6 @@ import (
 type backend struct {
 	engine   wgengine.Engine
 	backend  *ipn.LocalBackend
-	logger   logtail.Logger
 	devices  *multiTUN
 	settings func(*router.Config) error
 	lastCfg  *router.Config
@@ -283,6 +281,7 @@ func (b *backend) SetupLogs(logDir string, logID logtail.PrivateID) {
 	logcfg := logtail.Config{
 		Collection: "tailnode.log.tailscale.io",
 		PrivateID:  logID,
+		Stderr:     log.Writer(),
 	}
 	logcfg.LowMemory = true
 	drainCh := make(chan struct{})
@@ -310,13 +309,10 @@ func (b *backend) SetupLogs(logDir string, logID logtail.PrivateID) {
 	}
 
 	logf := wgengine.RusagePrefixLog(log.Printf)
-	b.logger = logtail.Log(logcfg, logf)
+	tlog := logtail.Log(logcfg, logf)
 
 	log.SetFlags(0)
-	log.SetOutput(io.MultiWriter(
-		log.Writer(),
-		b.logger,
-	))
+	log.SetOutput(tlog)
 
 	log.Printf("goSetupLogs: success")
 
