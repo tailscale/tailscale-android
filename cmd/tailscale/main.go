@@ -550,6 +550,12 @@ func (a *App) runUI() error {
 			switch e := e.(type) {
 			case system.DestroyEvent:
 				return e.Err
+			case *system.CommandEvent:
+				if e.Type == system.CommandBack {
+					if ui.onBack() {
+						e.Cancel = true
+					}
+				}
 			case system.FrameEvent:
 				gtx := layout.NewContext(&ops, e)
 				events := ui.layout(gtx, e.Insets, state)

@@ -168,6 +168,14 @@ func newUI(store *stateStore) (*UI, error) {
 	return ui, nil
 }
 
+func (ui *UI) onBack() bool {
+	if !ui.menu.show {
+		return false
+	}
+	ui.menu.show = false
+	return true
+}
+
 func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientState) []UIEvent {
 	ui.events = nil
 	if ui.enabled.Changed() {
