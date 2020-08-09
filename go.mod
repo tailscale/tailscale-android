@@ -4,8 +4,8 @@ go 1.14
 
 require (
 	eliasnaur.com/font v0.0.0-20200617114307-e02d32decb4b
-	gioui.org v0.0.0-20200724173311-4a9d97784f24
-	gioui.org/cmd v0.0.0-20200622185735-5bd0ecea5e43
+	gioui.org v0.0.0-20200726090130-3b95e2918359
+	gioui.org/cmd v0.0.0-20200809161702-a063febed977
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
 	github.com/tailscale/wireguard-go v0.0.0-20200724155040-d554a2a5e7e1
 	golang.org/x/exp v0.0.0-20191002040644-a1355ae1e2c3
