@@ -11,6 +11,6 @@ require (
 	golang.org/x/exp v0.0.0-20191002040644-a1355ae1e2c3
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	golang.org/x/sys v0.0.0-20200501052902-10377860bb8e
-	inet.af/netaddr v0.0.0-20200718043157-99321d6ad24c
+	inet.af/netaddr v0.0.0-20200810144936-56928fe48a98
 	tailscale.com v0.100.1-0.20200724211229-0a42b0a72666
 )

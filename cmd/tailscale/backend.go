@@ -207,6 +207,8 @@ func (b *backend) updateTUN(service jni.Object, cfg *router.Config) error {
 		// builder.addRoute.
 		addRoute := jni.GetMethodID(env, bcls, "addRoute", "(Ljava/lang/String;I)Landroid/net/VpnService$Builder;")
 		for _, route := range cfg.Routes {
+			// Normalize route address; Builder.addRoute does not accept non-zero masked bits.
+			route = route.Masked()
 			_, err = jni.CallObjectMethod(env,
 				builder,
 				addRoute,
