@@ -176,7 +176,7 @@ func (b *backend) updateTUN(service jni.Object, cfg *router.Config) error {
 
 		// builder.addDnsServer
 		addDnsServer := jni.GetMethodID(env, bcls, "addDnsServer", "(Ljava/lang/String;)Landroid/net/VpnService$Builder;")
-		nameservers := cfg.Nameservers
+		nameservers := cfg.DNS.Nameservers
 		if b.avoidEmptyDNS && len(nameservers) == 0 {
 			nameservers = fallbackNameservers
 		}
@@ -193,7 +193,7 @@ func (b *backend) updateTUN(service jni.Object, cfg *router.Config) error {
 
 		// builder.addSearchDomain.
 		addSearchDomain := jni.GetMethodID(env, bcls, "addSearchDomain", "(Ljava/lang/String;)Landroid/net/VpnService$Builder;")
-		for _, dom := range cfg.Domains {
+		for _, dom := range cfg.DNS.Domains {
 			_, err = jni.CallObjectMethod(env,
 				builder,
 				addSearchDomain,
