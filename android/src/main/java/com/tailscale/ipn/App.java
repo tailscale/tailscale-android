@@ -136,7 +136,8 @@ public class App extends Application {
 		Activity act = (Activity)view.getContext();
 		FragmentTransaction ft = act.getFragmentManager().beginTransaction();
 		ft.add(new Peer(), "Peer");
-		ft.commitNow();
+		ft.commit();
+		act.getFragmentManager().executePendingTransactions();
 	}
 
 	boolean isChromeOS() {
