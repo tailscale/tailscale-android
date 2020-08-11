@@ -57,6 +57,7 @@ type UI struct {
 	peers []widget.Clickable
 
 	intro struct {
+		list  layout.List
 		start widget.Clickable
 		show  bool
 	}
@@ -164,6 +165,7 @@ func newUI(store *stateStore) (*UI, error) {
 	ui.icons.more.Color = rgb(white)
 	ui.icons.search.Color = ui.theme.Color.Hint
 	ui.root.Axis = layout.Vertical
+	ui.intro.list.Axis = layout.Vertical
 	ui.search.SingleLine = true
 	return ui, nil
 }
@@ -300,7 +302,7 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 			ui.store.WriteBool(keyShowIntro, false)
 			ui.intro.show = false
 		}
-		ui.layoutIntro(gtx)
+		ui.layoutIntro(gtx, sysIns)
 	}
 
 	return ui.events
@@ -436,50 +438,57 @@ func (ui *UI) layoutDisconnected(gtx layout.Context) layout.Dimensions {
 }
 
 // layoutIntro lays out the intro page with the logo and terms.
-func (ui *UI) layoutIntro(gtx layout.Context) {
+func (ui *UI) layoutIntro(gtx layout.Context, sysIns system.Insets) {
 	fill{rgb(0x232323)}.Layout(gtx, gtx.Constraints.Max)
-	layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-		// 9 dot logo.
-		layout.Rigid(func(gtx C) D {
-			return layout.Inset{Top: unit.Dp(80), Bottom: unit.Dp(48)}.Layout(gtx, func(gtx C) D {
-				return layout.N.Layout(gtx, func(gtx C) D {
-					sz := gtx.Px(unit.Dp(72))
-					drawLogo(gtx.Ops, sz)
-					return layout.Dimensions{Size: image.Pt(sz, sz)}
+	ui.intro.list.Layout(gtx, 1, func(gtx C, idx int) D {
+		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+			// 9 dot logo.
+			layout.Rigid(func(gtx C) D {
+				return layout.Inset{Top: unit.Dp(80), Bottom: unit.Dp(48)}.Layout(gtx, func(gtx C) D {
+					return layout.N.Layout(gtx, func(gtx C) D {
+						sz := gtx.Px(unit.Dp(72))
+						drawLogo(gtx.Ops, sz)
+						return layout.Dimensions{Size: image.Pt(sz, sz)}
+					})
 				})
-			})
-		}),
-		// "tailscale".
-		layout.Rigid(func(gtx C) D {
-			return layout.N.Layout(gtx, func(gtx C) D {
-				return drawImage(gtx, ui.icons.logo, unit.Dp(200))
-			})
-		}),
-		// Terms.
-		layout.Rigid(func(gtx C) D {
-			return layout.Inset{
-				Top:   unit.Dp(48),
-				Left:  unit.Dp(32),
-				Right: unit.Dp(32),
-			}.Layout(gtx, func(gtx C) D {
-				terms := material.Body2(ui.theme, termsText)
-				terms.Color = rgb(0xbfbfbf)
-				terms.Alignment = text.Middle
-				return terms.Layout(gtx)
-			})
-		}),
-		// "Get started".
-		layout.Rigid(func(gtx C) D {
-			return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx C) D {
-				start := material.Button(ui.theme, &ui.intro.start, "Get Started")
-				start.Inset = layout.UniformInset(unit.Dp(16))
-				start.CornerRadius = unit.Dp(16)
-				start.Background = rgb(0x496495)
-				start.TextSize = unit.Sp(20)
-				return start.Layout(gtx)
-			})
-		}),
-	)
+			}),
+			// "tailscale".
+			layout.Rigid(func(gtx C) D {
+				return layout.N.Layout(gtx, func(gtx C) D {
+					return drawImage(gtx, ui.icons.logo, unit.Dp(200))
+				})
+			}),
+			// Terms.
+			layout.Rigid(func(gtx C) D {
+				return layout.Inset{
+					Top:   unit.Dp(48),
+					Left:  unit.Dp(32),
+					Right: unit.Dp(32),
+				}.Layout(gtx, func(gtx C) D {
+					terms := material.Body2(ui.theme, termsText)
+					terms.Color = rgb(0xbfbfbf)
+					terms.Alignment = text.Middle
+					return terms.Layout(gtx)
+				})
+			}),
+			// "Get started".
+			layout.Rigid(func(gtx C) D {
+				return layout.Inset{
+					Top:    unit.Dp(16),
+					Left:   unit.Dp(16),
+					Right:  unit.Dp(16),
+					Bottom: unit.Add(gtx.Metric, sysIns.Bottom),
+				}.Layout(gtx, func(gtx C) D {
+					start := material.Button(ui.theme, &ui.intro.start, "Get Started")
+					start.Inset = layout.UniformInset(unit.Dp(16))
+					start.CornerRadius = unit.Dp(16)
+					start.Background = rgb(0x496495)
+					start.TextSize = unit.Sp(20)
+					return start.Layout(gtx)
+				})
+			}),
+		)
+	})
 }
 
 // menuClicked is like btn.Clicked, but also closes the menu if true.
