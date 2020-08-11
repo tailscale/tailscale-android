@@ -25,7 +25,7 @@ import java.io.FileOutputStream;
 import java.security.GeneralSecurityException;
 
 import androidx.security.crypto.EncryptedSharedPreferences;
-import androidx.security.crypto.MasterKeys;
+import androidx.security.crypto.MasterKey;
 
 import org.gioui.Gio;
 
@@ -72,12 +72,14 @@ public class App extends Application {
 	}
 
 	private SharedPreferences getEncryptedPrefs() throws IOException, GeneralSecurityException {
-		String masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC);
+		MasterKey key = new MasterKey.Builder(this)
+			.setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+			.build();
 
 		return EncryptedSharedPreferences.create(
-				"secret_shared_prefs",
-				masterKeyAlias,
 				this,
+				"secret_shared_prefs",
+				key,
 				EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
 				EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
 		);
