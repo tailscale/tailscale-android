@@ -27,6 +27,11 @@ import java.security.GeneralSecurityException;
 import androidx.security.crypto.EncryptedSharedPreferences;
 import androidx.security.crypto.MasterKey;
 
+import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
+import com.google.android.gms.auth.api.signin.GoogleSignInClient;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
+
 import org.gioui.Gio;
 
 public class App extends Application {
@@ -83,6 +88,13 @@ public class App extends Application {
 				EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
 				EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
 		);
+	}
+
+	void googleSignOut() {
+		GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+			.build();
+		GoogleSignInClient client = GoogleSignIn.getClient(this, gso);
+		client.signOut();
 	}
 
 	void setTileStatus(boolean wantRunning) {

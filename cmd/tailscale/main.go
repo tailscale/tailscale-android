@@ -670,7 +670,7 @@ func (a *App) processUIEvents(w *app.Window, events []UIEvent, peer jni.Object, 
 			a.store.WriteString(loginMethodPrefKey, loginMethodWeb)
 			requestBackend(e)
 		case LogoutEvent:
-			a.signOut(peer)
+			a.signOut()
 			requestBackend(e)
 		case ConnectEvent:
 			requestBackend(e)
@@ -686,12 +686,9 @@ func (a *App) processUIEvents(w *app.Window, events []UIEvent, peer jni.Object, 
 	}
 }
 
-func (a *App) signOut(peer jni.Object) {
-	if peer == 0 {
-		return
-	}
+func (a *App) signOut() {
 	err := jni.Do(a.jvm, func(env jni.Env) error {
-		return a.callVoidMethod(peer, "googleSignOut", "()V")
+		return a.callVoidMethod(a.appCtx, "googleSignOut", "()V")
 	})
 	if err != nil {
 		fatalErr(err)

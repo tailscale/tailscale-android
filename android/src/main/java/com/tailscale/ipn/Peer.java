@@ -58,13 +58,6 @@ public class Peer extends Fragment {
 		super.onDestroy();
 	}
 
-	public void googleSignOut() {
-		GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-			.build();
-		GoogleSignInClient client = GoogleSignIn.getClient(getActivity(), gso);
-		client.signOut();
-	}
-
 	public void googleSignIn(String serverOAuthID) {
 		GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
 			.requestIdToken(serverOAuthID)
