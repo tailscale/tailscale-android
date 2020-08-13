@@ -4,6 +4,8 @@ eliasnaur.com/font v0.0.0-20200617114307-e02d32decb4b h1:J9r7EuPdhvBTafg34EqrObA
 eliasnaur.com/font v0.0.0-20200617114307-e02d32decb4b/go.mod h1:CYwJpIhpzVfoHpFXGlXjSx9mXMWtHt4XXmZb6RjumRc=
 gioui.org v0.0.0-20200726090130-3b95e2918359 h1:lae3H0ZryBOt3Kboxa55mpo5KsASVHSdS65EsGMf9kc=
 gioui.org v0.0.0-20200726090130-3b95e2918359/go.mod h1:jiUwifN9cRl/zmco43aAqh0aV+s9GbhG13KcD+gEpkU=
+gioui.org v0.0.0-20200813124137-6c30c6386ccf h1:H2Nqf70MG2GeZKrWn5W8fuPcrn4JFp/PCO/jjE1hyfY=
+gioui.org v0.0.0-20200813124137-6c30c6386ccf/go.mod h1:jiUwifN9cRl/zmco43aAqh0aV+s9GbhG13KcD+gEpkU=
 gioui.org/cmd v0.0.0-20200809161702-a063febed977 h1:ZV34932OTha87lgiSpz68YPzMujPGmL0dSHww9VHIX8=
 gioui.org/cmd v0.0.0-20200809161702-a063febed977/go.mod h1:dlmJnCEkOpRaChYxRmJZ5S4jk6y7DCfWnec39xGbUYk=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=

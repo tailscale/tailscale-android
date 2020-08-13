@@ -29,12 +29,6 @@ var (
 	// conditions change.
 	onConnectivityChange = make(chan struct{}, 1)
 
-	// onPeerCreated receives global instances of Java Peer
-	// instances being created.
-	onPeerCreated = make(chan jni.Object)
-	// onPeerDestroyed receives new global instances of Java Peer
-	// instances about to be destroyed.
-	onPeerDestroyed = make(chan jni.Object)
 	// onGoogleToken receives google ID tokens.
 	onGoogleToken = make(chan string)
 )
@@ -47,28 +41,16 @@ func init() {
 	connected.Store(true)
 }
 
-//export Java_com_tailscale_ipn_Peer_fragmentCreated
-func Java_com_tailscale_ipn_Peer_fragmentCreated(env *C.JNIEnv, this C.jobject) {
-	jenv := jni.EnvFor(uintptr(unsafe.Pointer(env)))
-	onPeerCreated <- jni.NewGlobalRef(jenv, jni.Object(this))
-}
-
-//export Java_com_tailscale_ipn_Peer_fragmentDestroyed
-func Java_com_tailscale_ipn_Peer_fragmentDestroyed(env *C.JNIEnv, this C.jobject) {
-	jenv := jni.EnvFor(uintptr(unsafe.Pointer(env)))
-	onPeerDestroyed <- jni.NewGlobalRef(jenv, jni.Object(this))
-}
-
-//export Java_com_tailscale_ipn_Peer_onVPNPrepared
-func Java_com_tailscale_ipn_Peer_onVPNPrepared(env *C.JNIEnv, this C.jobject) {
+//export Java_com_tailscale_ipn_App_onVPNPrepared
+func Java_com_tailscale_ipn_App_onVPNPrepared(env *C.JNIEnv, class C.jclass) {
 	select {
 	case vpnPrepared <- struct{}{}:
 	default:
 	}
 }
 
-//export Java_com_tailscale_ipn_Peer_onSignin
-func Java_com_tailscale_ipn_Peer_onSignin(env *C.JNIEnv, this C.jobject, idToken C.jstring) {
+//export Java_com_tailscale_ipn_App_onSignin
+func Java_com_tailscale_ipn_App_onSignin(env *C.JNIEnv, class C.jclass, idToken C.jstring) {
 	jenv := jni.EnvFor(uintptr(unsafe.Pointer(env)))
 	tok := jni.GoString(jenv, jni.String(idToken))
 	onGoogleToken <- tok

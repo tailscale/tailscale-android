@@ -481,10 +481,24 @@ func (a *App) runUI() error {
 	if err != nil {
 		return err
 	}
-	a.trackLifecycle(w)
 	var ops op.Ops
 	state := new(clientState)
-	var peer jni.Object
+	var (
+		// activity is the most recent Android Activity reference as reported
+		// by Gio ViewEvents.
+		activity jni.Object
+	)
+	deleteActivityRef := func() {
+		if activity == 0 {
+			return
+		}
+		jni.Do(a.jvm, func(env jni.Env) error {
+			jni.DeleteGlobalRef(env, activity)
+			return nil
+		})
+		activity = 0
+	}
+	defer deleteActivityRef()
 	for {
 		select {
 		case <-a.vpnClosed:
@@ -513,33 +527,17 @@ func (a *App) runUI() error {
 				a.prefs = nil
 			}
 			a.mu.Unlock()
-			a.updateState(peer, state)
+			a.updateState(activity, state)
 			w.Invalidate()
-			if peer != 0 {
+			if activity != 0 {
 				newState := state.backend.State
 				// Start VPN if we just logged in.
 				if oldState <= ipn.Stopped && newState > ipn.Stopped {
-					if err := a.callVoidMethod(peer, "prepareVPN", "()V"); err != nil {
+					if err := a.prepareVPN(activity); err != nil {
 						fatalErr(err)
 					}
 				}
 			}
-		case peer = <-onPeerCreated:
-			w.Invalidate()
-			if state.backend.State > ipn.Stopped {
-				if err := a.callVoidMethod(peer, "prepareVPN", "()V"); err != nil {
-					return err
-				}
-			}
-		case p := <-onPeerDestroyed:
-			jni.Do(a.jvm, func(env jni.Env) error {
-				defer jni.DeleteGlobalRef(env, p)
-				if jni.IsSameObject(env, peer, p) {
-					jni.DeleteGlobalRef(env, peer)
-					peer = 0
-				}
-				return nil
-			})
 		case <-vpnPrepared:
 			if state.backend.State > ipn.Stopped {
 				if err := a.callVoidMethod(a.appCtx, "startVPN", "()V"); err != nil {
@@ -548,6 +546,20 @@ func (a *App) runUI() error {
 			}
 		case e := <-w.Events():
 			switch e := e.(type) {
+			case app.ViewEvent:
+				deleteActivityRef()
+				view := jni.Object(e.View)
+				if view == 0 {
+					break
+				}
+				activity = a.contextForView(view)
+				w.Invalidate()
+				a.attachPeer(activity)
+				if state.backend.State > ipn.Stopped {
+					if err := a.prepareVPN(activity); err != nil {
+						return err
+					}
+				}
 			case system.DestroyEvent:
 				return e.Err
 			case *system.CommandEvent:
@@ -560,32 +572,24 @@ func (a *App) runUI() error {
 				gtx := layout.NewContext(&ops, e)
 				events := ui.layout(gtx, e.Insets, state)
 				e.Frame(gtx.Ops)
-				a.processUIEvents(w, events, peer, state)
+				a.processUIEvents(w, events, activity, state)
 			}
 		}
 	}
 }
 
-// trackLifecycle registers an Android Fragment instance for lifecycle
-// tracking of our Activity.
-func (a *App) trackLifecycle(w *app.Window) {
-	go func() {
-		w.Do(func(view uintptr) {
-			err := jni.Do(a.jvm, func(env jni.Env) error {
-				cls := jni.GetObjectClass(env, a.appCtx)
-				trackLifecycle := jni.GetStaticMethodID(env, cls, "trackLifecycle", "(Landroid/view/View;)V")
-				return jni.CallStaticVoidMethod(env, cls, trackLifecycle, jni.Value(view))
-			})
-			if err != nil {
-				fatalErr(err)
-			}
-		})
-	}()
+// attachPeer registers an Android Fragment instance for
+// handling onActivityResult callbacks.
+func (a *App) attachPeer(act jni.Object) {
+	err := a.callVoidMethod(a.appCtx, "attachPeer", "(Landroid/app/Activity;)V", jni.Value(act))
+	if err != nil {
+		fatalErr(err)
+	}
 }
 
-func (a *App) updateState(javaPeer jni.Object, state *clientState) {
-	if javaPeer != 0 && state.browseURL != "" {
-		a.browseToURL(javaPeer, state.browseURL)
+func (a *App) updateState(act jni.Object, state *clientState) {
+	if act != 0 && state.browseURL != "" {
+		a.browseToURL(act, state.browseURL)
 		state.browseURL = ""
 	}
 
@@ -649,20 +653,24 @@ func (a *App) updateState(javaPeer jni.Object, state *clientState) {
 	state.Peers = peers
 }
 
+func (a *App) prepareVPN(act jni.Object) error {
+	return a.callVoidMethod(a.appCtx, "prepareVPN", "(Landroid/app/Activity;)V", jni.Value(act))
+}
+
 func requestBackend(e UIEvent) {
 	go func() {
 		backendEvents <- e
 	}()
 }
 
-func (a *App) processUIEvents(w *app.Window, events []UIEvent, peer jni.Object, state *clientState) {
+func (a *App) processUIEvents(w *app.Window, events []UIEvent, act jni.Object, state *clientState) {
 	for _, e := range events {
 		switch e := e.(type) {
 		case ReauthEvent:
 			method, _ := a.store.ReadString(loginMethodPrefKey, loginMethodWeb)
 			switch method {
 			case loginMethodGoogle:
-				a.googleSignIn(peer)
+				a.googleSignIn(act)
 			default:
 				requestBackend(WebAuthEvent{})
 			}
@@ -678,10 +686,10 @@ func (a *App) processUIEvents(w *app.Window, events []UIEvent, peer jni.Object, 
 			w.WriteClipboard(e.Text)
 		case GoogleAuthEvent:
 			a.store.WriteString(loginMethodPrefKey, loginMethodGoogle)
-			a.googleSignIn(peer)
+			a.googleSignIn(act)
 		case SearchEvent:
 			state.query = strings.ToLower(e.Query)
-			a.updateState(peer, state)
+			a.updateState(act, state)
 		}
 	}
 }
@@ -695,26 +703,26 @@ func (a *App) signOut() {
 	}
 }
 
-func (a *App) googleSignIn(peer jni.Object) {
-	if peer == 0 {
+func (a *App) googleSignIn(act jni.Object) {
+	if act == 0 {
 		return
 	}
 	err := jni.Do(a.jvm, func(env jni.Env) error {
 		sid := jni.JavaString(env, serverOAuthID)
-		return a.callVoidMethod(peer, "googleSignIn", "(Ljava/lang/String;)V", jni.Value(sid))
+		return a.callVoidMethod(a.appCtx, "googleSignIn", "(Landroid/app/Activity;Ljava/lang/String;)V", jni.Value(act), jni.Value(sid))
 	})
 	if err != nil {
 		fatalErr(err)
 	}
 }
 
-func (a *App) browseToURL(peer jni.Object, url string) {
-	if peer == 0 {
+func (a *App) browseToURL(act jni.Object, url string) {
+	if act == 0 {
 		return
 	}
 	err := jni.Do(a.jvm, func(env jni.Env) error {
 		jurl := jni.JavaString(env, url)
-		return a.callVoidMethod(peer, "showURL", "(Ljava/lang/String;)V", jni.Value(jurl))
+		return a.callVoidMethod(a.appCtx, "showURL", "(Landroid/app/Activity;Ljava/lang/String;)V", jni.Value(act), jni.Value(jurl))
 	})
 	if err != nil {
 		fatalErr(err)
@@ -730,6 +738,27 @@ func (a *App) callVoidMethod(obj jni.Object, name, sig string, args ...jni.Value
 		m := jni.GetMethodID(env, cls, name, sig)
 		return jni.CallVoidMethod(env, obj, m, args...)
 	})
+}
+
+// activityForView calls View.getContext and returns a global
+// reference to the result.
+func (a *App) contextForView(view jni.Object) jni.Object {
+	if view == 0 {
+		panic("invalid object")
+	}
+	var ctx jni.Object
+	err := jni.Do(a.jvm, func(env jni.Env) error {
+		cls := jni.GetObjectClass(env, view)
+		m := jni.GetMethodID(env, cls, "getContext", "()Landroid/content/Context;")
+		var err error
+		ctx, err = jni.CallObjectMethod(env, view, m)
+		ctx = jni.NewGlobalRef(env, ctx)
+		return err
+	})
+	if err != nil {
+		panic(err)
+	}
+	return ctx
 }
 
 func fatalErr(err error) {

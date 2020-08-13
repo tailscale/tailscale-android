@@ -15,8 +15,12 @@ import android.content.SharedPreferences;
 import android.content.BroadcastReceiver;
 import android.provider.Settings;
 import android.net.ConnectivityManager;
+import android.net.Uri;
+import android.net.VpnService;
 import android.view.View;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 
 import java.io.IOException;
 import java.io.File;
@@ -32,9 +36,18 @@ import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 
+import androidx.browser.customtabs.CustomTabsIntent;
+
 import org.gioui.Gio;
 
 public class App extends Application {
+	private final static int REQUEST_SIGNIN = 1001;
+	private final static int REQUEST_PREPARE_VPN = 1002;
+
+	private final static String PEER_TAG = "peer";
+
+	private final static Handler mainHandler = new Handler(Looper.getMainLooper());
+
 	@Override public void onCreate() {
 		super.onCreate();
 		// Load and initialize the Go library.
@@ -144,12 +157,11 @@ public class App extends Application {
 		return str == null || str.length() == 0;
 	}
 
-	// Tracklifecycle adds a Peer fragment for tracking the Activity
+	// attachPeer adds a Peer fragment for tracking the Activity
 	// lifecycle.
-	static void trackLifecycle(View view) {
-		Activity act = (Activity)view.getContext();
+	void attachPeer(Activity act) {
 		FragmentTransaction ft = act.getFragmentManager().beginTransaction();
-		ft.add(new Peer(), "Peer");
+		ft.add(new Peer(), PEER_TAG);
 		ft.commit();
 		act.getFragmentManager().executePendingTransactions();
 	}
@@ -158,5 +170,67 @@ public class App extends Application {
 		return getPackageManager().hasSystemFeature("android.hardware.type.pc");
 	}
 
+	void googleSignIn(Activity act, String serverOAuthID) {
+		act.runOnUiThread(new Runnable() {
+			@Override public void run() {
+				GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+					.requestIdToken(serverOAuthID)
+					.requestEmail()
+					.build();
+				GoogleSignInClient client = GoogleSignIn.getClient(act, gso);
+				Intent signInIntent = client.getSignInIntent();
+				startActivityForResult(act, signInIntent, REQUEST_SIGNIN);
+			}
+		});
+	}
+
+	void prepareVPN(Activity act) {
+		act.runOnUiThread(new Runnable() {
+			@Override public void run() {
+				Intent intent = VpnService.prepare(act);
+				if (intent == null) {
+					onVPNPrepared();
+				} else {
+					startActivityForResult(act, intent, REQUEST_PREPARE_VPN);
+				}
+			}
+		});
+	}
+
+	private void startActivityForResult(Activity act, Intent intent, int request) {
+		Fragment f = act.getFragmentManager().findFragmentByTag(PEER_TAG);
+		f.startActivityForResult(intent, request);
+	}
+
+	static void onActivityResult(Activity act, int requestCode, int resultCode, Intent data) {
+		switch (requestCode) {
+		case App.REQUEST_SIGNIN:
+			if (resultCode == Activity.RESULT_OK) {
+				GoogleSignInAccount acc = GoogleSignIn.getLastSignedInAccount(act);
+				onSignin(acc.getIdToken());
+			} else {
+				onSignin(null);
+			}
+		case App.REQUEST_PREPARE_VPN:
+			if (resultCode == Activity.RESULT_OK) {
+				onVPNPrepared();
+			}
+		}
+	}
+
+	void showURL(Activity act, String url) {
+		act.runOnUiThread(new Runnable() {
+			@Override public void run() {
+				CustomTabsIntent.Builder builder = new CustomTabsIntent.Builder();
+				int headerColor = 0xff496495;
+				builder.setToolbarColor(headerColor);
+				CustomTabsIntent intent = builder.build();
+				intent.launchUrl(act, Uri.parse(url));
+			}
+		});
+	}
+
+	static native void onSignin(String idToken);
+	static native void onVPNPrepared();
 	private static native void onConnectivityChanged(boolean connected);
 }
