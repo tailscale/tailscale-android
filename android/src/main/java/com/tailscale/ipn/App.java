@@ -160,10 +160,14 @@ public class App extends Application {
 	// attachPeer adds a Peer fragment for tracking the Activity
 	// lifecycle.
 	void attachPeer(Activity act) {
-		FragmentTransaction ft = act.getFragmentManager().beginTransaction();
-		ft.add(new Peer(), PEER_TAG);
-		ft.commit();
-		act.getFragmentManager().executePendingTransactions();
+		act.runOnUiThread(new Runnable() {
+			@Override public void run() {
+				FragmentTransaction ft = act.getFragmentManager().beginTransaction();
+				ft.add(new Peer(), PEER_TAG);
+				ft.commit();
+				act.getFragmentManager().executePendingTransactions();
+			}
+		});
 	}
 
 	boolean isChromeOS() {
