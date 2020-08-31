@@ -36,6 +36,15 @@ release candidate builds (currently Go 1.14) in module mode. It might
 work in earlier Go versions or in GOPATH mode, but we're making no
 effort to keep those working.
 
+## Google Sign-In
+
+Google Sign-In support relies on configuring a [Google API Console
+project](https://developers.google.com/identity/sign-in/android/start-integrating)
+with the app identifier and [signing key
+hashes](https://developers.google.com/android/guides/client-auth).
+The official release uses the app identifier `com.tailscale.ipn`;
+custom builds should use a different identifier.
+
 ## Bugs
 
 Please file any issues about this code or the hosted service on
