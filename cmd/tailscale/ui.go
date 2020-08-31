@@ -687,6 +687,9 @@ func (ui *UI) layoutTop(gtx layout.Context, sysIns system.Insets, state *Backend
 			return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
 				layout.Rigid(func(gtx C) D {
 					return in.Layout(gtx, func(gtx C) D {
+						if state.State <= ipn.NeedsLogin {
+							return D{}
+						}
 						sw := material.Switch(ui.theme, &ui.enabled)
 						sw.Color.Enabled = rgb(white)
 						if state.State < ipn.Stopped {
@@ -731,7 +734,7 @@ func statusString(state ipn.State) string {
 	case ipn.NeedsMachineAuth:
 		return "Awaiting Approval"
 	case ipn.NeedsLogin:
-		return "Needs Authentication"
+		return "Tailscale"
 	default:
 		return "Loading..."
 	}
