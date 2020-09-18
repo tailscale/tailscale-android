@@ -117,7 +117,7 @@ func main() {
 		fatalErr(err)
 	}
 	a.appDir = appDir
-	a.store = newStateStore(a.appDir, a.jvm, a.appCtx)
+	a.store = newStateStore(a.jvm, a.appCtx)
 	go func() {
 		if err := a.runBackend(); err != nil {
 			fatalErr(err)
