@@ -29,7 +29,6 @@ import (
 type App struct {
 	jvm    jni.JVM
 	appCtx jni.Object
-	appDir string
 	store  *stateStore
 
 	// updates is notifies whenever netState or browseURL changes.
@@ -112,11 +111,6 @@ func main() {
 		updates:   make(chan struct{}, 1),
 		vpnClosed: make(chan struct{}, 1),
 	}
-	appDir, err := app.DataDir()
-	if err != nil {
-		fatalErr(err)
-	}
-	a.appDir = appDir
 	a.store = newStateStore(a.jvm, a.appCtx)
 	go func() {
 		if err := a.runBackend(); err != nil {
@@ -132,9 +126,13 @@ func main() {
 }
 
 func (a *App) runBackend() error {
+	appDir, err := app.DataDir()
+	if err != nil {
+		fatalErr(err)
+	}
 	configs := make(chan *router.Config)
 	configErrs := make(chan error)
-	b, err := newBackend(a.appDir, a.jvm, a.store, func(s *router.Config) error {
+	b, err := newBackend(appDir, a.jvm, a.store, func(s *router.Config) error {
 		if s == nil {
 			return nil
 		}
