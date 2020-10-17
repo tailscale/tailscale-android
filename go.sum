@@ -6,8 +6,8 @@ gioui.org v0.0.0-20200726090130-3b95e2918359 h1:lae3H0ZryBOt3Kboxa55mpo5KsASVHSd
 gioui.org v0.0.0-20200726090130-3b95e2918359/go.mod h1:jiUwifN9cRl/zmco43aAqh0aV+s9GbhG13KcD+gEpkU=
 gioui.org v0.0.0-20200813124137-6c30c6386ccf h1:H2Nqf70MG2GeZKrWn5W8fuPcrn4JFp/PCO/jjE1hyfY=
 gioui.org v0.0.0-20200813124137-6c30c6386ccf/go.mod h1:jiUwifN9cRl/zmco43aAqh0aV+s9GbhG13KcD+gEpkU=
-gioui.org/cmd v0.0.0-20200809161702-a063febed977 h1:ZV34932OTha87lgiSpz68YPzMujPGmL0dSHww9VHIX8=
-gioui.org/cmd v0.0.0-20200809161702-a063febed977/go.mod h1:dlmJnCEkOpRaChYxRmJZ5S4jk6y7DCfWnec39xGbUYk=
+gioui.org/cmd v0.0.0-20201013133119-2ddd4f19855f h1:rq35v1NpxnHJDILoSWcE16oR8LRJXMr+VaVImszmnm0=
+gioui.org/cmd v0.0.0-20201013133119-2ddd4f19855f/go.mod h1:dlmJnCEkOpRaChYxRmJZ5S4jk6y7DCfWnec39xGbUYk=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/Masterminds/semver/v3 v3.0.3/go.mod h1:VPu/7SZ7ePZ3QOrcuXROw5FAcLl4a0cBrbBpGY/8hQs=
