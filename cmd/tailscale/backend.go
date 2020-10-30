@@ -65,7 +65,7 @@ var fallbackNameservers = []netaddr.IP{netaddr.IPv4(8, 8, 8, 8), netaddr.IPv4(8,
 var errVPNNotPrepared = errors.New("VPN service not prepared or was revoked")
 
 func newBackend(dataDir string, jvm jni.JVM, store *stateStore, settings func(*router.Config) error) (*backend, error) {
-	logf := wgengine.RusagePrefixLog(log.Printf)
+	logf := logger.RusagePrefixLog(log.Printf)
 	b := &backend{
 		jvm:      jvm,
 		devices:  newTUNDevices(),
@@ -310,7 +310,7 @@ func (b *backend) SetupLogs(logDir string, logID logtail.PrivateID) {
 		logcfg.Buffer, filchErr = filch.New(logPath, filchOpts)
 	}
 
-	logf := wgengine.RusagePrefixLog(log.Printf)
+	logf := logger.RusagePrefixLog(log.Printf)
 	tlog := logtail.Log(logcfg, logf)
 
 	log.SetFlags(0)
