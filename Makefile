@@ -8,21 +8,24 @@ APPID=com.tailscale.ipn
 AAR=android/libs/ipn.aar
 KEYSTORE=tailscale.jks
 KEYSTORE_ALIAS=tailscale
-GIT_DESCRIBE=$(shell git describe --tags --long)
-VERSION_LONG=$(shell ./mkversion.sh long $(GIT_DESCRIBE))
-VERSION_SHORT=$(shell ./mkversion.sh short $(GIT_DESCRIBE))
+TAILSCALE_VERSION=$(shell ./version/tailscale-version.sh)
+TAILSCALE_COMMIT=$(lastword $(subst -g, ,$(TAILSCALE_VERSION)))
+GIT_DESCRIBE=$(shell git describe --dirty --exclude "*" --always --abbrev=200)
+VERSION_LONG=$(shell ./version/mkversion.sh long $(TAILSCALE_VERSION) $(GIT_DESCRIBE))
+VERSION_SHORT=$(shell ./version/mkversion.sh short $(TAILSCALE_VERSION) $(GIT_DESCRIBE))
 
 all: $(APK)
 
-aar:
+$(DEBUG_APK):
 	mkdir -p android/libs
-	go run gioui.org/cmd/gogio -ldflags "-X tailscale.com/version.LONG=$(VERSION_LONG) -X tailscale.com/version.SHORT=$(VERSION_SHORT)" -tags xversion -buildmode archive -target android -appid $(APPID) -o $(AAR) github.com/tailscale/tailscale-android/cmd/tailscale
-
-$(DEBUG_APK): aar
-	(cd android && VERSION=$(VERSION_LONG) ./gradlew assembleDebug)
+	go run gioui.org/cmd/gogio -buildmode archive -target android -appid $(APPID) -o $(AAR) github.com/tailscale/tailscale-android/cmd/tailscale
+	(cd android && ./gradlew assembleDebug)
 	mv android/build/outputs/apk/debug/android-debug.apk $@
 	
-$(RELEASE_AAB): aar
+$(RELEASE_AAB):
+	mkdir -p android/libs
+	go run gioui.org/cmd/gogio -ldflags "-X tailscale.com/version.Long=$(VERSION_LONG) -X tailscale.com/version.Short=$(VERSION_SHORT) -X tailscale.com/version.GitCommit=$(TAILSCALE_COMMIT)" -tags xversion -buildmode archive -target android -appid $(APPID) -o $(AAR) github.com/tailscale/tailscale-android/cmd/tailscale
+
 	(cd android && VERSION=$(VERSION_LONG) ./gradlew bundleRelease)
 	mv ./android/build/outputs/bundle/release/android-release.aab $@
 
@@ -39,4 +42,4 @@ dockershell:
 clean:
 	rm -rf android/build $(RELEASE_AAB) $(DEBUG_APK) $(AAR)
 
-.PHONY: all clean install aar release dockershell
+.PHONY: all clean install $(DEBUG_APK) $(RELEASE_AAB) release dockershell
