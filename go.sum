@@ -4,8 +4,8 @@ eliasnaur.com/font v0.0.0-20200617114307-e02d32decb4b h1:J9r7EuPdhvBTafg34EqrObA
 eliasnaur.com/font v0.0.0-20200617114307-e02d32decb4b/go.mod h1:CYwJpIhpzVfoHpFXGlXjSx9mXMWtHt4XXmZb6RjumRc=
 gioui.org v0.0.0-20200726090130-3b95e2918359 h1:lae3H0ZryBOt3Kboxa55mpo5KsASVHSdS65EsGMf9kc=
 gioui.org v0.0.0-20200726090130-3b95e2918359/go.mod h1:jiUwifN9cRl/zmco43aAqh0aV+s9GbhG13KcD+gEpkU=
-gioui.org v0.0.0-20200813124137-6c30c6386ccf h1:H2Nqf70MG2GeZKrWn5W8fuPcrn4JFp/PCO/jjE1hyfY=
-gioui.org v0.0.0-20200813124137-6c30c6386ccf/go.mod h1:jiUwifN9cRl/zmco43aAqh0aV+s9GbhG13KcD+gEpkU=
+gioui.org v0.0.0-20201102184456-38cdd28681b6 h1:a/81sqLPxnLeWrsvR0NqrrdYA6quugSihC8j2A0b/o4=
+gioui.org v0.0.0-20201102184456-38cdd28681b6/go.mod h1:Y+uS7hHMvku1Q+ooaoq6fYD5B2LGoT8JtFgvmYmRzTw=
 gioui.org/cmd v0.0.0-20201013133119-2ddd4f19855f h1:rq35v1NpxnHJDILoSWcE16oR8LRJXMr+VaVImszmnm0=
 gioui.org/cmd v0.0.0-20201013133119-2ddd4f19855f/go.mod h1:dlmJnCEkOpRaChYxRmJZ5S4jk6y7DCfWnec39xGbUYk=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
