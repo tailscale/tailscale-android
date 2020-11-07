@@ -25,7 +25,7 @@ case "$mod_version" in
 		# includes the commit hash.
 		commit=${mod_version##*-*-}
 		version=${mod_version%%-*}
-		echo "v0.0.0-0-g$commit"
+		echo "$version-0-g$commit"
 		exit 0
 		;;
 esac

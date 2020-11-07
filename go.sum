@@ -208,5 +208,5 @@ inet.af/netaddr v0.0.0-20200810144936-56928fe48a98 h1:bWyWDZP0l6VnQ1TDKf6yNwuiED
 inet.af/netaddr v0.0.0-20200810144936-56928fe48a98/go.mod h1:qqYzz/2whtrbWJvt+DNWQyvekNN4ePQZcg2xc2/Yjww=
 rsc.io/goversion v1.2.0 h1:SPn+NLTiAG7w30IRK/DKp1BjvpWabYgxlLp/+kx5J8w=
 rsc.io/goversion v1.2.0/go.mod h1:Eih9y/uIBS3ulggl7KNJ09xGSLcuNaLgmvvqa07sgfo=
-tailscale.com v1.1.1-0.20201030135043-eab6e9ea4e45 h1:7ochIqBH+55Me/eZaIubpMDxl80eoFnoSYYyDrWRhXw=
-tailscale.com v1.1.1-0.20201030135043-eab6e9ea4e45/go.mod h1:JEJiCce3MHtPCTdX2ahLc4tcnxZ7b5etish1Yt0B6+w=
+tailscale.com v1.2.2 h1:aTrGEGnDMKQtTEKXrkAWcZA1zDvBoOBN3IYOjEgDTV4=
+tailscale.com v1.2.2/go.mod h1:JEJiCce3MHtPCTdX2ahLc4tcnxZ7b5etish1Yt0B6+w=
