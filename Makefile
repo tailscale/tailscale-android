@@ -22,10 +22,11 @@ $(DEBUG_APK):
 	(cd android && ./gradlew assemblePlayDebug)
 	mv android/build/outputs/apk/play/debug/android-play-debug.apk $@
 	
-$(RELEASE_AAB):
+release_aar:
 	mkdir -p android/libs
 	go run gioui.org/cmd/gogio -ldflags "-X tailscale.com/version.Long=$(VERSION_LONG) -X tailscale.com/version.Short=$(VERSION_SHORT) -X tailscale.com/version.GitCommit=$(TAILSCALE_COMMIT)" -tags xversion -buildmode archive -target android -appid $(APPID) -o $(AAR) github.com/tailscale/tailscale-android/cmd/tailscale
 
+$(RELEASE_AAB): release_aar
 	(cd android && VERSION=$(VERSION_LONG) ./gradlew bundlePlayRelease)
 	mv ./android/build/outputs/bundle/playRelease/android-play-release.aab $@
 
@@ -42,4 +43,4 @@ dockershell:
 clean:
 	rm -rf android/build $(RELEASE_AAB) $(DEBUG_APK) $(AAR)
 
-.PHONY: all clean install $(DEBUG_APK) $(RELEASE_AAB) release dockershell
+.PHONY: all clean install $(DEBUG_APK) $(RELEASE_AAB) release_aar release dockershell
