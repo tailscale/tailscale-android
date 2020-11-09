@@ -32,12 +32,24 @@ android {
 		sourceCompatibility 1.8
 		targetCompatibility 1.8
 	}
+	flavorDimensions "version"
+	productFlavors {
+		fdroid {
+			// The fdroid flavor contains only free dependencies and is suitable
+			// for the F-Droid app store.
+		}
+		play {
+			// The play flavor contains all features and is for the Play Store.
+		}
+	}
 }
 
 dependencies {
-	implementation 'com.google.android.gms:play-services-auth:18.0.0'
 	implementation "androidx.core:core:1.2.0"
 	implementation "androidx.browser:browser:1.2.0"
 	implementation "androidx.security:security-crypto:1.1.0-alpha02"
 	implementation ':ipn@aar'
+
+	// Non-free dependencies.
+	playImplementation 'com.google.android.gms:play-services-auth:18.0.0'
 }
