@@ -31,6 +31,9 @@ $ make dockershell
 # make tailscale-debug.apk
 ```
 
+Use `make tag_release` to bump the Android version code, update the version
+name, and tag the current commit.
+
 We only guarantee to support the latest Go release and any Go beta or
 release candidate builds (currently Go 1.14) in module mode. It might
 work in earlier Go versions or in GOPATH mode, but we're making no

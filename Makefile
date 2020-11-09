@@ -13,8 +13,16 @@ TAILSCALE_COMMIT=$(lastword $(subst -g, ,$(TAILSCALE_VERSION)))
 GIT_DESCRIBE=$(shell git describe --dirty --exclude "*" --always --abbrev=200)
 VERSION_LONG=$(shell ./version/mkversion.sh long $(TAILSCALE_VERSION) $(GIT_DESCRIBE))
 VERSION_SHORT=$(shell ./version/mkversion.sh short $(TAILSCALE_VERSION) $(GIT_DESCRIBE))
+VERSIONCODE=$(lastword $(shell grep versionCode android/build.gradle))
+VERSIONCODE_PLUSONE=$(shell expr $(VERSIONCODE) + 1)
 
 all: $(APK)
+
+tag_release:
+	sed -i 's/versionCode [[:digit:]]\+/versionCode $(VERSIONCODE_PLUSONE)/' android/build.gradle
+	sed -i 's/versionName .*/versionName "$(VERSION_LONG)"/' android/build.gradle
+	git commit -sm "android: bump version code" android/build.gradle
+	git tag -a "v$(VERSION_LONG)"
 
 $(DEBUG_APK):
 	mkdir -p android/libs
@@ -22,12 +30,13 @@ $(DEBUG_APK):
 	(cd android && ./gradlew assemblePlayDebug)
 	mv android/build/outputs/apk/play/debug/android-play-debug.apk $@
 	
+# This target is also used by the F-Droid metadata.
 release_aar:
 	mkdir -p android/libs
 	go run gioui.org/cmd/gogio -ldflags "-X tailscale.com/version.Long=$(VERSION_LONG) -X tailscale.com/version.Short=$(VERSION_SHORT) -X tailscale.com/version.GitCommit=$(TAILSCALE_COMMIT)" -tags xversion -buildmode archive -target android -appid $(APPID) -o $(AAR) github.com/tailscale/tailscale-android/cmd/tailscale
 
 $(RELEASE_AAB): release_aar
-	(cd android && VERSION=$(VERSION_LONG) ./gradlew bundlePlayRelease)
+	(cd android && ./gradlew bundlePlayRelease)
 	mv ./android/build/outputs/bundle/playRelease/android-play-release.aab $@
 
 release: $(RELEASE_AAB)
@@ -43,4 +52,4 @@ dockershell:
 clean:
 	rm -rf android/build $(RELEASE_AAB) $(DEBUG_APK) $(AAR)
 
-.PHONY: all clean install $(DEBUG_APK) $(RELEASE_AAB) release_aar release dockershell
+.PHONY: all clean install $(DEBUG_APK) $(RELEASE_AAB) release_aar release bump_version dockershell
