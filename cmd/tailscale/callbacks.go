@@ -41,19 +41,28 @@ func init() {
 	connected.Store(true)
 }
 
+const (
+	// Request codes for Android callbacks.
+	// requestSignin is for Google Sign-In.
+	requestSignin C.jint = 1000 + iota
+	// requestPrepareVPN is for when Android's VpnService.prepare
+	// completes.
+	requestPrepareVPN
+)
+
+// resultOK is Android's Activity.RESULT_OK.
+const resultOK = -1
+
 //export Java_com_tailscale_ipn_App_onVPNPrepared
 func Java_com_tailscale_ipn_App_onVPNPrepared(env *C.JNIEnv, class C.jclass) {
+	onVPNPrepared()
+}
+
+func onVPNPrepared() {
 	select {
 	case vpnPrepared <- struct{}{}:
 	default:
 	}
-}
-
-//export Java_com_tailscale_ipn_App_onSignin
-func Java_com_tailscale_ipn_App_onSignin(env *C.JNIEnv, class C.jclass, idToken C.jstring) {
-	jenv := jni.EnvFor(uintptr(unsafe.Pointer(env)))
-	tok := jni.GoString(jenv, jni.String(idToken))
-	onGoogleToken <- tok
 }
 
 //export Java_com_tailscale_ipn_IPNService_connect
@@ -80,4 +89,30 @@ func Java_com_tailscale_ipn_App_onConnectivityChanged(env *C.JNIEnv, cls C.jclas
 //export Java_com_tailscale_ipn_QuickToggleService_onTileClick
 func Java_com_tailscale_ipn_QuickToggleService_onTileClick(env *C.JNIEnv, cls C.jclass) {
 	requestBackend(ToggleEvent{})
+}
+
+//export Java_com_tailscale_ipn_Peer_onActivityResult0
+func Java_com_tailscale_ipn_Peer_onActivityResult0(env *C.JNIEnv, cls C.jclass, act C.jobject, reqCode, resCode C.jint) {
+	switch reqCode {
+	case requestSignin:
+		if resCode != resultOK {
+			onGoogleToken <- ""
+			break
+		}
+		jenv := jni.EnvFor(uintptr(unsafe.Pointer(env)))
+		m := jni.GetStaticMethodID(jenv, googleClass,
+			"getIdTokenForActivity", "(Landroid/app/Activity;)Ljava/lang/String;")
+		idToken, err := jni.CallStaticObjectMethod(jenv, googleClass, m, jni.Value(act))
+		if err != nil {
+			fatalErr(err)
+			break
+		}
+		tok := jni.GoString(jenv, jni.String(idToken))
+		onGoogleToken <- tok
+	case requestPrepareVPN:
+		if resCode != resultOK {
+			break
+		}
+		onVPNPrepared()
+	}
 }

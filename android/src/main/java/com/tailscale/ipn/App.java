@@ -31,19 +31,11 @@ import java.security.GeneralSecurityException;
 import androidx.security.crypto.EncryptedSharedPreferences;
 import androidx.security.crypto.MasterKey;
 
-import com.google.android.gms.auth.api.signin.GoogleSignIn;
-import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
-import com.google.android.gms.auth.api.signin.GoogleSignInClient;
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
-
 import androidx.browser.customtabs.CustomTabsIntent;
 
 import org.gioui.Gio;
 
 public class App extends Application {
-	private final static int REQUEST_SIGNIN = 1001;
-	private final static int REQUEST_PREPARE_VPN = 1002;
-
 	private final static String PEER_TAG = "peer";
 
 	private final static Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -101,13 +93,6 @@ public class App extends Application {
 				EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
 				EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
 		);
-	}
-
-	void googleSignOut() {
-		GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-			.build();
-		GoogleSignInClient client = GoogleSignIn.getClient(this, gso);
-		client.signOut();
 	}
 
 	void setTileStatus(boolean wantRunning) {
@@ -174,52 +159,22 @@ public class App extends Application {
 		return getPackageManager().hasSystemFeature("android.hardware.type.pc");
 	}
 
-	void googleSignIn(Activity act, String serverOAuthID) {
-		act.runOnUiThread(new Runnable() {
-			@Override public void run() {
-				GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-					.requestIdToken(serverOAuthID)
-					.requestEmail()
-					.build();
-				GoogleSignInClient client = GoogleSignIn.getClient(act, gso);
-				Intent signInIntent = client.getSignInIntent();
-				startActivityForResult(act, signInIntent, REQUEST_SIGNIN);
-			}
-		});
-	}
-
-	void prepareVPN(Activity act) {
+	void prepareVPN(Activity act, int reqCode) {
 		act.runOnUiThread(new Runnable() {
 			@Override public void run() {
 				Intent intent = VpnService.prepare(act);
 				if (intent == null) {
 					onVPNPrepared();
 				} else {
-					startActivityForResult(act, intent, REQUEST_PREPARE_VPN);
+					startActivityForResult(act, intent, reqCode);
 				}
 			}
 		});
 	}
 
-	private void startActivityForResult(Activity act, Intent intent, int request) {
+	static void startActivityForResult(Activity act, Intent intent, int request) {
 		Fragment f = act.getFragmentManager().findFragmentByTag(PEER_TAG);
 		f.startActivityForResult(intent, request);
-	}
-
-	static void onActivityResult(Activity act, int requestCode, int resultCode, Intent data) {
-		switch (requestCode) {
-		case App.REQUEST_SIGNIN:
-			if (resultCode == Activity.RESULT_OK) {
-				GoogleSignInAccount acc = GoogleSignIn.getLastSignedInAccount(act);
-				onSignin(acc.getIdToken());
-			} else {
-				onSignin(null);
-			}
-		case App.REQUEST_PREPARE_VPN:
-			if (resultCode == Activity.RESULT_OK) {
-				onVPNPrepared();
-			}
-		}
 	}
 
 	void showURL(Activity act, String url) {
@@ -234,7 +189,6 @@ public class App extends Application {
 		});
 	}
 
-	static native void onSignin(String idToken);
 	static native void onVPNPrepared();
 	private static native void onConnectivityChanged(boolean connected);
 }

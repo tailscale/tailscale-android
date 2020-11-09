@@ -33,8 +33,6 @@ import (
 	_ "image/png"
 )
 
-const enableGoogleSignin = true
-
 type UI struct {
 	theme *material.Theme
 	store *stateStore
@@ -339,7 +337,7 @@ func (ui *UI) layoutSignIn(gtx layout.Context, state *BackendState) layout.Dimen
 		border := widget.Border{Color: rgb(textColor), CornerRadius: unit.Dp(4), Width: unit.Px(1)}
 		return layout.Flex{Axis: layout.Vertical, Alignment: layout.Middle}.Layout(gtx,
 			layout.Rigid(func(gtx C) D {
-				if !enableGoogleSignin {
+				if !googleSignInEnabled() {
 					return D{}
 				}
 				return layout.Inset{Bottom: unit.Dp(16)}.Layout(gtx, func(gtx C) D {
@@ -374,7 +372,7 @@ func (ui *UI) layoutSignIn(gtx layout.Context, state *BackendState) layout.Dimen
 			}),
 			layout.Rigid(func(gtx C) D {
 				label := "Sign in with other"
-				if !enableGoogleSignin {
+				if !googleSignInEnabled() {
 					label = "Sign in"
 				}
 				return ui.withLoader(gtx, ui.signinType == webSignin, func(gtx C) D {

@@ -27,9 +27,11 @@ import (
 //go:generate go run github.com/go-bindata/go-bindata/go-bindata -nocompress -o logo.go tailscale.png google.png
 
 type App struct {
-	jvm    jni.JVM
+	jvm jni.JVM
+	// appCtx is a global reference to the com.tailscale.ipn.App instance.
 	appCtx jni.Object
-	store  *stateStore
+
+	store *stateStore
 
 	// updates is notifies whenever netState or browseURL changes.
 	updates chan struct{}
@@ -51,6 +53,11 @@ type App struct {
 	// prefs is set when new preferences arrive.
 	prefs *ipn.Prefs
 }
+
+var (
+	// googleClass is a global reference to the com.tailscale.ipn.Google class.
+	googleClass jni.Class
+)
 
 type clientState struct {
 	browseURL string
@@ -110,6 +117,19 @@ func main() {
 		appCtx:    jni.Object(app.AppContext()),
 		updates:   make(chan struct{}, 1),
 		vpnClosed: make(chan struct{}, 1),
+	}
+	err := jni.Do(a.jvm, func(env jni.Env) error {
+		loader := jni.ClassLoaderFor(env, a.appCtx)
+		cl, err := jni.LoadClass(env, loader, "com.tailscale.ipn.Google")
+		if err != nil {
+			// Ignore load errors; the Google class is not included in F-Droid builds.
+			return nil
+		}
+		googleClass = jni.Class(jni.NewGlobalRef(env, jni.Object(cl)))
+		return nil
+	})
+	if err != nil {
+		fatalErr(err)
 	}
 	a.store = newStateStore(a.jvm, a.appCtx)
 	go func() {
@@ -367,6 +387,10 @@ func (a *App) modelName() string {
 		panic(err)
 	}
 	return model
+}
+
+func googleSignInEnabled() bool {
+	return googleClass != 0
 }
 
 // updateNotification updates the foreground persistent status notification.
@@ -652,7 +676,8 @@ func (a *App) updateState(act jni.Object, state *clientState) {
 }
 
 func (a *App) prepareVPN(act jni.Object) error {
-	return a.callVoidMethod(a.appCtx, "prepareVPN", "(Landroid/app/Activity;)V", jni.Value(act))
+	return a.callVoidMethod(a.appCtx, "prepareVPN", "(Landroid/app/Activity;I)V",
+		jni.Value(act), jni.Value(requestPrepareVPN))
 }
 
 func requestBackend(e UIEvent) {
@@ -693,8 +718,13 @@ func (a *App) processUIEvents(w *app.Window, events []UIEvent, act jni.Object, s
 }
 
 func (a *App) signOut() {
+	if googleClass == 0 {
+		return
+	}
 	err := jni.Do(a.jvm, func(env jni.Env) error {
-		return a.callVoidMethod(a.appCtx, "googleSignOut", "()V")
+		m := jni.GetStaticMethodID(env, googleClass,
+			"googleSignOut", "(Landroid/content/Context;)V")
+		return jni.CallStaticVoidMethod(env, googleClass, m, jni.Value(a.appCtx))
 	})
 	if err != nil {
 		fatalErr(err)
@@ -702,12 +732,15 @@ func (a *App) signOut() {
 }
 
 func (a *App) googleSignIn(act jni.Object) {
-	if act == 0 {
+	if act == 0 || googleClass == 0 {
 		return
 	}
 	err := jni.Do(a.jvm, func(env jni.Env) error {
 		sid := jni.JavaString(env, serverOAuthID)
-		return a.callVoidMethod(a.appCtx, "googleSignIn", "(Landroid/app/Activity;Ljava/lang/String;)V", jni.Value(act), jni.Value(sid))
+		m := jni.GetStaticMethodID(env, googleClass,
+			"googleSignIn", "(Landroid/app/Activity;Ljava/lang/String;I)V")
+		return jni.CallStaticVoidMethod(env, googleClass, m,
+			jni.Value(act), jni.Value(sid), jni.Value(requestSignin))
 	})
 	if err != nil {
 		fatalErr(err)
