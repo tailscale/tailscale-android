@@ -9,10 +9,14 @@ AAR=android/libs/ipn.aar
 KEYSTORE=tailscale.jks
 KEYSTORE_ALIAS=tailscale
 TAILSCALE_VERSION=$(shell ./version/tailscale-version.sh)
-TAILSCALE_COMMIT=$(lastword $(subst -g, ,$(TAILSCALE_VERSION)))
 GIT_DESCRIBE=$(shell git describe --dirty --exclude "*" --always --abbrev=200)
 VERSION_LONG=$(shell ./version/mkversion.sh long $(TAILSCALE_VERSION) $(GIT_DESCRIBE))
-VERSION_SHORT=$(shell ./version/mkversion.sh short $(TAILSCALE_VERSION) $(GIT_DESCRIBE))
+# Extract the long version build.gradle's versionName and strip quotes.
+VERSIONNAME=$(patsubst "%",%,$(lastword $(shell grep versionName android/build.gradle)))
+# Extract the x.y.z part for the short version.
+VERSIONNAME_SHORT=$(shell echo $(VERSIONNAME) | cut -d - -f 1)
+TAILSCALE_COMMIT=$(shell echo $(VERSIONNAME) | cut -d - -f 2 | cut -d t -f 2)
+# Extract the version code from build.gradle.
 VERSIONCODE=$(lastword $(shell grep versionCode android/build.gradle))
 VERSIONCODE_PLUSONE=$(shell expr $(VERSIONCODE) + 1)
 
@@ -30,10 +34,10 @@ $(DEBUG_APK):
 	(cd android && ./gradlew assemblePlayDebug)
 	mv android/build/outputs/apk/play/debug/android-play-debug.apk $@
 	
-# This target is also used by the F-Droid metadata.
+# This target is also used by the F-Droid builder.
 release_aar:
 	mkdir -p android/libs
-	go run gioui.org/cmd/gogio -ldflags "-X tailscale.com/version.Long=$(VERSION_LONG) -X tailscale.com/version.Short=$(VERSION_SHORT) -X tailscale.com/version.GitCommit=$(TAILSCALE_COMMIT)" -tags xversion -buildmode archive -target android -appid $(APPID) -o $(AAR) github.com/tailscale/tailscale-android/cmd/tailscale
+	go run gioui.org/cmd/gogio -ldflags "-X tailscale.com/version.Long=$(VERSIONNAME) -X tailscale.com/version.Short=$(VERSIONNAME_SHORT) -X tailscale.com/version.GitCommit=$(TAILSCALE_COMMIT)" -tags xversion -buildmode archive -target android -appid $(APPID) -o $(AAR) github.com/tailscale/tailscale-android/cmd/tailscale
 
 $(RELEASE_AAB): release_aar
 	(cd android && ./gradlew bundlePlayRelease)
