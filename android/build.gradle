@@ -25,8 +25,8 @@ android {
     defaultConfig {
         minSdkVersion 22
         targetSdkVersion 29
-        versionCode 23
-        versionName System.getenv("VERSION")
+        versionCode 24
+        versionName "1.2.2-t76c2982d8-g97a826d11"
     }
 	compileOptions {
 		sourceCompatibility 1.8
