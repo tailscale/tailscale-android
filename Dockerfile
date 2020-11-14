@@ -32,9 +32,9 @@ RUN echo y | $ANDROID_HOME/tools/bin/sdkmanager 'build-tools;28.0.3'
 
 # Get Go stable release
 WORKDIR $HOME
-ARG GO_VERSION=1.14.3
+ARG GO_VERSION=1.15.5
 RUN curl -O https://storage.googleapis.com/golang/go${GO_VERSION}.linux-amd64.tar.gz
-RUN echo "1c39eac4ae95781b066c144c58e45d6859652247f7515f0d2cba7be7d57d2226  go${GO_VERSION}.linux-amd64.tar.gz" | sha256sum -c
+RUN echo "9a58494e8da722c3aef248c9227b0e9c528c7318309827780f16220998180a0d  go${GO_VERSION}.linux-amd64.tar.gz" | sha256sum -c
 RUN tar -xzf go${GO_VERSION}.linux-amd64.tar.gz && mv go goroot
 ENV GOROOT $HOME/goroot
 ENV PATH $PATH:$GOROOT/bin:$HOME/bin:$ANDROID_HOME/platform-tools
