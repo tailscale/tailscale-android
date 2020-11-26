@@ -342,7 +342,7 @@ func (ui *UI) layoutSignIn(gtx layout.Context, state *BackendState) layout.Dimen
 				}
 				return layout.Inset{Bottom: unit.Dp(16)}.Layout(gtx, func(gtx C) D {
 					signin := material.ButtonLayout(ui.theme, &ui.googleSignin)
-					signin.Background = color.RGBA{} // transparent
+					signin.Background = color.NRGBA{} // transparent
 
 					return ui.withLoader(gtx, ui.signinType == googleSignin, func(gtx C) D {
 						return border.Layout(gtx, func(gtx C) D {
@@ -381,7 +381,7 @@ func (ui *UI) layoutSignIn(gtx layout.Context, state *BackendState) layout.Dimen
 							gtx.Queue = nil
 						}
 						signin := material.Button(ui.theme, &ui.webSignin, label)
-						signin.Background = color.RGBA{} // transparent
+						signin.Background = color.NRGBA{} // transparent
 						signin.Color = rgb(textColor)
 						return signin.Layout(gtx)
 					})
@@ -846,16 +846,19 @@ func drawLogo(ops *op.Ops, size int) {
 }
 
 func drawImage(gtx layout.Context, img paint.ImageOp, size unit.Value) layout.Dimensions {
+	defer op.Push(gtx.Ops).Pop()
 	img.Add(gtx.Ops)
 	sz := img.Size()
 	aspect := float32(sz.Y) / float32(sz.X)
 	w := gtx.Px(size)
 	h := int(float32(w)*aspect + .5)
-	paint.PaintOp{Rect: f32.Rectangle{Max: f32.Pt(float32(w), float32(h))}}.Add(gtx.Ops)
+	scale := float32(w) / float32(sz.X)
+	op.Affine(f32.Affine2D{}.Scale(f32.Point{}, f32.Point{X: scale, Y: scale})).Add(gtx.Ops)
+	paint.PaintOp{}.Add(gtx.Ops)
 	return layout.Dimensions{Size: image.Pt(w, h)}
 }
 
-func drawDisc(ops *op.Ops, radius float32, col color.RGBA) {
+func drawDisc(ops *op.Ops, radius float32, col color.NRGBA) {
 	defer op.Push(ops).Pop()
 	r2 := radius * .5
 	dr := f32.Rectangle{Max: f32.Pt(radius, radius)}
@@ -864,12 +867,12 @@ func drawDisc(ops *op.Ops, radius float32, col color.RGBA) {
 		NE:   r2, NW: r2, SE: r2, SW: r2,
 	}.Add(ops)
 	paint.ColorOp{Color: col}.Add(ops)
-	paint.PaintOp{Rect: dr}.Add(ops)
+	paint.PaintOp{}.Add(ops)
 }
 
 // Background lays out a widget and draws a color background behind it.
 type Background struct {
-	Color        color.RGBA
+	Color        color.NRGBA
 	CornerRadius unit.Value
 }
 
@@ -895,23 +898,23 @@ func (b Background) Layout(gtx layout.Context, w layout.Widget) layout.Dimension
 }
 
 type fill struct {
-	col color.RGBA
+	col color.NRGBA
 }
 
 func (f fill) Layout(gtx layout.Context, sz image.Point) layout.Dimensions {
 	defer op.Push(gtx.Ops).Pop()
-	dr := f32.Rectangle{Max: layout.FPt(sz)}
+	clip.Rect(image.Rectangle{Max: sz}).Add(gtx.Ops)
 	paint.ColorOp{Color: f.col}.Add(gtx.Ops)
-	paint.PaintOp{Rect: dr}.Add(gtx.Ops)
+	paint.PaintOp{}.Add(gtx.Ops)
 	return layout.Dimensions{Size: sz}
 }
 
-func rgb(c uint32) color.RGBA {
+func rgb(c uint32) color.NRGBA {
 	return argb((0xff << 24) | c)
 }
 
-func argb(c uint32) color.RGBA {
-	return color.RGBA{A: uint8(c >> 24), R: uint8(c >> 16), G: uint8(c >> 8), B: uint8(c)}
+func argb(c uint32) color.NRGBA {
+	return color.NRGBA{A: uint8(c >> 24), R: uint8(c >> 16), G: uint8(c >> 8), B: uint8(c)}
 }
 
 const termsText = `Tailscale is a mesh VPN for securely connecting your devices. All connections are device-to-device, so we never see your data.
