@@ -356,7 +356,8 @@ func (a *App) hostname() string {
 	return hostname
 }
 
-// osVersion returns android.os.Build.MODEL.
+// osVersion returns android.os.Build.VERSION.RELEASE. " [nogoogle]" is appended
+// if Google Play services are not compiled in.
 func (a *App) osVersion() string {
 	var version string
 	err := jni.Do(a.jvm, func(env jni.Env) error {
@@ -368,6 +369,9 @@ func (a *App) osVersion() string {
 	})
 	if err != nil {
 		panic(err)
+	}
+	if !googleSignInEnabled() {
+		version += " [nogoogle]"
 	}
 	return version
 }
