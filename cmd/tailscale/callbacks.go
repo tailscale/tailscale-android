@@ -17,7 +17,11 @@ import (
 import "C"
 
 var (
-	vpnPrepared = make(chan struct{}, 1)
+	// onVPNPrepared is notified when VpnService.prepare succeeds.
+	onVPNPrepared = make(chan struct{}, 1)
+	// onVPNClosed is notified when VpnService.prepare fails, or when
+	// the a running VPN connection is closed.
+	onVPNClosed = make(chan struct{}, 1)
 
 	// onConnect receives global IPNService references when
 	// a VPN connection is requested.
@@ -55,12 +59,19 @@ const resultOK = -1
 
 //export Java_com_tailscale_ipn_App_onVPNPrepared
 func Java_com_tailscale_ipn_App_onVPNPrepared(env *C.JNIEnv, class C.jclass) {
-	onVPNPrepared()
+	notifyVPNPrepared()
 }
 
-func onVPNPrepared() {
+func notifyVPNPrepared() {
 	select {
-	case vpnPrepared <- struct{}{}:
+	case onVPNPrepared <- struct{}{}:
+	default:
+	}
+}
+
+func notifyVPNClosed() {
+	select {
+	case onVPNClosed <- struct{}{}:
 	default:
 	}
 }
@@ -110,9 +121,10 @@ func Java_com_tailscale_ipn_Peer_onActivityResult0(env *C.JNIEnv, cls C.jclass, 
 		tok := jni.GoString(jenv, jni.String(idToken))
 		onGoogleToken <- tok
 	case requestPrepareVPN:
-		if resCode != resultOK {
-			break
+		if resCode == resultOK {
+			notifyVPNPrepared()
+		} else {
+			notifyVPNClosed()
 		}
-		onVPNPrepared()
 	}
 }

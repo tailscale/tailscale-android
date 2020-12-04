@@ -35,9 +35,6 @@ type App struct {
 
 	// updates is notifies whenever netState or browseURL changes.
 	updates chan struct{}
-	// vpnClosed is notified when the VPNService is closed while
-	// logged in.
-	vpnClosed chan struct{}
 
 	// backend is the channel for events from the frontend to the
 	// backend.
@@ -113,10 +110,9 @@ var backendEvents = make(chan UIEvent)
 
 func main() {
 	a := &App{
-		jvm:       jni.JVMFor(app.JavaVM()),
-		appCtx:    jni.Object(app.AppContext()),
-		updates:   make(chan struct{}, 1),
-		vpnClosed: make(chan struct{}, 1),
+		jvm:     jni.JVMFor(app.JavaVM()),
+		appCtx:  jni.Object(app.AppContext()),
+		updates: make(chan struct{}, 1),
 	}
 	err := jni.Do(a.jvm, func(env jni.Env) error {
 		loader := jni.ClassLoaderFor(env, a.appCtx)
@@ -231,7 +227,7 @@ func (a *App) runBackend() error {
 					if cfg != nil && state.State >= ipn.Starting {
 						if err := b.updateTUN(service, cfg); err != nil {
 							log.Printf("VPN update failed: %v", err)
-							a.notifyVPNClosed()
+							notifyVPNClosed()
 						}
 					} else {
 						b.CloseTUNs()
@@ -298,7 +294,7 @@ func (a *App) runBackend() error {
 			if cfg != nil && state.State >= ipn.Starting {
 				if err := b.updateTUN(service, cfg); err != nil {
 					log.Printf("VPN update failed: %v", err)
-					a.notifyVPNClosed()
+					notifyVPNClosed()
 				}
 			}
 		case <-onConnectivityChange:
@@ -318,7 +314,7 @@ func (a *App) runBackend() error {
 				return nil
 			})
 			if state.State >= ipn.Starting {
-				a.notifyVPNClosed()
+				notifyVPNClosed()
 			}
 		}
 	}
@@ -457,13 +453,6 @@ func (a *App) notifyExpiry(service jni.Object, expiry time.Time) *time.Timer {
 	return t
 }
 
-func (a *App) notifyVPNClosed() {
-	select {
-	case a.vpnClosed <- struct{}{}:
-	default:
-	}
-}
-
 func (a *App) notify(state BackendState) {
 	a.mu.Lock()
 	a.netState = state
@@ -527,7 +516,7 @@ func (a *App) runUI() error {
 	defer deleteActivityRef()
 	for {
 		select {
-		case <-a.vpnClosed:
+		case <-onVPNClosed:
 			requestBackend(ConnectEvent{Enable: false})
 		case tok := <-onGoogleToken:
 			ui.signinType = noSignin
@@ -564,7 +553,7 @@ func (a *App) runUI() error {
 					}
 				}
 			}
-		case <-vpnPrepared:
+		case <-onVPNPrepared:
 			if state.backend.State > ipn.Stopped {
 				if err := a.callVoidMethod(a.appCtx, "startVPN", "()V"); err != nil {
 					return err
