@@ -559,6 +559,9 @@ func (a *App) runUI() error {
 					return err
 				}
 			}
+		case <-onVPNRevoked:
+			ui.NotifyRevoked()
+			w.Invalidate()
 		case e := <-w.Events():
 			switch e := e.(type) {
 			case app.ViewEvent:

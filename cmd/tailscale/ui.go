@@ -286,7 +286,7 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 		})
 	})
 
-	// "Copied" message.
+	// Popup messages.
 	ui.layoutMessage(gtx, sysIns)
 
 	// 3-dots menu.
@@ -304,6 +304,11 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 	}
 
 	return ui.events
+}
+
+func (ui *UI) NotifyRevoked() {
+	ui.message.text = "VPN access denied or another VPN service is always-on"
+	ui.message.t0 = time.Now()
 }
 
 // Dismiss is a widget that detects pointer presses.

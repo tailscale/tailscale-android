@@ -22,6 +22,8 @@ var (
 	// onVPNClosed is notified when VpnService.prepare fails, or when
 	// the a running VPN connection is closed.
 	onVPNClosed = make(chan struct{}, 1)
+	// onVPNRevoked is notified whenever the VPN service is revoked.
+	onVPNRevoked = make(chan struct{}, 1)
 
 	// onConnect receives global IPNService references when
 	// a VPN connection is requested.
@@ -65,6 +67,13 @@ func Java_com_tailscale_ipn_App_onVPNPrepared(env *C.JNIEnv, class C.jclass) {
 func notifyVPNPrepared() {
 	select {
 	case onVPNPrepared <- struct{}{}:
+	default:
+	}
+}
+
+func notifyVPNRevoked() {
+	select {
+	case onVPNRevoked <- struct{}{}:
 	default:
 	}
 }
@@ -125,6 +134,7 @@ func Java_com_tailscale_ipn_Peer_onActivityResult0(env *C.JNIEnv, cls C.jclass, 
 			notifyVPNPrepared()
 		} else {
 			notifyVPNClosed()
+			notifyVPNRevoked()
 		}
 	}
 }
