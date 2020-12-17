@@ -306,8 +306,8 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 	return ui.events
 }
 
-func (ui *UI) NotifyRevoked() {
-	ui.message.text = "VPN access denied or another VPN service is always-on"
+func (ui *UI) ShowMessage(msg string) {
+	ui.message.text = msg
 	ui.message.t0 = time.Now()
 }
 

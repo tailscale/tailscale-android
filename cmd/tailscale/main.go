@@ -5,6 +5,8 @@
 package main
 
 import (
+	"crypto/sha1"
+	"fmt"
 	"log"
 	"sort"
 	"strings"
@@ -104,6 +106,10 @@ type (
 const serverOAuthID = "744055068597-hv4opg0h7vskq1hv37nq3u26t8c15qk0.apps.googleusercontent.com"
 
 const enabledKey = "ipn_enabled"
+
+// releaseCertFingerprint is the SHA-1 fingerprint of the Google Play Store signing key.
+// It is used to check whether the app is signed for release.
+const releaseCertFingerprint = "86:9D:11:8B:63:1E:F8:35:C6:D9:C2:66:53:BC:28:22:2F:B8:C1:AE"
 
 // backendEvents receives events from the UI (Activity, Tile etc.) to the backend.
 var backendEvents = make(chan UIEvent)
@@ -527,6 +533,12 @@ func (a *App) runUI() error {
 						TokenType:   ipn.GoogleIDTokenType,
 					},
 				})
+			} else {
+				// Warn about possible debug certificate.
+				if !a.isReleaseSigned() {
+					ui.ShowMessage("Google Sign-In failed because the app is not signed for Play Store")
+					w.Invalidate()
+				}
 			}
 		case <-a.updates:
 			a.mu.Lock()
@@ -560,7 +572,7 @@ func (a *App) runUI() error {
 				}
 			}
 		case <-onVPNRevoked:
-			ui.NotifyRevoked()
+			ui.ShowMessage("VPN access denied or another VPN service is always-on")
 			w.Invalidate()
 		case e := <-w.Events():
 			switch e := e.(type) {
@@ -594,6 +606,32 @@ func (a *App) runUI() error {
 			}
 		}
 	}
+}
+
+// isReleaseSigned reports whether the app is signed with a release
+// signature.
+func (a *App) isReleaseSigned() bool {
+	var cert []byte
+	err := jni.Do(a.jvm, func(env jni.Env) error {
+		cls := jni.GetObjectClass(env, a.appCtx)
+		m := jni.GetMethodID(env, cls, "getPackageCertificate", "()[B")
+		str, err := jni.CallObjectMethod(env, a.appCtx, m)
+		if err != nil {
+			return err
+		}
+		cert = jni.GetByteArrayElements(env, jni.ByteArray(str))
+		return nil
+	})
+	if err != nil {
+		fatalErr(err)
+	}
+	h := sha1.New()
+	h.Write(cert)
+	fingerprint := h.Sum(nil)
+	hex := fmt.Sprintf("%x", fingerprint)
+	// Strip colons and convert to lower case to ease comparing.
+	wantFingerprint := strings.ReplaceAll(strings.ToLower(releaseCertFingerprint), ":", "")
+	return hex == wantFingerprint
 }
 
 // attachPeer registers an Android Fragment instance for

@@ -8,11 +8,14 @@ import android.app.Application;
 import android.app.Activity;
 import android.app.Fragment;
 import android.app.FragmentTransaction;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.content.BroadcastReceiver;
+import android.content.pm.PackageManager;
+import android.content.pm.PackageInfo;
+import android.content.pm.Signature;
 import android.provider.Settings;
 import android.net.ConnectivityManager;
 import android.net.Uri;
@@ -187,6 +190,16 @@ public class App extends Application {
 				intent.launchUrl(act, Uri.parse(url));
 			}
 		});
+	}
+
+	// getPackageSignatureFingerprint returns the first package signing certificate, if any.
+	byte[] getPackageCertificate() throws Exception {
+		PackageInfo info;
+		info = getPackageManager().getPackageInfo(getPackageName(), PackageManager.GET_SIGNATURES);
+		for (Signature signature : info.signatures) {
+			return signature.toByteArray();
+		}
+		return null;
 	}
 
 	static native void onVPNPrepared();
