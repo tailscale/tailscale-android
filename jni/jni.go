@@ -154,6 +154,9 @@ func CallIntMethod(e Env, obj Object, method MethodID, args ...Value) (int32, er
 
 // GetByteArrayElements returns the contents of the array.
 func GetByteArrayElements(e Env, jarr ByteArray) []byte {
+	if jarr == 0 {
+		return nil
+	}
 	size := C._jni_GetArrayLength(e.env, C.jarray(jarr))
 	elems := C._jni_GetByteArrayElements(e.env, C.jbyteArray(jarr))
 	defer C._jni_ReleaseByteArrayElements(e.env, C.jbyteArray(jarr), elems, 0)
