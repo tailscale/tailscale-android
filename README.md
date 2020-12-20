@@ -53,6 +53,28 @@ hashes](https://developers.google.com/android/guides/client-auth).
 The official release uses the app identifier `com.tailscale.ipn`;
 custom builds should use a different identifier.
 
+## Running in the Android emulator
+
+By default, the android emulator uses an older version of OpenGL ES,
+which results in a black screen when opening the Tailscale app. To fix
+this, with the emulator running:
+
+ - Open the three-dots menu to access emulator settings
+ - To to `Settings > Advanced`
+ - Set "OpenGL ES API level" to "Renderer maximum (up to OpenGL ES 3.1)"
+ - Close the emulator.
+ - In Android Studio's emulator view (that lists all your emulated
+   devices), hit the down arrow by the virtual device and select "Cold
+   boot now" to restart the emulator from scratch.
+
+The Tailscale app should now render correctly.
+
+Additionally, there seems to be a bug that prevents using the
+system-level Google sign-in option (the one that pops up a
+system-level UI to select your Google account). You can work around
+this by selecting "Other" at the sign-in screen, and then selecting
+Google from the next screen.
+
 ## Bugs
 
 Please file any issues about this code or the hosted service on
