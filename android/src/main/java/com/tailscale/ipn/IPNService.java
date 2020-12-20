@@ -8,6 +8,7 @@ import android.os.Build;
 import android.app.PendingIntent;
 import android.app.NotificationChannel;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.VpnService;
 import android.system.OsConstants;
 
@@ -61,6 +62,12 @@ public class IPNService extends VpnService {
 			.setConfigureIntent(configIntent())
 			.allowFamily(OsConstants.AF_INET)
 			.allowFamily(OsConstants.AF_INET6);
+		try {
+			b.addDisallowedApplication("com.tailscale.ipn");
+		} catch (PackageManager.NameNotFoundException e) {
+			// This error means com.tailscale.ipn isn't
+			// installed. That shouldn't happen, so pretend it didn't.
+		}
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
 			b.setMetered(false); // Inherit the metered status from the underlying networks.
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
