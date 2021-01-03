@@ -161,11 +161,16 @@ func newUI(store *stateStore) (*UI, error) {
 	ui.icons.logo = paint.NewImageOp(logo)
 	ui.icons.google = paint.NewImageOp(google)
 	ui.icons.more.Color = rgb(white)
-	ui.icons.search.Color = ui.theme.Color.Hint
+	ui.icons.search.Color = mulAlpha(ui.theme.Palette.Fg, 0xbb)
 	ui.root.Axis = layout.Vertical
 	ui.intro.list.Axis = layout.Vertical
 	ui.search.SingleLine = true
 	return ui, nil
+}
+
+func mulAlpha(c color.NRGBA, alpha uint8) color.NRGBA {
+	c.A = uint8(uint32(c.A) * uint32(alpha) / 0xff)
+	return c
 }
 
 func (ui *UI) onBack() bool {
@@ -768,7 +773,7 @@ func (ui *UI) layoutLocal(gtx layout.Context, sysIns system.Insets, host, addr s
 							layout.Rigid(func(gtx C) D {
 								return layout.Inset{Bottom: unit.Dp(4)}.Layout(gtx, func(gtx C) D {
 									name := material.H6(ui.theme, host)
-									name.Color = ui.theme.Color.InvText
+									name.Color = rgb(0xffffff)
 									return name.Layout(gtx)
 								})
 							}),
