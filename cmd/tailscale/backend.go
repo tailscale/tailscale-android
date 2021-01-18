@@ -93,7 +93,7 @@ func newBackend(dataDir string, jvm jni.JVM, store *stateStore, settings func(*r
 	}
 	b.SetupLogs(dataDir, logID)
 	tun := tstun.WrapTUN(logf, b.devices)
-	tun.SetFilter(filter.NewAllowAll([]filter.Net{filter.NetAny}, logf))
+	tun.SetFilter(filter.NewAllowAllForTest(logf))
 	engine, err := wgengine.NewUserspaceEngineAdvanced(wgengine.EngineConfig{
 		Logf:      logf,
 		TUN:       tun,
@@ -312,7 +312,7 @@ func (b *backend) SetupLogs(logDir string, logID logtail.PrivateID) {
 	}
 
 	logf := logger.RusagePrefixLog(log.Printf)
-	tlog := logtail.Log(logcfg, logf)
+	tlog := logtail.NewLogger(logcfg, logf)
 
 	log.SetFlags(0)
 	log.SetOutput(tlog)
