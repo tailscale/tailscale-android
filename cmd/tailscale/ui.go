@@ -653,6 +653,10 @@ func (ui *UI) layoutPeer(gtx layout.Context, sysIns system.Insets, p *UIPeer, cl
 				layout.Rigid(func(gtx C) D {
 					var addrs []string
 					for _, addr := range p.Peer.Addresses {
+						if addr.IP.Is6() {
+							// Don't surface IPv6 addresses.
+							continue
+						}
 						addrs = append(addrs, addr.IP.String())
 					}
 					l := material.Body2(ui.theme, strings.Join(addrs, ","))
