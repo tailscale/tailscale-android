@@ -9,8 +9,8 @@ AAR=android/libs/ipn.aar
 KEYSTORE=tailscale.jks
 KEYSTORE_ALIAS=tailscale
 TAILSCALE_VERSION=$(shell ./version/tailscale-version.sh)
-GIT_DESCRIBE=$(shell git describe --dirty --exclude "*" --always --abbrev=200)
-VERSION_LONG=$(shell ./version/mkversion.sh long $(TAILSCALE_VERSION) $(GIT_DESCRIBE))
+GIT_DESCRIBE=$(shell git describe --dirty --exclude "*" --always --abbrev=11)
+VERSION_LONG=$(TAILSCALE_VERSION)-g$(GIT_DESCRIBE)
 # Extract the long version build.gradle's versionName and strip quotes.
 VERSIONNAME=$(patsubst "%",%,$(lastword $(shell grep versionName android/build.gradle)))
 # Extract the x.y.z part for the short version.

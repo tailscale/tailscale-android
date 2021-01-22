@@ -5,8 +5,7 @@
 # license that can be found in the LICENSE file.
 
 # Print the version tailscale repository corresponding
-# to the version listed in go.mod. The version is compatible with
-# mkversion.sh.
+# to the version listed in go.mod.
 
 set -euo pipefail
 
@@ -23,15 +22,20 @@ case "$mod_version" in
 	*-*-*)
 		# A pseudo-version such as "v1.1.1-0.20201030135043-eab6e9ea4e45"
 		# includes the commit hash.
-		commit=${mod_version##*-*-}
-		version=${mod_version%%-*}
-		echo "$version-0-g$commit"
-		exit 0
+		mod_version=${mod_version##*-*-}
 		;;
 esac
 
-# Query git repository for the hash matching the tag.
-git_ls_remote=$(git ls-remote --exit-code -t https://github.com/tailscale/tailscale "$mod_version^{}")
-# Extract the commit. Note that git ls-remote separates fields with tabs.
-commit=${git_ls_remote%%$'\t'*}
-echo "$mod_version-0-g$commit"
+tailscale_clone=/tmp/tailscale-clone
+
+if [ ! -d "$tailscale_clone" ]; then
+       git clone -q https://github.com/tailscale/tailscale.git "$tailscale_clone"
+fi
+
+cd $tailscale_clone
+git reset --hard -q
+git clean -d -x -f
+git fetch -q --all --tags
+git checkout -q "$mod_version"
+eval $( ./version/version.sh)
+echo $VERSION_LONG
