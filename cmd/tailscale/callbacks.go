@@ -87,13 +87,13 @@ func notifyVPNClosed() {
 
 //export Java_com_tailscale_ipn_IPNService_connect
 func Java_com_tailscale_ipn_IPNService_connect(env *C.JNIEnv, this C.jobject) {
-	jenv := jni.EnvFor(uintptr(unsafe.Pointer(env)))
+	jenv := (*jni.Env)(unsafe.Pointer(env))
 	onConnect <- jni.NewGlobalRef(jenv, jni.Object(this))
 }
 
 //export Java_com_tailscale_ipn_IPNService_disconnect
 func Java_com_tailscale_ipn_IPNService_disconnect(env *C.JNIEnv, this C.jobject) {
-	jenv := jni.EnvFor(uintptr(unsafe.Pointer(env)))
+	jenv := (*jni.Env)(unsafe.Pointer(env))
 	onDisconnect <- jni.NewGlobalRef(jenv, jni.Object(this))
 }
 
@@ -119,7 +119,7 @@ func Java_com_tailscale_ipn_Peer_onActivityResult0(env *C.JNIEnv, cls C.jclass, 
 			onGoogleToken <- ""
 			break
 		}
-		jenv := jni.EnvFor(uintptr(unsafe.Pointer(env)))
+		jenv := (*jni.Env)(unsafe.Pointer(env))
 		m := jni.GetStaticMethodID(jenv, googleClass,
 			"getIdTokenForActivity", "(Landroid/app/Activity;)Ljava/lang/String;")
 		idToken, err := jni.CallStaticObjectMethod(jenv, googleClass, m, jni.Value(act))

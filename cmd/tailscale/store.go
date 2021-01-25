@@ -30,7 +30,7 @@ func newStateStore(jvm *jni.JVM, appCtx jni.Object) *stateStore {
 		jvm:    jvm,
 		appCtx: appCtx,
 	}
-	jni.Do(jvm, func(env jni.Env) error {
+	jni.Do(jvm, func(env *jni.Env) error {
 		appCls := jni.GetObjectClass(env, appCtx)
 		s.encrypt = jni.GetMethodID(
 			env, appCls,
@@ -101,7 +101,7 @@ func (s *stateStore) WriteState(id ipn.StateKey, bs []byte) error {
 
 func (s *stateStore) read(key string) ([]byte, error) {
 	var data []byte
-	err := jni.Do(s.jvm, func(env jni.Env) error {
+	err := jni.Do(s.jvm, func(env *jni.Env) error {
 		jfile := jni.JavaString(env, key)
 		plain, err := jni.CallObjectMethod(env, s.appCtx, s.decrypt,
 			jni.Value(jfile))
@@ -120,7 +120,7 @@ func (s *stateStore) read(key string) ([]byte, error) {
 
 func (s *stateStore) write(key string, value []byte) error {
 	bs64 := base64.RawStdEncoding.EncodeToString(value)
-	err := jni.Do(s.jvm, func(env jni.Env) error {
+	err := jni.Do(s.jvm, func(env *jni.Env) error {
 		jfile := jni.JavaString(env, key)
 		jplain := jni.JavaString(env, bs64)
 		err := jni.CallVoidMethod(env, s.appCtx, s.encrypt,

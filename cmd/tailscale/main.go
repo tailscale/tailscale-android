@@ -121,7 +121,7 @@ func main() {
 		appCtx:  jni.Object(app.AppContext()),
 		updates: make(chan struct{}, 1),
 	}
-	err := jni.Do(a.jvm, func(env jni.Env) error {
+	err := jni.Do(a.jvm, func(env *jni.Env) error {
 		loader := jni.ClassLoaderFor(env, a.appCtx)
 		cl, err := jni.LoadClass(env, loader, "com.tailscale.ipn.Google")
 		if err != nil {
@@ -282,7 +282,7 @@ func (a *App) runBackend() error {
 				go b.backend.SetPrefs(prefs)
 			}
 		case s := <-onConnect:
-			jni.Do(a.jvm, func(env jni.Env) error {
+			jni.Do(a.jvm, func(env *jni.Env) error {
 				if jni.IsSameObject(env, s, service) {
 					// We already have a reference.
 					jni.DeleteGlobalRef(env, s)
@@ -312,7 +312,7 @@ func (a *App) runBackend() error {
 			a.notify(state)
 		case s := <-onDisconnect:
 			b.CloseTUNs()
-			jni.Do(a.jvm, func(env jni.Env) error {
+			jni.Do(a.jvm, func(env *jni.Env) error {
 				defer jni.DeleteGlobalRef(env, s)
 				if jni.IsSameObject(env, service, s) {
 					jni.DeleteGlobalRef(env, service)
@@ -329,7 +329,7 @@ func (a *App) runBackend() error {
 
 func (a *App) isChromeOS() bool {
 	var chromeOS bool
-	err := jni.Do(a.jvm, func(env jni.Env) error {
+	err := jni.Do(a.jvm, func(env *jni.Env) error {
 		cls := jni.GetObjectClass(env, a.appCtx)
 		m := jni.GetMethodID(env, cls, "isChromeOS", "()Z")
 		b, err := jni.CallBooleanMethod(env, a.appCtx, m)
@@ -346,7 +346,7 @@ func (a *App) isChromeOS() bool {
 // useless os.Hostname().
 func (a *App) hostname() string {
 	var hostname string
-	err := jni.Do(a.jvm, func(env jni.Env) error {
+	err := jni.Do(a.jvm, func(env *jni.Env) error {
 		cls := jni.GetObjectClass(env, a.appCtx)
 		getHostname := jni.GetMethodID(env, cls, "getHostname", "()Ljava/lang/String;")
 		n, err := jni.CallObjectMethod(env, a.appCtx, getHostname)
@@ -363,7 +363,7 @@ func (a *App) hostname() string {
 // if Google Play services are not compiled in.
 func (a *App) osVersion() string {
 	var version string
-	err := jni.Do(a.jvm, func(env jni.Env) error {
+	err := jni.Do(a.jvm, func(env *jni.Env) error {
 		cls := jni.GetObjectClass(env, a.appCtx)
 		m := jni.GetMethodID(env, cls, "getOSVersion", "()Ljava/lang/String;")
 		n, err := jni.CallObjectMethod(env, a.appCtx, m)
@@ -383,7 +383,7 @@ func (a *App) osVersion() string {
 // android.os.Build.
 func (a *App) modelName() string {
 	var model string
-	err := jni.Do(a.jvm, func(env jni.Env) error {
+	err := jni.Do(a.jvm, func(env *jni.Env) error {
 		cls := jni.GetObjectClass(env, a.appCtx)
 		m := jni.GetMethodID(env, cls, "getModelName", "()Ljava/lang/String;")
 		n, err := jni.CallObjectMethod(env, a.appCtx, m)
@@ -411,7 +411,7 @@ func (a *App) updateNotification(service jni.Object, state ipn.State) error {
 	default:
 		return nil
 	}
-	return jni.Do(a.jvm, func(env jni.Env) error {
+	return jni.Do(a.jvm, func(env *jni.Env) error {
 		cls := jni.GetObjectClass(env, service)
 		update := jni.GetMethodID(env, cls, "updateStatusNotification", "(Ljava/lang/String;Ljava/lang/String;)V")
 		jtitle := jni.JavaString(env, title)
@@ -447,7 +447,7 @@ func (a *App) notifyExpiry(service jni.Object, expiry time.Time) *time.Timer {
 	default:
 		return time.NewTimer(d - aday)
 	}
-	err := jni.Do(a.jvm, func(env jni.Env) error {
+	err := jni.Do(a.jvm, func(env *jni.Env) error {
 		cls := jni.GetObjectClass(env, service)
 		notify := jni.GetMethodID(env, cls, "notify", "(Ljava/lang/String;Ljava/lang/String;)V")
 		jtitle := jni.JavaString(env, title)
@@ -514,7 +514,7 @@ func (a *App) runUI() error {
 		if activity == 0 {
 			return
 		}
-		jni.Do(a.jvm, func(env jni.Env) error {
+		jni.Do(a.jvm, func(env *jni.Env) error {
 			jni.DeleteGlobalRef(env, activity)
 			return nil
 		})
@@ -613,7 +613,7 @@ func (a *App) runUI() error {
 // signature.
 func (a *App) isReleaseSigned() bool {
 	var cert []byte
-	err := jni.Do(a.jvm, func(env jni.Env) error {
+	err := jni.Do(a.jvm, func(env *jni.Env) error {
 		cls := jni.GetObjectClass(env, a.appCtx)
 		m := jni.GetMethodID(env, cls, "getPackageCertificate", "()[B")
 		str, err := jni.CallObjectMethod(env, a.appCtx, m)
@@ -756,7 +756,7 @@ func (a *App) signOut() {
 	if googleClass == 0 {
 		return
 	}
-	err := jni.Do(a.jvm, func(env jni.Env) error {
+	err := jni.Do(a.jvm, func(env *jni.Env) error {
 		m := jni.GetStaticMethodID(env, googleClass,
 			"googleSignOut", "(Landroid/content/Context;)V")
 		return jni.CallStaticVoidMethod(env, googleClass, m, jni.Value(a.appCtx))
@@ -770,7 +770,7 @@ func (a *App) googleSignIn(act jni.Object) {
 	if act == 0 || googleClass == 0 {
 		return
 	}
-	err := jni.Do(a.jvm, func(env jni.Env) error {
+	err := jni.Do(a.jvm, func(env *jni.Env) error {
 		sid := jni.JavaString(env, serverOAuthID)
 		m := jni.GetStaticMethodID(env, googleClass,
 			"googleSignIn", "(Landroid/app/Activity;Ljava/lang/String;I)V")
@@ -786,7 +786,7 @@ func (a *App) browseToURL(act jni.Object, url string) {
 	if act == 0 {
 		return
 	}
-	err := jni.Do(a.jvm, func(env jni.Env) error {
+	err := jni.Do(a.jvm, func(env *jni.Env) error {
 		jurl := jni.JavaString(env, url)
 		return a.callVoidMethod(a.appCtx, "showURL", "(Landroid/app/Activity;Ljava/lang/String;)V", jni.Value(act), jni.Value(jurl))
 	})
@@ -799,7 +799,7 @@ func (a *App) callVoidMethod(obj jni.Object, name, sig string, args ...jni.Value
 	if obj == 0 {
 		panic("invalid object")
 	}
-	return jni.Do(a.jvm, func(env jni.Env) error {
+	return jni.Do(a.jvm, func(env *jni.Env) error {
 		cls := jni.GetObjectClass(env, obj)
 		m := jni.GetMethodID(env, cls, name, sig)
 		return jni.CallVoidMethod(env, obj, m, args...)
@@ -813,7 +813,7 @@ func (a *App) contextForView(view jni.Object) jni.Object {
 		panic("invalid object")
 	}
 	var ctx jni.Object
-	err := jni.Do(a.jvm, func(env jni.Env) error {
+	err := jni.Do(a.jvm, func(env *jni.Env) error {
 		cls := jni.GetObjectClass(env, view)
 		m := jni.GetMethodID(env, cls, "getContext", "()Landroid/content/Context;")
 		var err error
