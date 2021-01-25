@@ -16,7 +16,7 @@ import (
 // backend by androidx.security.crypto.EncryptedSharedPreferences (see
 // App.java).
 type stateStore struct {
-	jvm jni.JVM
+	jvm *jni.JVM
 	// appCtx is the global Android app context.
 	appCtx jni.Object
 
@@ -25,7 +25,7 @@ type stateStore struct {
 	decrypt jni.MethodID
 }
 
-func newStateStore(jvm jni.JVM, appCtx jni.Object) *stateStore {
+func newStateStore(jvm *jni.JVM, appCtx jni.Object) *stateStore {
 	s := &stateStore{
 		jvm:    jvm,
 		appCtx: appCtx,

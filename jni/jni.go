@@ -50,9 +50,7 @@ __attribute__ ((visibility ("hidden"))) jsize _jni_GetArrayLength(JNIEnv *env, j
 */
 import "C"
 
-type JVM struct {
-	jvm *C.JavaVM
-}
+type JVM C.JavaVM
 
 type Env struct {
 	env *C.JNIEnv
@@ -73,32 +71,30 @@ const (
 	False Boolean = C.JNI_FALSE
 )
 
-func JVMFor(jvmPtr uintptr) JVM {
-	return JVM{
-		jvm: (*C.JavaVM)(unsafe.Pointer(jvmPtr)),
-	}
-}
-
 func EnvFor(envPtr uintptr) Env {
 	return Env{
 		env: (*C.JNIEnv)(unsafe.Pointer(envPtr)),
 	}
 }
 
+func javavm(vm *JVM) *C.JavaVM {
+	return (*C.JavaVM)(unsafe.Pointer(vm))
+}
+
 // Do invokes a function with a temporary JVM environment. The
 // environment is not valid after the function returns.
-func Do(vm JVM, f func(env Env) error) error {
+func Do(vm *JVM, f func(env Env) error) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 	var env *C.JNIEnv
-	if res := C._jni_GetEnv(vm.jvm, &env, C.JNI_VERSION_1_6); res != C.JNI_OK {
+	if res := C._jni_GetEnv(javavm(vm), &env, C.JNI_VERSION_1_6); res != C.JNI_OK {
 		if res != C.JNI_EDETACHED {
 			panic(fmt.Errorf("JNI GetEnv failed with error %d", res))
 		}
-		if C._jni_AttachCurrentThread(vm.jvm, &env, nil) != C.JNI_OK {
+		if C._jni_AttachCurrentThread(javavm(vm), &env, nil) != C.JNI_OK {
 			panic(errors.New("runInJVM: AttachCurrentThread failed"))
 		}
-		defer C._jni_DetachCurrentThread(vm.jvm)
+		defer C._jni_DetachCurrentThread(javavm(vm))
 	}
 
 	return f(Env{env})

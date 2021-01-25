@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unsafe"
 
 	"gioui.org/app"
 	"gioui.org/io/system"
@@ -29,7 +30,7 @@ import (
 //go:generate go run github.com/go-bindata/go-bindata/go-bindata -nocompress -o logo.go tailscale.png google.png
 
 type App struct {
-	jvm jni.JVM
+	jvm *jni.JVM
 	// appCtx is a global reference to the com.tailscale.ipn.App instance.
 	appCtx jni.Object
 
@@ -116,7 +117,7 @@ var backendEvents = make(chan UIEvent)
 
 func main() {
 	a := &App{
-		jvm:     jni.JVMFor(app.JavaVM()),
+		jvm:     (*jni.JVM)(unsafe.Pointer(app.JavaVM())),
 		appCtx:  jni.Object(app.AppContext()),
 		updates: make(chan struct{}, 1),
 	}

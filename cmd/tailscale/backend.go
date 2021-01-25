@@ -38,7 +38,7 @@ type backend struct {
 	// when no nameservers are provided by Tailscale.
 	avoidEmptyDNS bool
 
-	jvm jni.JVM
+	jvm *jni.JVM
 }
 
 type androidRouter struct {
@@ -64,7 +64,7 @@ var fallbackNameservers = []netaddr.IP{netaddr.IPv4(8, 8, 8, 8), netaddr.IPv4(8,
 // VPN status was revoked.
 var errVPNNotPrepared = errors.New("VPN service not prepared or was revoked")
 
-func newBackend(dataDir string, jvm jni.JVM, store *stateStore, settings func(*router.Config) error) (*backend, error) {
+func newBackend(dataDir string, jvm *jni.JVM, store *stateStore, settings func(*router.Config) error) (*backend, error) {
 	logf := logger.RusagePrefixLog(log.Printf)
 	b := &backend{
 		jvm:      jvm,
