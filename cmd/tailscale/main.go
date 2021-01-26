@@ -704,8 +704,9 @@ func (a *App) updateState(act jni.Object, state *clientState) {
 		if rp == nil {
 			return false
 		}
-		return lp.Hostinfo.Hostname < rp.Hostinfo.Hostname ||
-			lp.Hostinfo.Hostname == rp.Hostinfo.Hostname && lp.ID < rp.ID
+		lName := lp.DisplayName(lp.User == myID)
+		rName := rp.DisplayName(rp.User == myID)
+		return lName < rName || lName == rName && lp.ID < rp.ID
 	})
 	state.Peers = peers
 }

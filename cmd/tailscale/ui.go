@@ -25,6 +25,7 @@ import (
 	"gioui.org/widget"
 	"gioui.org/widget/material"
 	"golang.org/x/exp/shiny/materialdesign/icons"
+	"tailscale.com/control/controlclient"
 	"tailscale.com/ipn"
 	"tailscale.com/tailcfg"
 
@@ -202,7 +203,7 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 	var expiry time.Time
 	if netmap != nil {
 		expiry = netmap.Expiry
-		localName = netmap.Hostinfo.Hostname
+		localName = netmap.SelfNode.DisplayName(false)
 		if addrs := netmap.Addresses; len(addrs) > 0 {
 			localAddr = addrs[0].IP.String()
 		}
@@ -285,7 +286,7 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 					return ui.layoutSection(gtx, sysIns, name)
 				} else {
 					clk := &ui.peers[pidx]
-					return ui.layoutPeer(gtx, sysIns, p, clk)
+					return ui.layoutPeer(gtx, sysIns, p, netmap, clk)
 				}
 			}
 		})
@@ -626,7 +627,7 @@ func (ui *UI) showMessage(gtx layout.Context, msg string) {
 
 // layoutPeer lays out a peer name and IP address (e.g.
 // "localhost\n100.100.100.101")
-func (ui *UI) layoutPeer(gtx layout.Context, sysIns system.Insets, p *UIPeer, clk *widget.Clickable) layout.Dimensions {
+func (ui *UI) layoutPeer(gtx layout.Context, sysIns system.Insets, p *UIPeer, netmap *controlclient.NetworkMap, clk *widget.Clickable) layout.Dimensions {
 	for clk.Clicked() {
 		if addrs := p.Peer.Addresses; len(addrs) > 0 {
 			ui.copyAddress(gtx, addrs[0].IP.String())
@@ -643,10 +644,7 @@ func (ui *UI) layoutPeer(gtx layout.Context, sysIns system.Insets, p *UIPeer, cl
 			return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 				layout.Rigid(func(gtx C) D {
 					return layout.Inset{Bottom: unit.Dp(4)}.Layout(gtx, func(gtx C) D {
-						name := p.Peer.Hostinfo.Hostname
-						if name == "" {
-							name = p.Peer.ID.String()
-						}
+						name := p.Peer.DisplayName(p.Peer.User == netmap.User)
 						return material.H6(ui.theme, name).Layout(gtx)
 					})
 				}),
@@ -809,7 +807,7 @@ func (ui *UI) layoutSearchbar(gtx layout.Context, sysIns system.Insets) layout.D
 							return ui.icons.search.Layout(gtx, unit.Dp(24))
 						}),
 						layout.Flexed(1,
-							material.Editor(ui.theme, &ui.search, "Search by hostname...").Layout,
+							material.Editor(ui.theme, &ui.search, "Search by machine name...").Layout,
 						),
 					)
 				})
