@@ -276,6 +276,8 @@ github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2/go.mod h1:hkRG
 github.com/tailscale/depaware v0.0.0-20201214215404-77d1e9757027/go.mod h1:p9lPsd+cx33L3H9nNoecRRxPssFKUwwI50I3pZ0yT+8=
 github.com/tailscale/wireguard-go v0.0.0-20210116013233-4cd297ed5a7d h1:8GcGtZ4Ui+lzHm6gOq7s2Oe4ksxkbUYtS/JuoJ2Nce8=
 github.com/tailscale/wireguard-go v0.0.0-20210116013233-4cd297ed5a7d/go.mod h1:K/wyv4+3PcdVVTV7szyoiEjJ1nVHonM8cJ2mQwG5Fl8=
+github.com/tailscale/wireguard-go v0.0.0-20210120212909-7ad8a0443bd3 h1:wpgSErXul2ysBGZVVM0fKISMgZ9BZRXuOYAyn8MxAbY=
+github.com/tailscale/wireguard-go v0.0.0-20210120212909-7ad8a0443bd3/go.mod h1:K/wyv4+3PcdVVTV7szyoiEjJ1nVHonM8cJ2mQwG5Fl8=
 github.com/tcnksm/go-httpstat v0.2.0 h1:rP7T5e5U2HfmOBmZzGgGZjBQ5/GluWUylujl0tJ04I0=
 github.com/tcnksm/go-httpstat v0.2.0/go.mod h1:s3JVJFtQxtBEBC9dwcdTTXS9xFnM3SXAZwPG41aurT8=
 github.com/toqueteos/webbrowser v1.2.0/go.mod h1:XWoZq4cyp9WeUeak7w7LXRUQf1F1ATJMir8RTqb4ayM=
@@ -547,3 +549,5 @@ sigs.k8s.io/structured-merge-diff v0.0.0-20190525122527-15d366b2352e/go.mod h1:w
 sigs.k8s.io/yaml v1.1.0/go.mod h1:UJmg0vDUVViEyp3mgSv9WPwZCDxu4rQW1olrI1uml+o=
 tailscale.com v1.1.1-0.20210118213216-9936cffc1a07 h1:mj9VDSrBd/NsI2c0cpOcgUIda3rU1cBltLO+yekbwUc=
 tailscale.com v1.1.1-0.20210118213216-9936cffc1a07/go.mod h1:bihFDjka7leYyag2wUeB+zTUMMJbXhZNxhHSe4CIt1s=
+tailscale.com v1.1.1-0.20210127190656-4d943536f152 h1:BRCz7aGAHDYDGh5githa4InUd3Z/9qM0TtxjmglzEMk=
+tailscale.com v1.1.1-0.20210127190656-4d943536f152/go.mod h1:ywtIckegnVsMwW5489OqLdjl0WEixioHdIzInulBSgs=
