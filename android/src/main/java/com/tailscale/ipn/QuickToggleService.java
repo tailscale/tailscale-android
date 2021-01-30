@@ -9,22 +9,38 @@ import android.content.ComponentName;
 import android.service.quicksettings.Tile;
 import android.service.quicksettings.TileService;
 
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 public class QuickToggleService extends TileService {
-	private static boolean active;
+	private static AtomicBoolean active = new AtomicBoolean();
+	private static AtomicReference<Tile> currentTile = new AtomicReference<Tile>();
 
 	@Override public void onStartListening() {
-		Tile t = getQsTile();
-		t.setState(active ? Tile.STATE_ACTIVE : Tile.STATE_INACTIVE);
-		t.updateTile();
+		currentTile.set(getQsTile());
+		updateTile();
+	}
+
+	@Override public void onStopListening() {
+		currentTile.set(null);
 	}
 
 	@Override public void onClick() {
 		onTileClick();
 	}
 
+	private static void updateTile() {
+		Tile t = currentTile.get();
+		if (t == null) {
+			return;
+		}
+		t.setState(active.get() ? Tile.STATE_ACTIVE : Tile.STATE_INACTIVE);
+		t.updateTile();
+	}
+
 	static void setStatus(Context ctx, boolean wantRunning) {
-		active = wantRunning;
-		requestListeningState(ctx, new ComponentName(ctx, QuickToggleService.class));
+		active.set(wantRunning);
+		updateTile();
 	}
 
 	private static native void onTileClick();
