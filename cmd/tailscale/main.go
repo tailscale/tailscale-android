@@ -468,10 +468,7 @@ func (a *App) notify(state BackendState) {
 	case a.updates <- struct{}{}:
 	default:
 	}
-	ready := jni.False
-	if state.State >= ipn.Stopped {
-		ready = jni.True
-	}
+	ready := jni.Bool(state.State >= ipn.Stopped)
 	if err := a.callVoidMethod(a.appCtx, "setTileReady", "(Z)V", jni.Value(ready)); err != nil {
 		fatalErr(err)
 	}
@@ -480,10 +477,7 @@ func (a *App) notify(state BackendState) {
 func (a *App) setPrefs(prefs *ipn.Prefs) {
 	a.mu.Lock()
 	a.prefs = prefs
-	wantRunning := jni.True
-	if !prefs.WantRunning {
-		wantRunning = jni.False
-	}
+	wantRunning := jni.Bool(prefs.WantRunning)
 	a.mu.Unlock()
 	if err := a.callVoidMethod(a.appCtx, "setTileStatus", "(Z)V", jni.Value(wantRunning)); err != nil {
 		fatalErr(err)

@@ -64,11 +64,6 @@ type (
 	Value     uint64 // All JNI types fit into 64-bits.
 )
 
-const (
-	True  Boolean = C.JNI_TRUE
-	False Boolean = C.JNI_FALSE
-)
-
 func env(e *Env) *C.JNIEnv {
 	return (*C.JNIEnv)(unsafe.Pointer(e))
 }
@@ -94,6 +89,13 @@ func Do(vm *JVM, f func(env *Env) error) error {
 	}
 
 	return f((*Env)(unsafe.Pointer(env)))
+}
+
+func Bool(b bool) Boolean {
+	if b {
+		return C.JNI_TRUE
+	}
+	return C.JNI_FALSE
 }
 
 func varArgs(args []Value) *C.jvalue {
