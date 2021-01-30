@@ -98,11 +98,18 @@ public class App extends Application {
 		);
 	}
 
-	void setTileStatus(boolean wantRunning) {
+	void setTileReady(boolean ready) {
 		if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
 			return;
 		}
-		QuickToggleService.setStatus(this, wantRunning);
+		QuickToggleService.setReady(this, ready);
+	}
+
+	void setTileStatus(boolean status) {
+		if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+			return;
+		}
+		QuickToggleService.setStatus(this, status);
 	}
 
 	String getHostname() {

@@ -6,6 +6,7 @@ package com.tailscale.ipn;
 
 import android.content.Context;
 import android.content.ComponentName;
+import android.content.Intent;
 import android.service.quicksettings.Tile;
 import android.service.quicksettings.TileService;
 
@@ -13,33 +14,68 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class QuickToggleService extends TileService {
-	private static AtomicBoolean active = new AtomicBoolean();
-	private static AtomicReference<Tile> currentTile = new AtomicReference<Tile>();
+	// lock protects the static fields below it.
+	private static Object lock = new Object();
+	// Active tracks whether the VPN is active.
+	private static boolean active;
+	// Ready tracks whether the tailscale backend is
+	// ready to switch on/off.
+	private static boolean ready;
+	// currentTile tracks getQsTile while service is listening.
+	private static Tile currentTile;
 
 	@Override public void onStartListening() {
-		currentTile.set(getQsTile());
+		synchronized (lock) {
+			currentTile = getQsTile();
+		}
 		updateTile();
 	}
 
 	@Override public void onStopListening() {
-		currentTile.set(null);
+		synchronized (lock) {
+			currentTile = null;
+		}
 	}
 
 	@Override public void onClick() {
-		onTileClick();
+		boolean r;
+		synchronized (lock) {
+			r = ready;
+		}
+		if (r) {
+			onTileClick();
+		} else {
+			// Start main activity.
+			Intent i = getPackageManager().getLaunchIntentForPackage(getPackageName());
+			startActivityAndCollapse(i);
+		}
 	}
 
 	private static void updateTile() {
-		Tile t = currentTile.get();
+		Tile t;
+		boolean act;
+		synchronized (lock) {
+			t = currentTile;
+			act = active && ready;
+		}
 		if (t == null) {
 			return;
 		}
-		t.setState(active.get() ? Tile.STATE_ACTIVE : Tile.STATE_INACTIVE);
+		t.setState(act ? Tile.STATE_ACTIVE : Tile.STATE_INACTIVE);
 		t.updateTile();
 	}
 
-	static void setStatus(Context ctx, boolean wantRunning) {
-		active.set(wantRunning);
+	static void setReady(Context ctx, boolean rdy) {
+		synchronized (lock) {
+			ready = rdy;
+		}
+		updateTile();
+	}
+
+	static void setStatus(Context ctx, boolean act) {
+		synchronized (lock) {
+			active = act;
+		}
 		updateTile();
 	}
 

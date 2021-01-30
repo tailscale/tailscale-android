@@ -468,6 +468,13 @@ func (a *App) notify(state BackendState) {
 	case a.updates <- struct{}{}:
 	default:
 	}
+	ready := jni.False
+	if state.State >= ipn.Stopped {
+		ready = jni.True
+	}
+	if err := a.callVoidMethod(a.appCtx, "setTileReady", "(Z)V", jni.Value(ready)); err != nil {
+		fatalErr(err)
+	}
 }
 
 func (a *App) setPrefs(prefs *ipn.Prefs) {
