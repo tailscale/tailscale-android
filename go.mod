@@ -12,5 +12,5 @@ require (
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	golang.org/x/sys v0.0.0-20201218084310-7d0127a74742
 	inet.af/netaddr v0.0.0-20210105212526-648fbc18a69d
-	tailscale.com v1.4.4
+	tailscale.com v1.4.5
 )

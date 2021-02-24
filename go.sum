@@ -545,5 +545,5 @@ rsc.io/goversion v1.2.0 h1:SPn+NLTiAG7w30IRK/DKp1BjvpWabYgxlLp/+kx5J8w=
 rsc.io/goversion v1.2.0/go.mod h1:Eih9y/uIBS3ulggl7KNJ09xGSLcuNaLgmvvqa07sgfo=
 sigs.k8s.io/structured-merge-diff v0.0.0-20190525122527-15d366b2352e/go.mod h1:wWxsB5ozmmv/SG7nM11ayaAW51xMvak/t1r0CSlcokI=
 sigs.k8s.io/yaml v1.1.0/go.mod h1:UJmg0vDUVViEyp3mgSv9WPwZCDxu4rQW1olrI1uml+o=
-tailscale.com v1.4.4 h1:Qy7/VwTbluitAFmSp7kiTONmVaIjoIIQIMX6AqX5Uoo=
-tailscale.com v1.4.4/go.mod h1:ywtIckegnVsMwW5489OqLdjl0WEixioHdIzInulBSgs=
+tailscale.com v1.4.5 h1:ehlL8SeGUuNgoUr6T9547rC0K9Z0b9+gqRBrAltUc2Q=
+tailscale.com v1.4.5/go.mod h1:ywtIckegnVsMwW5489OqLdjl0WEixioHdIzInulBSgs=
