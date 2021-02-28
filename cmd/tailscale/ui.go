@@ -27,8 +27,8 @@ import (
 	"golang.org/x/exp/shiny/materialdesign/icons"
 	"tailscale.com/ipn"
 	"tailscale.com/tailcfg"
-	"tailscale.com/types/netmap"
 
+	"eliasnaur.com/font/roboto/robotobold"
 	"eliasnaur.com/font/roboto/robotoregular"
 
 	_ "image/png"
@@ -47,13 +47,24 @@ type UI struct {
 	// webSigin is the button for the web-based sign-in flow.
 	webSignin widget.Clickable
 
-	// googleSignin is the button for native Google Sign-in
+	// googleSignin is the button for native Google Sign-in.
 	googleSignin widget.Clickable
+
+	// openExitDialog opens the exit node picker.
+	openExitDialog widget.Clickable
 
 	signinType signinType
 
 	self  widget.Clickable
 	peers []widget.Clickable
+
+	// exitDialog is state for the exit node dialog.
+	exitDialog struct {
+		show    bool
+		dismiss Dismiss
+		exits   widget.Enum
+		list    layout.List
+	}
 
 	intro struct {
 		list  layout.List
@@ -68,6 +79,7 @@ type UI struct {
 
 		copy   widget.Clickable
 		reauth widget.Clickable
+		exits  widget.Clickable
 		logout widget.Clickable
 	}
 
@@ -79,13 +91,12 @@ type UI struct {
 	}
 
 	icons struct {
-		search *widget.Icon
-		more   *widget.Icon
-		logo   paint.ImageOp
-		google paint.ImageOp
+		search     *widget.Icon
+		more       *widget.Icon
+		exitStatus *widget.Icon
+		logo       paint.ImageOp
+		google     paint.ImageOp
 	}
-
-	events []UIEvent
 }
 
 type signinType uint8
@@ -99,6 +110,12 @@ type UIPeer struct {
 	Name string
 	// Peer is nil for section headers.
 	Peer *tailcfg.Node
+}
+
+// menuItem describes an item in a popup menu.
+type menuItem struct {
+	title string
+	btn   *widget.Clickable
 }
 
 const (
@@ -131,6 +148,10 @@ func newUI(store *stateStore) (*UI, error) {
 	if err != nil {
 		return nil, err
 	}
+	exitStatus, err := widget.NewIcon(icons.NavigationMenu)
+	if err != nil {
+		return nil, err
+	}
 	logoData, err := tailscalePngBytes()
 	if err != nil {
 		return nil, err
@@ -151,7 +172,14 @@ func newUI(store *stateStore) (*UI, error) {
 	if err != nil {
 		panic(fmt.Sprintf("failed to parse font: %v", err))
 	}
-	fonts := []text.FontFace{{Font: text.Font{Typeface: "Roboto"}, Face: face}}
+	faceBold, err := opentype.Parse(robotobold.TTF)
+	if err != nil {
+		panic(fmt.Sprintf("failed to parse font: %v", err))
+	}
+	fonts := []text.FontFace{
+		{Font: text.Font{Typeface: "Roboto"}, Face: face},
+		{Font: text.Font{Typeface: "Roboto", Weight: text.Bold}, Face: faceBold},
+	}
 	ui := &UI{
 		theme: material.NewTheme(fonts),
 		store: store,
@@ -159,13 +187,16 @@ func newUI(store *stateStore) (*UI, error) {
 	ui.intro.show, _ = store.ReadBool(keyShowIntro, true)
 	ui.icons.search = searchIcon
 	ui.icons.more = moreIcon
+	ui.icons.exitStatus = exitStatus
 	ui.icons.logo = paint.NewImageOp(logo)
 	ui.icons.google = paint.NewImageOp(google)
 	ui.icons.more.Color = rgb(white)
 	ui.icons.search.Color = mulAlpha(ui.theme.Palette.Fg, 0xbb)
+	ui.icons.exitStatus.Color = rgb(white)
 	ui.root.Axis = layout.Vertical
 	ui.intro.list.Axis = layout.Vertical
 	ui.search.SingleLine = true
+	ui.exitDialog.list.Axis = layout.Vertical
 	return ui, nil
 }
 
@@ -183,14 +214,14 @@ func (ui *UI) onBack() bool {
 }
 
 func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientState) []UIEvent {
-	ui.events = nil
+	var events []UIEvent
 	if ui.enabled.Changed() {
-		ui.events = append(ui.events, ConnectEvent{Enable: ui.enabled.Value})
+		events = append(events, ConnectEvent{Enable: ui.enabled.Value})
 	}
 
 	for _, e := range ui.search.Events() {
 		if _, ok := e.(widget.ChangeEvent); ok {
-			ui.events = append(ui.events, SearchEvent{Query: ui.search.Text()})
+			events = append(events, SearchEvent{Query: ui.search.Text()})
 			break
 		}
 	}
@@ -199,36 +230,57 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 	}
 
 	netmap := state.backend.NetworkMap
-	var localName, localAddr string
-	var expiry time.Time
+	var (
+		localName, localAddr string
+		expiry               time.Time
+		userID               tailcfg.UserID
+		exitID               tailcfg.StableNodeID
+	)
 	if netmap != nil {
+		userID = netmap.User
 		expiry = netmap.Expiry
 		localName = netmap.SelfNode.DisplayName(false)
 		if addrs := netmap.Addresses; len(addrs) > 0 {
 			localAddr = addrs[0].IP.String()
 		}
 	}
+	if p := state.backend.Prefs; p != nil {
+		exitID = p.ExitNodeID
+	}
+	if d := &ui.exitDialog; d.show {
+		if newID := tailcfg.StableNodeID(d.exits.Value); newID != exitID {
+			d.show = false
+			events = append(events, RouteAllEvent{newID})
+		}
+	} else {
+		d.exits.Value = string(exitID)
+	}
 
 	if ui.googleSignin.Clicked() {
 		ui.signinType = googleSignin
-		ui.events = append(ui.events, GoogleAuthEvent{})
+		events = append(events, GoogleAuthEvent{})
 	}
 
 	if ui.webSignin.Clicked() {
 		ui.signinType = webSignin
-		ui.events = append(ui.events, WebAuthEvent{})
+		events = append(events, WebAuthEvent{})
 	}
 
 	if ui.menuClicked(&ui.menu.copy) && localAddr != "" {
-		ui.copyAddress(gtx, localAddr)
+		events = append(events, CopyEvent{Text: localAddr})
+		ui.showCopied(gtx, localAddr)
 	}
 
 	if ui.menuClicked(&ui.menu.reauth) {
-		ui.events = append(ui.events, ReauthEvent{})
+		events = append(events, ReauthEvent{})
+	}
+
+	if ui.menuClicked(&ui.menu.exits) || ui.openExitDialog.Clicked() {
+		ui.exitDialog.show = true
 	}
 
 	if ui.menuClicked(&ui.menu.logout) {
-		ui.events = append(ui.events, LogoutEvent{})
+		events = append(events, LogoutEvent{})
 	}
 
 	for len(ui.peers) < len(state.Peers) {
@@ -238,7 +290,7 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 		ui.peers = ui.peers[:max]
 	}
 
-	const numHeaders = 5
+	const numHeaders = 6
 	n := numHeaders + len(state.Peers)
 	needsLogin := state.backend.State == ipn.NeedsLogin
 	ui.root.Layout(gtx, n, func(gtx C, idx int) D {
@@ -256,18 +308,24 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 				if netmap == nil || state.backend.State < ipn.Stopped {
 					return D{}
 				}
+				for ui.self.Clicked() {
+					events = append(events, CopyEvent{Text: localAddr})
+					ui.showCopied(gtx, localAddr)
+				}
 				return ui.layoutLocal(gtx, sysIns, localName, localAddr)
 			case 2:
+				return ui.layoutExitStatus(gtx, &state.backend)
+			case 3:
 				if state.backend.State < ipn.Stopped {
 					return D{}
 				}
 				return ui.layoutSearchbar(gtx, sysIns)
-			case 3:
+			case 4:
 				if !needsLogin || state.backend.LostInternet {
 					return D{}
 				}
 				return ui.layoutSignIn(gtx, &state.backend)
-			case 4:
+			case 5:
 				if !state.backend.LostInternet {
 					return D{}
 				}
@@ -280,24 +338,33 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 				p := &state.Peers[pidx]
 				if p.Peer == nil {
 					name := p.Name
-					if p.Owner == netmap.User {
+					if p.Owner == userID {
 						name = "MY DEVICES"
 					}
 					return ui.layoutSection(gtx, sysIns, name)
 				} else {
 					clk := &ui.peers[pidx]
-					return ui.layoutPeer(gtx, sysIns, p, netmap, clk)
+					if clk.Clicked() {
+						if addrs := p.Peer.Addresses; len(addrs) > 0 {
+							a := addrs[0].IP.String()
+							events = append(events, CopyEvent{Text: a})
+							ui.showCopied(gtx, a)
+						}
+					}
+					return ui.layoutPeer(gtx, sysIns, p, userID, clk)
 				}
 			}
 		})
 	})
+
+	ui.layoutExitNodeDialog(gtx, sysIns, state.backend.Exits)
 
 	// Popup messages.
 	ui.layoutMessage(gtx, sysIns)
 
 	// 3-dots menu.
 	if ui.menu.show {
-		ui.layoutMenu(gtx, sysIns, expiry)
+		ui.layoutMenu(gtx, sysIns, expiry, exitID != "" || len(state.backend.Exits) > 0)
 	}
 
 	// "Get started".
@@ -309,7 +376,7 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 		ui.layoutIntro(gtx, sysIns)
 	}
 
-	return ui.events
+	return events
 }
 
 func (ui *UI) ShowMessage(msg string) {
@@ -321,10 +388,11 @@ func (ui *UI) ShowMessage(msg string) {
 type Dismiss struct {
 }
 
-func (d *Dismiss) Add(gtx layout.Context) {
+func (d *Dismiss) Add(gtx layout.Context, color color.NRGBA) {
 	defer op.Save(gtx.Ops).Load()
 	pointer.Rect(image.Rectangle{Max: gtx.Constraints.Min}).Add(gtx.Ops)
 	pointer.InputOp{Tag: d, Types: pointer.Press}.Add(gtx.Ops)
+	paint.Fill(gtx.Ops, color)
 }
 
 func (d *Dismiss) Dismissed(gtx layout.Context) bool {
@@ -336,6 +404,51 @@ func (d *Dismiss) Dismissed(gtx layout.Context) bool {
 		}
 	}
 	return false
+}
+
+func (ui *UI) layoutExitStatus(gtx layout.Context, state *BackendState) layout.Dimensions {
+	var bg color.NRGBA
+	var text string
+	switch state.ExitStatus {
+	case ExitNone:
+		return D{}
+	case ExitOffline:
+		text = "Exit node offline"
+		bg = rgb(0xc65835)
+	case ExitOnline:
+		text = "Using exit node"
+		bg = rgb(0x338b51)
+	}
+	paint.Fill(gtx.Ops, bg)
+	return material.Clickable(gtx, &ui.openExitDialog, func(gtx C) D {
+		gtx.Constraints.Min.X = gtx.Constraints.Max.X
+		return layout.Inset{
+			Top:    unit.Dp(12),
+			Bottom: unit.Dp(12),
+			Right:  unit.Dp(24),
+			Left:   unit.Dp(24),
+		}.Layout(gtx, func(gtx C) D {
+			return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
+				layout.Flexed(1, func(gtx C) D {
+					return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+						layout.Rigid(func(gtx C) D {
+							lbl := material.Body2(ui.theme, text)
+							lbl.Color = rgb(white)
+							return lbl.Layout(gtx)
+						}),
+						layout.Rigid(func(gtx C) D {
+							node := material.Body2(ui.theme, state.Exit.Label)
+							node.Color = argb(0x88ffffff)
+							return node.Layout(gtx)
+						}),
+					)
+				}),
+				layout.Rigid(func(gtx C) D {
+					return ui.icons.exitStatus.Layout(gtx, unit.Dp(24))
+				}),
+			)
+		})
+	})
 }
 
 // layoutSignIn lays out the sign in button(s).
@@ -509,9 +622,134 @@ func (ui *UI) menuClicked(btn *widget.Clickable) bool {
 	return cl
 }
 
+// layoutExitNodeDialog lays out the exit node selection dialog. If the user changed the node,
+// true is returned along with the node.
+func (ui *UI) layoutExitNodeDialog(gtx layout.Context, sysIns system.Insets, exits []ExitNode) {
+	d := &ui.exitDialog
+	if d.dismiss.Dismissed(gtx) {
+		d.show = false
+	}
+	if !d.show {
+		return
+	}
+	d.dismiss.Add(gtx, argb(0x66000000))
+	layout.Inset{
+		Top:    unit.Add(gtx.Metric, sysIns.Top, unit.Dp(16)),
+		Right:  unit.Add(gtx.Metric, sysIns.Right, unit.Dp(16)),
+		Bottom: unit.Add(gtx.Metric, sysIns.Bottom, unit.Dp(16)),
+		Left:   unit.Add(gtx.Metric, sysIns.Left, unit.Dp(16)),
+	}.Layout(gtx, func(gtx C) D {
+		return layout.Center.Layout(gtx, func(gtx C) D {
+			gtx.Constraints.Min.X = gtx.Px(unit.Dp(250))
+			gtx.Constraints.Max.X = gtx.Constraints.Min.X
+			return layoutDialog(gtx, func(gtx C) D {
+				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+					layout.Rigid(func(gtx C) D {
+						// Header.
+						return layout.Inset{
+							Top:    unit.Dp(16),
+							Right:  unit.Dp(20),
+							Left:   unit.Dp(20),
+							Bottom: unit.Dp(16),
+						}.Layout(gtx, func(gtx C) D {
+							l := material.Body1(ui.theme, "Use exit node...")
+							l.Font.Weight = text.Bold
+							return l.Layout(gtx)
+						})
+					}),
+					layout.Flexed(1, func(gtx C) D {
+						gtx.Constraints.Min.Y = 0
+						// Add "none" exit node.
+						n := len(exits) + 1
+						return d.list.Layout(gtx, n, func(gtx C, idx int) D {
+							switch idx {
+							case n - 1:
+							}
+							node := ExitNode{Label: "None", Online: true}
+							if idx >= 1 {
+								node = exits[idx-1]
+							}
+							lbl := node.Label
+							if !node.Online {
+								lbl = lbl + " (offline)"
+							}
+							btn := material.RadioButton(ui.theme, &d.exits, string(node.ID), lbl)
+							if !node.Online {
+								btn.Color = rgb(0xbbbbbb)
+								btn.IconColor = btn.Color
+							}
+							return layout.Inset{
+								Right:  unit.Dp(16),
+								Left:   unit.Dp(16),
+								Bottom: unit.Dp(16),
+							}.Layout(gtx, btn.Layout)
+						})
+					}),
+				)
+			})
+		})
+	})
+}
+
+func layoutMenu(th *material.Theme, gtx layout.Context, items []menuItem, header layout.Widget) layout.Dimensions {
+	return layoutDialog(gtx, func(gtx C) D {
+		// Lay out menu items twice; once for
+		// measuring the widest item, once for actual layout.
+		var maxWidth int
+		var minWidth int
+		children := []layout.FlexChild{
+			layout.Rigid(func(gtx C) D {
+				return layout.Inset{
+					Top:    unit.Dp(16),
+					Right:  unit.Dp(16),
+					Left:   unit.Dp(16),
+					Bottom: unit.Dp(4),
+				}.Layout(gtx, func(gtx C) D {
+					gtx.Constraints.Min.X = minWidth
+					dims := header(gtx)
+					if w := dims.Size.X; w > maxWidth {
+						maxWidth = w
+					}
+					return dims
+				})
+			}),
+		}
+		for i := 0; i < len(items); i++ {
+			it := &items[i]
+			children = append(children, layout.Rigid(func(gtx C) D {
+				return material.Clickable(gtx, it.btn, func(gtx C) D {
+					return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx C) D {
+						gtx.Constraints.Min.X = minWidth
+						dims := material.Body1(th, it.title).Layout(gtx)
+						if w := dims.Size.X; w > maxWidth {
+							maxWidth = w
+						}
+						return dims
+					})
+				})
+			}))
+		}
+		f := layout.Flex{Axis: layout.Vertical}
+		// First pass: record and discard operations
+		// and determine widest item.
+		m := op.Record(gtx.Ops)
+		f.Layout(gtx, children...)
+		m.Stop()
+		// Second pass: layout items with equal width.
+		minWidth = maxWidth
+		return f.Layout(gtx, children...)
+	})
+}
+
+func layoutDialog(gtx layout.Context, w layout.Widget) layout.Dimensions {
+	return widget.Border{Color: argb(0x33000000), CornerRadius: unit.Dp(2), Width: unit.Px(1)}.Layout(gtx, func(gtx C) D {
+		return Background{Color: rgb(0xfafafa), CornerRadius: unit.Dp(2)}.Layout(gtx, w)
+	})
+}
+
 // layoutMenu lays out the menu activated by the 3 dots button.
-func (ui *UI) layoutMenu(gtx layout.Context, sysIns system.Insets, expiry time.Time) {
-	ui.menu.dismiss.Add(gtx)
+func (ui *UI) layoutMenu(gtx layout.Context, sysIns system.Insets, expiry time.Time, showExits bool) {
+	ui.menu.dismiss.Add(gtx, color.NRGBA{})
 	if ui.menu.dismiss.Dismissed(gtx) {
 		ui.menu.show = false
 	}
@@ -520,75 +758,31 @@ func (ui *UI) layoutMenu(gtx layout.Context, sysIns system.Insets, expiry time.T
 		Right: unit.Add(gtx.Metric, sysIns.Right, unit.Dp(2)),
 	}.Layout(gtx, func(gtx C) D {
 		return layout.NE.Layout(gtx, func(gtx C) D {
-			return widget.Border{Color: argb(0x33000000), CornerRadius: unit.Dp(2), Width: unit.Px(1)}.Layout(gtx, func(gtx C) D {
-				return Background{Color: rgb(0xfafafa), CornerRadius: unit.Dp(2)}.Layout(gtx, func(gtx C) D {
-					menu := &ui.menu
-					items := []struct {
-						btn   *widget.Clickable
-						title string
-					}{
-						{title: "Copy My IP Address", btn: &menu.copy},
-						{title: "Reauthenticate", btn: &menu.reauth},
-						{title: "Log out", btn: &menu.logout},
-					}
-					// Lay out menu items twice; once for
-					// measuring the widest item, once for actual layout.
-					var maxWidth int
-					var minWidth int
-					children := []layout.FlexChild{
-						layout.Rigid(func(gtx C) D {
-							return layout.Inset{
-								Top:    unit.Dp(16),
-								Right:  unit.Dp(16),
-								Left:   unit.Dp(16),
-								Bottom: unit.Dp(4),
-							}.Layout(gtx, func(gtx C) D {
-								gtx.Constraints.Min.X = minWidth
-								var expiryStr string
-								const fmtStr = time.Stamp
-								switch {
-								case expiry.IsZero():
-									expiryStr = "Expires: (never)"
-								case time.Now().After(expiry):
-									expiryStr = fmt.Sprintf("Expired: %s", expiry.Format(fmtStr))
-								default:
-									expiryStr = fmt.Sprintf("Expires: %s", expiry.Format(fmtStr))
-								}
-								l := material.Caption(ui.theme, expiryStr)
-								l.Color = rgb(0x8f8f8f)
-								dims := l.Layout(gtx)
-								if w := dims.Size.X; w > maxWidth {
-									maxWidth = w
-								}
-								return dims
-							})
-						}),
-					}
-					for i := 0; i < len(items); i++ {
-						it := &items[i]
-						children = append(children, layout.Rigid(func(gtx C) D {
-							return material.Clickable(gtx, it.btn, func(gtx C) D {
-								return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx C) D {
-									gtx.Constraints.Min.X = minWidth
-									dims := material.Body1(ui.theme, it.title).Layout(gtx)
-									if w := dims.Size.X; w > maxWidth {
-										maxWidth = w
-									}
-									return dims
-								})
-							})
-						}))
-					}
-					f := layout.Flex{Axis: layout.Vertical}
-					// First pass: record and discard operations
-					// and determine widest item.
-					m := op.Record(gtx.Ops)
-					f.Layout(gtx, children...)
-					m.Stop()
-					// Second pass: layout items with equal width.
-					minWidth = maxWidth
-					return f.Layout(gtx, children...)
-				})
+			menu := &ui.menu
+			items := []menuItem{
+				{title: "Copy My IP Address", btn: &menu.copy},
+			}
+			if showExits {
+				items = append(items, menuItem{title: "Use exit node...", btn: &menu.exits})
+			}
+			items = append(items,
+				menuItem{title: "Reauthenticate", btn: &menu.reauth},
+				menuItem{title: "Log out", btn: &menu.logout},
+			)
+			return layoutMenu(ui.theme, gtx, items, func(gtx C) D {
+				var expiryStr string
+				const fmtStr = time.Stamp
+				switch {
+				case expiry.IsZero():
+					expiryStr = "Expires: (never)"
+				case time.Now().After(expiry):
+					expiryStr = fmt.Sprintf("Expired: %s", expiry.Format(fmtStr))
+				default:
+					expiryStr = fmt.Sprintf("Expires: %s", expiry.Format(fmtStr))
+				}
+				l := material.Caption(ui.theme, expiryStr)
+				l.Color = rgb(0x8f8f8f)
+				return l.Layout(gtx)
 			})
 		})
 	})
@@ -627,12 +821,7 @@ func (ui *UI) showMessage(gtx layout.Context, msg string) {
 
 // layoutPeer lays out a peer name and IP address (e.g.
 // "localhost\n100.100.100.101")
-func (ui *UI) layoutPeer(gtx layout.Context, sysIns system.Insets, p *UIPeer, netmap *netmap.NetworkMap, clk *widget.Clickable) layout.Dimensions {
-	for clk.Clicked() {
-		if addrs := p.Peer.Addresses; len(addrs) > 0 {
-			ui.copyAddress(gtx, addrs[0].IP.String())
-		}
-	}
+func (ui *UI) layoutPeer(gtx layout.Context, sysIns system.Insets, p *UIPeer, user tailcfg.UserID, clk *widget.Clickable) layout.Dimensions {
 	return material.Clickable(gtx, clk, func(gtx C) D {
 		return layout.Inset{
 			Top:    unit.Dp(8),
@@ -644,7 +833,7 @@ func (ui *UI) layoutPeer(gtx layout.Context, sysIns system.Insets, p *UIPeer, ne
 			return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 				layout.Rigid(func(gtx C) D {
 					return layout.Inset{Bottom: unit.Dp(4)}.Layout(gtx, func(gtx C) D {
-						name := p.Peer.DisplayName(p.Peer.User == netmap.User)
+						name := p.Peer.DisplayName(p.Peer.User == user)
 						return material.H6(ui.theme, name).Layout(gtx)
 					})
 				}),
@@ -722,11 +911,9 @@ func (ui *UI) layoutTop(gtx layout.Context, sysIns system.Insets, state *Backend
 					if state.State <= ipn.NeedsLogin {
 						return D{}
 					}
-					return material.Clickable(gtx, &ui.menu.open, func(gtx C) D {
-						return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx C) D {
-							return ui.icons.more.Layout(gtx, unit.Dp(24))
-						})
-					})
+					btn := material.IconButton(ui.theme, &ui.menu.open, ui.icons.more)
+					btn.Background = color.NRGBA{}
+					return btn.Layout(gtx)
 				}),
 			)
 		})
@@ -750,17 +937,13 @@ func statusString(state ipn.State) string {
 	}
 }
 
-func (ui *UI) copyAddress(gtx layout.Context, addr string) {
-	ui.events = append(ui.events, CopyEvent{Text: addr})
+func (ui *UI) showCopied(gtx layout.Context, addr string) {
 	ui.showMessage(gtx, fmt.Sprintf("Copied %s", addr))
 }
 
 // layoutLocal lays out the information box about the local node's
 // name and IP address.
 func (ui *UI) layoutLocal(gtx layout.Context, sysIns system.Insets, host, addr string) layout.Dimensions {
-	for ui.self.Clicked() {
-		ui.copyAddress(gtx, addr)
-	}
 	return Background{Color: rgb(headerColor)}.Layout(gtx, func(gtx C) D {
 		return layout.Inset{
 			Right:  unit.Max(gtx.Metric, sysIns.Right, unit.Dp(8)),

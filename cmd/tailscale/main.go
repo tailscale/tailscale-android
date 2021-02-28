@@ -18,6 +18,7 @@ import (
 	"gioui.org/layout"
 	"gioui.org/op"
 	"golang.org/x/oauth2"
+	"inet.af/netaddr"
 
 	"github.com/tailscale/tailscale-android/jni"
 	"tailscale.com/ipn"
@@ -61,14 +62,42 @@ type clientState struct {
 	Peers []UIPeer
 }
 
+type ExitStatus uint8
+
+const (
+	// No exit node selected.
+	ExitNone ExitStatus = iota
+	// Exit node selected and exists, but is offline or missing.
+	ExitOffline
+	// Exit node selected and online.
+	ExitOnline
+)
+
+type ExitNode struct {
+	Label  string
+	Online bool
+	ID     tailcfg.StableNodeID
+}
+
 type BackendState struct {
+	Prefs        *ipn.Prefs
 	State        ipn.State
 	NetworkMap   *netmap.NetworkMap
 	LostInternet bool
+	// Exits are the peers that can act as exit node.
+	Exits []ExitNode
+	// ExitState describes the state of our exit node.
+	ExitStatus ExitStatus
+	// Exit is our current exit node, if any.
+	Exit ExitNode
 }
 
 // UIEvent is an event flowing from the UI to the backend.
 type UIEvent interface{}
+
+type RouteAllEvent struct {
+	ID tailcfg.StableNodeID
+}
 
 type ConnectEvent struct {
 	Enable bool
@@ -178,7 +207,6 @@ func (a *App) runBackend() error {
 			alarmChan = timer.C
 		}
 	}
-	var prefs *ipn.Prefs
 	notifications := make(chan ipn.Notify, 1)
 	startErr := make(chan error)
 	// Start from a goroutine to avoid deadlock when Start
@@ -208,16 +236,18 @@ func (a *App) runBackend() error {
 			}
 			configErrs <- b.updateTUN(service, cfg)
 		case n := <-notifications:
+			exitWasOnline := state.ExitStatus == ExitOnline
 			if p := n.Prefs; p != nil {
-				first := prefs == nil
-				prefs = p.Clone()
+				first := state.Prefs == nil
+				state.Prefs = p.Clone()
+				state.updateExitNodes()
 				if first {
-					prefs.Hostname = a.hostname()
-					prefs.OSVersion = a.osVersion()
-					prefs.DeviceModel = a.modelName()
-					go b.backend.SetPrefs(prefs)
+					state.Prefs.Hostname = a.hostname()
+					state.Prefs.OSVersion = a.osVersion()
+					state.Prefs.DeviceModel = a.modelName()
+					go b.backend.SetPrefs(state.Prefs)
 				}
-				a.setPrefs(prefs)
+				a.setPrefs(state.Prefs)
 			}
 			if s := n.State; s != nil {
 				oldState := state.State
@@ -249,10 +279,15 @@ func (a *App) runBackend() error {
 			}
 			if m := n.NetMap; m != nil {
 				state.NetworkMap = m
+				state.updateExitNodes()
 				a.notify(state)
 				if service != 0 {
 					alarm(a.notifyExpiry(service, m.Expiry))
 				}
+			}
+			// Notify if a previously online exit is not longer online (or missing).
+			if service != 0 && exitWasOnline && state.ExitStatus == ExitOffline {
+				a.pushNotify(service, "Connection Lost", "Your exit node is offline. Disable your exit node or contact your network admin for help.")
 			}
 		case <-alarmChan:
 			if m := state.NetworkMap; m != nil && service != 0 {
@@ -263,8 +298,8 @@ func (a *App) runBackend() error {
 			case OAuth2Event:
 				go b.backend.Login(e.Token)
 			case ToggleEvent:
-				prefs.WantRunning = !prefs.WantRunning
-				go b.backend.SetPrefs(prefs)
+				state.Prefs.WantRunning = !state.Prefs.WantRunning
+				go b.backend.SetPrefs(state.Prefs)
 			case WebAuthEvent:
 				if !signingIn {
 					go b.backend.StartLoginInteractive()
@@ -273,8 +308,11 @@ func (a *App) runBackend() error {
 			case LogoutEvent:
 				go b.backend.Logout()
 			case ConnectEvent:
-				prefs.WantRunning = e.Enable
-				go b.backend.SetPrefs(prefs)
+				state.Prefs.WantRunning = e.Enable
+				go b.backend.SetPrefs(state.Prefs)
+			case RouteAllEvent:
+				state.Prefs.ExitNodeID = e.ID
+				go b.backend.SetPrefs(state.Prefs)
 			}
 		case s := <-onConnect:
 			jni.Do(a.jvm, func(env *jni.Env) error {
@@ -335,6 +373,56 @@ func (a *App) isChromeOS() bool {
 		panic(err)
 	}
 	return chromeOS
+}
+
+func (s *BackendState) updateExitNodes() {
+	s.ExitStatus = ExitNone
+	var exitID tailcfg.StableNodeID
+	if p := s.Prefs; p != nil {
+		exitID = p.ExitNodeID
+		if exitID != "" {
+			s.ExitStatus = ExitOffline
+		}
+	}
+	hasMyExit := exitID == ""
+	s.Exits = nil
+	var peers []*tailcfg.Node
+	if s.NetworkMap != nil {
+		peers = s.NetworkMap.Peers
+	}
+	for _, p := range peers {
+		canRoute := false
+		for _, r := range p.AllowedIPs {
+			if r == netaddr.MustParseIPPrefix("0.0.0.0/0") || r == netaddr.MustParseIPPrefix("::/0") {
+				canRoute = true
+				break
+			}
+		}
+		myExit := p.StableID == exitID
+		hasMyExit = hasMyExit || myExit
+		exit := ExitNode{
+			Label:  p.DisplayName(true),
+			Online: canRoute,
+			ID:     p.StableID,
+		}
+		if myExit {
+			s.Exit = exit
+			if canRoute {
+				s.ExitStatus = ExitOnline
+			}
+		}
+		if canRoute || myExit {
+			s.Exits = append(s.Exits, exit)
+		}
+	}
+	sort.Slice(s.Exits, func(i, j int) bool {
+		return s.Exits[i].Label < s.Exits[j].Label
+	})
+	if !hasMyExit {
+		// Insert node missing from netmap.
+		s.Exit = ExitNode{Label: "Unknown device", ID: exitID}
+		s.Exits = append([]ExitNode{s.Exit}, s.Exits...)
+	}
 }
 
 // hostname builds a hostname from android.os.Build fields, in place of a
@@ -442,17 +530,20 @@ func (a *App) notifyExpiry(service jni.Object, expiry time.Time) *time.Timer {
 	default:
 		return time.NewTimer(d - aday)
 	}
-	err := jni.Do(a.jvm, func(env *jni.Env) error {
+	if err := a.pushNotify(service, title, msg); err != nil {
+		fatalErr(err)
+	}
+	return t
+}
+
+func (a *App) pushNotify(service jni.Object, title, msg string) error {
+	return jni.Do(a.jvm, func(env *jni.Env) error {
 		cls := jni.GetObjectClass(env, service)
 		notify := jni.GetMethodID(env, cls, "notify", "(Ljava/lang/String;Ljava/lang/String;)V")
 		jtitle := jni.JavaString(env, title)
 		jmessage := jni.JavaString(env, msg)
 		return jni.CallVoidMethod(env, service, notify, jni.Value(jtitle), jni.Value(jmessage))
 	})
-	if err != nil {
-		fatalErr(err)
-	}
-	return t
 }
 
 func (a *App) notify(state BackendState) {
@@ -638,15 +729,19 @@ func (a *App) updateState(act jni.Object, state *clientState) {
 		state.browseURL = ""
 	}
 
-	state.Peers = nil
-	netMap := state.backend.NetworkMap
-	if netMap == nil {
-		return
+	netmap := state.backend.NetworkMap
+	var (
+		peers []*tailcfg.Node
+		myID  tailcfg.UserID
+	)
+	if netmap != nil {
+		peers = netmap.Peers
+		myID = netmap.User
 	}
 	// Split into sections.
 	users := make(map[tailcfg.UserID]struct{})
-	var peers []UIPeer
-	for _, p := range netMap.Peers {
+	var uiPeers []UIPeer
+	for _, p := range peers {
 		if q := state.query; q != "" {
 			// Filter peers according to search query.
 			host := strings.ToLower(p.Hostinfo.Hostname)
@@ -660,20 +755,19 @@ func (a *App) updateState(act jni.Object, state *clientState) {
 			}
 		}
 		users[p.User] = struct{}{}
-		peers = append(peers, UIPeer{
+		uiPeers = append(uiPeers, UIPeer{
 			Owner: p.User,
 			Peer:  p,
 		})
 	}
 	// Add section (user) headers.
 	for u := range users {
-		name := netMap.UserProfiles[u].DisplayName
+		name := netmap.UserProfiles[u].DisplayName
 		name = strings.ToUpper(name)
-		peers = append(peers, UIPeer{Owner: u, Name: name})
+		uiPeers = append(uiPeers, UIPeer{Owner: u, Name: name})
 	}
-	myID := state.backend.NetworkMap.User
-	sort.Slice(peers, func(i, j int) bool {
-		lhs, rhs := peers[i], peers[j]
+	sort.Slice(uiPeers, func(i, j int) bool {
+		lhs, rhs := uiPeers[i], uiPeers[j]
 		if lu, ru := lhs.Owner, rhs.Owner; ru != lu {
 			// Sort own peers first.
 			if lu == myID {
@@ -696,7 +790,7 @@ func (a *App) updateState(act jni.Object, state *clientState) {
 		rName := rp.DisplayName(rp.User == myID)
 		return lName < rName || lName == rName && lp.ID < rp.ID
 	})
-	state.Peers = peers
+	state.Peers = uiPeers
 }
 
 func (a *App) prepareVPN(act jni.Object) error {
@@ -728,6 +822,8 @@ func (a *App) processUIEvents(w *app.Window, events []UIEvent, act jni.Object, s
 			a.signOut()
 			requestBackend(e)
 		case ConnectEvent:
+			requestBackend(e)
+		case RouteAllEvent:
 			requestBackend(e)
 		case CopyEvent:
 			w.WriteClipboard(e.Text)
