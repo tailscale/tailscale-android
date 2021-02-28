@@ -20,9 +20,9 @@ import (
 	"golang.org/x/oauth2"
 
 	"github.com/tailscale/tailscale-android/jni"
-	"tailscale.com/control/controlclient"
 	"tailscale.com/ipn"
 	"tailscale.com/tailcfg"
+	"tailscale.com/types/netmap"
 	"tailscale.com/wgengine/router"
 )
 
@@ -63,7 +63,7 @@ type clientState struct {
 
 type BackendState struct {
 	State        ipn.State
-	NetworkMap   *controlclient.NetworkMap
+	NetworkMap   *netmap.NetworkMap
 	LostInternet bool
 }
 

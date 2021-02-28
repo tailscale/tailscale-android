@@ -25,9 +25,9 @@ import (
 	"gioui.org/widget"
 	"gioui.org/widget/material"
 	"golang.org/x/exp/shiny/materialdesign/icons"
-	"tailscale.com/control/controlclient"
 	"tailscale.com/ipn"
 	"tailscale.com/tailcfg"
+	"tailscale.com/types/netmap"
 
 	"eliasnaur.com/font/roboto/robotoregular"
 
@@ -627,7 +627,7 @@ func (ui *UI) showMessage(gtx layout.Context, msg string) {
 
 // layoutPeer lays out a peer name and IP address (e.g.
 // "localhost\n100.100.100.101")
-func (ui *UI) layoutPeer(gtx layout.Context, sysIns system.Insets, p *UIPeer, netmap *controlclient.NetworkMap, clk *widget.Clickable) layout.Dimensions {
+func (ui *UI) layoutPeer(gtx layout.Context, sysIns system.Insets, p *UIPeer, netmap *netmap.NetworkMap, clk *widget.Clickable) layout.Dimensions {
 	for clk.Clicked() {
 		if addrs := p.Peer.Addresses; len(addrs) > 0 {
 			ui.copyAddress(gtx, addrs[0].IP.String())

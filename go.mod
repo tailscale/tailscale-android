@@ -7,10 +7,10 @@ require (
 	gioui.org v0.0.0-20210103130323-7bfdafb7b15d
 	gioui.org/cmd v0.0.0-20201126101740-9b54892cc4e3
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
-	github.com/tailscale/wireguard-go v0.0.0-20210120212909-7ad8a0443bd3
+	github.com/tailscale/wireguard-go v0.0.0-20210210202228-3cc76ed5f222
 	golang.org/x/exp v0.0.0-20191227195350-da58074b4299
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
-	golang.org/x/sys v0.0.0-20201218084310-7d0127a74742
-	inet.af/netaddr v0.0.0-20210105212526-648fbc18a69d
-	tailscale.com v1.4.5
+	golang.org/x/sys v0.0.0-20210301091718-77cc2087c03b
+	inet.af/netaddr v0.0.0-20210222205655-a1ec2b7b8c44
+	tailscale.com v1.1.1-0.20210304063027-ad6edf5ecda9
 )

@@ -18,6 +18,7 @@ import (
 	"golang.org/x/sys/unix"
 	"inet.af/netaddr"
 	"tailscale.com/ipn"
+	"tailscale.com/ipn/ipnlocal"
 	"tailscale.com/logtail"
 	"tailscale.com/logtail/filch"
 	"tailscale.com/types/logger"
@@ -29,7 +30,7 @@ import (
 
 type backend struct {
 	engine   wgengine.Engine
-	backend  *ipn.LocalBackend
+	backend  *ipnlocal.LocalBackend
 	devices  *multiTUN
 	settings func(*router.Config) error
 	lastCfg  *router.Config
@@ -94,15 +95,14 @@ func newBackend(dataDir string, jvm *jni.JVM, store *stateStore, settings func(*
 	b.SetupLogs(dataDir, logID)
 	tun := tstun.WrapTUN(logf, b.devices)
 	tun.SetFilter(filter.NewAllowAllForTest(logf))
-	engine, err := wgengine.NewUserspaceEngineAdvanced(wgengine.EngineConfig{
-		Logf:      logf,
+	engine, err := wgengine.NewUserspaceEngine(logf, wgengine.Config{
 		TUN:       tun,
 		RouterGen: genRouter,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("runBackend: NewUserspaceEngineAdvanced: %v", err)
 	}
-	local, err := ipn.NewLocalBackend(logf, logID.Public().String(), store, engine)
+	local, err := ipnlocal.NewLocalBackend(logf, logID.Public().String(), store, engine)
 	if err != nil {
 		engine.Close()
 		return nil, fmt.Errorf("runBackend: NewLocalBackend: %v", err)
