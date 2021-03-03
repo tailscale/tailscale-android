@@ -322,7 +322,7 @@ type Dismiss struct {
 }
 
 func (d *Dismiss) Add(gtx layout.Context) {
-	defer op.Push(gtx.Ops).Pop()
+	defer op.Save(gtx.Ops).Load()
 	pointer.Rect(image.Rectangle{Max: gtx.Constraints.Min}).Add(gtx.Ops)
 	pointer.InputOp{Tag: d, Types: pointer.Press}.Add(gtx.Ops)
 }
@@ -824,41 +824,41 @@ func drawLogo(ops *op.Ops, size int) {
 	tx := op.Offset(f32.Pt(off, 0))
 	ty := op.Offset(f32.Pt(0, off))
 
-	st := op.Push(ops)
-	defer st.Pop()
+	st := op.Save(ops)
+	defer st.Load()
 
 	// First row of discs.
-	row := op.Push(ops)
+	row := op.Save(ops)
 	drawDisc(ops, discDia, rgb(0x54514d))
 	tx.Add(ops)
 	drawDisc(ops, discDia, rgb(0x54514d))
 	tx.Add(ops)
 	drawDisc(ops, discDia, rgb(0x54514d))
-	row.Pop()
+	row.Load()
 
 	ty.Add(ops)
 	// Second row.
-	row = op.Push(ops)
+	row = op.Save(ops)
 	drawDisc(ops, discDia, rgb(0xfffdfa))
 	tx.Add(ops)
 	drawDisc(ops, discDia, rgb(0xfffdfa))
 	tx.Add(ops)
 	drawDisc(ops, discDia, rgb(0xfffdfa))
-	row.Pop()
+	row.Load()
 
 	ty.Add(ops)
 	// Third row.
-	row = op.Push(ops)
+	row = op.Save(ops)
 	drawDisc(ops, discDia, rgb(0x54514d))
 	tx.Add(ops)
 	drawDisc(ops, discDia, rgb(0xfffdfa))
 	tx.Add(ops)
 	drawDisc(ops, discDia, rgb(0x54514d))
-	row.Pop()
+	row.Load()
 }
 
 func drawImage(gtx layout.Context, img paint.ImageOp, size unit.Value) layout.Dimensions {
-	defer op.Push(gtx.Ops).Pop()
+	defer op.Save(gtx.Ops).Load()
 	img.Add(gtx.Ops)
 	sz := img.Size()
 	aspect := float32(sz.Y) / float32(sz.X)
@@ -871,7 +871,7 @@ func drawImage(gtx layout.Context, img paint.ImageOp, size unit.Value) layout.Di
 }
 
 func drawDisc(ops *op.Ops, radius float32, col color.NRGBA) {
-	defer op.Push(ops).Pop()
+	defer op.Save(ops).Load()
 	r2 := radius * .5
 	dr := f32.Rectangle{Max: f32.Pt(radius, radius)}
 	clip.RRect{
@@ -914,7 +914,7 @@ type fill struct {
 }
 
 func (f fill) Layout(gtx layout.Context, sz image.Point) layout.Dimensions {
-	defer op.Push(gtx.Ops).Pop()
+	defer op.Save(gtx.Ops).Load()
 	clip.Rect(image.Rectangle{Max: sz}).Add(gtx.Ops)
 	paint.ColorOp{Color: f.col}.Add(gtx.Ops)
 	paint.PaintOp{}.Add(gtx.Ops)

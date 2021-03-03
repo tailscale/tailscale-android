@@ -15,8 +15,8 @@ dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7
 eliasnaur.com/font v0.0.0-20200617114307-e02d32decb4b h1:J9r7EuPdhvBTafg34EqrObAm/bDEaDh7LvhKJPGficE=
 eliasnaur.com/font v0.0.0-20200617114307-e02d32decb4b/go.mod h1:CYwJpIhpzVfoHpFXGlXjSx9mXMWtHt4XXmZb6RjumRc=
 gioui.org v0.0.0-20201119103011-21ef492cc9df/go.mod h1:Y+uS7hHMvku1Q+ooaoq6fYD5B2LGoT8JtFgvmYmRzTw=
-gioui.org v0.0.0-20210103130323-7bfdafb7b15d h1:VkwllpRglnx7yZAgA3VgrtxO9x9wwBYHReaKygWV8go=
-gioui.org v0.0.0-20210103130323-7bfdafb7b15d/go.mod h1:Y+uS7hHMvku1Q+ooaoq6fYD5B2LGoT8JtFgvmYmRzTw=
+gioui.org v0.0.0-20210303171239-b39d1bdac724 h1:wIJRxf4v7q6HnRmu2yxrKBAffwpGkCJ5PIYd6xAcGfM=
+gioui.org v0.0.0-20210303171239-b39d1bdac724/go.mod h1:Y+uS7hHMvku1Q+ooaoq6fYD5B2LGoT8JtFgvmYmRzTw=
 gioui.org/cmd v0.0.0-20201126101740-9b54892cc4e3 h1:WljgIPO0LPLOUhi92gMK7kacyWefdTtAamOFul0NxVI=
 gioui.org/cmd v0.0.0-20201126101740-9b54892cc4e3/go.mod h1:wLdMwDGN/6zG8SRs7QBEUXf096UcKwco7sSlzehIYho=
 github.com/Azure/go-autorest/autorest v0.9.0/go.mod h1:xyHB1BMZT0cuDHU7I0+g046+BFDTQ8rEZB0s4Yfa6bI=

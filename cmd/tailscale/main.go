@@ -586,8 +586,10 @@ func (a *App) runUI() error {
 					}
 				}
 			case system.FrameEvent:
+				ins := e.Insets
+				e.Insets = system.Insets{}
 				gtx := layout.NewContext(&ops, e)
-				events := ui.layout(gtx, e.Insets, state)
+				events := ui.layout(gtx, ins, state)
 				e.Frame(gtx.Ops)
 				a.processUIEvents(w, events, activity, state)
 			}
