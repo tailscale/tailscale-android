@@ -10,7 +10,6 @@ import (
 	"log"
 	"sort"
 	"strings"
-	"sync"
 	"time"
 	"unsafe"
 
@@ -36,22 +35,16 @@ type App struct {
 
 	store *stateStore
 
-	// updates is notifies whenever netState or browseURL changes.
-	updates chan struct{}
+	// netStates receives the most recent network state.
+	netStates chan BackendState
+	// prefs receives new preferences from the backend.
+	prefs chan *ipn.Prefs
+	// browseURLs receives URLs when the backend wants to browse.
+	browseURLs chan string
 
 	// backend is the channel for events from the frontend to the
 	// backend.
 	backendEvents chan UIEvent
-
-	// mu protects the following fields.
-	mu sync.Mutex
-	// netState is the most recent network state.
-	netState BackendState
-	// browseURL is set whenever the backend wants to
-	// browse.
-	browseURL *string
-	// prefs is set when new preferences arrive.
-	prefs *ipn.Prefs
 }
 
 var (
@@ -117,9 +110,11 @@ var backendEvents = make(chan UIEvent)
 
 func main() {
 	a := &App{
-		jvm:     (*jni.JVM)(unsafe.Pointer(app.JavaVM())),
-		appCtx:  jni.Object(app.AppContext()),
-		updates: make(chan struct{}, 1),
+		jvm:        (*jni.JVM)(unsafe.Pointer(app.JavaVM())),
+		appCtx:     jni.Object(app.AppContext()),
+		netStates:  make(chan BackendState, 1),
+		browseURLs: make(chan string, 1),
+		prefs:      make(chan *ipn.Prefs, 1),
 	}
 	err := jni.Do(a.jvm, func(env *jni.Env) error {
 		loader := jni.ClassLoaderFor(env, a.appCtx)
@@ -304,8 +299,8 @@ func (a *App) runBackend() error {
 					notifyVPNClosed()
 				}
 			}
-		case <-onConnectivityChange:
-			state.LostInternet = !connected.Load().(bool)
+		case connected := <-onConnectivityChange:
+			state.LostInternet = !connected
 			if b != nil {
 				go b.LinkChange()
 			}
@@ -461,13 +456,11 @@ func (a *App) notifyExpiry(service jni.Object, expiry time.Time) *time.Timer {
 }
 
 func (a *App) notify(state BackendState) {
-	a.mu.Lock()
-	a.netState = state
-	a.mu.Unlock()
 	select {
-	case a.updates <- struct{}{}:
+	case <-a.netStates:
 	default:
 	}
+	a.netStates <- state
 	ready := jni.Bool(state.State >= ipn.Stopped)
 	if err := a.callVoidMethod(a.appCtx, "setTileReady", "(Z)V", jni.Value(ready)); err != nil {
 		fatalErr(err)
@@ -475,27 +468,23 @@ func (a *App) notify(state BackendState) {
 }
 
 func (a *App) setPrefs(prefs *ipn.Prefs) {
-	a.mu.Lock()
-	a.prefs = prefs
 	wantRunning := jni.Bool(prefs.WantRunning)
-	a.mu.Unlock()
 	if err := a.callVoidMethod(a.appCtx, "setTileStatus", "(Z)V", jni.Value(wantRunning)); err != nil {
 		fatalErr(err)
 	}
 	select {
-	case a.updates <- struct{}{}:
+	case <-a.prefs:
 	default:
 	}
+	a.prefs <- prefs
 }
 
 func (a *App) setURL(url string) {
-	a.mu.Lock()
-	a.browseURL = &url
-	a.mu.Unlock()
 	select {
-	case a.updates <- struct{}{}:
+	case <-a.browseURLs:
 	default:
 	}
+	a.browseURLs <- url
 }
 
 func (a *App) runUI() error {
@@ -542,20 +531,16 @@ func (a *App) runUI() error {
 					w.Invalidate()
 				}
 			}
-		case <-a.updates:
-			a.mu.Lock()
+		case p := <-a.prefs:
+			ui.enabled.Value = p.WantRunning
+			w.Invalidate()
+		case state.browseURL = <-a.browseURLs:
+			ui.signinType = noSignin
+			w.Invalidate()
+			a.updateState(activity, state)
+		case newState := <-a.netStates:
 			oldState := state.backend.State
-			state.backend = a.netState
-			if a.browseURL != nil {
-				state.browseURL = *a.browseURL
-				a.browseURL = nil
-				ui.signinType = noSignin
-			}
-			if a.prefs != nil {
-				ui.enabled.Value = a.prefs.WantRunning
-				a.prefs = nil
-			}
-			a.mu.Unlock()
+			state.backend = newState
 			a.updateState(activity, state)
 			w.Invalidate()
 			if activity != 0 {

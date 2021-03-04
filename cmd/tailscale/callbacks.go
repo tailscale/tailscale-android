@@ -7,7 +7,6 @@ package main
 // JNI implementations of Java native callback methods.
 
 import (
-	"sync/atomic"
 	"unsafe"
 
 	"github.com/tailscale/tailscale-android/jni"
@@ -33,19 +32,11 @@ var (
 	onDisconnect = make(chan jni.Object)
 	// onConnectivityChange is notified every time the network
 	// conditions change.
-	onConnectivityChange = make(chan struct{}, 1)
+	onConnectivityChange = make(chan bool, 1)
 
 	// onGoogleToken receives google ID tokens.
 	onGoogleToken = make(chan string)
 )
-
-var (
-	connected atomic.Value
-)
-
-func init() {
-	connected.Store(true)
-}
 
 const (
 	// Request codes for Android callbacks.
@@ -98,12 +89,12 @@ func Java_com_tailscale_ipn_IPNService_disconnect(env *C.JNIEnv, this C.jobject)
 }
 
 //export Java_com_tailscale_ipn_App_onConnectivityChanged
-func Java_com_tailscale_ipn_App_onConnectivityChanged(env *C.JNIEnv, cls C.jclass, newConnected C.jboolean) {
-	connected.Store(newConnected == C.JNI_TRUE)
+func Java_com_tailscale_ipn_App_onConnectivityChanged(env *C.JNIEnv, cls C.jclass, connected C.jboolean) {
 	select {
-	case onConnectivityChange <- struct{}{}:
+	case <-onConnectivityChange:
 	default:
 	}
+	onConnectivityChange <- connected == C.JNI_TRUE
 }
 
 //export Java_com_tailscale_ipn_QuickToggleService_onTileClick
