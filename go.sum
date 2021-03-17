@@ -566,5 +566,5 @@ rsc.io/goversion v1.2.0 h1:SPn+NLTiAG7w30IRK/DKp1BjvpWabYgxlLp/+kx5J8w=
 rsc.io/goversion v1.2.0/go.mod h1:Eih9y/uIBS3ulggl7KNJ09xGSLcuNaLgmvvqa07sgfo=
 sigs.k8s.io/structured-merge-diff v0.0.0-20190525122527-15d366b2352e/go.mod h1:wWxsB5ozmmv/SG7nM11ayaAW51xMvak/t1r0CSlcokI=
 sigs.k8s.io/yaml v1.1.0/go.mod h1:UJmg0vDUVViEyp3mgSv9WPwZCDxu4rQW1olrI1uml+o=
-tailscale.com v1.1.1-0.20210304063027-ad6edf5ecda9 h1:EfIix9rYwqd70PCwuQvronl93RZ66G0NBTuwItf+N3Y=
-tailscale.com v1.1.1-0.20210304063027-ad6edf5ecda9/go.mod h1:0UKwbgWSna+ETZuTVizvNRCc22uwmY3Dak3qf1SJp4g=
+tailscale.com v1.6.0 h1:nQ1cOq+/aZZnJVAPJ/7iJviL2RkcokZJux3Ye0bka/M=
+tailscale.com v1.6.0/go.mod h1:0UKwbgWSna+ETZuTVizvNRCc22uwmY3Dak3qf1SJp4g=
