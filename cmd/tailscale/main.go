@@ -313,6 +313,8 @@ func (a *App) runBackend() error {
 			case RouteAllEvent:
 				state.Prefs.ExitNodeID = e.ID
 				go b.backend.SetPrefs(state.Prefs)
+				state.updateExitNodes()
+				a.notify(state)
 			}
 		case s := <-onConnect:
 			jni.Do(a.jvm, func(env *jni.Env) error {
