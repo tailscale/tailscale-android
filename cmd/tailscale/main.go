@@ -128,8 +128,6 @@ type (
 // by GoogleSignInOptions.Builder.requestIdToken.
 const serverOAuthID = "744055068597-hv4opg0h7vskq1hv37nq3u26t8c15qk0.apps.googleusercontent.com"
 
-const enabledKey = "ipn_enabled"
-
 // releaseCertFingerprint is the SHA-1 fingerprint of the Google Play Store signing key.
 // It is used to check whether the app is signed for release.
 const releaseCertFingerprint = "86:9D:11:8B:63:1E:F8:35:C6:D9:C2:66:53:BC:28:22:2F:B8:C1:AE"

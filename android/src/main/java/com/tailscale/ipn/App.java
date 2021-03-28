@@ -90,11 +90,11 @@ public class App extends Application {
 			.build();
 
 		return EncryptedSharedPreferences.create(
-				this,
-				"secret_shared_prefs",
-				key,
-				EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-				EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+			this,
+			"secret_shared_prefs",
+			key,
+			EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+			EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
 		);
 	}
 
