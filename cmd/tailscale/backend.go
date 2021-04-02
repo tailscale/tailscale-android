@@ -286,7 +286,6 @@ func (b *backend) SetupLogs(logDir string, logID logtail.PrivateID) {
 		PrivateID:  logID,
 		Stderr:     log.Writer(),
 	}
-	logcfg.LowMemory = true
 	drainCh := make(chan struct{})
 	logcfg.DrainLogs = drainCh
 	go func() {
