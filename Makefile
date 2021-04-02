@@ -23,8 +23,8 @@ VERSIONCODE_PLUSONE=$(shell expr $(VERSIONCODE) + 1)
 all: $(APK)
 
 tag_release:
-	sed -i 's/versionCode [[:digit:]]\+/versionCode $(VERSIONCODE_PLUSONE)/' android/build.gradle
-	sed -i 's/versionName .*/versionName "$(VERSION_LONG)"/' android/build.gradle
+	sed -i'.bak' 's/versionCode [[:digit:]]\+/versionCode $(VERSIONCODE_PLUSONE)/' android/build.gradle
+	sed -i'.bak' 's/versionName .*/versionName "$(VERSION_LONG)"/' android/build.gradle
 	git commit -sm "android: bump version code" android/build.gradle
 	git tag -a "v$(VERSION_LONG)"
 
