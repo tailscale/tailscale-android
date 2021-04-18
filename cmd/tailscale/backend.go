@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/tailscale/tailscale-android/jni"
-	"github.com/tailscale/wireguard-go/device"
 	"github.com/tailscale/wireguard-go/tun"
 	"golang.org/x/sys/unix"
 	"inet.af/netaddr"
@@ -21,19 +20,21 @@ import (
 	"tailscale.com/ipn/ipnlocal"
 	"tailscale.com/logtail"
 	"tailscale.com/logtail/filch"
+	"tailscale.com/net/dns"
+	"tailscale.com/net/tstun"
 	"tailscale.com/types/logger"
 	"tailscale.com/wgengine"
 	"tailscale.com/wgengine/filter"
 	"tailscale.com/wgengine/router"
-	"tailscale.com/wgengine/tstun"
 )
 
 type backend struct {
-	engine   wgengine.Engine
-	backend  *ipnlocal.LocalBackend
-	devices  *multiTUN
-	settings func(*router.Config) error
-	lastCfg  *router.Config
+	engine     wgengine.Engine
+	backend    *ipnlocal.LocalBackend
+	devices    *multiTUN
+	settings   settingsFunc
+	lastCfg    *router.Config
+	lastDNSCfg *dns.OSConfig
 
 	// avoidEmptyDNS controls whether to use fallback nameservers
 	// when no nameservers are provided by Tailscale.
@@ -42,9 +43,7 @@ type backend struct {
 	jvm *jni.JVM
 }
 
-type androidRouter struct {
-	backend *backend
-}
+type settingsFunc func(*router.Config, *dns.OSConfig) error
 
 const defaultMTU = 1280 // minimalMTU from wgengine/userspace.go
 
@@ -65,15 +64,12 @@ var fallbackNameservers = []netaddr.IP{netaddr.IPv4(8, 8, 8, 8), netaddr.IPv4(8,
 // VPN status was revoked.
 var errVPNNotPrepared = errors.New("VPN service not prepared or was revoked")
 
-func newBackend(dataDir string, jvm *jni.JVM, store *stateStore, settings func(*router.Config) error) (*backend, error) {
+func newBackend(dataDir string, jvm *jni.JVM, store *stateStore, settings settingsFunc) (*backend, error) {
 	logf := logger.RusagePrefixLog(log.Printf)
 	b := &backend{
 		jvm:      jvm,
 		devices:  newTUNDevices(),
 		settings: settings,
-	}
-	genRouter := func(logf logger.Logf, wgdev *device.Device, tundev tun.Device) (router.Router, error) {
-		return &androidRouter{backend: b}, nil
 	}
 	var logID logtail.PrivateID
 	logID.UnmarshalText([]byte("dead0000dead0000dead0000dead0000dead0000dead0000dead0000dead0000"))
@@ -93,11 +89,18 @@ func newBackend(dataDir string, jvm *jni.JVM, store *stateStore, settings func(*
 		logID.UnmarshalText([]byte(storedLogID))
 	}
 	b.SetupLogs(dataDir, logID)
-	tun := tstun.WrapTUN(logf, b.devices)
+	d, err := dns.NewOSConfigurator(logf, "")
+	if err != nil {
+		return nil, err
+	}
+	tun := tstun.Wrap(logf, b.devices)
 	tun.SetFilter(filter.NewAllowAllForTest(logf))
 	engine, err := wgengine.NewUserspaceEngine(logf, wgengine.Config{
-		TUN:       tun,
-		RouterGen: genRouter,
+		Tun: tun,
+		Router: &router.CallbackRouter{
+			SetBoth: b.setCfg,
+		},
+		DNS: d,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("runBackend: NewUserspaceEngineAdvanced: %v", err)
@@ -113,9 +116,9 @@ func newBackend(dataDir string, jvm *jni.JVM, store *stateStore, settings func(*
 }
 
 func (b *backend) Start(notify func(n ipn.Notify)) error {
+	b.backend.SetNotifyCallback(notify)
 	return b.backend.Start(ipn.Options{
 		StateKey: "ipn-android",
-		Notify:   notify,
 	})
 }
 
@@ -125,24 +128,12 @@ func (b *backend) LinkChange() {
 	}
 }
 
-func (r *androidRouter) Up() error {
-	return nil
+func (b *backend) setCfg(rcfg *router.Config, dcfg *dns.OSConfig) error {
+	return b.settings(rcfg, dcfg)
 }
 
-func (r *androidRouter) Set(cfg *router.Config) error {
-	return r.backend.setCfg(cfg)
-}
-
-func (r *androidRouter) Close() error {
-	return nil
-}
-
-func (b *backend) setCfg(cfg *router.Config) error {
-	return b.settings(cfg)
-}
-
-func (b *backend) updateTUN(service jni.Object, cfg *router.Config) error {
-	if reflect.DeepEqual(cfg, b.lastCfg) {
+func (b *backend) updateTUN(service jni.Object, rcfg *router.Config, dcfg *dns.OSConfig) error {
+	if reflect.DeepEqual(rcfg, b.lastCfg) && reflect.DeepEqual(dcfg, b.lastDNSCfg) {
 		return nil
 	}
 
@@ -154,7 +145,7 @@ func (b *backend) updateTUN(service jni.Object, cfg *router.Config) error {
 	// the closing on ChromeOS.
 	b.CloseTUNs()
 
-	if len(cfg.LocalAddrs) == 0 {
+	if len(rcfg.LocalAddrs) == 0 {
 		return nil
 	}
 	err := jni.Do(b.jvm, func(env *jni.Env) error {
@@ -177,37 +168,39 @@ func (b *backend) updateTUN(service jni.Object, cfg *router.Config) error {
 
 		// builder.addDnsServer
 		addDnsServer := jni.GetMethodID(env, bcls, "addDnsServer", "(Ljava/lang/String;)Landroid/net/VpnService$Builder;")
-		nameservers := cfg.DNS.Nameservers
-		if b.avoidEmptyDNS && len(nameservers) == 0 {
-			nameservers = fallbackNameservers
-		}
-		for _, dns := range nameservers {
-			_, err = jni.CallObjectMethod(env,
-				builder,
-				addDnsServer,
-				jni.Value(jni.JavaString(env, dns.String())),
-			)
-			if err != nil {
-				return fmt.Errorf("VpnService.Builder.addDnsServer(%v): %v", dns, err)
-			}
-		}
-
 		// builder.addSearchDomain.
 		addSearchDomain := jni.GetMethodID(env, bcls, "addSearchDomain", "(Ljava/lang/String;)Landroid/net/VpnService$Builder;")
-		for _, dom := range cfg.DNS.Domains {
-			_, err = jni.CallObjectMethod(env,
-				builder,
-				addSearchDomain,
-				jni.Value(jni.JavaString(env, dom)),
-			)
-			if err != nil {
-				return fmt.Errorf("VpnService.Builder.addSearchDomain(%v): %v", dom, err)
+		if dcfg != nil {
+			nameservers := dcfg.Nameservers
+			if b.avoidEmptyDNS && len(nameservers) == 0 {
+				nameservers = fallbackNameservers
+			}
+			for _, dns := range nameservers {
+				_, err = jni.CallObjectMethod(env,
+					builder,
+					addDnsServer,
+					jni.Value(jni.JavaString(env, dns.String())),
+				)
+				if err != nil {
+					return fmt.Errorf("VpnService.Builder.addDnsServer(%v): %v", dns, err)
+				}
+			}
+
+			for _, dom := range dcfg.SearchDomains {
+				_, err = jni.CallObjectMethod(env,
+					builder,
+					addSearchDomain,
+					jni.Value(jni.JavaString(env, dom.WithoutTrailingDot())),
+				)
+				if err != nil {
+					return fmt.Errorf("VpnService.Builder.addSearchDomain(%v): %v", dom, err)
+				}
 			}
 		}
 
 		// builder.addRoute.
 		addRoute := jni.GetMethodID(env, bcls, "addRoute", "(Ljava/lang/String;I)Landroid/net/VpnService$Builder;")
-		for _, route := range cfg.Routes {
+		for _, route := range rcfg.Routes {
 			// Normalize route address; Builder.addRoute does not accept non-zero masked bits.
 			route = route.Masked()
 			_, err = jni.CallObjectMethod(env,
@@ -223,7 +216,7 @@ func (b *backend) updateTUN(service jni.Object, cfg *router.Config) error {
 
 		// builder.addAddress.
 		addAddress := jni.GetMethodID(env, bcls, "addAddress", "(Ljava/lang/String;I)Landroid/net/VpnService$Builder;")
-		for _, addr := range cfg.LocalAddrs {
+		for _, addr := range rcfg.LocalAddrs {
 			_, err = jni.CallObjectMethod(env,
 				builder,
 				addAddress,
@@ -269,7 +262,8 @@ func (b *backend) updateTUN(service jni.Object, cfg *router.Config) error {
 		b.CloseTUNs()
 		return err
 	}
-	b.lastCfg = cfg
+	b.lastCfg = rcfg
+	b.lastDNSCfg = dcfg
 	return nil
 }
 

@@ -17,11 +17,11 @@ import (
 	"gioui.org/io/system"
 	"gioui.org/layout"
 	"gioui.org/op"
-	"golang.org/x/oauth2"
 	"inet.af/netaddr"
 
 	"github.com/tailscale/tailscale-android/jni"
 	"tailscale.com/ipn"
+	"tailscale.com/net/dns"
 	"tailscale.com/tailcfg"
 	"tailscale.com/types/netmap"
 	"tailscale.com/wgengine/router"
@@ -112,7 +112,7 @@ type SearchEvent struct {
 }
 
 type OAuth2Event struct {
-	Token *oauth2.Token
+	Token *tailcfg.Oauth2Token
 }
 
 // UIEvent types.
@@ -175,13 +175,17 @@ func (a *App) runBackend() error {
 	if err != nil {
 		fatalErr(err)
 	}
-	configs := make(chan *router.Config)
+	type configPair struct {
+		rcfg *router.Config
+		dcfg *dns.OSConfig
+	}
+	configs := make(chan configPair)
 	configErrs := make(chan error)
-	b, err := newBackend(appDir, a.jvm, a.store, func(s *router.Config) error {
-		if s == nil {
+	b, err := newBackend(appDir, a.jvm, a.store, func(rcfg *router.Config, dcfg *dns.OSConfig) error {
+		if rcfg == nil {
 			return nil
 		}
-		configs <- s
+		configs <- configPair{rcfg, dcfg}
 		return <-configErrs
 	})
 	if err != nil {
@@ -215,7 +219,7 @@ func (a *App) runBackend() error {
 		})
 	}()
 	var (
-		cfg       *router.Config
+		cfg       configPair
 		state     BackendState
 		service   jni.Object
 		signingIn bool
@@ -228,11 +232,11 @@ func (a *App) runBackend() error {
 			}
 		case s := <-configs:
 			cfg = s
-			if b == nil || service == 0 || cfg == nil {
+			if b == nil || service == 0 || cfg.rcfg == nil {
 				configErrs <- nil
 				break
 			}
-			configErrs <- b.updateTUN(service, cfg)
+			configErrs <- b.updateTUN(service, cfg.rcfg, cfg.dcfg)
 		case n := <-notifications:
 			exitWasOnline := state.ExitStatus == ExitOnline
 			if p := n.Prefs; p != nil {
@@ -254,8 +258,8 @@ func (a *App) runBackend() error {
 					a.updateNotification(service, state.State)
 				}
 				if service != 0 {
-					if cfg != nil && state.State >= ipn.Starting {
-						if err := b.updateTUN(service, cfg); err != nil {
+					if cfg.rcfg != nil && state.State >= ipn.Starting {
+						if err := b.updateTUN(service, cfg.rcfg, cfg.dcfg); err != nil {
 							log.Printf("VPN update failed: %v", err)
 							notifyVPNClosed()
 						}
@@ -331,8 +335,8 @@ func (a *App) runBackend() error {
 			if m := state.NetworkMap; m != nil {
 				alarm(a.notifyExpiry(service, m.Expiry))
 			}
-			if cfg != nil && state.State >= ipn.Starting {
-				if err := b.updateTUN(service, cfg); err != nil {
+			if cfg.rcfg != nil && state.State >= ipn.Starting {
+				if err := b.updateTUN(service, cfg.rcfg, cfg.dcfg); err != nil {
 					log.Printf("VPN update failed: %v", err)
 					notifyVPNClosed()
 				}
@@ -610,7 +614,7 @@ func (a *App) runUI() error {
 			ui.signinType = noSignin
 			if tok != "" {
 				requestBackend(OAuth2Event{
-					Token: &oauth2.Token{
+					Token: &tailcfg.Oauth2Token{
 						AccessToken: tok,
 						TokenType:   ipn.GoogleIDTokenType,
 					},
