@@ -8,7 +8,11 @@ import android.app.Application;
 import android.app.Activity;
 import android.app.Fragment;
 import android.app.FragmentTransaction;
+import android.app.NotificationChannel;
+import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -16,20 +20,27 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageInfo;
 import android.content.pm.Signature;
+import android.provider.MediaStore;
 import android.provider.Settings;
 import android.net.ConnectivityManager;
 import android.net.Uri;
 import android.net.VpnService;
 import android.view.View;
 import android.os.Build;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+
+import android.webkit.MimeTypeMap;
 
 import java.io.IOException;
 import java.io.File;
 import java.io.FileOutputStream;
 
 import java.security.GeneralSecurityException;
+
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 
 import androidx.security.crypto.EncryptedSharedPreferences;
 import androidx.security.crypto.MasterKey;
@@ -41,6 +52,15 @@ import org.gioui.Gio;
 public class App extends Application {
 	private final static String PEER_TAG = "peer";
 
+	static final String STATUS_CHANNEL_ID = "tailscale-status";
+	static final int STATUS_NOTIFICATION_ID = 1;
+
+	static final String NOTIFY_CHANNEL_ID = "tailscale-notify";
+	static final int NOTIFY_NOTIFICATION_ID = 2;
+
+	private static final String FILE_CHANNEL_ID = "tailscale-files";
+	private static final int FILE_NOTIFICATION_ID = 3;
+
 	private final static Handler mainHandler = new Handler(Looper.getMainLooper());
 
 	@Override public void onCreate() {
@@ -48,6 +68,11 @@ public class App extends Application {
 		// Load and initialize the Go library.
 		Gio.init(this);
 		registerNetworkCallback();
+
+		createNotificationChannel(NOTIFY_CHANNEL_ID, "Notifications", NotificationManagerCompat.IMPORTANCE_DEFAULT);
+		createNotificationChannel(STATUS_CHANNEL_ID, "VPN Status", NotificationManagerCompat.IMPORTANCE_LOW);
+		createNotificationChannel(FILE_CHANNEL_ID, "File transfers", NotificationManagerCompat.IMPORTANCE_DEFAULT);
+
 	}
 
 	private void registerNetworkCallback() {
@@ -209,6 +234,53 @@ public class App extends Application {
 		return null;
 	}
 
+	String insertMedia(String name, String mimeType) throws IOException {
+		ContentResolver resolver = getContentResolver();
+		ContentValues contentValues = new ContentValues();
+		contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, name);
+		if (!"".equals(mimeType)) {
+			contentValues.put(MediaStore.MediaColumns.MIME_TYPE, mimeType);
+		}
+		Uri root = MediaStore.Files.getContentUri("external");
+		return resolver.insert(root, contentValues).toString();
+	}
+
+	int openUri(String uri, String mode) throws IOException {
+		ContentResolver resolver = getContentResolver();
+		return resolver.openFileDescriptor(Uri.parse(uri), mode).detachFd();
+	}
+
+	void deleteUri(String uri) {
+		ContentResolver resolver = getContentResolver();
+		resolver.delete(Uri.parse(uri), null, null);
+	}
+
+	public void notifyFile(String uri, String msg) {
+		Intent fileIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri));
+		PendingIntent pending = PendingIntent.getActivity(this, 0, fileIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+		NotificationCompat.Builder builder = new NotificationCompat.Builder(this, FILE_CHANNEL_ID)
+			.setSmallIcon(R.drawable.ic_notification)
+			.setContentTitle("File received")
+			.setContentText(msg)
+			.setContentIntent(pending)
+			.setAutoCancel(true)
+			.setOnlyAlertOnce(true)
+			.setPriority(NotificationCompat.PRIORITY_DEFAULT);
+
+		NotificationManagerCompat nm = NotificationManagerCompat.from(this);
+		nm.notify(FILE_NOTIFICATION_ID, builder.build());
+	}
+
+	private void createNotificationChannel(String id, String name, int importance) {
+		if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+			return;
+		}
+		NotificationChannel channel = new NotificationChannel(id, name, importance);
+		NotificationManagerCompat nm = NotificationManagerCompat.from(this);
+		nm.createNotificationChannel(channel);
+	}
+
 	static native void onVPNPrepared();
 	private static native void onConnectivityChanged(boolean connected);
+	static native void onShareIntent(int nfiles, int[] types, String[] mimes, String[] items, String[] names, long[] sizes);
 }

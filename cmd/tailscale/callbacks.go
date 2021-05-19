@@ -36,6 +36,9 @@ var (
 
 	// onGoogleToken receives google ID tokens.
 	onGoogleToken = make(chan string)
+
+	// onFileShare receives file sharing intents.
+	onFileShare = make(chan []File, 1)
 )
 
 const (
@@ -128,4 +131,46 @@ func Java_com_tailscale_ipn_Peer_onActivityResult0(env *C.JNIEnv, cls C.jclass, 
 			notifyVPNRevoked()
 		}
 	}
+}
+
+//export Java_com_tailscale_ipn_App_onShareIntent
+func Java_com_tailscale_ipn_App_onShareIntent(env *C.JNIEnv, cls C.jclass, nfiles C.jint, jtypes C.jintArray, jmimes C.jobjectArray, jitems C.jobjectArray, jnames C.jobjectArray, jsizes C.jlongArray) {
+	const (
+		typeNone   = 0
+		typeInline = 1
+		typeURI    = 2
+	)
+	jenv := (*jni.Env)(unsafe.Pointer(env))
+	types := jni.GetIntArrayElements(jenv, jni.IntArray(jtypes))
+	mimes := jni.GetStringArrayElements(jenv, jni.ObjectArray(jmimes))
+	items := jni.GetStringArrayElements(jenv, jni.ObjectArray(jitems))
+	names := jni.GetStringArrayElements(jenv, jni.ObjectArray(jnames))
+	sizes := jni.GetLongArrayElements(jenv, jni.LongArray(jsizes))
+	var files []File
+	for i := 0; i < int(nfiles); i++ {
+		f := File{
+			Type:     FileType(types[i]),
+			MIMEType: mimes[i],
+			Name:     names[i],
+		}
+		if f.Name == "" {
+			f.Name = "file.bin"
+		}
+		switch f.Type {
+		case FileTypeText:
+			f.Text = items[i]
+			f.Size = int64(len(f.Text))
+		case FileTypeURI:
+			f.URI = items[i]
+			f.Size = sizes[i]
+		default:
+			panic("unknown file type")
+		}
+		files = append(files, f)
+	}
+	select {
+	case <-onFileShare:
+	default:
+	}
+	onFileShare <- files
 }

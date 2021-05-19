@@ -6,6 +6,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"image"
 	"image/color"
@@ -25,6 +26,7 @@ import (
 	"gioui.org/widget/material"
 	"golang.org/x/exp/shiny/materialdesign/icons"
 	"inet.af/netaddr"
+	"tailscale.com/client/tailscale/apitype"
 	"tailscale.com/ipn"
 	"tailscale.com/tailcfg"
 
@@ -92,13 +94,33 @@ type UI struct {
 		t0 time.Time
 	}
 
+	shareDialog struct {
+		show    bool
+		dismiss Dismiss
+		list    layout.List
+		// peers are the nodes ready to receive files.
+		targets []shareTarget
+		loaded  bool
+		error   error
+	}
+
 	icons struct {
 		search     *widget.Icon
 		more       *widget.Icon
 		exitStatus *widget.Icon
+		done       *widget.Icon
+		error      *widget.Icon
 		logo       paint.ImageOp
 		google     paint.ImageOp
 	}
+}
+
+type shareTarget struct {
+	btn     widget.Clickable
+	target  *apitype.FileTarget
+	info    FileSendInfo
+	cancel  func()
+	updates <-chan FileSendInfo
 }
 
 type signinType uint8
@@ -161,6 +183,14 @@ func newUI(store *stateStore) (*UI, error) {
 	if err != nil {
 		return nil, err
 	}
+	doneIcon, err := widget.NewIcon(icons.ActionCheckCircle)
+	if err != nil {
+		return nil, err
+	}
+	errorIcon, err := widget.NewIcon(icons.AlertErrorOutline)
+	if err != nil {
+		return nil, err
+	}
 	logo, _, err := image.Decode(bytes.NewReader(tailscaleLogo))
 	if err != nil {
 		return nil, err
@@ -189,15 +219,20 @@ func newUI(store *stateStore) (*UI, error) {
 	ui.icons.search = searchIcon
 	ui.icons.more = moreIcon
 	ui.icons.exitStatus = exitStatus
+	ui.icons.done = doneIcon
+	ui.icons.error = errorIcon
 	ui.icons.logo = paint.NewImageOp(logo)
 	ui.icons.google = paint.NewImageOp(google)
 	ui.icons.more.Color = rgb(white)
 	ui.icons.search.Color = mulAlpha(ui.theme.Palette.Fg, 0xbb)
 	ui.icons.exitStatus.Color = rgb(white)
+	ui.icons.done.Color = ui.theme.Palette.ContrastBg
+	ui.icons.error.Color = rgb(0xcc6539)
 	ui.root.Axis = layout.Vertical
 	ui.intro.list.Axis = layout.Vertical
 	ui.search.SingleLine = true
 	ui.exitDialog.list.Axis = layout.Vertical
+	ui.shareDialog.list.Axis = layout.Vertical
 	return ui, nil
 }
 
@@ -207,11 +242,18 @@ func mulAlpha(c color.NRGBA, alpha uint8) color.NRGBA {
 }
 
 func (ui *UI) onBack() bool {
-	if !ui.menu.show {
-		return false
+	switch {
+	case ui.menu.show:
+		ui.menu.show = false
+		return true
+	case ui.shareDialog.show:
+		ui.shareDialog.show = false
+		return true
+	case ui.exitDialog.show:
+		ui.exitDialog.show = false
+		return true
 	}
-	ui.menu.show = false
-	return true
+	return false
 }
 
 func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientState) []UIEvent {
@@ -282,6 +324,42 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 
 	if ui.menuClicked(&ui.menu.logout) {
 		events = append(events, LogoutEvent{})
+	}
+
+	for i := range ui.shareDialog.targets {
+		t := &ui.shareDialog.targets[i]
+		select {
+		case t.info = <-t.updates:
+		default:
+		}
+		if !t.btn.Clicked() {
+			continue
+		}
+		switch t.info.State {
+		case FileSendTransferring, FileSendConnecting:
+			t.cancel()
+			t.info.State = FileSendNotStarted
+			t.updates = nil
+			continue
+		}
+		t.info = FileSendInfo{
+			State: FileSendConnecting,
+		}
+		ctx, cancel := context.WithCancel(context.Background())
+		t.cancel = cancel
+		updates := make(chan FileSendInfo, 1)
+		t.updates = updates
+		events = append(events, FileSendEvent{
+			Target:  t.target,
+			Context: ctx,
+			Updates: func(info FileSendInfo) {
+				select {
+				case <-updates:
+				default:
+				}
+				updates <- info
+			},
+		})
 	}
 
 	for len(ui.peers) < len(state.Peers) {
@@ -360,6 +438,8 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 
 	ui.layoutExitNodeDialog(gtx, sysIns, state.backend.Exits)
 
+	ui.layoutShareDialog(gtx, sysIns)
+
 	// Popup messages.
 	ui.layoutMessage(gtx, sysIns)
 
@@ -378,6 +458,31 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 	}
 
 	return events
+}
+
+func (ui *UI) FillShareDialog(targets []*apitype.FileTarget, err error) {
+	ui.shareDialog.error = err
+	ui.shareDialog.loaded = true
+	targetSet := make(map[tailcfg.NodeID]int)
+	if ui.shareDialog.show {
+		// Update rather than replace list.
+		for i, t := range ui.shareDialog.targets {
+			targetSet[t.target.Node.ID] = i
+		}
+	} else {
+		ui.shareDialog.targets = nil
+	}
+	for _, t := range targets {
+		if i, ok := targetSet[t.Node.ID]; ok {
+			ui.shareDialog.targets[i].target = t
+		} else {
+			ui.shareDialog.targets = append(ui.shareDialog.targets, shareTarget{target: t})
+		}
+	}
+}
+
+func (ui *UI) ShowShareDialog() {
+	ui.shareDialog.show = true
 }
 
 func (ui *UI) ShowMessage(msg string) {
@@ -623,9 +728,118 @@ func (ui *UI) menuClicked(btn *widget.Clickable) bool {
 	return cl
 }
 
-// layoutExitNodeDialog lays out the exit node selection dialog. If the user changed the node,
-// true is returned along with the node.
-func (ui *UI) layoutExitNodeDialog(gtx layout.Context, sysIns system.Insets, exits []ExitNode) {
+// layoutShareDialog lays out the file sharing dialog shown on file send intents (ACTION_SEND, ACTION_SEND_MULTIPLE).
+func (ui *UI) layoutShareDialog(gtx layout.Context, sysIns system.Insets) {
+	d := &ui.shareDialog
+	if d.dismiss.Dismissed(gtx) {
+		ui.shareDialog.show = false
+	}
+	if !d.show {
+		return
+	}
+	d.dismiss.Add(gtx, argb(0x66000000))
+	layout.Inset{
+		Top:    unit.Add(gtx.Metric, sysIns.Top, unit.Dp(16)),
+		Right:  unit.Add(gtx.Metric, sysIns.Right, unit.Dp(16)),
+		Bottom: unit.Add(gtx.Metric, sysIns.Bottom, unit.Dp(16)),
+		Left:   unit.Add(gtx.Metric, sysIns.Left, unit.Dp(16)),
+	}.Layout(gtx, func(gtx C) D {
+		return layout.Center.Layout(gtx, func(gtx C) D {
+			gtx.Constraints.Min.X = gtx.Px(unit.Dp(250))
+			gtx.Constraints.Max.X = gtx.Constraints.Min.X
+			return layoutDialog(gtx, func(gtx C) D {
+				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+					layout.Rigid(func(gtx C) D {
+						// Header.
+						d := layout.Inset{
+							Top:    unit.Dp(16),
+							Right:  unit.Dp(20),
+							Left:   unit.Dp(20),
+							Bottom: unit.Dp(16),
+						}.Layout(gtx, func(gtx C) D {
+							l := material.Body1(ui.theme, "Share via Tailscale")
+							l.Font.Weight = text.Bold
+							return l.Layout(gtx)
+						})
+						// Swallow clicks to title.
+						var c widget.Clickable
+						gtx.Constraints.Min = d.Size
+						c.Layout(gtx)
+						return d
+					}),
+					layout.Rigid(func(gtx C) D {
+						if d.loaded {
+							return D{}
+						}
+						return layout.UniformInset(unit.Dp(50)).Layout(gtx, func(gtx C) D {
+							return layout.Center.Layout(gtx, func(gtx C) D {
+								sz := gtx.Px(unit.Dp(32))
+								gtx.Constraints.Min = image.Pt(sz, sz)
+								gtx.Constraints.Max = gtx.Constraints.Min
+								return material.Loader(ui.theme).Layout(gtx)
+							})
+						})
+					}),
+					layout.Rigid(func(gtx C) D {
+						if d.error == nil {
+							return D{}
+						}
+						sz := gtx.Px(unit.Dp(50))
+						gtx.Constraints.Min.Y = sz
+						return layout.UniformInset(unit.Dp(20)).Layout(gtx, func(gtx C) D {
+							return layout.W.Layout(gtx, func(gtx C) D {
+								return material.Body2(ui.theme, d.error.Error()).Layout(gtx)
+							})
+						})
+					}),
+					layout.Flexed(1, func(gtx C) D {
+						gtx.Constraints.Min.Y = 0
+						return d.list.Layout(gtx, len(d.targets), func(gtx C, idx int) D {
+							node := &d.targets[idx]
+							target := node.target.Node
+							lbl := target.ComputedName
+							offline := target.Online != nil && !*target.Online
+							if offline {
+								lbl = lbl + " (offline)"
+							}
+							w := material.Body2(ui.theme, lbl)
+							if offline {
+								w.Color = rgb(0xbbbbbb)
+								gtx.Queue = nil
+							}
+							return material.Clickable(gtx, &node.btn, func(gtx C) D {
+								return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx C) D {
+									return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
+										layout.Flexed(1, w.Layout),
+										layout.Rigid(func(gtx C) D {
+											sz := gtx.Px(unit.Dp(16))
+											gtx.Constraints.Min = image.Pt(sz, sz)
+											switch node.info.State {
+											case FileSendConnecting:
+												return material.Loader(ui.theme).Layout(gtx)
+											case FileSendTransferring:
+												return material.ProgressCircle(ui.theme, float32(node.info.Progress)).Layout(gtx)
+											case FileSendFailed:
+												return ui.icons.error.Layout(gtx, unit.Dp(16))
+											case FileSendComplete:
+												return ui.icons.done.Layout(gtx, unit.Dp(16))
+											default:
+												return D{}
+											}
+										}),
+									)
+								})
+							})
+						})
+					}),
+				)
+			})
+		})
+	})
+}
+
+// layoutExitNodeDialog lays out the exit node selection dialog.
+func (ui *UI) layoutExitNodeDialog(gtx layout.Context, sysIns system.Insets, exits []Peer) {
 	d := &ui.exitDialog
 	if d.dismiss.Dismissed(gtx) {
 		d.show = false
@@ -663,10 +877,7 @@ func (ui *UI) layoutExitNodeDialog(gtx layout.Context, sysIns system.Insets, exi
 						// Add "none" exit node.
 						n := len(exits) + 1
 						return d.list.Layout(gtx, n, func(gtx C, idx int) D {
-							switch idx {
-							case n - 1:
-							}
-							node := ExitNode{Label: "None", Online: true}
+							node := Peer{Label: "None", Online: true}
 							if idx >= 1 {
 								node = exits[idx-1]
 							}

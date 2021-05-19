@@ -9,7 +9,7 @@
 
 	<application android:label="Tailscale" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round"
 		android:name=".App" android:allowBackup="false">
-		<activity android:name="org.gioui.GioActivity"
+		<activity android:name="IPNActivity"
 			android:label="@string/app_name"
 			android:theme="@style/Theme.GioApp"
 			android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
@@ -21,6 +21,28 @@
 			</intent-filter>
 			<intent-filter>
 				<action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+			</intent-filter>
+			<intent-filter>
+				<action android:name="android.intent.action.SEND" />
+				<category android:name="android.intent.category.DEFAULT"/>
+				<data android:mimeType="application/*" />
+				<data android:mimeType="audio/*" />
+				<data android:mimeType="image/*" />
+				<data android:mimeType="message/*" />
+				<data android:mimeType="multipart/*" />
+				<data android:mimeType="text/*" />
+				<data android:mimeType="video/*" />
+			</intent-filter>
+			<intent-filter>
+				<action android:name="android.intent.action.SEND_MULTIPLE" />
+				<category android:name="android.intent.category.DEFAULT" />
+				<data android:mimeType="application/*" />
+				<data android:mimeType="audio/*" />
+				<data android:mimeType="image/*" />
+				<data android:mimeType="message/*" />
+				<data android:mimeType="multipart/*" />
+				<data android:mimeType="text/*" />
+				<data android:mimeType="video/*" />
 			</intent-filter>
 		</activity>
 		<service android:name=".IPNService"

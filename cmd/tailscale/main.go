@@ -5,9 +5,17 @@
 package main
 
 import (
+	"context"
 	"crypto/sha1"
+	"errors"
 	"fmt"
+	"io"
 	"log"
+	"mime"
+	"net/http"
+	"net/url"
+	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -20,9 +28,12 @@ import (
 	"inet.af/netaddr"
 
 	"github.com/tailscale/tailscale-android/jni"
+	"tailscale.com/client/tailscale/apitype"
 	"tailscale.com/ipn"
+	"tailscale.com/ipn/ipnlocal"
 	"tailscale.com/net/dns"
 	"tailscale.com/net/netns"
+	"tailscale.com/paths"
 	"tailscale.com/tailcfg"
 	"tailscale.com/types/netmap"
 	"tailscale.com/wgengine/router"
@@ -41,16 +52,40 @@ type App struct {
 	prefs chan *ipn.Prefs
 	// browseURLs receives URLs when the backend wants to browse.
 	browseURLs chan string
-
-	// backend is the channel for events from the frontend to the
-	// backend.
-	backendEvents chan UIEvent
+	// targetsLoaded receives lists of file targets.
+	targetsLoaded chan FileTargets
+	// invalidates receives whenever the window should be refreshed.
+	invalidates chan struct{}
 }
 
 var (
 	// googleClass is a global reference to the com.tailscale.ipn.Google class.
 	googleClass jni.Class
 )
+
+type FileTargets struct {
+	Targets []*apitype.FileTarget
+	Err     error
+}
+
+type File struct {
+	Type     FileType
+	Name     string
+	Size     int64
+	MIMEType string
+	// URI of the file, valid if Type is FileTypeURI.
+	URI string
+	// Text is the content of the file, if Type is FileTypeText.
+	Text string
+}
+
+// FileSendInfo describes the state of an ongoing file send operation.
+type FileSendInfo struct {
+	State FileSendState
+	// Progress tracks the progress of the transfer from 0.0 to 1.0. Valid
+	// only when State is FileSendStarted.
+	Progress float64
+}
 
 type clientState struct {
 	browseURL string
@@ -60,6 +95,14 @@ type clientState struct {
 
 	Peers []UIPeer
 }
+
+type FileType uint8
+
+// FileType constants are known to IPNActivity.java.
+const (
+	FileTypeText FileType = 1
+	FileTypeURI  FileType = 2
+)
 
 type ExitStatus uint8
 
@@ -72,7 +115,17 @@ const (
 	ExitOnline
 )
 
-type ExitNode struct {
+type FileSendState uint8
+
+const (
+	FileSendNotStarted FileSendState = iota
+	FileSendConnecting
+	FileSendTransferring
+	FileSendComplete
+	FileSendFailed
+)
+
+type Peer struct {
 	Label  string
 	Online bool
 	ID     tailcfg.StableNodeID
@@ -84,11 +137,11 @@ type BackendState struct {
 	NetworkMap   *netmap.NetworkMap
 	LostInternet bool
 	// Exits are the peers that can act as exit node.
-	Exits []ExitNode
+	Exits []Peer
 	// ExitState describes the state of our exit node.
 	ExitStatus ExitStatus
 	// Exit is our current exit node, if any.
-	Exit ExitNode
+	Exit Peer
 }
 
 // UIEvent is an event flowing from the UI to the backend.
@@ -114,13 +167,20 @@ type OAuth2Event struct {
 	Token *tailcfg.Oauth2Token
 }
 
+type FileSendEvent struct {
+	Target  *apitype.FileTarget
+	Context context.Context
+	Updates func(FileSendInfo)
+}
+
 // UIEvent types.
 type (
-	ToggleEvent     struct{}
-	ReauthEvent     struct{}
-	WebAuthEvent    struct{}
-	GoogleAuthEvent struct{}
-	LogoutEvent     struct{}
+	ToggleEvent      struct{}
+	ReauthEvent      struct{}
+	WebAuthEvent     struct{}
+	GoogleAuthEvent  struct{}
+	LogoutEvent      struct{}
+	FileTargetsEvent struct{}
 )
 
 // serverOAuthID is the OAuth ID of the tailscale-android server, used
@@ -136,11 +196,13 @@ var backendEvents = make(chan UIEvent)
 
 func main() {
 	a := &App{
-		jvm:        (*jni.JVM)(unsafe.Pointer(app.JavaVM())),
-		appCtx:     jni.Object(app.AppContext()),
-		netStates:  make(chan BackendState, 1),
-		browseURLs: make(chan string, 1),
-		prefs:      make(chan *ipn.Prefs, 1),
+		jvm:           (*jni.JVM)(unsafe.Pointer(app.JavaVM())),
+		appCtx:        jni.Object(app.AppContext()),
+		netStates:     make(chan BackendState, 1),
+		browseURLs:    make(chan string, 1),
+		prefs:         make(chan *ipn.Prefs, 1),
+		targetsLoaded: make(chan FileTargets, 1),
+		invalidates:   make(chan struct{}, 1),
 	}
 	err := jni.Do(a.jvm, func(env *jni.Env) error {
 		loader := jni.ClassLoaderFor(env, a.appCtx)
@@ -174,6 +236,7 @@ func (a *App) runBackend() error {
 	if err != nil {
 		fatalErr(err)
 	}
+	paths.AppSharedDir.Store(appDir)
 	type configPair struct {
 		rcfg *router.Config
 		dcfg *dns.OSConfig
@@ -223,12 +286,33 @@ func (a *App) runBackend() error {
 		service   jni.Object // of IPNService
 		signingIn bool
 	)
+	var (
+		waitingFilesDone = make(chan struct{})
+		waitingFiles     bool
+		processingFiles  bool
+	)
+	processFiles := func() {
+		if !waitingFiles || processingFiles {
+			return
+		}
+		processingFiles = true
+		waitingFiles = false
+		go func() {
+			if err := a.processWaitingFiles(b.backend); err != nil {
+				log.Printf("processWaitingFiles: %v", err)
+			}
+			waitingFilesDone <- struct{}{}
+		}()
+	}
 	for {
 		select {
 		case err := <-startErr:
 			if err != nil {
 				return err
 			}
+		case <-waitingFilesDone:
+			processingFiles = false
+			processFiles()
 		case s := <-configs:
 			cfg = s
 			if b == nil || service == 0 || cfg.rcfg == nil {
@@ -290,6 +374,18 @@ func (a *App) runBackend() error {
 			if service != 0 && exitWasOnline && state.ExitStatus == ExitOffline {
 				a.pushNotify(service, "Connection Lost", "Your exit node is offline. Disable your exit node or contact your network admin for help.")
 			}
+			targets, err := b.backend.FileTargets()
+			if err != nil {
+				// Construct a user-visible error message.
+				if b.backend.State() != ipn.Running {
+					err = fmt.Errorf("Not connected to tailscale")
+				} else {
+					err = fmt.Errorf("Failed to load device list")
+				}
+			}
+			a.targetsLoaded <- FileTargets{targets, err}
+			waitingFiles = n.FilesWaiting != nil
+			processFiles()
 		case <-alarmChan:
 			if m := state.NetworkMap; m != nil && service != 0 {
 				alarm(a.notifyExpiry(service, m.Expiry))
@@ -385,6 +481,90 @@ func (a *App) runBackend() error {
 	}
 }
 
+func (a *App) processWaitingFiles(b *ipnlocal.LocalBackend) error {
+	files, err := b.WaitingFiles()
+	if err != nil {
+		return err
+	}
+	var aerr error
+	for _, f := range files {
+		if err := a.downloadFile(b, f); err != nil && aerr == nil {
+			aerr = err
+		}
+	}
+	return aerr
+}
+
+func (a *App) downloadFile(b *ipnlocal.LocalBackend, f apitype.WaitingFile) (cerr error) {
+	in, _, err := b.OpenFile(f.Name)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+	ext := filepath.Ext(f.Name)
+	mimeType := mime.TypeByExtension(ext)
+	var mediaURI string
+	err = jni.Do(a.jvm, func(env *jni.Env) error {
+		cls := jni.GetObjectClass(env, a.appCtx)
+		insertMedia := jni.GetMethodID(env, cls, "insertMedia", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;")
+		jname := jni.JavaString(env, f.Name)
+		jmime := jni.JavaString(env, mimeType)
+		uri, err := jni.CallObjectMethod(env, a.appCtx, insertMedia, jni.Value(jname), jni.Value(jmime))
+		if err != nil {
+			return err
+		}
+		mediaURI = jni.GoString(env, jni.String(uri))
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("insertMedia: %w", err)
+	}
+	deleteURI := func(uri string) error {
+		return jni.Do(a.jvm, func(env *jni.Env) error {
+			cls := jni.GetObjectClass(env, a.appCtx)
+			m := jni.GetMethodID(env, cls, "deleteUri", "(Ljava/lang/String;)V")
+			juri := jni.JavaString(env, uri)
+			return jni.CallVoidMethod(env, a.appCtx, m, jni.Value(juri))
+		})
+	}
+	out, err := a.openURI(mediaURI, "w")
+	if err != nil {
+		deleteURI(mediaURI)
+		return fmt.Errorf("openUri: %w", err)
+	}
+	if _, err := io.Copy(out, in); err != nil {
+		deleteURI(mediaURI)
+		return fmt.Errorf("copy: %w", err)
+	}
+	if err := out.Close(); err != nil {
+		deleteURI(mediaURI)
+		return fmt.Errorf("close: %w", err)
+	}
+	if err := a.notifyFile(mediaURI, f.Name); err != nil {
+		fatalErr(err)
+	}
+	return b.DeleteFile(f.Name)
+}
+
+// openURI calls a.appCtx.getContentResolver().openFileDescriptor on uri and
+// mode and returns the detached file descriptor.
+func (a *App) openURI(uri, mode string) (*os.File, error) {
+	var f *os.File
+	err := jni.Do(a.jvm, func(env *jni.Env) error {
+		cls := jni.GetObjectClass(env, a.appCtx)
+		openURI := jni.GetMethodID(env, cls, "openUri", "(Ljava/lang/String;Ljava/lang/String;)I")
+		juri := jni.JavaString(env, uri)
+		jmode := jni.JavaString(env, mode)
+		fd, err := jni.CallIntMethod(env, a.appCtx, openURI, jni.Value(juri), jni.Value(jmode))
+		if err != nil {
+			return err
+		}
+		f = os.NewFile(uintptr(fd), "media-store")
+		return nil
+	})
+	return f, err
+}
+
 func (a *App) isChromeOS() bool {
 	var chromeOS bool
 	err := jni.Do(a.jvm, func(env *jni.Env) error {
@@ -425,7 +605,7 @@ func (s *BackendState) updateExitNodes() {
 		}
 		myExit := p.StableID == exitID
 		hasMyExit = hasMyExit || myExit
-		exit := ExitNode{
+		exit := Peer{
 			Label:  p.DisplayName(true),
 			Online: canRoute,
 			ID:     p.StableID,
@@ -445,8 +625,8 @@ func (s *BackendState) updateExitNodes() {
 	})
 	if !hasMyExit {
 		// Insert node missing from netmap.
-		s.Exit = ExitNode{Label: "Unknown device", ID: exitID}
-		s.Exits = append([]ExitNode{s.Exit}, s.Exits...)
+		s.Exit = Peer{Label: "Unknown device", ID: exitID}
+		s.Exits = append([]Peer{s.Exit}, s.Exits...)
 	}
 }
 
@@ -561,6 +741,16 @@ func (a *App) notifyExpiry(service jni.Object, expiry time.Time) *time.Timer {
 	return t
 }
 
+func (a *App) notifyFile(uri, msg string) error {
+	return jni.Do(a.jvm, func(env *jni.Env) error {
+		cls := jni.GetObjectClass(env, a.appCtx)
+		notify := jni.GetMethodID(env, cls, "notifyFile", "(Ljava/lang/String;Ljava/lang/String;)V")
+		juri := jni.JavaString(env, uri)
+		jmsg := jni.JavaString(env, msg)
+		return jni.CallVoidMethod(env, a.appCtx, notify, jni.Value(juri), jni.Value(jmsg))
+	})
+}
+
 func (a *App) pushNotify(service jni.Object, title, msg string) error {
 	return jni.Do(a.jvm, func(env *jni.Env) error {
 		cls := jni.GetObjectClass(env, service)
@@ -615,6 +805,8 @@ func (a *App) runUI() error {
 		// activity is the most recent Android Activity reference as reported
 		// by Gio ViewEvents.
 		activity jni.Object
+		// files is list of files from the most recent file sharing intent.
+		files []File
 	)
 	deleteActivityRef := func() {
 		if activity == 0 {
@@ -677,6 +869,15 @@ func (a *App) runUI() error {
 		case <-onVPNRevoked:
 			ui.ShowMessage("VPN access denied or another VPN service is always-on")
 			w.Invalidate()
+		case files = <-onFileShare:
+			ui.ShowShareDialog()
+			w.Invalidate()
+			backendEvents <- FileTargetsEvent{}
+		case t := <-a.targetsLoaded:
+			ui.FillShareDialog(t.Targets, t.Err)
+			w.Invalidate()
+		case <-a.invalidates:
+			w.Invalidate()
 		case e := <-w.Events():
 			switch e := e.(type) {
 			case app.ViewEvent:
@@ -699,6 +900,7 @@ func (a *App) runUI() error {
 				if e.Type == system.CommandBack {
 					if ui.onBack() {
 						e.Cancel = true
+						w.Invalidate()
 					}
 				}
 			case system.FrameEvent:
@@ -707,7 +909,7 @@ func (a *App) runUI() error {
 				gtx := layout.NewContext(&ops, e)
 				events := ui.layout(gtx, ins, state)
 				e.Frame(gtx.Ops)
-				a.processUIEvents(w, events, activity, state)
+				a.processUIEvents(w, events, activity, state, files)
 			}
 		}
 	}
@@ -829,7 +1031,7 @@ func requestBackend(e UIEvent) {
 	}()
 }
 
-func (a *App) processUIEvents(w *app.Window, events []UIEvent, act jni.Object, state *clientState) {
+func (a *App) processUIEvents(w *app.Window, events []UIEvent, act jni.Object, state *clientState, files []File) {
 	for _, e := range events {
 		switch e := e.(type) {
 		case ReauthEvent:
@@ -858,8 +1060,109 @@ func (a *App) processUIEvents(w *app.Window, events []UIEvent, act jni.Object, s
 		case SearchEvent:
 			state.query = strings.ToLower(e.Query)
 			a.updateState(act, state)
+		case FileSendEvent:
+			a.sendFiles(e, files)
 		}
 	}
+}
+
+func (a *App) sendFiles(e FileSendEvent, files []File) {
+	go func() {
+		var totalSize int64
+		for _, f := range files {
+			totalSize += f.Size
+		}
+		if totalSize == 0 {
+			totalSize = 1
+		}
+		var totalSent int64
+		progress := func(n int64) {
+			totalSent += n
+			e.Updates(FileSendInfo{
+				State:    FileSendTransferring,
+				Progress: float64(totalSent) / float64(totalSize),
+			})
+			a.invalidate()
+		}
+		defer a.invalidate()
+		for _, f := range files {
+			if err := a.sendFile(e.Context, e.Target, f, progress); err != nil {
+				if errors.Is(err, context.Canceled) {
+					return
+				}
+				e.Updates(FileSendInfo{
+					State: FileSendFailed,
+				})
+				return
+			}
+		}
+		e.Updates(FileSendInfo{
+			State: FileSendComplete,
+		})
+	}()
+}
+
+func (a *App) invalidate() {
+	select {
+	case a.invalidates <- struct{}{}:
+	default:
+	}
+}
+
+func (a *App) sendFile(ctx context.Context, target *apitype.FileTarget, f File, progress func(n int64)) error {
+	var body io.Reader
+	switch f.Type {
+	case FileTypeText:
+		body = strings.NewReader(f.Text)
+	case FileTypeURI:
+		f, err := a.openURI(f.URI, "r")
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		body = f
+	default:
+		panic("unknown file type")
+	}
+	body = &progressReader{r: body, size: f.Size, progress: progress}
+	dstURL := target.PeerAPIURL + "/v0/put/" + url.PathEscape(f.Name)
+	req, err := http.NewRequestWithContext(ctx, "PUT", dstURL, body)
+	if err != nil {
+		return err
+	}
+	req.ContentLength = f.Size
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+	if res.StatusCode != 200 {
+		return fmt.Errorf("PUT failed: %s", res.Status)
+	}
+	return nil
+}
+
+// progressReader wraps an io.Reader to call a progress function
+// on every non-zero Read.
+type progressReader struct {
+	r        io.Reader
+	bytes    int64
+	size     int64
+	eof      bool
+	progress func(n int64)
+}
+
+func (r *progressReader) Read(p []byte) (int, error) {
+	n, err := r.r.Read(p)
+	// The request body may be read after http.Client.Do returns, see
+	// https://github.com/golang/go/issues/30597. Don't update progress if the
+	// file has been read.
+	r.eof = r.eof || errors.Is(err, io.EOF)
+	if !r.eof && r.bytes < r.size {
+		r.progress(int64(n))
+		r.bytes += int64(n)
+	}
+	return n, err
 }
 
 func (a *App) signOut() {
