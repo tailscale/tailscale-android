@@ -21,10 +21,8 @@ import (
 	"tailscale.com/logtail"
 	"tailscale.com/logtail/filch"
 	"tailscale.com/net/dns"
-	"tailscale.com/net/tstun"
 	"tailscale.com/types/logger"
 	"tailscale.com/wgengine"
-	"tailscale.com/wgengine/filter"
 	"tailscale.com/wgengine/router"
 )
 
@@ -93,10 +91,8 @@ func newBackend(dataDir string, jvm *jni.JVM, store *stateStore, settings settin
 	if err != nil {
 		return nil, err
 	}
-	tun := tstun.Wrap(logf, b.devices)
-	tun.SetFilter(filter.NewAllowAllForTest(logf))
 	engine, err := wgengine.NewUserspaceEngine(logf, wgengine.Config{
-		Tun: tun,
+		Tun: b.devices,
 		Router: &router.CallbackRouter{
 			SetBoth: b.setCfg,
 		},
