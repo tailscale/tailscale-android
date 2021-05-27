@@ -89,7 +89,7 @@ func newBackend(dataDir string, jvm *jni.JVM, store *stateStore, settings settin
 		logID.UnmarshalText([]byte(storedLogID))
 	}
 	b.SetupLogs(dataDir, logID)
-	d, err := dns.NewOSConfigurator(logf, "")
+	d, err := dns.NewNoopManager()
 	if err != nil {
 		return nil, err
 	}
