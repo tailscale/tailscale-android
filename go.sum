@@ -257,5 +257,5 @@ inet.af/netstack v0.0.0-20210317161235-a1bf4e56ef22/go.mod h1:GVx+5OZtbG4TVOW5il
 inet.af/peercred v0.0.0-20210302202138-56e694897155/go.mod h1:FjawnflS/udxX+SvpsMgZfdqx2aykOlkISeAsADi5IU=
 rsc.io/goversion v1.2.0 h1:SPn+NLTiAG7w30IRK/DKp1BjvpWabYgxlLp/+kx5J8w=
 rsc.io/goversion v1.2.0/go.mod h1:Eih9y/uIBS3ulggl7KNJ09xGSLcuNaLgmvvqa07sgfo=
-tailscale.com v1.8.3 h1:iPR3sbxG3ilcE1axqdhUH+um50sB3/kiKauRRMaphKc=
-tailscale.com v1.8.3/go.mod h1:UcO9bsmXCh8lUhu/AASEUXTmC4s6Mh3k24q3kc59f4M=
+tailscale.com v1.8.6 h1:zH/NdnEGLou0YjQmVWvMrbvjnMefMX6/NZDYoN/eEZc=
+tailscale.com v1.8.6/go.mod h1:UcO9bsmXCh8lUhu/AASEUXTmC4s6Mh3k24q3kc59f4M=

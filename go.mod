@@ -11,5 +11,5 @@ require (
 	golang.org/x/exp v0.0.0-20191227195350-da58074b4299
 	golang.org/x/sys v0.0.0-20210403161142-5e06dd20ab57
 	inet.af/netaddr v0.0.0-20210222205655-a1ec2b7b8c44
-	tailscale.com v1.8.3
+	tailscale.com v1.8.6
 )
