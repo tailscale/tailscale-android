@@ -87,16 +87,14 @@ func newBackend(dataDir string, jvm *jni.JVM, store *stateStore, settings settin
 		logID.UnmarshalText([]byte(storedLogID))
 	}
 	b.SetupLogs(dataDir, logID)
-	d, err := dns.NewNoopManager()
-	if err != nil {
-		return nil, err
+	cb := &router.CallbackRouter{
+		SetBoth:  b.setCfg,
+		SplitDNS: false, // TODO: https://github.com/tailscale/tailscale/issues/1695
 	}
 	engine, err := wgengine.NewUserspaceEngine(logf, wgengine.Config{
-		Tun: b.devices,
-		Router: &router.CallbackRouter{
-			SetBoth: b.setCfg,
-		},
-		DNS: d,
+		Tun:    b.devices,
+		Router: cb,
+		DNS:    cb,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("runBackend: NewUserspaceEngineAdvanced: %v", err)
