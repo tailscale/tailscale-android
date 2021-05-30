@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"strings"
 	"time"
 
 	"gioui.org/f32"
@@ -25,6 +24,7 @@ import (
 	"gioui.org/widget"
 	"gioui.org/widget/material"
 	"golang.org/x/exp/shiny/materialdesign/icons"
+	"inet.af/netaddr"
 	"tailscale.com/ipn"
 	"tailscale.com/tailcfg"
 
@@ -839,15 +839,13 @@ func (ui *UI) layoutPeer(gtx layout.Context, sysIns system.Insets, p *UIPeer, us
 					})
 				}),
 				layout.Rigid(func(gtx C) D {
-					var addrs []string
+					var bestIP netaddr.IP // IP to show; first IPv4, or first IPv6 if no IPv4
 					for _, addr := range p.Peer.Addresses {
-						if addr.IP().Is6() {
-							// Don't surface IPv6 addresses.
-							continue
+						if ip := addr.IP(); bestIP.IsZero() || bestIP.Is6() && ip.Is4() {
+							bestIP = ip
 						}
-						addrs = append(addrs, addr.IP().String())
 					}
-					l := material.Body2(ui.theme, strings.Join(addrs, ","))
+					l := material.Body2(ui.theme, bestIP.String())
 					l.Color = rgb(0x434343)
 					return l.Layout(gtx)
 				}),
