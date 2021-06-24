@@ -22,6 +22,7 @@ import (
 	"github.com/tailscale/tailscale-android/jni"
 	"tailscale.com/ipn"
 	"tailscale.com/net/dns"
+	"tailscale.com/net/netns"
 	"tailscale.com/tailcfg"
 	"tailscale.com/types/netmap"
 	"tailscale.com/wgengine/router"
@@ -221,7 +222,7 @@ func (a *App) runBackend() error {
 	var (
 		cfg       configPair
 		state     BackendState
-		service   jni.Object
+		service   jni.Object // of IPNService
 		signingIn bool
 	)
 	for {
@@ -328,6 +329,27 @@ func (a *App) runBackend() error {
 				if service != 0 {
 					jni.DeleteGlobalRef(env, service)
 				}
+				netns.SetAndroidProtectFunc(func(fd int) error {
+					return jni.Do(a.jvm, func(env *jni.Env) error {
+						// Call https://developer.android.com/reference/android/net/VpnService#protect(int)
+						// to mark fd as a socket that should bypass the VPN and use the underlying network.
+						cls := jni.GetObjectClass(env, s)
+						m := jni.GetMethodID(env, cls, "protect", "(I)Z")
+						ok, err := jni.CallBooleanMethod(env, s, m, jni.Value(fd))
+						// TODO(bradfitz): return an error back up to netns if this fails, once
+						// we've had some experience with this and analyzed the logs over a wide
+						// range of Android phones. For now we're being paranoid and conservative
+						// and do the JNI call to protect best effort, only logging if it fails.
+						// The risk of returning an error is that it breaks users on some Android
+						// versions even when they're not using exit nodes. I'd rather the
+						// relatively few number of exit node users file bug reports if Tailscale
+						// doesn't work and then we can look for this log print.
+						if err != nil || !ok {
+							log.Printf("[unexpected] VpnService.protect(%d) = %v, %v", fd, ok, err)
+						}
+						return nil // even on error. see big TODO above.
+					})
+				})
 				service = s
 				return nil
 			})
@@ -352,6 +374,7 @@ func (a *App) runBackend() error {
 			jni.Do(a.jvm, func(env *jni.Env) error {
 				defer jni.DeleteGlobalRef(env, s)
 				if jni.IsSameObject(env, service, s) {
+					netns.SetAndroidProtectFunc(nil)
 					jni.DeleteGlobalRef(env, service)
 					service = 0
 				}
