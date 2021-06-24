@@ -241,7 +241,7 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 		expiry = netmap.Expiry
 		localName = netmap.SelfNode.DisplayName(false)
 		if addrs := netmap.Addresses; len(addrs) > 0 {
-			localAddr = addrs[0].IP.String()
+			localAddr = addrs[0].IP().String()
 		}
 	}
 	if p := state.backend.Prefs; p != nil {
@@ -346,7 +346,7 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 					clk := &ui.peers[pidx]
 					if clk.Clicked() {
 						if addrs := p.Peer.Addresses; len(addrs) > 0 {
-							a := addrs[0].IP.String()
+							a := addrs[0].IP().String()
 							events = append(events, CopyEvent{Text: a})
 							ui.showCopied(gtx, a)
 						}
@@ -840,11 +840,11 @@ func (ui *UI) layoutPeer(gtx layout.Context, sysIns system.Insets, p *UIPeer, us
 				layout.Rigid(func(gtx C) D {
 					var addrs []string
 					for _, addr := range p.Peer.Addresses {
-						if addr.IP.Is6() {
+						if addr.IP().Is6() {
 							// Don't surface IPv6 addresses.
 							continue
 						}
-						addrs = append(addrs, addr.IP.String())
+						addrs = append(addrs, addr.IP().String())
 					}
 					l := material.Body2(ui.theme, strings.Join(addrs, ","))
 					l.Color = rgb(0x434343)

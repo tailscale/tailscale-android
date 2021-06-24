@@ -7,7 +7,7 @@ package main
 import (
 	"os"
 
-	"github.com/tailscale/wireguard-go/tun"
+	"golang.zx2c4.com/wireguard/tun"
 )
 
 // multiTUN implements a tun.Device that supports multiple

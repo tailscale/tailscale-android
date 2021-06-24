@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"github.com/tailscale/tailscale-android/jni"
-	"github.com/tailscale/wireguard-go/tun"
 	"golang.org/x/sys/unix"
+	"golang.zx2c4.com/wireguard/tun"
 	"inet.af/netaddr"
 	"tailscale.com/ipn"
 	"tailscale.com/ipn/ipnlocal"
@@ -200,8 +200,8 @@ func (b *backend) updateTUN(service jni.Object, rcfg *router.Config, dcfg *dns.O
 			_, err = jni.CallObjectMethod(env,
 				builder,
 				addRoute,
-				jni.Value(jni.JavaString(env, route.IP.String())),
-				jni.Value(route.Bits),
+				jni.Value(jni.JavaString(env, route.IP().String())),
+				jni.Value(route.Bits()),
 			)
 			if err != nil {
 				return fmt.Errorf("VpnService.Builder.addRoute(%v): %v", route, err)
@@ -214,8 +214,8 @@ func (b *backend) updateTUN(service jni.Object, rcfg *router.Config, dcfg *dns.O
 			_, err = jni.CallObjectMethod(env,
 				builder,
 				addAddress,
-				jni.Value(jni.JavaString(env, addr.IP.String())),
-				jni.Value(addr.Bits),
+				jni.Value(jni.JavaString(env, addr.IP().String())),
+				jni.Value(addr.Bits()),
 			)
 			if err != nil {
 				return fmt.Errorf("VpnService.Builder.addAddress(%v): %v", addr, err)
