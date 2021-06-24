@@ -752,7 +752,7 @@ func (a *App) updateState(act jni.Object, state *clientState) {
 			name := strings.ToLower(p.Name)
 			var addr string
 			if len(p.Addresses) > 0 {
-				addr = p.Addresses[0].IP.String()
+				addr = p.Addresses[0].IP().String()
 			}
 			if !strings.Contains(host, q) && !strings.Contains(name, q) && !strings.Contains(addr, q) {
 				continue
