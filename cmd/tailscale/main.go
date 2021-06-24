@@ -22,6 +22,7 @@ import (
 	"github.com/tailscale/tailscale-android/jni"
 	"tailscale.com/ipn"
 	"tailscale.com/net/dns"
+	"tailscale.com/net/netns"
 	"tailscale.com/tailcfg"
 	"tailscale.com/types/netmap"
 	"tailscale.com/wgengine/router"
@@ -221,7 +222,7 @@ func (a *App) runBackend() error {
 	var (
 		cfg       configPair
 		state     BackendState
-		service   jni.Object
+		service   jni.Object // of IPNService
 		signingIn bool
 	)
 	for {
@@ -328,6 +329,17 @@ func (a *App) runBackend() error {
 				if service != 0 {
 					jni.DeleteGlobalRef(env, service)
 				}
+				netns.SetAndroidProtectFunc(func(fd int) error {
+					return jni.Do(a.jvm, func(env *jni.Env) error {
+						cls := jni.GetObjectClass(env, s)
+						m := jni.GetMethodID(env, cls, "protect", "(I)Z")
+						ret, err := jni.CallBooleanMethod(env, s, m, jni.Value(fd))
+						if err != nil || ret == false {
+							log.Printf("[unexpected] VpnService.protect(%d) = %v, %v", fd, ret, err)
+						}
+						return nil
+					})
+				})
 				service = s
 				return nil
 			})
@@ -352,6 +364,7 @@ func (a *App) runBackend() error {
 			jni.Do(a.jvm, func(env *jni.Env) error {
 				defer jni.DeleteGlobalRef(env, s)
 				if jni.IsSameObject(env, service, s) {
+					netns.SetAndroidProtectFunc(nil)
 					jni.DeleteGlobalRef(env, service)
 					service = 0
 				}
