@@ -62,12 +62,6 @@ public class IPNService extends VpnService {
 			.setConfigureIntent(configIntent())
 			.allowFamily(OsConstants.AF_INET)
 			.allowFamily(OsConstants.AF_INET6);
-		try {
-			b.addDisallowedApplication(BuildConfig.APPLICATION_ID);
-		} catch (PackageManager.NameNotFoundException e) {
-			// This error means com.tailscale.ipn isn't
-			// installed. That shouldn't happen, so pretend it didn't.
-		}
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
 			b.setMetered(false); // Inherit the metered status from the underlying networks.
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
