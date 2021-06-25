@@ -28,6 +28,8 @@ import (
 	"tailscale.com/ipn"
 	"tailscale.com/tailcfg"
 
+	_ "embed"
+
 	"eliasnaur.com/font/roboto/robotobold"
 	"eliasnaur.com/font/roboto/robotoregular"
 
@@ -139,6 +141,13 @@ type (
 	D = layout.Dimensions
 )
 
+var (
+	//go:embed tailscale.png
+	tailscaleLogo []byte
+	//go:embed google.png
+	googleLogo []byte
+)
+
 func newUI(store *stateStore) (*UI, error) {
 	searchIcon, err := widget.NewIcon(icons.ActionSearch)
 	if err != nil {
@@ -152,19 +161,11 @@ func newUI(store *stateStore) (*UI, error) {
 	if err != nil {
 		return nil, err
 	}
-	logoData, err := tailscalePngBytes()
+	logo, _, err := image.Decode(bytes.NewReader(tailscaleLogo))
 	if err != nil {
 		return nil, err
 	}
-	logo, _, err := image.Decode(bytes.NewReader(logoData))
-	if err != nil {
-		return nil, err
-	}
-	googleData, err := googlePngBytes()
-	if err != nil {
-		return nil, err
-	}
-	google, _, err := image.Decode(bytes.NewReader(googleData))
+	google, _, err := image.Decode(bytes.NewReader(googleLogo))
 	if err != nil {
 		return nil, err
 	}

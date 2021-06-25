@@ -28,8 +28,6 @@ import (
 	"tailscale.com/wgengine/router"
 )
 
-//go:generate go run github.com/go-bindata/go-bindata/go-bindata -nocompress -o logo.go tailscale.png google.png
-
 type App struct {
 	jvm *jni.JVM
 	// appCtx is a global reference to the com.tailscale.ipn.App instance.

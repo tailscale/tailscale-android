@@ -6,7 +6,6 @@ require (
 	eliasnaur.com/font v0.0.0-20200617114307-e02d32decb4b
 	gioui.org v0.0.0-20210623091900-5b8da35a798b
 	gioui.org/cmd v0.0.0-20210623091900-5b8da35a798b
-	github.com/go-bindata/go-bindata v3.1.2+incompatible
 	golang.org/x/exp v0.0.0-20191227195350-da58074b4299
 	golang.org/x/sys v0.0.0-20210616094352-59db8d763f22
 	golang.zx2c4.com/wireguard v0.0.0-20210525143454-64cb82f2b3f5
