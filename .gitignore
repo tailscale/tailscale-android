@@ -6,3 +6,6 @@ build
 
 # The destination for the Go Android archive.
 android/libs
+
+# Output files from the Makefile:
+tailscale-debug.apk
