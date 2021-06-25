@@ -37,5 +37,4 @@ git reset --hard -q
 git clean -d -x -f
 git fetch -q --all --tags
 git checkout -q "$mod_version"
-eval $( ./version/version.sh)
-echo $VERSION_LONG
+echo $mod_version-`git describe --always --exclude "*" --dirty --abbrev=$1`

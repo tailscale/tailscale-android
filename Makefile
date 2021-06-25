@@ -8,14 +8,16 @@ APPID=com.tailscale.ipn
 AAR=android/libs/ipn.aar
 KEYSTORE=tailscale.jks
 KEYSTORE_ALIAS=tailscale
-TAILSCALE_VERSION=$(shell ./version/tailscale-version.sh)
-GIT_DESCRIBE=$(shell git describe --dirty --exclude "*" --always --abbrev=11)
-VERSION_LONG=$(TAILSCALE_VERSION)-g$(GIT_DESCRIBE)
+TAILSCALE_VERSION=$(shell ./version/tailscale-version.sh 200)
+OUR_VERSION=$(shell git describe --dirty --exclude "*" --always --abbrev=200)
+TAILSCALE_VERSION_ABBREV=$(shell ./version/tailscale-version.sh 11)
+OUR_VERSION_ABBREV=$(shell git describe --dirty --exclude "*" --always --abbrev=11)
+VERSION_LONG=$(TAILSCALE_VERSION_ABBREV)-g$(OUR_VERSION_ABBREV)
 # Extract the long version build.gradle's versionName and strip quotes.
 VERSIONNAME=$(patsubst "%",%,$(lastword $(shell grep versionName android/build.gradle)))
 # Extract the x.y.z part for the short version.
 VERSIONNAME_SHORT=$(shell echo $(VERSIONNAME) | cut -d - -f 1)
-TAILSCALE_COMMIT=$(shell echo $(VERSIONNAME) | cut -d - -f 2 | cut -d t -f 2)
+TAILSCALE_COMMIT=$(shell echo $(TAILSCALE_VERSION) | cut -d - -f 2 | cut -d t -f 2)
 # Extract the version code from build.gradle.
 VERSIONCODE=$(lastword $(shell grep versionCode android/build.gradle))
 VERSIONCODE_PLUSONE=$(shell expr $(VERSIONCODE) + 1)
@@ -26,7 +28,7 @@ tag_release:
 	sed -i'.bak' 's/versionCode [[:digit:]]\+/versionCode $(VERSIONCODE_PLUSONE)/' android/build.gradle
 	sed -i'.bak' 's/versionName .*/versionName "$(VERSION_LONG)"/' android/build.gradle
 	git commit -sm "android: bump version code" android/build.gradle
-	git tag -a "v$(VERSION_LONG)"
+	git tag -a "$(VERSION_LONG)"
 
 $(DEBUG_APK):
 	mkdir -p android/libs
@@ -37,7 +39,7 @@ $(DEBUG_APK):
 # This target is also used by the F-Droid builder.
 release_aar:
 	mkdir -p android/libs
-	go run gioui.org/cmd/gogio -ldflags "-X tailscale.com/version.Long=$(VERSIONNAME) -X tailscale.com/version.Short=$(VERSIONNAME_SHORT) -X tailscale.com/version.GitCommit=$(TAILSCALE_COMMIT)" -tags xversion -buildmode archive -target android -appid $(APPID) -o $(AAR) github.com/tailscale/tailscale-android/cmd/tailscale
+	go run gioui.org/cmd/gogio -ldflags "-X tailscale.com/version.Long=$(VERSIONNAME) -X tailscale.com/version.Short=$(VERSIONNAME_SHORT) -X tailscale.com/version.GitCommit=$(TAILSCALE_COMMIT) -X tailscale.com/version.ExtraGitCommit=$(OUR_VERSION)" -tags xversion -buildmode archive -target android -appid $(APPID) -o $(AAR) github.com/tailscale/tailscale-android/cmd/tailscale
 
 $(RELEASE_AAB): release_aar
 	(cd android && ./gradlew bundlePlayRelease)
