@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"reflect"
 	"runtime"
+	"sync"
 	"unicode/utf16"
 	"unsafe"
 )
@@ -113,8 +114,32 @@ static jbyteArray jni_NewByteArray(JNIEnv *env, jsize length) {
 	return (*env)->NewByteArray(env, length);
 }
 
+static jboolean *jni_GetBooleanArrayElements(JNIEnv *env, jbooleanArray arr) {
+	return (*env)->GetBooleanArrayElements(env, arr, NULL);
+}
+
+static void jni_ReleaseBooleanArrayElements(JNIEnv *env, jbooleanArray arr, jboolean *elems, jint mode) {
+	(*env)->ReleaseBooleanArrayElements(env, arr, elems, mode);
+}
+
 static jbyte *jni_GetByteArrayElements(JNIEnv *env, jbyteArray arr) {
 	return (*env)->GetByteArrayElements(env, arr, NULL);
+}
+
+static jint *jni_GetIntArrayElements(JNIEnv *env, jintArray arr) {
+	return (*env)->GetIntArrayElements(env, arr, NULL);
+}
+
+static void jni_ReleaseIntArrayElements(JNIEnv *env, jintArray arr, jint *elems, jint mode) {
+	(*env)->ReleaseIntArrayElements(env, arr, elems, mode);
+}
+
+static jlong *jni_GetLongArrayElements(JNIEnv *env, jlongArray arr) {
+	return (*env)->GetLongArrayElements(env, arr, NULL);
+}
+
+static void jni_ReleaseLongArrayElements(JNIEnv *env, jlongArray arr, jlong *elems, jint mode) {
+	(*env)->ReleaseLongArrayElements(env, arr, elems, mode);
 }
 
 static void jni_ReleaseByteArrayElements(JNIEnv *env, jbyteArray arr, jbyte *elems, jint mode) {
@@ -124,6 +149,18 @@ static void jni_ReleaseByteArrayElements(JNIEnv *env, jbyteArray arr, jbyte *ele
 static jsize jni_GetArrayLength(JNIEnv *env, jarray arr) {
 	return (*env)->GetArrayLength(env, arr);
 }
+
+static void jni_DeleteLocalRef(JNIEnv *env, jobject localRef) {
+	return (*env)->DeleteLocalRef(env, localRef);
+}
+
+static jobject jni_GetObjectArrayElement(JNIEnv *env, jobjectArray array, jsize index) {
+	return (*env)->GetObjectArrayElement(env, array, index);
+}
+
+static jboolean jni_IsInstanceOf(JNIEnv *env, jobject obj, jclass clazz) {
+	return (*env)->IsInstanceOf(env, obj, clazz);
+}
 */
 import "C"
 
@@ -132,14 +169,26 @@ type JVM C.JavaVM
 type Env C.JNIEnv
 
 type (
-	Class     C.jclass
-	Object    C.jobject
-	MethodID  C.jmethodID
-	String    C.jstring
-	ByteArray C.jbyteArray
-	Boolean   C.jboolean
-	Value     uint64 // All JNI types fit into 64-bits.
+	Class        C.jclass
+	Object       C.jobject
+	MethodID     C.jmethodID
+	String       C.jstring
+	ByteArray    C.jbyteArray
+	ObjectArray  C.jobjectArray
+	BooleanArray C.jbooleanArray
+	LongArray    C.jlongArray
+	IntArray     C.jintArray
+	Boolean      C.jboolean
+	Value        uint64 // All JNI types fit into 64-bits.
 )
+
+// Cached class handles.
+var classes struct {
+	once                      sync.Once
+	stringClass, integerClass Class
+
+	integerIntValue MethodID
+}
 
 func env(e *Env) *C.JNIEnv {
 	return (*C.JNIEnv)(unsafe.Pointer(e))
@@ -222,7 +271,7 @@ func CallIntMethod(e *Env, obj Object, method MethodID, args ...Value) (int32, e
 	return int32(res), exception(e)
 }
 
-// GetByteArrayElements returns the contents of the array.
+// GetByteArrayElements returns the contents of the byte array.
 func GetByteArrayElements(e *Env, jarr ByteArray) []byte {
 	if jarr == 0 {
 		return nil
@@ -234,6 +283,76 @@ func GetByteArrayElements(e *Env, jarr ByteArray) []byte {
 	s := make([]byte, len(backing))
 	copy(s, backing)
 	return s
+}
+
+// GetBooleanArrayElements returns the contents of the boolean array.
+func GetBooleanArrayElements(e *Env, jarr BooleanArray) []bool {
+	if jarr == 0 {
+		return nil
+	}
+	size := C.jni_GetArrayLength(env(e), C.jarray(jarr))
+	elems := C.jni_GetBooleanArrayElements(env(e), C.jbooleanArray(jarr))
+	defer C.jni_ReleaseBooleanArrayElements(env(e), C.jbooleanArray(jarr), elems, 0)
+	backing := (*(*[1 << 30]C.jboolean)(unsafe.Pointer(elems)))[:size:size]
+	r := make([]bool, len(backing))
+	for i, b := range backing {
+		r[i] = b == C.JNI_TRUE
+	}
+	return r
+}
+
+// GetStringArrayElements returns the contents of the String array.
+func GetStringArrayElements(e *Env, jarr ObjectArray) []string {
+	var strings []string
+	iterateObjectArray(e, jarr, func(e *Env, idx int, item Object) {
+		s := GoString(e, String(item))
+		strings = append(strings, s)
+	})
+	return strings
+}
+
+// GetIntArrayElements returns the contents of the int array.
+func GetIntArrayElements(e *Env, jarr IntArray) []int {
+	if jarr == 0 {
+		return nil
+	}
+	size := C.jni_GetArrayLength(env(e), C.jarray(jarr))
+	elems := C.jni_GetIntArrayElements(env(e), C.jintArray(jarr))
+	defer C.jni_ReleaseIntArrayElements(env(e), C.jintArray(jarr), elems, 0)
+	backing := (*(*[1 << 27]C.jint)(unsafe.Pointer(elems)))[:size:size]
+	r := make([]int, len(backing))
+	for i, l := range backing {
+		r[i] = int(l)
+	}
+	return r
+}
+
+// GetLongArrayElements returns the contents of the long array.
+func GetLongArrayElements(e *Env, jarr LongArray) []int64 {
+	if jarr == 0 {
+		return nil
+	}
+	size := C.jni_GetArrayLength(env(e), C.jarray(jarr))
+	elems := C.jni_GetLongArrayElements(env(e), C.jlongArray(jarr))
+	defer C.jni_ReleaseLongArrayElements(env(e), C.jlongArray(jarr), elems, 0)
+	backing := (*(*[1 << 27]C.jlong)(unsafe.Pointer(elems)))[:size:size]
+	r := make([]int64, len(backing))
+	for i, l := range backing {
+		r[i] = int64(l)
+	}
+	return r
+}
+
+func iterateObjectArray(e *Env, jarr ObjectArray, f func(e *Env, idx int, item Object)) {
+	if jarr == 0 {
+		return
+	}
+	size := C.jni_GetArrayLength(env(e), C.jarray(jarr))
+	for i := 0; i < int(size); i++ {
+		item := C.jni_GetObjectArrayElement(env(e), C.jobjectArray(jarr), C.jint(i))
+		f(e, i, Object(item))
+		C.jni_DeleteLocalRef(env(e), item)
+	}
 }
 
 // NewByteArray allocates a Java byte array with the content. It
