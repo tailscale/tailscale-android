@@ -21,10 +21,10 @@ allprojects {
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 29
+    compileSdkVersion 30
     defaultConfig {
         minSdkVersion 22
-        targetSdkVersion 29
+        targetSdkVersion 30
         versionCode 44
         versionName "v1.10.0-405ea978f8b-g47b732aaab1"
     }
