@@ -812,3 +812,5 @@ rsc.io/goversion v1.2.0 h1:SPn+NLTiAG7w30IRK/DKp1BjvpWabYgxlLp/+kx5J8w=
 rsc.io/goversion v1.2.0/go.mod h1:Eih9y/uIBS3ulggl7KNJ09xGSLcuNaLgmvvqa07sgfo=
 tailscale.com v1.10.0 h1:3EWYxpXkCmXsMh1WgqoEjQ/xalxzxU+YD5ZmtaHS5cY=
 tailscale.com v1.10.0/go.mod h1:kgFF5AZPTltwdXjX2/ci4ghlcO3qKNWVIjD9s39pr8c=
+tailscale.com v1.10.1 h1:6N1lARN/Oee1qFBWTCrBS/wF4M9tBXIsrFaxndrlsoI=
+tailscale.com v1.10.1/go.mod h1:kgFF5AZPTltwdXjX2/ci4ghlcO3qKNWVIjD9s39pr8c=
