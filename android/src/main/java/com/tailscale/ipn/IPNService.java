@@ -45,7 +45,11 @@ public class IPNService extends VpnService {
 	}
 
 	private PendingIntent configIntent() {
-		return PendingIntent.getActivity(this, 0, new Intent(this, GioActivity.class), PendingIntent.FLAG_UPDATE_CURRENT);
+		Intent intent = new Intent(this, GioActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                intent.setAction(Intent.ACTION_MAIN);
+                intent.addCategory(Intent.CATEGORY_LAUNCHER);
+		return PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
 	}
 
 	protected VpnService.Builder newBuilder() {
