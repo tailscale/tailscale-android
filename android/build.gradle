@@ -26,7 +26,7 @@ android {
         minSdkVersion 22
         targetSdkVersion 29
         versionCode 49
-        versionName "1.11.106-1bb6abc604c-g27283a8bb0a"
+        versionName "1.11.106-1bb6abc604c-g2c1f35d5607"
     }
 	compileOptions {
 		sourceCompatibility 1.8
