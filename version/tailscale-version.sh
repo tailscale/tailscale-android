@@ -26,15 +26,16 @@ case "$mod_version" in
 		;;
 esac
 
-tailscale_clone=/tmp/tailscale-clone
-
-if [ ! -d "$tailscale_clone" ]; then
-       git clone -q https://github.com/tailscale/tailscale.git "$tailscale_clone"
-fi
+tailscale_clone=$(mktemp -d -t tailscale-clone-XXXXXXXXXX)
+git clone -q https://github.com/tailscale/tailscale.git "$tailscale_clone"
 
 cd $tailscale_clone
 git reset --hard -q
 git clean -d -x -f
 git fetch -q --all --tags
 git checkout -q "$mod_version"
-echo $mod_version-`git describe --always --exclude "*" --dirty --abbrev=$1`
+
+eval $(./build_dist.sh shellvars)
+echo ${VERSION_SHORT}-`git describe --always --exclude "*" --dirty --abbrev=$1`
+cd /tmp
+rm -rf "$tailscale_clone"
