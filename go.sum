@@ -81,6 +81,7 @@ github.com/creack/pty v1.1.7/go.mod h1:lj5s0c3V2DBrqTV7llrYr5NG6My20zk30Fl46Y7Do
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/daixiang0/gci v0.2.4/go.mod h1:+AV8KmHTGxxwp/pY84TLQfFKp2vuKXXJVzF3kD/hfR4=
 github.com/daixiang0/gci v0.2.7/go.mod h1:+4dZ7TISfSmqfAGv59ePaHfNzgGtIkHAhhdKggP1JAc=
+github.com/dave/jennifer v1.4.1/go.mod h1:7jEdnm+qBcxl8PC0zyp7vxcpSRnzXSt9r39tpTVGlwA=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/denis-tingajkin/go-header v0.3.1/go.mod h1:sq/2IxMhaZX+RRcgHfCRx/m0M5na0fBt4/CRe7Lrji0=
@@ -241,6 +242,7 @@ github.com/hashicorp/memberlist v0.1.3/go.mod h1:ajVTdAv/9Im8oMAAj5G31PhhMCZJV2p
 github.com/hashicorp/serf v0.8.2/go.mod h1:6hOLApaqBFA1NXqRQAsxw9QxuDEvNxSQRwA/JwenrHc=
 github.com/hpcloud/tail v1.0.0/go.mod h1:ab1qPbhIpdTxEkNHXyeSf5vhxWSCs/tWer42PpOxQnU=
 github.com/huandu/xstrings v1.3.2/go.mod h1:y5/lhBue+AyNmUVz9RLU9xbLR0o4KIIExikq4ovT0aE=
+github.com/iancoleman/strcase v0.2.0/go.mod h1:iwCmte+B7n89clKwxIoIXy/HfoL7AsD47ZCWhYzw7ho=
 github.com/imdario/mergo v0.3.9/go.mod h1:2EnlNZ0deacrJVfApfmtdGgDfMuh/nq6Ok1EcJh5FfA=
 github.com/imdario/mergo v0.3.11/go.mod h1:jmQim1M+e3UYxmgPu/WyfjB3N3VflVyUjjjwH0dnCYA=
 github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANytuPF1OarO4DADm73n8=
@@ -462,6 +464,7 @@ github.com/tailscale/certstore v0.0.0-20210528134328-066c94b793d3/go.mod h1:2P+h
 github.com/tailscale/depaware v0.0.0-20201214215404-77d1e9757027/go.mod h1:p9lPsd+cx33L3H9nNoecRRxPssFKUwwI50I3pZ0yT+8=
 github.com/tailscale/goupnp v1.0.1-0.20210710010003-1cf2d718bbb2 h1:AIJ8AF9O7jBmCwilP0ydwJMIzW5dw48Us8f3hLJhYBY=
 github.com/tailscale/goupnp v1.0.1-0.20210710010003-1cf2d718bbb2/go.mod h1:PdCqy9JzfWMJf1H5UJW2ip33/d4YkoKN0r67yKH1mG8=
+github.com/tailscale/hujson v0.0.0-20200924210142-dde312d0d6a2/go.mod h1:STqf+YV0ADdzk4ejtXFsGqDpATP9JoL0OB+hiFQbkdE=
 github.com/tcnksm/go-httpstat v0.2.0 h1:rP7T5e5U2HfmOBmZzGgGZjBQ5/GluWUylujl0tJ04I0=
 github.com/tcnksm/go-httpstat v0.2.0/go.mod h1:s3JVJFtQxtBEBC9dwcdTTXS9xFnM3SXAZwPG41aurT8=
 github.com/tdakkota/asciicheck v0.0.0-20200416190851-d7f85be797a2/go.mod h1:yHp0ai0Z9gUljN3o0xMhYJnH/IcvkdTBOX2fmJ93JEM=
@@ -823,6 +826,8 @@ rsc.io/goversion v1.2.0 h1:SPn+NLTiAG7w30IRK/DKp1BjvpWabYgxlLp/+kx5J8w=
 rsc.io/goversion v1.2.0/go.mod h1:Eih9y/uIBS3ulggl7KNJ09xGSLcuNaLgmvvqa07sgfo=
 tailscale.com v1.1.1-0.20210715222212-1bb6abc604c1 h1:A32MyGc832W3fuCpnhm0ZPhM8xVnqD/PZJr129lMe0c=
 tailscale.com v1.1.1-0.20210715222212-1bb6abc604c1/go.mod h1:/vVQb07eMXdBC9zIBeZ0NPuZaT9nbDxHAs07ohMDPCo=
+tailscale.com v1.1.1-0.20210716192516-798b0da4703d h1:/YNcDLq2xyHk67FqebaRkQSpUOxa0fJS4oQxZhanQKg=
+tailscale.com v1.1.1-0.20210716192516-798b0da4703d/go.mod h1:eNWcEtAgFy+iVHMVzLYhXiwzsMey8UQBAxC43f6aCjI=
 tailscale.com v1.10.0 h1:3EWYxpXkCmXsMh1WgqoEjQ/xalxzxU+YD5ZmtaHS5cY=
 tailscale.com v1.10.0/go.mod h1:kgFF5AZPTltwdXjX2/ci4ghlcO3qKNWVIjD9s39pr8c=
 tailscale.com v1.10.1 h1:6N1lARN/Oee1qFBWTCrBS/wF4M9tBXIsrFaxndrlsoI=
