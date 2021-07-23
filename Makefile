@@ -38,6 +38,7 @@ $(DEBUG_APK):
 	
 # This target is also used by the F-Droid builder.
 release_aar:
+	(${GOBIN}/go version | grep -- "-ts") || (echo Must set GOBIN to Tailscale production toolchain; exit 1)
 	mkdir -p android/libs
 	go run gioui.org/cmd/gogio -ldflags "-X tailscale.com/version.Long=$(VERSIONNAME) -X tailscale.com/version.Short=$(VERSIONNAME_SHORT) -X tailscale.com/version.GitCommit=$(TAILSCALE_COMMIT) -X tailscale.com/version.ExtraGitCommit=$(OUR_VERSION)" -tags xversion -buildmode archive -target android -appid $(APPID) -o $(AAR) github.com/tailscale/tailscale-android/cmd/tailscale
 
