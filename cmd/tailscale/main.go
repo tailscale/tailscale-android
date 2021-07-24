@@ -181,6 +181,7 @@ type (
 	GoogleAuthEvent  struct{}
 	LogoutEvent      struct{}
 	FileTargetsEvent struct{}
+	WantRunningEvent struct{}
 )
 
 // serverOAuthID is the OAuth ID of the tailscale-android server, used
@@ -411,6 +412,10 @@ func (a *App) runBackend() error {
 				state.Prefs.ExitNodeID = e.ID
 				go b.backend.SetPrefs(state.Prefs)
 				state.updateExitNodes()
+				a.notify(state)
+			case WantRunningEvent:
+				state.Prefs.WantRunning = true
+				go b.backend.SetPrefs(state.Prefs)
 				a.notify(state)
 			}
 		case s := <-onConnect:

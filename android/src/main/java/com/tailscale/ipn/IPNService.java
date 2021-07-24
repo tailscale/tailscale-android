@@ -24,7 +24,15 @@ public class IPNService extends VpnService {
 		if (intent != null && ACTION_DISCONNECT.equals(intent.getAction())) {
 			close();
 			return START_NOT_STICKY;
+		} else if (intent != null && ACTION_CONNECT.equals(intent.getAction())) {
+			connect();
+			return START_STICKY;
+		} else if (intent != null) {
+			// we're being started due to Always-on VPN
+			connectAtBoot();
+			return START_STICKY;
 		}
+		// dunno what this is.
 		connect();
 		return START_STICKY;
 	}
@@ -87,4 +95,5 @@ public class IPNService extends VpnService {
 
 	private native void connect();
 	private native void disconnect();
+	private native void connectAtBoot();
 }

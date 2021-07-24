@@ -7,6 +7,7 @@ package main
 // JNI implementations of Java native callback methods.
 
 import (
+	"log"
 	"unsafe"
 
 	"github.com/tailscale/tailscale-android/jni"
@@ -81,12 +82,14 @@ func notifyVPNClosed() {
 
 //export Java_com_tailscale_ipn_IPNService_connect
 func Java_com_tailscale_ipn_IPNService_connect(env *C.JNIEnv, this C.jobject) {
+	log.Printf("Java_com_tailscale_ipn_IPNService_connect")
 	jenv := (*jni.Env)(unsafe.Pointer(env))
 	onConnect <- jni.NewGlobalRef(jenv, jni.Object(this))
 }
 
 //export Java_com_tailscale_ipn_IPNService_disconnect
 func Java_com_tailscale_ipn_IPNService_disconnect(env *C.JNIEnv, this C.jobject) {
+	log.Printf("Java_com_tailscale_ipn_IPNService_disconnect")
 	jenv := (*jni.Env)(unsafe.Pointer(env))
 	onDisconnect <- jni.NewGlobalRef(jenv, jni.Object(this))
 }
@@ -173,4 +176,11 @@ func Java_com_tailscale_ipn_App_onShareIntent(env *C.JNIEnv, cls C.jclass, nfile
 	default:
 	}
 	onFileShare <- files
+}
+
+//export Java_com_tailscale_ipn_IPNService_connectAtBoot
+func Java_com_tailscale_ipn_IPNService_connectAtBoot(env *C.JNIEnv, cls C.jclass) {
+	log.Printf("Java_com_tailscale_ipn_IPNService_connectAtBoot")
+	requestBackend(WantRunningEvent{})
+	requestBackend(ConnectEvent{Enable: true})
 }
