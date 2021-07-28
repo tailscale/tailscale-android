@@ -550,7 +550,7 @@ func (ui *UI) layoutExitStatus(gtx layout.Context, state *BackendState) layout.D
 					)
 				}),
 				layout.Rigid(func(gtx C) D {
-					return ui.icons.exitStatus.Layout(gtx, unit.Dp(24))
+					return ui.icons.exitStatus.Layout(gtx)
 				}),
 			)
 		})
@@ -820,9 +820,9 @@ func (ui *UI) layoutShareDialog(gtx layout.Context, sysIns system.Insets) {
 											case FileSendTransferring:
 												return material.ProgressCircle(ui.theme, float32(node.info.Progress)).Layout(gtx)
 											case FileSendFailed:
-												return ui.icons.error.Layout(gtx, unit.Dp(16))
+												return ui.icons.error.Layout(gtx)
 											case FileSendComplete:
-												return ui.icons.done.Layout(gtx, unit.Dp(16))
+												return ui.icons.done.Layout(gtx)
 											default:
 												return D{}
 											}
@@ -1197,7 +1197,7 @@ func (ui *UI) layoutSearchbar(gtx layout.Context, sysIns system.Insets) layout.D
 				return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx C) D {
 					return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
 						layout.Rigid(func(gtx C) D {
-							return ui.icons.search.Layout(gtx, unit.Dp(24))
+							return ui.icons.search.Layout(gtx)
 						}),
 						layout.Flexed(1,
 							material.Editor(ui.theme, &ui.search, "Search by machine name...").Layout,
