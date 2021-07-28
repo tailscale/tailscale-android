@@ -22,6 +22,13 @@ TAILSCALE_COMMIT=$(shell echo $(TAILSCALE_VERSION) | cut -d - -f 2 | cut -d t -f
 VERSIONCODE=$(lastword $(shell grep versionCode android/build.gradle))
 VERSIONCODE_PLUSONE=$(shell expr $(VERSIONCODE) + 1)
 
+# When you update TOOLCHAINREV, also update TOOLCHAINWANT
+TOOLCHAINREV=6fa85e8201f1f75fb7323eb48a0b24274a6e33b2
+TOOLCHAINDIR=${HOME}/.cache/tailscale-android-go-$(TOOLCHAINREV)
+TOOLCHAINSUM=$(shell find $(TOOLCHAINDIR) -type f -print0 | sort -z | xargs -0 sha1sum | sha1sum | cut -d" " -f1)
+TOOLCHAINWANT=e336267ea2a637426c0302945d0c1f8fa2f2f627
+export PATH := $(TOOLCHAINDIR)/go/bin:$(PATH)
+
 all: $(APK)
 
 tag_release:
@@ -30,13 +37,26 @@ tag_release:
 	git commit -sm "android: bump version code" android/build.gradle
 	git tag -a "$(VERSION_LONG)"
 
-$(DEBUG_APK):
+toolchain:
+ifneq ($(TOOLCHAINWANT),$(TOOLCHAINSUM))
+	@echo want: $(TOOLCHAINWANT)
+	@echo got: $(TOOLCHAINSUM)
+	rm -rf ${HOME}/.cache/tailscale-android-go-*
+	$(eval tmpfile=$(shell mktemp --suffix=.tgz))
+	wget https://github.com/tailscale/go/releases/download/build-$(TOOLCHAINREV)/linux.tar.gz -O "$(tmpfile)"
+	mkdir -p $(TOOLCHAINDIR)
+	tar xzf $(tmpfile) -C $(TOOLCHAINDIR)
+	rm $(tmpfile)
+endif
+
+$(DEBUG_APK): toolchain
 	mkdir -p android/libs
 	go run gioui.org/cmd/gogio -buildmode archive -target android -appid $(APPID) -o $(AAR) github.com/tailscale/tailscale-android/cmd/tailscale
 	(cd android && ./gradlew assemblePlayDebug)
 	mv android/build/outputs/apk/play/debug/android-play-debug.apk $@
 	
 # This target is also used by the F-Droid builder.
+release_aar: toolchain
 release_aar:
 	mkdir -p android/libs
 	go run gioui.org/cmd/gogio -ldflags "-X tailscale.com/version.Long=$(VERSIONNAME) -X tailscale.com/version.Short=$(VERSIONNAME_SHORT) -X tailscale.com/version.GitCommit=$(TAILSCALE_COMMIT) -X tailscale.com/version.ExtraGitCommit=$(OUR_VERSION)" -tags xversion -buildmode archive -target android -appid $(APPID) -o $(AAR) github.com/tailscale/tailscale-android/cmd/tailscale
