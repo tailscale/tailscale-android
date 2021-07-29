@@ -223,11 +223,6 @@ func newUI(store *stateStore) (*UI, error) {
 	ui.icons.error = errorIcon
 	ui.icons.logo = paint.NewImageOp(logo)
 	ui.icons.google = paint.NewImageOp(google)
-	ui.icons.more.Color = rgb(white)
-	ui.icons.search.Color = mulAlpha(ui.theme.Palette.Fg, 0xbb)
-	ui.icons.exitStatus.Color = rgb(white)
-	ui.icons.done.Color = ui.theme.Palette.ContrastBg
-	ui.icons.error.Color = rgb(0xcc6539)
 	ui.root.Axis = layout.Vertical
 	ui.intro.list.Axis = layout.Vertical
 	ui.search.SingleLine = true
@@ -550,7 +545,7 @@ func (ui *UI) layoutExitStatus(gtx layout.Context, state *BackendState) layout.D
 					)
 				}),
 				layout.Rigid(func(gtx C) D {
-					return ui.icons.exitStatus.Layout(gtx)
+					return ui.icons.exitStatus.Layout(gtx, rgb(white))
 				}),
 			)
 		})
@@ -820,9 +815,9 @@ func (ui *UI) layoutShareDialog(gtx layout.Context, sysIns system.Insets) {
 											case FileSendTransferring:
 												return material.ProgressCircle(ui.theme, float32(node.info.Progress)).Layout(gtx)
 											case FileSendFailed:
-												return ui.icons.error.Layout(gtx)
+												return ui.icons.error.Layout(gtx, rgb(0xcc6539))
 											case FileSendComplete:
-												return ui.icons.done.Layout(gtx)
+												return ui.icons.done.Layout(gtx, ui.theme.Palette.ContrastBg)
 											default:
 												return D{}
 											}
@@ -1122,6 +1117,7 @@ func (ui *UI) layoutTop(gtx layout.Context, sysIns system.Insets, state *Backend
 						return D{}
 					}
 					btn := material.IconButton(ui.theme, &ui.menu.open, ui.icons.more)
+					btn.Color = rgb(white)
 					btn.Background = color.NRGBA{}
 					return btn.Layout(gtx)
 				}),
@@ -1197,7 +1193,8 @@ func (ui *UI) layoutSearchbar(gtx layout.Context, sysIns system.Insets) layout.D
 				return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx C) D {
 					return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
 						layout.Rigid(func(gtx C) D {
-							return ui.icons.search.Layout(gtx)
+							col := mulAlpha(ui.theme.Palette.Fg, 0xbb)
+							return ui.icons.search.Layout(gtx, col)
 						}),
 						layout.Flexed(1,
 							material.Editor(ui.theme, &ui.search, "Search by machine name...").Layout,
