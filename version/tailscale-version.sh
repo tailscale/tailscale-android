@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
 # Copyright (c) 2020 Tailscale Inc & AUTHORS All rights reserved.
 # Use of this source code is governed by a BSD-style
