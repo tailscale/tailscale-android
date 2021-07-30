@@ -988,3 +988,5 @@ sigs.k8s.io/yaml v1.1.0/go.mod h1:UJmg0vDUVViEyp3mgSv9WPwZCDxu4rQW1olrI1uml+o=
 sourcegraph.com/sourcegraph/appdash v0.0.0-20190731080439-ebfcffb1b5c0/go.mod h1:hI742Nqp5OhwiqlzhgfbWU4mW4yO10fP+LoT9WOswdU=
 tailscale.com v1.1.1-0.20210727233927-f414a9cc01f3 h1:ciXGgLs/tCH0kZlgYBbyJm8Lj5n8A5rloCox+BHpGsM=
 tailscale.com v1.1.1-0.20210727233927-f414a9cc01f3/go.mod h1:z4pZTL6lHgfm9sbFwIp3/H0fJzlUWGccbmLPE75PUMc=
+tailscale.com v1.1.1-0.20210729212931-d37451bac6f3 h1:3GtbfyK6MdalSv1Qer01Q3Vxa4cSQ47d55Wj8ywIT7M=
+tailscale.com v1.1.1-0.20210729212931-d37451bac6f3/go.mod h1:amzPw9EWADHe1g+27p4COk0HJPyydpS3OYF1B3T3CLg=
