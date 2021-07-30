@@ -36,6 +36,8 @@ git fetch -q --all --tags
 git checkout -q "$mod_version"
 
 eval $(./build_dist.sh shellvars)
-echo ${VERSION_SHORT}-`git describe --always --exclude "*" --dirty --abbrev=$1`
+git_hash=$(git rev-parse HEAD)
+short_hash=$(echo "$git_hash" | cut -c1-9)
+echo ${VERSION_SHORT}-t${short_hash}
 cd /tmp
 rm -rf "$tailscale_clone"
