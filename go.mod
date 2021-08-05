@@ -10,5 +10,5 @@ require (
 	golang.org/x/sys v0.0.0-20210616094352-59db8d763f22
 	golang.zx2c4.com/wireguard v0.0.0-20210624150102-15b24b6179e0
 	inet.af/netaddr v0.0.0-20210721214506-ce7a8ad02cc1
-	tailscale.com v1.12.1
+	tailscale.com v1.12.3
 )
