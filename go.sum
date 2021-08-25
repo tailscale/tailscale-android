@@ -1012,3 +1012,7 @@ tailscale.com v1.1.1-0.20210806185611-8bdf87883298 h1:/mTAsPl7g+wJ9WSqLkX96bjWH3
 tailscale.com v1.1.1-0.20210806185611-8bdf87883298/go.mod h1:OncqzHFSS0eEOuI1wdvR4clvQQUmmZdAzemWzPFBYYs=
 tailscale.com v1.1.1-0.20210822031551-0ac213059062 h1:IkIbB/Er9S7e5S6gt2WdWjzYhOiB1D7qeojcRmw5Txc=
 tailscale.com v1.1.1-0.20210822031551-0ac213059062/go.mod h1:WbJAb2AwrBO8jGQgxZ8E2mj3l628a3ysdPV7bJHBKlY=
+tailscale.com v1.1.1-0.20210824145504-ac0353e9822a h1:Eyx7YuDq2yaTfOK3OpyoF6BrNlQ8KPxfIgaG2X1oRZ4=
+tailscale.com v1.1.1-0.20210824145504-ac0353e9822a/go.mod h1:WbJAb2AwrBO8jGQgxZ8E2mj3l628a3ysdPV7bJHBKlY=
+tailscale.com v1.14.0 h1:2EqLrMdTNsbWX70ymGRaU/rrZ7zquBMpLXTPrHAOV6g=
+tailscale.com v1.14.0/go.mod h1:WbJAb2AwrBO8jGQgxZ8E2mj3l628a3ysdPV7bJHBKlY=
