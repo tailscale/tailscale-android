@@ -12,5 +12,5 @@ require (
 	golang.zx2c4.com/wireguard v0.0.0-20210624150102-15b24b6179e0
 	inet.af/netaddr v0.0.0-20210721214506-ce7a8ad02cc1
 	rsc.io/goversion v1.2.0 // indirect
-	tailscale.com v1.1.1-0.20210824145504-ac0353e9822a
+	tailscale.com v1.1.1-0.20210825224805-1925fb584e36
 )
