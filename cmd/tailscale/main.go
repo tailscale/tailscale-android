@@ -385,6 +385,8 @@ func (a *App) runBackend() error {
 			a.targetsLoaded <- FileTargets{targets, err}
 			waitingFiles = n.FilesWaiting != nil
 			processFiles()
+		case <-onWriteStorageGranted:
+			processFiles()
 		case <-alarmChan:
 			if m := state.NetworkMap; m != nil && service != 0 {
 				alarm(a.notifyExpiry(service, m.Expiry))
@@ -863,6 +865,11 @@ func (a *App) runUI() error {
 			if state.backend.State > ipn.Stopped {
 				if err := a.callVoidMethod(a.appCtx, "startVPN", "()V"); err != nil {
 					return err
+				}
+				if activity != 0 {
+					if err := a.callVoidMethod(a.appCtx, "requestWriteStoragePermission", "(Landroid/app/Activity;)V", jni.Value(activity)); err != nil {
+						return err
+					}
 				}
 			}
 		case <-onVPNRevoked:

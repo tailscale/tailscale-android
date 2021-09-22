@@ -39,6 +39,9 @@ var (
 
 	// onFileShare receives file sharing intents.
 	onFileShare = make(chan []File, 1)
+
+	// onWriteStorageGranted is notified when we are granted WRITE_STORAGE_PERMISSION.
+	onWriteStorageGranted = make(chan struct{}, 1)
 )
 
 const (
@@ -56,6 +59,14 @@ const resultOK = -1
 //export Java_com_tailscale_ipn_App_onVPNPrepared
 func Java_com_tailscale_ipn_App_onVPNPrepared(env *C.JNIEnv, class C.jclass) {
 	notifyVPNPrepared()
+}
+
+//export Java_com_tailscale_ipn_App_onWriteStorageGranted
+func Java_com_tailscale_ipn_App_onWriteStorageGranted(env *C.JNIEnv, class C.jclass) {
+	select {
+	case onWriteStorageGranted <- struct{}{}:
+	default:
+	}
 }
 
 func notifyVPNPrepared() {
