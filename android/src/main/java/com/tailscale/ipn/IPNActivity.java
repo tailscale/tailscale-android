@@ -12,6 +12,7 @@ import android.database.Cursor;
 import android.os.Bundle;
 import android.provider.OpenableColumns;
 import android.net.Uri;
+import android.content.pm.PackageManager;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -19,6 +20,8 @@ import java.util.ArrayList;
 import org.gioui.GioView;
 
 public final class IPNActivity extends Activity {
+	final static int WRITE_STORAGE_RESULT = 1000;
+
 	private GioView view;
 
 	@Override public void onCreate(Bundle state) {
@@ -87,6 +90,15 @@ public final class IPNActivity extends Activity {
 			}
 		}
 		App.onShareIntent(nfiles, types, mimes, items, names, sizes);
+	}
+
+	@Override public void onRequestPermissionsResult(int reqCode, String[] perms, int[] grants) {
+		switch (reqCode) {
+		case WRITE_STORAGE_RESULT:
+			if (grants.length > 0 && grants[0] == PackageManager.PERMISSION_GRANTED) {
+				App.onWriteStorageGranted();
+			}
+		}
 	}
 
 	@Override public void onDestroy() {

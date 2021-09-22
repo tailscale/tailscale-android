@@ -6,6 +6,7 @@ package com.tailscale.ipn;
 
 import android.app.Application;
 import android.app.Activity;
+import android.app.DownloadManager;
 import android.app.Fragment;
 import android.app.FragmentTransaction;
 import android.app.NotificationChannel;
@@ -31,6 +32,7 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 
+import android.Manifest;
 import android.webkit.MimeTypeMap;
 
 import java.io.IOException;
@@ -41,6 +43,8 @@ import java.security.GeneralSecurityException;
 
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
+
+import androidx.core.content.ContextCompat;
 
 import androidx.security.crypto.EncryptedSharedPreferences;
 import androidx.security.crypto.MasterKey;
@@ -234,15 +238,33 @@ public class App extends Application {
 		return null;
 	}
 
-	String insertMedia(String name, String mimeType) throws IOException {
-		ContentResolver resolver = getContentResolver();
-		ContentValues contentValues = new ContentValues();
-		contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, name);
-		if (!"".equals(mimeType)) {
-			contentValues.put(MediaStore.MediaColumns.MIME_TYPE, mimeType);
+	void requestWriteStoragePermission(Activity act) {
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q || Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+			// We can write files without permission.
+			return;
 		}
-		Uri root = MediaStore.Files.getContentUri("external");
-		return resolver.insert(root, contentValues).toString();
+		if (ContextCompat.checkSelfPermission(act, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+			return;
+		}
+		act.requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, IPNActivity.WRITE_STORAGE_RESULT);
+	}
+
+	String insertMedia(String name, String mimeType) throws IOException {
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+			ContentResolver resolver = getContentResolver();
+			ContentValues contentValues = new ContentValues();
+			contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, name);
+			if (!"".equals(mimeType)) {
+				contentValues.put(MediaStore.MediaColumns.MIME_TYPE, mimeType);
+			}
+			Uri root = MediaStore.Files.getContentUri("external");
+			return resolver.insert(root, contentValues).toString();
+		} else {
+			File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+			dir.mkdirs();
+			File f = new File(dir, name);
+			return Uri.fromFile(f).toString();
+		}
 	}
 
 	int openUri(String uri, String mode) throws IOException {
@@ -256,8 +278,14 @@ public class App extends Application {
 	}
 
 	public void notifyFile(String uri, String msg) {
-		Intent fileIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri));
-		PendingIntent pending = PendingIntent.getActivity(this, 0, fileIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+		Intent viewIntent;
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+			viewIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri));
+		} else {
+			// uri is a file:// which is not allowed to be shared outside the app.
+			viewIntent = new Intent(DownloadManager.ACTION_VIEW_DOWNLOADS);
+		}
+		PendingIntent pending = PendingIntent.getActivity(this, 0, viewIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 		NotificationCompat.Builder builder = new NotificationCompat.Builder(this, FILE_CHANNEL_ID)
 			.setSmallIcon(R.drawable.ic_notification)
 			.setContentTitle("File received")
@@ -283,4 +311,5 @@ public class App extends Application {
 	static native void onVPNPrepared();
 	private static native void onConnectivityChanged(boolean connected);
 	static native void onShareIntent(int nfiles, int[] types, String[] mimes, String[] items, String[] names, long[] sizes);
+	static native void onWriteStorageGranted();
 }

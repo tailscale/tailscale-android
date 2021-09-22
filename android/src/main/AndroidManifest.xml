@@ -3,6 +3,7 @@
 	package="com.tailscale.ipn">
 	<uses-permission android:name="android.permission.INTERNET" />
 	<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28"/>
 
 	<!-- Disable input emulation on ChromeOS -->
 	<uses-feature android:name="android.hardware.type.pc" android:required="false"/>
