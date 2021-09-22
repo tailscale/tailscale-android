@@ -69,6 +69,10 @@ public final class IPNActivity extends Activity {
 				nfiles++;
 			} else if (uri != null) {
 				Cursor c = getContentResolver().query(uri, null, null, null, null);
+				if (c == null) {
+					// Ignore files we have no permission to access.
+					continue;
+				}
 				int nameCol = c.getColumnIndex(OpenableColumns.DISPLAY_NAME);
 				int sizeCol = c.getColumnIndex(OpenableColumns.SIZE);
 				c.moveToFirst();
