@@ -175,12 +175,11 @@ type FileSendEvent struct {
 
 // UIEvent types.
 type (
-	ToggleEvent      struct{}
-	ReauthEvent      struct{}
-	WebAuthEvent     struct{}
-	GoogleAuthEvent  struct{}
-	LogoutEvent      struct{}
-	FileTargetsEvent struct{}
+	ToggleEvent     struct{}
+	ReauthEvent     struct{}
+	WebAuthEvent    struct{}
+	GoogleAuthEvent struct{}
+	LogoutEvent     struct{}
 )
 
 // serverOAuthID is the OAuth ID of the tailscale-android server, used
@@ -872,7 +871,6 @@ func (a *App) runUI() error {
 		case files = <-onFileShare:
 			ui.ShowShareDialog()
 			w.Invalidate()
-			backendEvents <- FileTargetsEvent{}
 		case t := <-a.targetsLoaded:
 			ui.FillShareDialog(t.Targets, t.Err)
 			w.Invalidate()
