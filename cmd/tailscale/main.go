@@ -328,7 +328,11 @@ func (a *App) runBackend() error {
 				if first {
 					state.Prefs.Hostname = a.hostname()
 					state.Prefs.OSVersion = a.osVersion()
-					state.Prefs.DeviceModel = a.modelName()
+					deviceModel := a.modelName()
+					if a.isChromeOS() {
+						deviceModel = "ChromeOS: " + deviceModel
+					}
+					state.Prefs.DeviceModel = deviceModel
 					go b.backend.SetPrefs(state.Prefs)
 				}
 				a.setPrefs(state.Prefs)
