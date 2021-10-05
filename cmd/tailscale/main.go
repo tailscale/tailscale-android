@@ -29,6 +29,7 @@ import (
 
 	"github.com/tailscale/tailscale-android/jni"
 	"tailscale.com/client/tailscale/apitype"
+	"tailscale.com/hostinfo"
 	"tailscale.com/ipn"
 	"tailscale.com/ipn/ipnlocal"
 	"tailscale.com/net/dns"
@@ -236,6 +237,16 @@ func (a *App) runBackend() error {
 		fatalErr(err)
 	}
 	paths.AppSharedDir.Store(appDir)
+	hostinfo.SetOSVersion(a.osVersion())
+	if !googleSignInEnabled() {
+		hostinfo.SetPackage("nogoogle")
+	}
+	deviceModel := a.modelName()
+	if a.isChromeOS() {
+		deviceModel = "ChromeOS: " + deviceModel
+	}
+	hostinfo.SetDeviceModel(deviceModel)
+
 	type configPair struct {
 		rcfg *router.Config
 		dcfg *dns.OSConfig
@@ -327,12 +338,6 @@ func (a *App) runBackend() error {
 				state.updateExitNodes()
 				if first {
 					state.Prefs.Hostname = a.hostname()
-					state.Prefs.OSVersion = a.osVersion()
-					deviceModel := a.modelName()
-					if a.isChromeOS() {
-						deviceModel = "ChromeOS: " + deviceModel
-					}
-					state.Prefs.DeviceModel = deviceModel
 					go b.backend.SetPrefs(state.Prefs)
 				}
 				a.setPrefs(state.Prefs)
@@ -665,9 +670,6 @@ func (a *App) osVersion() string {
 	})
 	if err != nil {
 		panic(err)
-	}
-	if !googleSignInEnabled() {
-		version += " [nogoogle]"
 	}
 	return version
 }
