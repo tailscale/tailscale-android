@@ -97,7 +97,7 @@ func newBackend(dataDir string, jvm *jni.JVM, store *stateStore, settings settin
 		DNS:    cb,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("runBackend: NewUserspaceEngineAdvanced: %v", err)
+		return nil, fmt.Errorf("runBackend: NewUserspaceEngine: %v", err)
 	}
 	local, err := ipnlocal.NewLocalBackend(logf, logID.Public().String(), store, engine)
 	if err != nil {

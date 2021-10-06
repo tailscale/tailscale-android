@@ -12,7 +12,7 @@ import (
 
 // multiTUN implements a tun.Device that supports multiple
 // underlying devices. This is necessary because Android VPN devices
-// have static configurations and wgengine.NewUserspaceEngineAdvanced
+// have static configurations and wgengine.NewUserspaceEngine
 // assumes a single static tun.Device.
 type multiTUN struct {
 	// devices is for adding new devices.
