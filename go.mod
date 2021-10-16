@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	eliasnaur.com/font v0.0.0-20200617114307-e02d32decb4b
-	gioui.org v0.0.0-20210925100615-41f3a7e74ee6
+	gioui.org v0.0.0-20211016064351-4d22a926a9dd
 	gioui.org/cmd v0.0.0-20210925100615-41f3a7e74ee6
 	golang.org/x/exp v0.0.0-20210722180016-6781d3edade3
 	golang.org/x/sys v0.0.0-20210906170528-6f6e22806c34
