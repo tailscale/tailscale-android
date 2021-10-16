@@ -490,8 +490,7 @@ type Dismiss struct {
 }
 
 func (d *Dismiss) Add(gtx layout.Context, color color.NRGBA) {
-	defer op.Save(gtx.Ops).Load()
-	pointer.Rect(image.Rectangle{Max: gtx.Constraints.Min}).Add(gtx.Ops)
+	defer pointer.Rect(image.Rectangle{Max: gtx.Constraints.Min}).Push(gtx.Ops).Pop()
 	pointer.InputOp{Tag: d, Types: pointer.Press}.Add(gtx.Ops)
 	paint.Fill(gtx.Ops, color)
 }
@@ -1008,7 +1007,11 @@ func (ui *UI) layoutMessage(gtx layout.Context, sysIns system.Insets) layout.Dim
 	}
 	op.InvalidateOp{At: now.Add(rem)}.Add(gtx.Ops)
 	return layout.S.Layout(gtx, func(gtx C) D {
-		return layout.Inset{Bottom: unit.Add(gtx.Metric, sysIns.Bottom, unit.Dp(8))}.Layout(gtx, func(gtx C) D {
+		return layout.Inset{
+			Left:   unit.Add(gtx.Metric, sysIns.Left, unit.Dp(8)),
+			Right:  unit.Add(gtx.Metric, sysIns.Right, unit.Dp(8)),
+			Bottom: unit.Add(gtx.Metric, sysIns.Bottom, unit.Dp(8)),
+		}.Layout(gtx, func(gtx C) D {
 			return Background{Color: rgb(0x323232), CornerRadius: unit.Dp(5)}.Layout(gtx, func(gtx C) D {
 				return layout.UniformInset(unit.Dp(12)).Layout(gtx, func(gtx C) D {
 					l := material.Body2(ui.theme, s)
@@ -1214,60 +1217,58 @@ func drawLogo(ops *op.Ops, size int) {
 	tx := op.Offset(f32.Pt(off, 0))
 	ty := op.Offset(f32.Pt(0, off))
 
-	st := op.Save(ops)
-	defer st.Load()
+	defer op.Offset(f32.Point{}).Push(ops).Pop()
 
 	// First row of discs.
-	row := op.Save(ops)
+	row := op.Offset(f32.Point{}).Push(ops)
 	drawDisc(ops, discDia, rgb(0x54514d))
 	tx.Add(ops)
 	drawDisc(ops, discDia, rgb(0x54514d))
 	tx.Add(ops)
 	drawDisc(ops, discDia, rgb(0x54514d))
-	row.Load()
+	row.Pop()
 
 	ty.Add(ops)
 	// Second row.
-	row = op.Save(ops)
+	row = op.Offset(f32.Point{}).Push(ops)
 	drawDisc(ops, discDia, rgb(0xfffdfa))
 	tx.Add(ops)
 	drawDisc(ops, discDia, rgb(0xfffdfa))
 	tx.Add(ops)
 	drawDisc(ops, discDia, rgb(0xfffdfa))
-	row.Load()
+	row.Pop()
 
 	ty.Add(ops)
 	// Third row.
-	row = op.Save(ops)
+	row = op.Offset(f32.Point{}).Push(ops)
+	drawDisc(ops, discDia, rgb(0xfffdfa))
 	drawDisc(ops, discDia, rgb(0x54514d))
 	tx.Add(ops)
 	drawDisc(ops, discDia, rgb(0xfffdfa))
 	tx.Add(ops)
 	drawDisc(ops, discDia, rgb(0x54514d))
-	row.Load()
+	row.Pop()
 }
 
 func drawImage(gtx layout.Context, img paint.ImageOp, size unit.Value) layout.Dimensions {
-	defer op.Save(gtx.Ops).Load()
 	img.Add(gtx.Ops)
 	sz := img.Size()
 	aspect := float32(sz.Y) / float32(sz.X)
 	w := gtx.Px(size)
 	h := int(float32(w)*aspect + .5)
 	scale := float32(w) / float32(sz.X)
-	op.Affine(f32.Affine2D{}.Scale(f32.Point{}, f32.Point{X: scale, Y: scale})).Add(gtx.Ops)
+	defer op.Affine(f32.Affine2D{}.Scale(f32.Point{}, f32.Point{X: scale, Y: scale})).Push(gtx.Ops).Pop()
 	paint.PaintOp{}.Add(gtx.Ops)
 	return layout.Dimensions{Size: image.Pt(w, h)}
 }
 
 func drawDisc(ops *op.Ops, radius float32, col color.NRGBA) {
-	defer op.Save(ops).Load()
 	r2 := radius * .5
 	dr := f32.Rectangle{Max: f32.Pt(radius, radius)}
-	clip.RRect{
+	defer clip.RRect{
 		Rect: dr,
 		NE:   r2, NW: r2, SE: r2, SW: r2,
-	}.Add(ops)
+	}.Push(ops).Pop()
 	paint.ColorOp{Color: col}.Add(ops)
 	paint.PaintOp{}.Add(ops)
 }
@@ -1286,13 +1287,13 @@ func (b Background) Layout(gtx layout.Context, w layout.Widget) layout.Dimension
 	// Clip corners, if any.
 	if r := gtx.Px(b.CornerRadius); r > 0 {
 		rr := float32(r)
-		clip.RRect{
+		defer clip.RRect{
 			Rect: f32.Rectangle{Max: f32.Point{
 				X: float32(sz.X),
 				Y: float32(sz.Y),
 			}},
 			NE: rr, NW: rr, SE: rr, SW: rr,
-		}.Add(gtx.Ops)
+		}.Push(gtx.Ops).Pop()
 	}
 	fill{b.Color}.Layout(gtx, sz)
 	call.Add(gtx.Ops)
@@ -1304,8 +1305,7 @@ type fill struct {
 }
 
 func (f fill) Layout(gtx layout.Context, sz image.Point) layout.Dimensions {
-	defer op.Save(gtx.Ops).Load()
-	clip.Rect(image.Rectangle{Max: sz}).Add(gtx.Ops)
+	defer clip.Rect(image.Rectangle{Max: sz}).Push(gtx.Ops).Pop()
 	paint.ColorOp{Color: f.col}.Add(gtx.Ops)
 	paint.PaintOp{}.Add(gtx.Ops)
 	return layout.Dimensions{Size: sz}
