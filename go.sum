@@ -1028,3 +1028,5 @@ software.sslmate.com/src/go-pkcs12 v0.0.0-20180114231543-2291e8f0f237/go.mod h1:
 sourcegraph.com/sourcegraph/appdash v0.0.0-20190731080439-ebfcffb1b5c0/go.mod h1:hI742Nqp5OhwiqlzhgfbWU4mW4yO10fP+LoT9WOswdU=
 tailscale.com v1.1.1-0.20211017005343-9af27ba8295e h1:j/1n2uNFWvCBylwGt7XEkdBkF4ZK4z6mV0oH+VB77Aw=
 tailscale.com v1.1.1-0.20211017005343-9af27ba8295e/go.mod h1:RYRzZaIPnYgs4zCaqDwjD9XNPi+UScMcPa/LG3Q5Kqs=
+tailscale.com v1.1.1-0.20211021015850-c60806b55771 h1:bxxYRRkBeTlmL/SGm6uKwtV7nUiY0gfYZy940IOkpbs=
+tailscale.com v1.1.1-0.20211021015850-c60806b55771/go.mod h1:lZrlNxD3/5SC5L/I/sYas5GNR1KrFhwSBW0+aRF23DA=
