@@ -23,10 +23,10 @@ VERSIONCODE=$(lastword $(shell grep versionCode android/build.gradle))
 VERSIONCODE_PLUSONE=$(shell expr $(VERSIONCODE) + 1)
 
 # When you update TOOLCHAINREV, also update TOOLCHAINWANT
-TOOLCHAINREV=097d1284f961420864b68df0ad332f11824a3424
+TOOLCHAINREV=7037d3ea514849c335b5c34d1f7e9380d17bd974
 TOOLCHAINDIR=${HOME}/.cache/tailscale-android-go-$(TOOLCHAINREV)
 TOOLCHAINSUM=$(shell find $(TOOLCHAINDIR) -type f -print0 | sort -z | xargs -0 sha1sum | sha1sum | cut -d" " -f1)
-TOOLCHAINWANT=9b409fcc9a6c5682b93fe8804616e4362800294c
+TOOLCHAINWANT=1d3aded66a653a1d63c8a12952bd82327903a107
 export PATH := $(TOOLCHAINDIR)/go/bin:$(PATH)
 
 all: $(APK)
