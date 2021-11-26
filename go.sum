@@ -120,6 +120,8 @@ github.com/gobwas/ws v1.0.2 h1:CoAavW/wd/kulfZmSIBt6p24n4j7tHgNVCjsfHVNUbo=
 github.com/gobwas/ws v1.0.2/go.mod h1:szmBTxLgaFppYjEmNtny/v3w89xOydFnnZMcgRRu/EM=
 github.com/godbus/dbus/v5 v5.0.5 h1:9Eg0XUhQxtkV8ykTMKtMMYY72g4NgxtRq4jgh4Ih5YM=
 github.com/godbus/dbus/v5 v5.0.5/go.mod h1:xhWf0FNVPg57R7Z0UbKHbJfkEywrmjJnf7w5xrFpKfA=
+github.com/godbus/dbus/v5 v5.0.6 h1:mkgN1ofwASrYnJ5W6U/BxG15eXXXjirgZc7CLqkcaro=
+github.com/godbus/dbus/v5 v5.0.6/go.mod h1:xhWf0FNVPg57R7Z0UbKHbJfkEywrmjJnf7w5xrFpKfA=
 github.com/gogo/googleapis v1.1.0/go.mod h1:gf4bu3Q80BeJ6H1S1vYPm8/ELATdvryBaNFGgqEef3s=
 github.com/gogo/protobuf v1.1.1/go.mod h1:r8qH/GZQm5c6nD/R0oafs1akxWv10x8SbQlK7atdtwQ=
 github.com/gogo/protobuf v1.2.0/go.mod h1:r8qH/GZQm5c6nD/R0oafs1akxWv10x8SbQlK7atdtwQ=
@@ -547,6 +549,8 @@ golang.org/x/sys v0.0.0-20211110154304-99a53858aa08 h1:WecRHqgE09JBkh/584XIE6PMz
 golang.org/x/sys v0.0.0-20211110154304-99a53858aa08/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/term v0.0.0-20201117132131-f5c789dd3221/go.mod h1:Nr5EML6q2oocZ2LXRh80K7BxOlk5/8JxuGnuhpl+muw=
 golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1/go.mod h1:bj7SfCRtBDWHUb9snDiAeCFNEtKQo2Wmx5Cou7ajbmo=
+golang.org/x/term v0.0.0-20210503060354-a79de5458b56 h1:b8jxX3zqjpqb2LklXPzKSGJhzyxCOZSz8ncv8Nv+y7w=
+golang.org/x/term v0.0.0-20210503060354-a79de5458b56/go.mod h1:tfny5GFUkzUvx4ps4ajbZsCe5lw1metzhBm9T3x7oIY=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
 golang.org/x/text v0.3.2/go.mod h1:bEr9sfX3Q8Zfm5fL9x+3itogRgK3+ptLWKqgva+5dAk=
 golang.org/x/text v0.3.3/go.mod h1:5Zoc/QRtKVWzQhOtBMvqHzDpF6irO9z98xDceosuGiQ=
@@ -640,6 +644,8 @@ inet.af/netaddr v0.0.0-20211027220019-c74959edd3b6 h1:acCzuUSQ79tGsM/O50VRFySfMm
 inet.af/netaddr v0.0.0-20211027220019-c74959edd3b6/go.mod h1:y3MGhcFMlh0KZPMuXXow8mpjxxAk3yoDNsp4cQz54i8=
 inet.af/netstack v0.0.0-20211101182044-1c1bcf452982 h1:hYciifHEv98/p8ln52ybKhgQpGouZWALFxxFE65RVdU=
 inet.af/netstack v0.0.0-20211101182044-1c1bcf452982/go.mod h1:fG3G1dekmK8oDX3iVzt8c0zICLMLSN8SjdxbXVt0WjU=
+inet.af/netstack v0.0.0-20211120045802-8aa80cf23d3c h1:nr31qYr+91rWD8klUkPx3eGTZzumCC414UJG1QRKZTc=
+inet.af/netstack v0.0.0-20211120045802-8aa80cf23d3c/go.mod h1:KOJdAzQzMLKzwFEdOOnrnSrLIhaFVB+NQoME/e5wllA=
 nhooyr.io/websocket v1.8.7 h1:usjR2uOr/zjjkVMy0lW+PPohFok7PCow5sDjLgX4P4g=
 nhooyr.io/websocket v1.8.7/go.mod h1:B70DZP8IakI65RVQ51MsWP/8jndNma26DVA/nFSCgW0=
 sigs.k8s.io/yaml v1.1.0/go.mod h1:UJmg0vDUVViEyp3mgSv9WPwZCDxu4rQW1olrI1uml+o=
@@ -653,3 +659,7 @@ tailscale.com v1.1.1-0.20211109021509-d6dde5a1aca7 h1:gfDJ/zqR+hPeL3JCOY6akU2VHv
 tailscale.com v1.1.1-0.20211109021509-d6dde5a1aca7/go.mod h1:+3SVDKPct8EqzwfYDQ3RpRwwBodKP7kNs49WXoM7wiw=
 tailscale.com v1.1.1-0.20211116231549-773af7292b95 h1:gyWNQkqxuUbdumPC5XH5rGRQG1iomkTblYVC8A7L7Jw=
 tailscale.com v1.1.1-0.20211116231549-773af7292b95/go.mod h1:XzG4o2vtYFkVvmJWPaTGSaOzqlKSRx2WU+aJbrxaVE0=
+tailscale.com v1.1.1-0.20211125194829-5669067fe064 h1:OPPej8qiIUT8AsD8tET8oQyZWN3uDbgX4UW+KV1WF5E=
+tailscale.com v1.1.1-0.20211125194829-5669067fe064/go.mod h1:i+JH48j9W4tCWOzunNJfrEZcZRQgavPQXO57oh3cwGE=
+tailscale.com v1.1.1-0.20211125200034-e24f89efad22 h1:BCCsNwOxI+Oo4E7GCWcIrOCfVmyYkQDI/iYBYyj/kpA=
+tailscale.com v1.1.1-0.20211125200034-e24f89efad22/go.mod h1:i+JH48j9W4tCWOzunNJfrEZcZRQgavPQXO57oh3cwGE=
