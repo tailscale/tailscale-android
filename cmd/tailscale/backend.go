@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"path/filepath"
 	"reflect"
 	"time"
@@ -18,9 +19,11 @@ import (
 	"inet.af/netaddr"
 	"tailscale.com/ipn"
 	"tailscale.com/ipn/ipnlocal"
+	"tailscale.com/logpolicy"
 	"tailscale.com/logtail"
 	"tailscale.com/logtail/filch"
 	"tailscale.com/net/dns"
+	"tailscale.com/smallzstd"
 	"tailscale.com/types/logger"
 	"tailscale.com/wgengine"
 	"tailscale.com/wgengine/router"
@@ -273,6 +276,14 @@ func (b *backend) SetupLogs(logDir string, logID logtail.PrivateID) {
 		Collection: "tailnode.log.tailscale.io",
 		PrivateID:  logID,
 		Stderr:     log.Writer(),
+		NewZstdEncoder: func() logtail.Encoder {
+			w, err := smallzstd.NewEncoder(nil)
+			if err != nil {
+				panic(err)
+			}
+			return w
+		},
+		HTTPC: &http.Client{Transport: logpolicy.NewLogtailTransport(logtail.DefaultHost)},
 	}
 	drainCh := make(chan struct{})
 	logcfg.DrainLogs = drainCh
