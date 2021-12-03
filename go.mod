@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	eliasnaur.com/font v0.0.0-20200617114307-e02d32decb4b
-	gioui.org v0.0.0-20211016064351-4d22a926a9dd
+	gioui.org v0.0.0-20211201165704-e6e69812af7f
 	gioui.org/cmd v0.0.0-20210925100615-41f3a7e74ee6
 	golang.org/x/exp v0.0.0-20210722180016-6781d3edade3
 	golang.org/x/sys v0.0.0-20211110154304-99a53858aa08
@@ -15,8 +15,9 @@ require (
 
 require (
 	gioui.org/cpu v0.0.0-20210817075930-8d6a761490d2 // indirect
-	gioui.org/shader v1.0.4 // indirect
+	gioui.org/shader v1.0.6 // indirect
 	github.com/akavel/rsrc v0.10.1 // indirect
+	github.com/akutz/memconn v0.1.0 // indirect
 	github.com/alexbrainman/sspi v0.0.0-20210105120005-909beea2cc74 // indirect
 	github.com/coreos/go-iptables v0.6.0 // indirect
 	github.com/go-ole/go-ole v1.2.6-0.20210915003542-8b1f7f90f6b1 // indirect
