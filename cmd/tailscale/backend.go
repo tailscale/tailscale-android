@@ -23,6 +23,7 @@ import (
 	"tailscale.com/logtail"
 	"tailscale.com/logtail/filch"
 	"tailscale.com/net/dns"
+	"tailscale.com/net/tsdial"
 	"tailscale.com/smallzstd"
 	"tailscale.com/types/logger"
 	"tailscale.com/wgengine"
@@ -90,6 +91,7 @@ func newBackend(dataDir string, jvm *jni.JVM, store *stateStore, settings settin
 		logID.UnmarshalText([]byte(storedLogID))
 	}
 	b.SetupLogs(dataDir, logID)
+	dialer := new(tsdial.Dialer)
 	cb := &router.CallbackRouter{
 		SetBoth:  b.setCfg,
 		SplitDNS: false, // TODO: https://github.com/tailscale/tailscale/issues/1695
@@ -98,11 +100,12 @@ func newBackend(dataDir string, jvm *jni.JVM, store *stateStore, settings settin
 		Tun:    b.devices,
 		Router: cb,
 		DNS:    cb,
+		Dialer: dialer,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("runBackend: NewUserspaceEngine: %v", err)
 	}
-	local, err := ipnlocal.NewLocalBackend(logf, logID.Public().String(), store, engine)
+	local, err := ipnlocal.NewLocalBackend(logf, logID.Public().String(), store, dialer, engine)
 	if err != nil {
 		engine.Close()
 		return nil, fmt.Errorf("runBackend: NewLocalBackend: %v", err)
