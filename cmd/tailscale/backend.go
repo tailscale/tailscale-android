@@ -102,7 +102,6 @@ func newBackend(dataDir string, jvm *jni.JVM, appCtx jni.Object, store *stateSto
 		logID.UnmarshalText([]byte(storedLogID))
 	}
 	b.SetupLogs(dataDir, logID)
-
 	dialer := new(tsdial.Dialer)
 	cb := &router.CallbackRouter{
 		SetBoth:           b.setCfg,
