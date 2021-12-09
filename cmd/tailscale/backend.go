@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/tailscale/tailscale-android/jni"
@@ -26,6 +27,7 @@ import (
 	"tailscale.com/net/tsdial"
 	"tailscale.com/smallzstd"
 	"tailscale.com/types/logger"
+	"tailscale.com/util/dnsname"
 	"tailscale.com/wgengine"
 	"tailscale.com/wgengine/router"
 )
@@ -42,7 +44,8 @@ type backend struct {
 	// when no nameservers are provided by Tailscale.
 	avoidEmptyDNS bool
 
-	jvm *jni.JVM
+	jvm    *jni.JVM
+	appCtx jni.Object
 }
 
 type settingsFunc func(*router.Config, *dns.OSConfig) error
@@ -59,19 +62,27 @@ const (
 	loginMethodWeb    = "web"
 )
 
-var fallbackNameservers = []netaddr.IP{netaddr.IPv4(8, 8, 8, 8), netaddr.IPv4(8, 8, 4, 4)}
+// googleDnsServers are used on ChromeOS, where an empty VpnBuilder DNS setting results
+// in erasing the platform DNS servers. The developer docs say this is not supposed to happen,
+// but nonetheless it does.
+var googleDnsServers = []netaddr.IP{netaddr.MustParseIP("8.8.8.8"), netaddr.MustParseIP("8.8.4.4"),
+	netaddr.MustParseIP("2001:4860:4860::8888"), netaddr.MustParseIP("2001:4860:4860::8844"),
+}
 
 // errVPNNotPrepared is used when VPNService.Builder.establish returns
 // null, either because the VPNService is not yet prepared or because
 // VPN status was revoked.
 var errVPNNotPrepared = errors.New("VPN service not prepared or was revoked")
 
-func newBackend(dataDir string, jvm *jni.JVM, store *stateStore, settings settingsFunc) (*backend, error) {
+func newBackend(dataDir string, jvm *jni.JVM, appCtx jni.Object, store *stateStore,
+	settings settingsFunc) (*backend, error) {
+
 	logf := logger.RusagePrefixLog(log.Printf)
 	b := &backend{
 		jvm:      jvm,
 		devices:  newTUNDevices(),
 		settings: settings,
+		appCtx:   appCtx,
 	}
 	var logID logtail.PrivateID
 	logID.UnmarshalText([]byte("dead0000dead0000dead0000dead0000dead0000dead0000dead0000dead0000"))
@@ -93,8 +104,9 @@ func newBackend(dataDir string, jvm *jni.JVM, store *stateStore, settings settin
 	b.SetupLogs(dataDir, logID)
 	dialer := new(tsdial.Dialer)
 	cb := &router.CallbackRouter{
-		SetBoth:  b.setCfg,
-		SplitDNS: false, // TODO: https://github.com/tailscale/tailscale/issues/1695
+		SetBoth:           b.setCfg,
+		SplitDNS:          false,
+		GetBaseConfigFunc: b.getDNSBaseConfig,
 	}
 	engine, err := wgengine.NewUserspaceEngine(logf, wgengine.Config{
 		Tun:    b.devices,
@@ -173,7 +185,7 @@ func (b *backend) updateTUN(service jni.Object, rcfg *router.Config, dcfg *dns.O
 		if dcfg != nil {
 			nameservers := dcfg.Nameservers
 			if b.avoidEmptyDNS && len(nameservers) == 0 {
-				nameservers = fallbackNameservers
+				nameservers = googleDnsServers
 			}
 			for _, dns := range nameservers {
 				_, err = jni.CallObjectMethod(env,
@@ -326,4 +338,90 @@ func (b *backend) SetupLogs(logDir string, logID logtail.PrivateID) {
 	if filchErr != nil {
 		log.Printf("SetupLogs: filch setup failed: %v", filchErr)
 	}
+}
+
+// We log the result of each of the DNS configuration discovery mechanisms, as we're
+// expecting a long tail of obscure Android devices with interesting behavior.
+func (b *backend) logDNSConfigMechanisms() {
+	err := jni.Do(b.jvm, func(env *jni.Env) error {
+		cls := jni.GetObjectClass(env, b.appCtx)
+		m := jni.GetMethodID(env, cls, "getDnsConfigObj", "()Lcom/tailscale/ipn/DnsConfig;")
+		dns, err := jni.CallObjectMethod(env, b.appCtx, m)
+		if err != nil {
+			return fmt.Errorf("getDnsConfigObj JNI: %v", err)
+		}
+		dnsCls := jni.GetObjectClass(env, dns)
+
+		for _, impl := range []string{"getDnsConfigFromLinkProperties",
+			"getDnsServersFromSystemProperties",
+			"getDnsServersFromNetworkInfo"} {
+
+			m = jni.GetMethodID(env, dnsCls, impl, "()Ljava/lang/String;")
+			n, err := jni.CallObjectMethod(env, dns, m)
+			baseConfig := jni.GoString(env, jni.String(n))
+			if err != nil {
+				log.Printf("%s JNI: %v", impl, err)
+			} else {
+				oneLine := strings.Replace(baseConfig, "\n", ";", -1)
+				log.Printf("%s: %s", impl, oneLine)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		log.Printf("logDNSConfigMechanisms: %v", err)
+	}
+}
+
+func (b *backend) getPlatformDNSConfig() string {
+	var baseConfig string
+	err := jni.Do(b.jvm, func(env *jni.Env) error {
+		cls := jni.GetObjectClass(env, b.appCtx)
+		m := jni.GetMethodID(env, cls, "getDnsConfigObj", "()Lcom/tailscale/ipn/DnsConfig;")
+		dns, err := jni.CallObjectMethod(env, b.appCtx, m)
+		if err != nil {
+			return fmt.Errorf("getDnsConfigObj: %v", err)
+		}
+		dnsCls := jni.GetObjectClass(env, dns)
+		m = jni.GetMethodID(env, dnsCls, "getDnsConfigAsString", "()Ljava/lang/String;")
+		n, err := jni.CallObjectMethod(env, dns, m)
+		baseConfig = jni.GoString(env, jni.String(n))
+		return err
+	})
+	if err != nil {
+		log.Printf("getPlatformDNSConfig JNI: %v", err)
+		return ""
+	}
+	return baseConfig
+}
+
+func (b *backend) getDNSBaseConfig() (dns.OSConfig, error) {
+	b.logDNSConfigMechanisms()
+	baseConfig := b.getPlatformDNSConfig()
+	lines := strings.Split(baseConfig, "\n")
+	if len(lines) == 0 {
+		return dns.OSConfig{}, nil
+	}
+
+	config := dns.OSConfig{}
+	addrs := strings.Trim(lines[0], " \n")
+	for _, addr := range strings.Split(addrs, " ") {
+		ip, err := netaddr.ParseIP(addr)
+		if err == nil {
+			config.Nameservers = append(config.Nameservers, ip)
+		}
+	}
+
+	if len(lines) > 1 {
+		for _, s := range strings.Split(strings.Trim(lines[1], " \n"), " ") {
+			domain, err := dnsname.ToFQDN(s)
+			if err != nil {
+				log.Printf("getDNSBaseConfig: unable to parse %q: %v", s, err)
+				continue
+			}
+			config.SearchDomains = append(config.SearchDomains, domain)
+		}
+	}
+
+	return config, nil
 }
