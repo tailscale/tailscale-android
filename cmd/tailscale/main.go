@@ -471,6 +471,9 @@ func (a *App) runBackend() error {
 				}
 			}
 		case connected := <-onConnectivityChange:
+			if state.LostInternet != !connected {
+				log.Printf("LostInternet state change: %v -> %v", state.LostInternet, !connected)
+			}
 			state.LostInternet = !connected
 			if b != nil {
 				go b.LinkChange()

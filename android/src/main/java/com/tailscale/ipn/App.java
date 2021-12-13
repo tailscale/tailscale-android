@@ -26,6 +26,7 @@ import android.provider.Settings;
 import android.net.ConnectivityManager;
 import android.net.LinkProperties;
 import android.net.Network;
+import android.net.NetworkInfo;
 import android.net.NetworkRequest;
 import android.net.Uri;
 import android.net.VpnService;
@@ -98,14 +99,23 @@ public class App extends Application {
 	private void registerNetworkCallback() {
 		ConnectivityManager cMgr = (ConnectivityManager) this.getSystemService(Context.CONNECTIVITY_SERVICE);
 		cMgr.registerNetworkCallback(new NetworkRequest.Builder().build(), new ConnectivityManager.NetworkCallback() {
+			private void reportConnectivityChange() {
+				NetworkInfo active = cMgr.getActiveNetworkInfo();
+				// https://developer.android.com/training/monitoring-device-state/connectivity-status-type
+				boolean isConnected = active != null && active.isConnectedOrConnecting();
+				onConnectivityChanged(isConnected);
+			}
+
 			@Override
 			public void onLost(Network network) {
-				onConnectivityChanged(false);
+				super.onLost(network);
+				this.reportConnectivityChange();
 			}
 
 			@Override
 			public void onLinkPropertiesChanged(Network network, LinkProperties linkProperties) {
-				onConnectivityChanged(true);
+				super.onLinkPropertiesChanged(network, linkProperties);
+				this.reportConnectivityChange();
 			}
 		});
 	}
