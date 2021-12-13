@@ -10,7 +10,7 @@ require (
 	golang.org/x/sys v0.0.0-20211205182925-97ca703d548d
 	golang.zx2c4.com/wireguard v0.0.0-20211116201604-de7c702ace45
 	inet.af/netaddr v0.0.0-20211027220019-c74959edd3b6
-	tailscale.com v1.1.1-0.20211209004911-878a20df29fa
+	tailscale.com v1.1.1-0.20211211044717-cced414c7dd5
 )
 
 require (
@@ -23,6 +23,7 @@ require (
 	github.com/coreos/go-iptables v0.6.0 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/godbus/dbus/v5 v5.0.6 // indirect
+	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/google/btree v1.0.1 // indirect
 	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/insomniacslk/dhcp v0.0.0-20211026125128-ad197bcd36fd // indirect
