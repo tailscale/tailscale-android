@@ -55,6 +55,15 @@ $(DEBUG_APK): toolchain
 	(cd android && ./gradlew assemblePlayDebug)
 	mv android/build/outputs/apk/play/debug/android-play-debug.apk $@
 
+# tailscale-fdroid.apk builds a non-Google Play SDK, without the Google bits.
+# This is effectively what the F-Droid build definition produces.
+# This is useful for testing on e.g. Amazon Fire Stick devices.
+tailscale-fdroid.apk: toolchain
+	mkdir -p android/libs
+	go run gioui.org/cmd/gogio -buildmode archive -target android -appid $(APPID) -o $(AAR) github.com/tailscale/tailscale-android/cmd/tailscale
+	(cd android && ./gradlew assembleFdroidDebug)
+	mv android/build/outputs/apk/fdroid/debug/android-fdroid-debug.apk $@
+
 # This target is also used by the F-Droid builder.
 release_aar: toolchain
 release_aar:
