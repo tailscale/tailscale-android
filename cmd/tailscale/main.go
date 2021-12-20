@@ -23,6 +23,7 @@ import (
 	"unsafe"
 
 	"gioui.org/app"
+	"gioui.org/io/key"
 	"gioui.org/io/system"
 	"gioui.org/layout"
 	"gioui.org/op"
@@ -857,12 +858,16 @@ func (a *App) runUI() error {
 			w.Invalidate()
 		case state.browseURL = <-a.browseURLs:
 			ui.signinType = noSignin
+			ui.showQRCode(state.browseURL)
 			w.Invalidate()
 			a.updateState(activity, state)
 		case newState := <-a.netStates:
 			oldState := state.backend.State
 			state.backend = newState
 			a.updateState(activity, state)
+			if state.backend.State > ipn.Stopped {
+				ui.showQRCode("")
+			}
 			w.Invalidate()
 			if activity != 0 {
 				newState := state.backend.State
@@ -896,7 +901,16 @@ func (a *App) runUI() error {
 		case <-a.invalidates:
 			w.Invalidate()
 		case e := <-w.Events():
+			log.Printf("XXX app event: %T %#v", e, e)
 			switch e := e.(type) {
+			case key.Event:
+				switch e.Name {
+				case key.NameEnter:
+					if ui.onEnter() {
+						// e.Cancel = true
+						w.Invalidate()
+					}
+				}
 			case app.ViewEvent:
 				deleteActivityRef()
 				view := jni.Object(e.View)
@@ -969,7 +983,7 @@ func (a *App) attachPeer(act jni.Object) {
 
 func (a *App) updateState(act jni.Object, state *clientState) {
 	if act != 0 && state.browseURL != "" {
-		a.browseToURL(act, state.browseURL)
+		// XXX a.browseToURL(act, state.browseURL)
 		state.browseURL = ""
 	}
 

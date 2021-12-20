@@ -24,6 +24,7 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+	qrcode "github.com/skip2/go-qrcode"
 	"golang.org/x/exp/shiny/materialdesign/icons"
 	"inet.af/netaddr"
 	"tailscale.com/client/tailscale/apitype"
@@ -69,6 +70,9 @@ type UI struct {
 		exits   widget.Enum
 		list    layout.List
 	}
+
+	qrURL   string // or empty
+	qrPaint paint.ImageOp
 
 	intro struct {
 		list  layout.List
@@ -249,6 +253,22 @@ func (ui *UI) onBack() bool {
 		return true
 	}
 	return false
+}
+
+func (ui *UI) onEnter() bool {
+	switch {
+	case ui.intro.show:
+		ui.dismissIntro()
+		return true
+	}
+	ui.webSignin.Click()
+	return true
+	//	return false
+}
+
+func (ui *UI) dismissIntro() {
+	ui.store.WriteBool(keyShowIntro, false)
+	ui.intro.show = false
 }
 
 func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientState) []UIEvent {
@@ -446,13 +466,30 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 	// "Get started".
 	if ui.intro.show {
 		if ui.intro.start.Clicked() {
-			ui.store.WriteBool(keyShowIntro, false)
-			ui.intro.show = false
+			ui.dismissIntro()
 		}
 		ui.layoutIntro(gtx, sysIns)
 	}
 
+	if ui.qrURL != "" {
+		ui.layoutQR(gtx, sysIns)
+	}
+
 	return events
+}
+
+func (ui *UI) layoutQR(gtx layout.Context, sysIns system.Insets) {
+	fill{rgb(0x232323)}.Layout(gtx, gtx.Constraints.Max)
+	ui.intro.list.Layout(gtx, 1, func(gtx C, idx int) D {
+		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+			// "tailscale".
+			layout.Rigid(func(gtx C) D {
+				return layout.N.Layout(gtx, func(gtx C) D {
+					return drawImage(gtx, ui.qrPaint, unit.Dp(300))
+				})
+			}),
+		)
+	})
 }
 
 func (ui *UI) FillShareDialog(targets []*apitype.FileTarget, err error) {
@@ -483,6 +520,20 @@ func (ui *UI) ShowShareDialog() {
 func (ui *UI) ShowMessage(msg string) {
 	ui.message.text = msg
 	ui.message.t0 = time.Now()
+}
+
+func (ui *UI) showQRCode(url string) {
+	if ui.qrURL == url {
+		return
+	}
+	ui.qrURL = url
+	ui.qrPaint = paint.ImageOp{}
+	if url != "" {
+		q, err := qrcode.New(url, qrcode.Medium)
+		if err == nil {
+			ui.qrPaint = paint.NewImageOp(q.Image(512))
+		}
+	}
 }
 
 // Dismiss is a widget that detects pointer presses.

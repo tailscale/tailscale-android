@@ -26,7 +26,7 @@ VERSIONCODE_PLUSONE=$(shell expr $(VERSIONCODE) + 1)
 TOOLCHAINREV=7037d3ea514849c335b5c34d1f7e9380d17bd974
 TOOLCHAINDIR=${HOME}/.cache/tailscale-android-go-$(TOOLCHAINREV)
 TOOLCHAINSUM=$(shell find $(TOOLCHAINDIR) -type f -print0 | sort -z | xargs -0 sha1sum | sha1sum | cut -d" " -f1)
-TOOLCHAINWANT=1d3aded66a653a1d63c8a12952bd82327903a107
+TOOLCHAINWANT=a5821ced7598c20f4f577f725708b65328a5d9b6
 export PATH := $(TOOLCHAINDIR)/go/bin:$(PATH)
 
 all: $(APK)

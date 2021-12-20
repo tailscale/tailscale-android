@@ -35,6 +35,7 @@ require (
 	github.com/mdlayher/socket v0.0.0-20211102153432-57e3fa563ecb // indirect
 	github.com/mitchellh/go-ps v1.0.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e // indirect
 	github.com/tailscale/certstore v0.0.0-20210528134328-066c94b793d3 // indirect
 	github.com/tailscale/goupnp v1.0.1-0.20210804011211-c64d0f06ea05 // indirect
 	github.com/tailscale/netlink v1.1.1-0.20211101221916-cabfb018fe85 // indirect
@@ -61,3 +62,5 @@ require (
 	inet.af/netstack v0.0.0-20211120045802-8aa80cf23d3c // indirect
 	nhooyr.io/websocket v1.8.7 // indirect
 )
+
+replace gioui.org => ./gio
