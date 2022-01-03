@@ -33,6 +33,12 @@ RUN echo y | $ANDROID_HOME/tools/bin/sdkmanager 'build-tools;28.0.3'
 ENV PATH $PATH:$HOME/bin:$ANDROID_HOME/platform-tools
 ENV ANDROID_SDK_ROOT /build/android-sdk
 
+# We need some version of Go new enough to support the "embed" package
+# to run "go run tailscale.com/cmd/printdep" to figure out which Tailscale Go
+# version we need later, but otherwise this toolchain isn't used:
+RUN curl -L https://go.dev/dl/go1.17.5.linux-amd64.tar.gz | tar -C /usr/local -zxv
+RUN ln -s /usr/local/go/bin/go /usr/bin
+
 RUN mkdir -p $HOME/tailscale-android
 WORKDIR $HOME/tailscale-android
 
