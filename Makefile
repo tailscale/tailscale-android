@@ -27,6 +27,7 @@ TOOLCHAINDIR=${HOME}/.cache/tailscale-android-go-$(TOOLCHAINREV)
 TOOLCHAINSUM=$(shell $(TOOLCHAINDIR)/go/bin/go version >/dev/null && echo "okay" || echo "bad")
 TOOLCHAINWANT=okay
 export PATH := $(TOOLCHAINDIR)/go/bin:$(PATH)
+export GOROOT := # Unset
 
 all: $(APK)
 
@@ -50,6 +51,10 @@ $(DEBUG_APK): toolchain
 	go run gioui.org/cmd/gogio -buildmode archive -target android -appid $(APPID) -o $(AAR) github.com/tailscale/tailscale-android/cmd/tailscale
 	(cd android && ./gradlew assemblePlayDebug)
 	mv android/build/outputs/apk/play/debug/android-play-debug.apk $@
+
+rundebug: $(DEBUG_APK)
+	adb install -r $(DEBUG_APK)
+	adb shell am start -n com.tailscale.ipn/com.tailscale.ipn.IPNActivity
 
 # tailscale-fdroid.apk builds a non-Google Play SDK, without the Google bits.
 # This is effectively what the F-Droid build definition produces.
