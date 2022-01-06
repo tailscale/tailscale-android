@@ -40,6 +40,8 @@ type backend struct {
 	lastCfg    *router.Config
 	lastDNSCfg *dns.OSConfig
 
+	logIDPublic string
+
 	// avoidEmptyDNS controls whether to use fallback nameservers
 	// when no nameservers are provided by Tailscale.
 	avoidEmptyDNS bool
@@ -117,7 +119,8 @@ func newBackend(dataDir string, jvm *jni.JVM, appCtx jni.Object, store *stateSto
 	if err != nil {
 		return nil, fmt.Errorf("runBackend: NewUserspaceEngine: %v", err)
 	}
-	local, err := ipnlocal.NewLocalBackend(logf, logID.Public().String(), store, dialer, engine)
+	b.logIDPublic = logID.Public().String()
+	local, err := ipnlocal.NewLocalBackend(logf, b.logIDPublic, store, dialer, engine)
 	if err != nil {
 		engine.Close()
 		return nil, fmt.Errorf("runBackend: NewLocalBackend: %v", err)

@@ -6,7 +6,9 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/sha1"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -19,6 +21,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync/atomic"
 	"time"
 	"unsafe"
 
@@ -47,7 +50,8 @@ type App struct {
 	// appCtx is a global reference to the com.tailscale.ipn.App instance.
 	appCtx jni.Object
 
-	store *stateStore
+	store             *stateStore
+	logIDPublicAtomic atomic.Value // of string
 
 	// netStates receives the most recent network state.
 	netStates chan BackendState
@@ -180,6 +184,7 @@ type FileSendEvent struct {
 type (
 	ToggleEvent     struct{}
 	ReauthEvent     struct{}
+	BugEvent        struct{}
 	WebAuthEvent    struct{}
 	GoogleAuthEvent struct{}
 	LogoutEvent     struct{}
@@ -266,6 +271,7 @@ func (a *App) runBackend() error {
 	if err != nil {
 		return err
 	}
+	a.logIDPublicAtomic.Store(b.logIDPublic)
 	defer b.CloseTUNs()
 
 	// Contrary to the documentation for VpnService.Builder.addDnsServer,
@@ -1059,6 +1065,11 @@ func (a *App) processUIEvents(w *app.Window, events []UIEvent, act jni.Object, s
 			default:
 				requestBackend(WebAuthEvent{})
 			}
+		case BugEvent:
+			backendLogID, _ := a.logIDPublicAtomic.Load().(string)
+			logMarker := fmt.Sprintf("BUG-%v-%v-%v", backendLogID, time.Now().UTC().Format("20060102150405Z"), randHex(8))
+			log.Printf("user bugreport: %s", logMarker)
+			w.WriteClipboard(logMarker)
 		case WebAuthEvent:
 			a.store.WriteString(loginMethodPrefKey, loginMethodWeb)
 			requestBackend(e)
@@ -1340,4 +1351,10 @@ func (a *App) getInterfaces() ([]interfaces.Interface, error) {
 func fatalErr(err error) {
 	// TODO: expose in UI.
 	log.Printf("fatal error: %v", err)
+}
+
+func randHex(n int) string {
+	b := make([]byte, n)
+	rand.Read(b)
+	return hex.EncodeToString(b)
 }
