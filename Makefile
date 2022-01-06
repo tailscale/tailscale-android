@@ -22,8 +22,7 @@ TAILSCALE_COMMIT=$(shell echo $(TAILSCALE_VERSION) | cut -d - -f 2 | cut -d t -f
 VERSIONCODE=$(lastword $(shell grep versionCode android/build.gradle))
 VERSIONCODE_PLUSONE=$(shell expr $(VERSIONCODE) + 1)
 
-# When you update TOOLCHAINREV, also update TOOLCHAINWANT
-TOOLCHAINREV=$(shell go run tailscale.com/cmd/printdep -go)
+TOOLCHAINREV=$(shell go run tailscale.com/cmd/printdep --go)
 TOOLCHAINDIR=${HOME}/.cache/tailscale-android-go-$(TOOLCHAINREV)
 TOOLCHAINSUM=$(shell $(TOOLCHAINDIR)/go/bin/go version >/dev/null && echo "okay" || echo "bad")
 TOOLCHAINWANT=okay
@@ -42,11 +41,8 @@ ifneq ($(TOOLCHAINWANT),$(TOOLCHAINSUM))
 	@echo want: $(TOOLCHAINWANT)
 	@echo got: $(TOOLCHAINSUM)
 	rm -rf ${HOME}/.cache/tailscale-android-go-*
-	$(eval tmpfile=$(shell mktemp --suffix=.tgz))
-	wget https://github.com/tailscale/go/releases/download/build-$(TOOLCHAINREV)/linux.tar.gz -O "$(tmpfile)"
 	mkdir -p $(TOOLCHAINDIR)
-	tar xzf $(tmpfile) -C $(TOOLCHAINDIR)
-	rm $(tmpfile)
+	curl --silent -L $(shell go run tailscale.com/cmd/printdep --go-url) | tar -C $(TOOLCHAINDIR) -zx
 endif
 
 $(DEBUG_APK): toolchain
