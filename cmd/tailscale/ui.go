@@ -83,6 +83,7 @@ type UI struct {
 
 		copy   widget.Clickable
 		reauth widget.Clickable
+		bug    widget.Clickable
 		exits  widget.Clickable
 		logout widget.Clickable
 	}
@@ -311,6 +312,11 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 
 	if ui.menuClicked(&ui.menu.reauth) {
 		events = append(events, ReauthEvent{})
+	}
+
+	if ui.menuClicked(&ui.menu.bug) {
+		events = append(events, BugEvent{})
+		ui.showCopied(gtx, "bug report marker to clipboard")
 	}
 
 	if ui.menuClicked(&ui.menu.exits) || ui.openExitDialog.Clicked() {
@@ -965,12 +971,13 @@ func (ui *UI) layoutMenu(gtx layout.Context, sysIns system.Insets, expiry time.T
 		return layout.NE.Layout(gtx, func(gtx C) D {
 			menu := &ui.menu
 			items := []menuItem{
-				{title: "Copy My IP Address", btn: &menu.copy},
+				{title: "Copy my IP address", btn: &menu.copy},
 			}
 			if showExits {
 				items = append(items, menuItem{title: "Use exit node...", btn: &menu.exits})
 			}
 			items = append(items,
+				menuItem{title: "Bug report", btn: &menu.bug},
 				menuItem{title: "Reauthenticate", btn: &menu.reauth},
 				menuItem{title: "Log out", btn: &menu.logout},
 			)
