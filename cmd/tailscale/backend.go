@@ -29,6 +29,7 @@ import (
 	"tailscale.com/types/logger"
 	"tailscale.com/util/dnsname"
 	"tailscale.com/wgengine"
+	"tailscale.com/wgengine/netstack"
 	"tailscale.com/wgengine/router"
 )
 
@@ -120,6 +121,9 @@ func newBackend(dataDir string, jvm *jni.JVM, appCtx jni.Object, store *stateSto
 		return nil, fmt.Errorf("runBackend: NewUserspaceEngine: %v", err)
 	}
 	b.logIDPublic = logID.Public().String()
+	if err := startNetstack(log.Printf, dialer, engine); err != nil {
+		return nil, fmt.Errorf("startNetstack: %w", err)
+	}
 	local, err := ipnlocal.NewLocalBackend(logf, b.logIDPublic, store, dialer, engine)
 	if err != nil {
 		engine.Close()
@@ -427,4 +431,18 @@ func (b *backend) getDNSBaseConfig() (dns.OSConfig, error) {
 	}
 
 	return config, nil
+}
+
+func startNetstack(logf logger.Logf, dialer *tsdial.Dialer, e wgengine.Engine) error {
+	tunDev, magicConn, ok := e.(wgengine.InternalsGetter).GetInternals()
+	if !ok {
+		return fmt.Errorf("%T is not a wgengine.InternalsGetter", e)
+	}
+	ns, err := netstack.Create(logf, tunDev, e, magicConn, dialer)
+	if err != nil {
+		return fmt.Errorf("netstack.Create: %w", err)
+	}
+	ns.ProcessLocalIPs = false
+	ns.ProcessSubnets = true
+	return ns.Start()
 }
