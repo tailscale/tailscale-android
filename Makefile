@@ -37,6 +37,10 @@ tag_release:
 	git commit -sm "android: bump version code" android/build.gradle
 	git tag -a "$(VERSION_LONG)"
 
+bumposs: toolchain
+	GOPROXY=direct go get tailscale.com@main
+	go mod tidy -compat=1.17
+
 toolchain:
 ifneq ($(TOOLCHAINWANT),$(TOOLCHAINSUM))
 	@echo want: $(TOOLCHAINWANT)
