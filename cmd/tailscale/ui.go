@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"strings"
 	"time"
 
 	"gioui.org/f32"
@@ -70,6 +71,9 @@ type UI struct {
 		list    layout.List
 	}
 
+	showDebugMenu bool
+	runningExit   bool // are we an exit node now?
+
 	intro struct {
 		list  layout.List
 		start widget.Clickable
@@ -84,6 +88,7 @@ type UI struct {
 		copy   widget.Clickable
 		reauth widget.Clickable
 		bug    widget.Clickable
+		beExit widget.Clickable
 		exits  widget.Clickable
 		logout widget.Clickable
 	}
@@ -260,7 +265,11 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 
 	for _, e := range ui.search.Events() {
 		if _, ok := e.(widget.ChangeEvent); ok {
-			events = append(events, SearchEvent{Query: ui.search.Text()})
+			text := ui.search.Text()
+			if strings.EqualFold(text, "debug") {
+				ui.showDebugMenu = true
+			}
+			events = append(events, SearchEvent{Query: text})
 			break
 		}
 	}
@@ -317,6 +326,16 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 	if ui.menuClicked(&ui.menu.bug) {
 		events = append(events, BugEvent{})
 		ui.showCopied(gtx, "bug report marker to clipboard")
+	}
+
+	if ui.menuClicked(&ui.menu.beExit) {
+		ui.runningExit = !ui.runningExit
+		events = append(events, BeExitNodeEvent(ui.runningExit))
+		if ui.runningExit {
+			ui.showMessage(gtx, "Running exit node")
+		} else {
+			ui.showMessage(gtx, "Stopped running exit node")
+		}
 	}
 
 	if ui.menuClicked(&ui.menu.exits) || ui.openExitDialog.Clicked() {
@@ -981,6 +1000,15 @@ func (ui *UI) layoutMenu(gtx layout.Context, sysIns system.Insets, expiry time.T
 				menuItem{title: "Reauthenticate", btn: &menu.reauth},
 				menuItem{title: "Log out", btn: &menu.logout},
 			)
+			if ui.runningExit || ui.showDebugMenu {
+				var title string
+				if ui.runningExit {
+					title = "Stop running exit node [BETA]"
+				} else {
+					title = "Run exit node [BETA]"
+				}
+				items = append(items, menuItem{title: title, btn: &menu.beExit})
+			}
 			return layoutMenu(ui.theme, gtx, items, func(gtx C) D {
 				var expiryStr string
 				const fmtStr = time.Stamp
