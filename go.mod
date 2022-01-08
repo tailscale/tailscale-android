@@ -10,7 +10,7 @@ require (
 	golang.org/x/sys v0.0.0-20211205182925-97ca703d548d
 	golang.zx2c4.com/wireguard v0.0.0-20211116201604-de7c702ace45
 	inet.af/netaddr v0.0.0-20211027220019-c74959edd3b6
-	tailscale.com v1.1.1-0.20220107180532-1a4e8da0849f
+	tailscale.com v1.1.1-0.20220107204023-c5243562d78e
 )
 
 require (
