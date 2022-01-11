@@ -182,13 +182,14 @@ type FileSendEvent struct {
 
 // UIEvent types.
 type (
-	ToggleEvent     struct{}
-	ReauthEvent     struct{}
-	BugEvent        struct{}
-	WebAuthEvent    struct{}
-	GoogleAuthEvent struct{}
-	LogoutEvent     struct{}
-	BeExitNodeEvent bool
+	ToggleEvent       struct{}
+	ReauthEvent       struct{}
+	BugEvent          struct{}
+	WebAuthEvent      struct{}
+	GoogleAuthEvent   struct{}
+	LogoutEvent       struct{}
+	BeExitNodeEvent   bool
+	ExitAllowLANEvent bool
 )
 
 // serverOAuthID is the OAuth ID of the tailscale-android server, used
@@ -419,6 +420,9 @@ func (a *App) runBackend() error {
 				go b.backend.SetPrefs(state.Prefs)
 			case BeExitNodeEvent:
 				state.Prefs.SetAdvertiseExitNode(bool(e))
+				go b.backend.SetPrefs(state.Prefs)
+			case ExitAllowLANEvent:
+				state.Prefs.ExitNodeAllowLANAccess = bool(e)
 				go b.backend.SetPrefs(state.Prefs)
 			case WebAuthEvent:
 				if !signingIn {
@@ -865,6 +869,7 @@ func (a *App) runUI() error {
 		case p := <-a.prefs:
 			ui.enabled.Value = p.WantRunning
 			ui.runningExit = p.AdvertisesExitNode()
+			ui.exitLAN.Value = p.ExitNodeAllowLANAccess
 			w.Invalidate()
 		case state.browseURL = <-a.browseURLs:
 			ui.signinType = noSignin
@@ -1076,6 +1081,8 @@ func (a *App) processUIEvents(w *app.Window, events []UIEvent, act jni.Object, s
 			log.Printf("user bugreport: %s", logMarker)
 			w.WriteClipboard(logMarker)
 		case BeExitNodeEvent:
+			requestBackend(e)
+		case ExitAllowLANEvent:
 			requestBackend(e)
 		case WebAuthEvent:
 			a.store.WriteString(loginMethodPrefKey, loginMethodWeb)
