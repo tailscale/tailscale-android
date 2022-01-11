@@ -49,6 +49,8 @@ type UI struct {
 	enabled widget.Bool
 	search  widget.Editor
 
+	exitLAN widget.Bool
+
 	// webSigin is the button for the web-based sign-in flow.
 	webSignin widget.Clickable
 
@@ -302,6 +304,9 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 		}
 	} else {
 		d.exits.Value = string(exitID)
+	}
+	if ui.exitLAN.Changed() {
+		events = append(events, ExitAllowLANEvent(ui.exitLAN.Value))
 	}
 
 	if ui.googleSignin.Clicked() {
@@ -892,12 +897,20 @@ func (ui *UI) layoutExitNodeDialog(gtx layout.Context, sysIns system.Insets, exi
 					}),
 					layout.Flexed(1, func(gtx C) D {
 						gtx.Constraints.Min.Y = 0
-						// Add "none" exit node.
-						n := len(exits) + 1
+						// Add "none" exit node, then "Allow LAN" checkbox, then the exit nodes.
+						n := len(exits) + 2
 						return d.list.Layout(gtx, n, func(gtx C, idx int) D {
+							if idx == 0 {
+								btn := material.CheckBox(ui.theme, &ui.exitLAN, "Allow LAN access")
+								return layout.Inset{
+									Right:  unit.Dp(16),
+									Left:   unit.Dp(16),
+									Bottom: unit.Dp(16),
+								}.Layout(gtx, btn.Layout)
+							}
 							node := Peer{Label: "None", Online: true}
-							if idx >= 1 {
-								node = exits[idx-1]
+							if idx >= 2 {
+								node = exits[idx-2]
 							}
 							lbl := node.Label
 							if !node.Online {
