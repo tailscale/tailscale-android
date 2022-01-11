@@ -87,12 +87,13 @@ type UI struct {
 		dismiss Dismiss
 		show    bool
 
-		copy   widget.Clickable
-		reauth widget.Clickable
-		bug    widget.Clickable
-		beExit widget.Clickable
-		exits  widget.Clickable
-		logout widget.Clickable
+		copy    widget.Clickable
+		reauth  widget.Clickable
+		bug     widget.Clickable
+		beExit  widget.Clickable
+		exits   widget.Clickable
+		logout  widget.Clickable
+		corpDNS widget.Bool
 	}
 
 	// The current pop-up message, if any
@@ -148,6 +149,7 @@ type UIPeer struct {
 type menuItem struct {
 	title string
 	btn   *widget.Clickable
+	bool  *widget.Bool
 }
 
 const (
@@ -959,6 +961,19 @@ func layoutMenu(th *material.Theme, gtx layout.Context, items []menuItem, header
 		}
 		for i := 0; i < len(items); i++ {
 			it := &items[i]
+			if it.bool != nil {
+				children = append(children, layout.Rigid(func(gtx C) D {
+					return layout.UniformInset(unit.Dp(0)).Layout(gtx, func(gtx C) D {
+						gtx.Constraints.Min.X = minWidth
+						dims := material.CheckBox(th, it.bool, it.title).Layout(gtx)
+						if w := dims.Size.X; w > maxWidth {
+							maxWidth = w
+						}
+						return dims
+					})
+				}))
+				continue
+			}
 			children = append(children, layout.Rigid(func(gtx C) D {
 				return material.Clickable(gtx, it.btn, func(gtx C) D {
 					return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx C) D {
@@ -1009,6 +1024,7 @@ func (ui *UI) layoutMenu(gtx layout.Context, sysIns system.Insets, expiry time.T
 				items = append(items, menuItem{title: "Use exit node...", btn: &menu.exits})
 			}
 			items = append(items,
+				menuItem{title: "Use Tailscale DNS", bool: &menu.corpDNS},
 				menuItem{title: "Bug report", btn: &menu.bug},
 				menuItem{title: "Reauthenticate", btn: &menu.reauth},
 				menuItem{title: "Log out", btn: &menu.logout},
