@@ -787,8 +787,9 @@ func (ui *UI) layoutShareDialog(gtx layout.Context, sysIns system.Insets) {
 						})
 						// Swallow clicks to title.
 						var c widget.Clickable
-						gtx.Queue = nil
-						return c.Layout(gtx, func(gtx C) D { return d })
+						gtx.Constraints.Min = d.Size
+						c.Layout(gtx)
+						return d
 					}),
 					layout.Rigid(func(gtx C) D {
 						if d.loaded {
@@ -1144,7 +1145,7 @@ func (ui *UI) layoutTop(gtx layout.Context, sysIns system.Insets, state *Backend
 						if state.State <= ipn.NeedsLogin {
 							return D{}
 						}
-						sw := material.Switch(ui.theme, &ui.enabled, "Enable VPN")
+						sw := material.Switch(ui.theme, &ui.enabled)
 						sw.Color.Enabled = rgb(white)
 						if state.State < ipn.Stopped {
 							sw.Color.Enabled = rgb(0xbbbbbb)
@@ -1166,7 +1167,7 @@ func (ui *UI) layoutTop(gtx layout.Context, sysIns system.Insets, state *Backend
 					if state.State <= ipn.NeedsLogin {
 						return D{}
 					}
-					btn := material.IconButton(ui.theme, &ui.menu.open, ui.icons.more, "Open menu")
+					btn := material.IconButton(ui.theme, &ui.menu.open, ui.icons.more)
 					btn.Color = rgb(white)
 					btn.Background = color.NRGBA{}
 					return btn.Layout(gtx)
