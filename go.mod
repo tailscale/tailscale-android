@@ -16,7 +16,9 @@ require (
 require (
 	gioui.org/cpu v0.0.0-20210817075930-8d6a761490d2 // indirect
 	gioui.org/shader v1.0.4 // indirect
+	github.com/BurntSushi/toml v0.4.1 // indirect
 	github.com/akavel/rsrc v0.10.1 // indirect
+	github.com/akutz/memconn v0.1.0 // indirect
 	github.com/alexbrainman/sspi v0.0.0-20210105120005-909beea2cc74 // indirect
 	github.com/coreos/go-iptables v0.6.0 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
