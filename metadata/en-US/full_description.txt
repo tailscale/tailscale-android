@@ -1,3 +1,7 @@
 Tailscale is a mesh VPN alternative that makes it easy to connect your devices, wherever they are. No more fighting configuration or firewall ports. Built on WireGuard®, Tailscale enables an incremental shift to zero-trust networking by implementing “always-on” remote access. This guarantees a consistent, portable, and secure experience independent of physical location.
 
 WireGuard is a registered trademark of Jason A. Donenfeld.
+
+Anti-Features:
+* NonFreeNet - uses a non-free network service which is impossible, or not easy to replace without rebuilding the app
+* Tracking - logs and reports debugging information continously to the app developers, see <a href="https://gitlab.com/fdroid/fdroiddata/-/issues/2601">F-Droid Data Issue #2601</a>
