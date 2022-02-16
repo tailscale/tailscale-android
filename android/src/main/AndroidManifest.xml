@@ -10,6 +10,10 @@
 	<!-- Disable input emulation on ChromeOS -->
 	<uses-feature android:name="android.hardware.type.pc" android:required="false"/>
 
+	<!-- Signal support for Android TV -->
+	<uses-feature android:name="android.software.leanback" android:required="false" />
+	<uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+
 	<application android:label="Tailscale" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round"
 		android:name=".App" android:allowBackup="false">
 		<activity android:name="IPNActivity"
@@ -21,6 +25,7 @@
 			<intent-filter>
 				<action android:name="android.intent.action.MAIN" />
 				<category android:name="android.intent.category.LAUNCHER" />
+				<category android:name="android.intent.category.LEANBACK_LAUNCHER" />
 			</intent-filter>
 			<intent-filter>
 				<action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
