@@ -1004,7 +1004,7 @@ func (a *App) updateState(act jni.Object, state *clientState) {
 	for _, p := range peers {
 		if q := state.query; q != "" {
 			// Filter peers according to search query.
-			host := strings.ToLower(p.Hostinfo.Hostname)
+			host := strings.ToLower(p.Hostinfo.Hostname())
 			name := strings.ToLower(p.Name)
 			var addr string
 			if len(p.Addresses) > 0 {

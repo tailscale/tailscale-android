@@ -124,7 +124,7 @@ func newBackend(dataDir string, jvm *jni.JVM, appCtx jni.Object, store *stateSto
 	if err := startNetstack(log.Printf, dialer, engine); err != nil {
 		return nil, fmt.Errorf("startNetstack: %w", err)
 	}
-	local, err := ipnlocal.NewLocalBackend(logf, b.logIDPublic, store, dialer, engine)
+	local, err := ipnlocal.NewLocalBackend(logf, b.logIDPublic, store, dialer, engine, 0)
 	if err != nil {
 		engine.Close()
 		return nil, fmt.Errorf("runBackend: NewLocalBackend: %v", err)
