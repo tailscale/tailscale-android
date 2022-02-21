@@ -62,6 +62,5 @@ require (
 	golang.zx2c4.com/wireguard/windows v0.4.10 // indirect
 	gvisor.dev/gvisor v0.0.0-20220126021142-d8aa030b2591 // indirect
 	honnef.co/go/tools v0.2.2 // indirect
-	inet.af/netstack v0.0.0-20211120045802-8aa80cf23d3c // indirect
 	nhooyr.io/websocket v1.8.7 // indirect
 )
