@@ -25,8 +25,8 @@ android {
     defaultConfig {
         minSdkVersion 22
         targetSdkVersion 30
-        versionCode 89
-        versionName "1.21.112-td19a63ddf-g5868fdb7b04"
+        versionCode 90
+        versionName "1.21.114-te921e1b02-g4a1c0cb2ee7"
     }
 	compileOptions {
 		sourceCompatibility 1.8
