@@ -25,6 +25,7 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+	qrcode "github.com/skip2/go-qrcode"
 	"golang.org/x/exp/shiny/materialdesign/icons"
 	"inet.af/netaddr"
 	"tailscale.com/client/tailscale/apitype"
@@ -75,6 +76,11 @@ type UI struct {
 
 	showDebugMenu bool
 	runningExit   bool // are we an exit node now?
+
+	qr struct {
+		show bool
+		op   paint.ImageOp
+	}
 
 	intro struct {
 		list  layout.List
@@ -255,6 +261,8 @@ func (ui *UI) onBack() bool {
 
 func (ui *UI) activeDialog() *bool {
 	switch {
+	case ui.qr.show:
+		return &ui.qr.show
 	case ui.menu.show:
 		return &ui.menu.show
 	case ui.shareDialog.show:
@@ -414,6 +422,9 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 	const numHeaders = 6
 	n := numHeaders + len(state.Peers)
 	needsLogin := state.backend.State == ipn.NeedsLogin
+	if !needsLogin {
+		ui.qr.show = false
+	}
 	rootGtx := gtx
 	if ui.activeDialog() != nil {
 		rootGtx.Queue = nil
@@ -494,7 +505,18 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 		ui.layoutMenu(gtx, sysIns, expiry, exitID != "" || len(state.backend.Exits) > 0)
 	}
 
+	if ui.qr.show {
+		ui.layoutQR(gtx, sysIns)
+	}
+
 	return events
+}
+
+func (ui *UI) layoutQR(gtx layout.Context, sysIns system.Insets) layout.Dimensions {
+	fill{rgb(0x232323)}.Layout(gtx, gtx.Constraints.Max)
+	return layout.Center.Layout(gtx, func(gtx C) D {
+		return drawImage(gtx, ui.qr.op, unit.Dp(300))
+	})
 }
 
 func (ui *UI) FillShareDialog(targets []*apitype.FileTarget, err error) {
@@ -525,6 +547,16 @@ func (ui *UI) ShowShareDialog() {
 func (ui *UI) ShowMessage(msg string) {
 	ui.message.text = msg
 	ui.message.t0 = time.Now()
+}
+
+func (ui *UI) ShowQRCode(url string) {
+	ui.qr.show = true
+	q, err := qrcode.New(url, qrcode.Medium)
+	if err != nil {
+		fatalErr(err)
+		return
+	}
+	ui.qr.op = paint.NewImageOp(q.Image(512))
 }
 
 // Dismiss is a widget that detects pointer presses.

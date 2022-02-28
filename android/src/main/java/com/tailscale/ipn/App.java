@@ -11,6 +11,7 @@ import android.app.Fragment;
 import android.app.FragmentTransaction;
 import android.app.NotificationChannel;
 import android.app.PendingIntent;
+import android.app.UiModeManager;
 import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.ContentValues;
@@ -21,6 +22,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageInfo;
 import android.content.pm.Signature;
+import android.content.res.Configuration;
 import android.provider.MediaStore;
 import android.provider.Settings;
 import android.net.ConnectivityManager;
@@ -394,4 +396,9 @@ public class App extends Application {
 
             return sb.toString();
         }
+
+	boolean isTV() {
+		UiModeManager mm = (UiModeManager)getSystemService(UI_MODE_SERVICE);
+		return mm.getCurrentModeType() == Configuration.UI_MODE_TYPE_TELEVISION;
+	}
 }

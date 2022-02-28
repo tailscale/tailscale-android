@@ -6,6 +6,7 @@ require (
 	eliasnaur.com/font v0.0.0-20200617114307-e02d32decb4b
 	gioui.org v0.0.0-20220228171706-79bfd3adbd32
 	gioui.org/cmd v0.0.0-20210925100615-41f3a7e74ee6
+	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	golang.org/x/exp v0.0.0-20210722180016-6781d3edade3
 	golang.org/x/sys v0.0.0-20220227234510-4e6760a101f9
 	golang.zx2c4.com/wireguard v0.0.0-20211116201604-de7c702ace45
