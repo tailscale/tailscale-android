@@ -245,22 +245,39 @@ func mulAlpha(c color.NRGBA, alpha uint8) color.NRGBA {
 }
 
 func (ui *UI) onBack() bool {
+	b := ui.activeDialog()
+	if b == nil {
+		return false
+	}
+	*b = false
+	return true
+}
+
+func (ui *UI) activeDialog() *bool {
 	switch {
 	case ui.menu.show:
-		ui.menu.show = false
-		return true
+		return &ui.menu.show
 	case ui.shareDialog.show:
-		ui.shareDialog.show = false
-		return true
+		return &ui.shareDialog.show
 	case ui.exitDialog.show:
-		ui.exitDialog.show = false
-		return true
+		return &ui.exitDialog.show
 	}
-	return false
+	return nil
 }
 
 func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientState) []UIEvent {
+	// "Get started".
+	if ui.intro.show {
+		if ui.intro.start.Clicked() {
+			ui.store.WriteBool(keyShowIntro, false)
+			ui.intro.show = false
+		}
+		ui.layoutIntro(gtx, sysIns)
+		return nil
+	}
+
 	var events []UIEvent
+
 	if ui.enabled.Changed() {
 		events = append(events, ConnectEvent{Enable: ui.enabled.Value})
 	}
@@ -397,7 +414,11 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 	const numHeaders = 6
 	n := numHeaders + len(state.Peers)
 	needsLogin := state.backend.State == ipn.NeedsLogin
-	ui.root.Layout(gtx, n, func(gtx C, idx int) D {
+	rootGtx := gtx
+	if ui.activeDialog() != nil {
+		rootGtx.Queue = nil
+	}
+	ui.root.Layout(rootGtx, n, func(gtx C, idx int) D {
 		var in layout.Inset
 		if idx == n-1 {
 			// The last list element includes the bottom system
@@ -471,15 +492,6 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 	// 3-dots menu.
 	if ui.menu.show {
 		ui.layoutMenu(gtx, sysIns, expiry, exitID != "" || len(state.backend.Exits) > 0)
-	}
-
-	// "Get started".
-	if ui.intro.show {
-		if ui.intro.start.Clicked() {
-			ui.store.WriteBool(keyShowIntro, false)
-			ui.intro.show = false
-		}
-		ui.layoutIntro(gtx, sysIns)
 	}
 
 	return events
