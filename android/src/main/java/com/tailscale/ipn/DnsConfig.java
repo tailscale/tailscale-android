@@ -19,6 +19,7 @@ import java.net.InetAddress;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 // Tailscale DNS Config retrieval
 //
@@ -229,7 +230,7 @@ public class DnsConfig {
 
 
 	String intToInetString(int hostAddress) {
-		return String.format("%d.%d.%d.%d",
+		return String.format(java.util.Locale.ROOT, "%d.%d.%d.%d",
 			(byte)(0xff & hostAddress),
 			(byte)(0xff & (hostAddress >> 8)),
 			(byte)(0xff & (hostAddress >> 16)),
