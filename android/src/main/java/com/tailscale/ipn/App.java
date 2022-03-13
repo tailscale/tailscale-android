@@ -54,6 +54,7 @@ import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
@@ -373,7 +374,7 @@ public class App extends Application {
                 try {
                     // Android doesn't have a supportsBroadcast() but the Go net.Interface wants
                     // one, so we say the interface has broadcast if it has multicast.
-                    sb.append(String.format("%s %d %d %b %b %b %b %b |", nif.getName(),
+                    sb.append(String.format(java.util.Locale.ROOT, "%s %d %d %b %b %b %b %b |", nif.getName(),
                                    nif.getIndex(), nif.getMTU(), nif.isUp(), nif.supportsMulticast(),
                                    nif.isLoopback(), nif.isPointToPoint(), nif.supportsMulticast()));
 
@@ -381,7 +382,7 @@ public class App extends Application {
                         // InterfaceAddress == hostname + "/" + IP
                         String[] parts = ia.toString().split("/", 0);
                         if (parts.length > 1) {
-                            sb.append(String.format("%s/%d ", parts[1], ia.getNetworkPrefixLength()));
+                            sb.append(String.format(java.util.Locale.ROOT, "%s/%d ", parts[1], ia.getNetworkPrefixLength()));
                         }
                     }
                 } catch (Exception e) {
