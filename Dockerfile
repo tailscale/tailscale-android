@@ -26,7 +26,7 @@ RUN unzip sdk-tools-linux-3859397.zip
 RUN echo y | $ANDROID_HOME/tools/bin/sdkmanager --update
 RUN echo y | $ANDROID_HOME/tools/bin/sdkmanager 'platforms;android-31'
 RUN echo y | $ANDROID_HOME/tools/bin/sdkmanager 'extras;android;m2repository'
-RUN echo y | $ANDROID_HOME/tools/bin/sdkmanager 'ndk;20.0.5594570'
+RUN echo y | $ANDROID_HOME/tools/bin/sdkmanager 'ndk;23.1.7779620'
 RUN echo y | $ANDROID_HOME/tools/bin/sdkmanager 'platform-tools'
 RUN echo y | $ANDROID_HOME/tools/bin/sdkmanager 'build-tools;28.0.3'
 
