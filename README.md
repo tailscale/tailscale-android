@@ -23,7 +23,7 @@ This repository contains the open source Tailscale Android client.
 SDK](https://developer.android.com/studio/releases/platform-tools), 
 the [Android NDK](https://developer.android.com/ndk) are required.
 
-```
+```sh
 $ make tailscale-debug.apk
 $ adb install -r tailscale-debug.apk
 ```
@@ -31,9 +31,17 @@ $ adb install -r tailscale-debug.apk
 The `dockershell` target builds a container with the necessary
 dependencies and runs a shell inside it.
 
-```
+```sh
 $ make dockershell
 # make tailscale-debug.apk
+```
+
+If you have Nix 2.4 or later installed, a Nix development environment can
+be set up with
+
+```sh
+$ alias nix='nix --extra-experimental-features "nix-command flakes"'
+$ nix develop
 ```
 
 Use `make tag_release` to bump the Android version code, update the version
