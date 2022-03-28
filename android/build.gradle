@@ -4,7 +4,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.6.0'
+        classpath 'com.android.tools.build:gradle:4.2.0'
     }
 }
 
@@ -21,6 +21,7 @@ allprojects {
 apply plugin: 'com.android.application'
 
 android {
+    ndkVersion "23.1.7779620"
     compileSdkVersion 30
     defaultConfig {
         minSdkVersion 22
