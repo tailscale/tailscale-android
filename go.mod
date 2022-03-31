@@ -3,8 +3,8 @@ module github.com/tailscale/tailscale-android
 go 1.18
 
 require (
-	eliasnaur.com/font v0.0.0-20200617114307-e02d32decb4b
-	gioui.org v0.0.0-20220228171706-79bfd3adbd32
+	eliasnaur.com/font v0.0.0-20220124212145-832bb8fc08c3
+	gioui.org v0.0.0-20220331105829-a1b5ff059c07
 	gioui.org/cmd v0.0.0-20210925100615-41f3a7e74ee6
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	golang.org/x/exp v0.0.0-20210722180016-6781d3edade3
@@ -21,9 +21,12 @@ require (
 	github.com/akutz/memconn v0.1.0 // indirect
 	github.com/alexbrainman/sspi v0.0.0-20210105120005-909beea2cc74 // indirect
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect
+	github.com/benoitkugler/textlayout v0.0.10 // indirect
 	github.com/coreos/go-iptables v0.6.0 // indirect
 	github.com/creack/pty v1.1.17 // indirect
+	github.com/gioui/uax v0.2.1-0.20220325163150-e3d987515a12 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
+	github.com/go-text/typesetting v0.0.0-20220112121102-58fe93c84506 // indirect
 	github.com/godbus/dbus/v5 v5.0.6 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/google/btree v1.0.1 // indirect
