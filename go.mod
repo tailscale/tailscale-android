@@ -11,7 +11,7 @@ require (
 	golang.org/x/sys v0.0.0-20220315194320-039c03cc5b86
 	golang.zx2c4.com/wireguard v0.0.0-20220317000134-95b48cdb3961
 	inet.af/netaddr v0.0.0-20211027220019-c74959edd3b6
-	tailscale.com v1.1.1-0.20220327044527-7c7f37342fa7
+	tailscale.com v1.1.1-0.20220330175050-9f604f2bd3b4
 )
 
 require (
@@ -39,7 +39,7 @@ require (
 	github.com/mitchellh/go-ps v1.0.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/tailscale/certstore v0.1.1-0.20220316223106-78d6e1c49d8d // indirect
-	github.com/tailscale/golang-x-crypto v0.0.0-20220326011347-d690bbfb6b5f // indirect
+	github.com/tailscale/golang-x-crypto v0.0.0-20220330002111-62119522bbcf // indirect
 	github.com/tailscale/goupnp v1.0.1-0.20210804011211-c64d0f06ea05 // indirect
 	github.com/tailscale/netlink v1.1.1-0.20211101221916-cabfb018fe85 // indirect
 	github.com/tcnksm/go-httpstat v0.2.0 // indirect
