@@ -56,8 +56,9 @@ type settingsFunc func(*router.Config, *dns.OSConfig) error
 const defaultMTU = 1280 // minimalMTU from wgengine/userspace.go
 
 const (
-	logPrefKey         = "privatelogid"
-	loginMethodPrefKey = "loginmethod"
+	logPrefKey               = "privatelogid"
+	loginMethodPrefKey       = "loginmethod"
+	customLoginServerPrefKey = "customloginserver"
 )
 
 const (
