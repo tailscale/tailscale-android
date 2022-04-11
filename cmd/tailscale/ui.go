@@ -63,6 +63,11 @@ type UI struct {
 
 	signinType signinType
 
+	setLoginServer    bool
+	loginServer       widget.Editor
+	loginServerSave   widget.Clickable
+	loginServerCancel widget.Clickable
+
 	self  widget.Clickable
 	peers []widget.Clickable
 
@@ -93,12 +98,13 @@ type UI struct {
 		dismiss Dismiss
 		show    bool
 
-		copy   widget.Clickable
-		reauth widget.Clickable
-		bug    widget.Clickable
-		beExit widget.Clickable
-		exits  widget.Clickable
-		logout widget.Clickable
+		useLoginServer widget.Clickable
+		copy           widget.Clickable
+		reauth         widget.Clickable
+		bug            widget.Clickable
+		beExit         widget.Clickable
+		exits          widget.Clickable
+		logout         widget.Clickable
 	}
 
 	// The current pop-up message, if any
@@ -240,6 +246,7 @@ func newUI(store *stateStore) (*UI, error) {
 	ui.root.Axis = layout.Vertical
 	ui.intro.list.Axis = layout.Vertical
 	ui.search.SingleLine = true
+	ui.loginServer.SingleLine = true
 	ui.exitDialog.list.Axis = layout.Vertical
 	ui.shareDialog.list.Axis = layout.Vertical
 	return ui, nil
@@ -342,6 +349,21 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 	if ui.webSignin.Clicked() {
 		ui.signinType = webSignin
 		events = append(events, WebAuthEvent{})
+	}
+
+	if ui.loginServerSave.Clicked() {
+		text := ui.loginServer.Text()
+		ui.showMessage(gtx, "Login server saved, relaunch the app")
+		events = append(events, SetLoginServerEvent{URL: text})
+	}
+	if ui.loginServerCancel.Clicked() {
+		ui.setLoginServer = false
+	}
+
+	if ui.menuClicked(&ui.menu.useLoginServer) {
+		ui.setLoginServer = true
+		savedLoginServer, _ := ui.store.ReadString(customLoginServerPrefKey, "")
+		ui.loginServer.SetText(savedLoginServer)
 	}
 
 	if ui.menuClicked(&ui.menu.copy) && localAddr != "" {
@@ -502,7 +524,7 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 
 	// 3-dots menu.
 	if ui.menu.show {
-		ui.layoutMenu(gtx, sysIns, expiry, exitID != "" || len(state.backend.Exits) > 0)
+		ui.layoutMenu(gtx, sysIns, expiry, exitID != "" || len(state.backend.Exits) > 0, needsLogin)
 	}
 
 	if ui.qr.show {
@@ -633,6 +655,43 @@ func (ui *UI) layoutSignIn(gtx layout.Context, state *BackendState) layout.Dimen
 		)
 
 		border := widget.Border{Color: rgb(textColor), CornerRadius: unit.Dp(4), Width: unit.Px(1)}
+
+		if ui.setLoginServer {
+			return layout.Flex{Axis: layout.Vertical, Alignment: layout.Middle}.Layout(gtx,
+				layout.Rigid(func(gtx C) D {
+					return layout.Inset{Bottom: unit.Dp(16)}.Layout(gtx, func(gtx C) D {
+						return Background{Color: rgb(0xe3e2ea), CornerRadius: unit.Dp(8)}.Layout(gtx, func(gtx C) D {
+							return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx C) D {
+								return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
+									layout.Flexed(1,
+										material.Editor(ui.theme, &ui.loginServer, "https://controlplane.tailscale.com").Layout,
+									),
+								)
+							})
+						})
+					})
+				}),
+				layout.Rigid(func(gtx C) D {
+					return layout.Inset{Bottom: unit.Dp(16)}.Layout(gtx, func(gtx C) D {
+						return border.Layout(gtx, func(gtx C) D {
+							button := material.Button(ui.theme, &ui.loginServerSave, "Save and restart")
+							button.Background = color.NRGBA{} // transparent
+							button.Color = rgb(textColor)
+							return button.Layout(gtx)
+						})
+					})
+				}),
+				layout.Rigid(func(gtx C) D {
+					return border.Layout(gtx, func(gtx C) D {
+						button := material.Button(ui.theme, &ui.loginServerCancel, "Cancel")
+						button.Background = color.NRGBA{} // transparent
+						button.Color = rgb(textColor)
+						return button.Layout(gtx)
+					})
+				}),
+			)
+		}
+
 		return layout.Flex{Axis: layout.Vertical, Alignment: layout.Middle}.Layout(gtx,
 			layout.Rigid(func(gtx C) D {
 				if !googleSignInEnabled() {
@@ -1035,7 +1094,7 @@ func layoutDialog(gtx layout.Context, w layout.Widget) layout.Dimensions {
 }
 
 // layoutMenu lays out the menu activated by the 3 dots button.
-func (ui *UI) layoutMenu(gtx layout.Context, sysIns system.Insets, expiry time.Time, showExits bool) {
+func (ui *UI) layoutMenu(gtx layout.Context, sysIns system.Insets, expiry time.Time, showExits bool, needsLogin bool) {
 	ui.menu.dismiss.Add(gtx, color.NRGBA{})
 	if ui.menu.dismiss.Dismissed(gtx) {
 		ui.menu.show = false
@@ -1046,6 +1105,18 @@ func (ui *UI) layoutMenu(gtx layout.Context, sysIns system.Insets, expiry time.T
 	}.Layout(gtx, func(gtx C) D {
 		return layout.NE.Layout(gtx, func(gtx C) D {
 			menu := &ui.menu
+			if ui.setLoginServer {
+				return D{}
+			}
+			if needsLogin {
+				items := []menuItem{
+					{title: "Use login server", btn: &menu.useLoginServer},
+				}
+				return layoutMenu(ui.theme, gtx, items, func(gtx C) D {
+					l := material.Caption(ui.theme, "Advanced settings")
+					return l.Layout(gtx)
+				})
+			}
 			items := []menuItem{
 				{title: "Copy my IP address", btn: &menu.copy},
 			}
@@ -1207,9 +1278,6 @@ func (ui *UI) layoutTop(gtx layout.Context, sysIns system.Insets, state *Backend
 					})
 				}),
 				layout.Rigid(func(gtx C) D {
-					if state.State <= ipn.NeedsLogin {
-						return D{}
-					}
 					btn := material.IconButton(ui.theme, &ui.menu.open, ui.icons.more, "Open menu")
 					btn.Color = rgb(white)
 					btn.Background = color.NRGBA{}

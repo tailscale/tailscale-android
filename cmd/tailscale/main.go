@@ -180,6 +180,10 @@ type FileSendEvent struct {
 	Updates func(FileSendInfo)
 }
 
+type SetLoginServerEvent struct {
+	URL string
+}
+
 // UIEvent types.
 type (
 	ToggleEvent       struct{}
@@ -429,6 +433,12 @@ func (a *App) runBackend() error {
 					go b.backend.StartLoginInteractive()
 					signingIn = true
 				}
+			case SetLoginServerEvent:
+				state.Prefs.ControlURL = e.URL
+				b.backend.SetPrefs(state.Prefs)
+				// A hack to get around ipnlocal's inability to update
+				// ControlURL after Start()... Can we re-init instead?
+				os.Exit(0)
 			case LogoutEvent:
 				go b.backend.Logout()
 			case ConnectEvent:
@@ -1106,6 +1116,9 @@ func (a *App) processUIEvents(w *app.Window, events []UIEvent, act jni.Object, s
 			requestBackend(e)
 		case WebAuthEvent:
 			a.store.WriteString(loginMethodPrefKey, loginMethodWeb)
+			requestBackend(e)
+		case SetLoginServerEvent:
+			a.store.WriteString(customLoginServerPrefKey, e.URL)
 			requestBackend(e)
 		case LogoutEvent:
 			a.signOut()
