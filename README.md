@@ -83,6 +83,20 @@ system-level UI to select your Google account). You can work around
 this by selecting "Other" at the sign-in screen, and then selecting
 Google from the next screen.
 
+## Developing on a Fire Stick TV
+
+On the Fire Stick:
+
+* Settings > My Fire TV > Developer Options > ADB Debugging > ON
+
+Then some useful commands:
+```
+adb connect 10.2.200.213:5555
+adb install -r tailscale-fdroid.apk
+adb shell am start -n com.tailscale.ipn/com.tailscale.ipn.IPNActivity
+adb shell pm uninstall com.tailscale.ipn
+```
+
 ## Bugs
 
 Please file any issues about this code or the hosted service on
