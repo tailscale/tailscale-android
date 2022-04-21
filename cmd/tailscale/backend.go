@@ -121,16 +121,27 @@ func newBackend(dataDir string, jvm *jni.JVM, appCtx jni.Object, store *stateSto
 		return nil, fmt.Errorf("runBackend: NewUserspaceEngine: %v", err)
 	}
 	b.logIDPublic = logID.Public().String()
-	if err := startNetstack(log.Printf, dialer, engine); err != nil {
-		return nil, fmt.Errorf("startNetstack: %w", err)
+	tunDev, magicConn, ok := engine.(wgengine.InternalsGetter).GetInternals()
+	if !ok {
+		return nil, fmt.Errorf("%T is not a wgengine.InternalsGetter", engine)
 	}
-	local, err := ipnlocal.NewLocalBackend(logf, b.logIDPublic, store, dialer, engine, 0)
+	ns, err := netstack.Create(logf, tunDev, engine, magicConn, dialer)
+	if err != nil {
+		return nil, fmt.Errorf("netstack.Create: %w", err)
+	}
+	ns.ProcessLocalIPs = false // let Android kernel handle it; VpnBuilder sets this up
+	ns.ProcessSubnets = true   // for Android-being-an-exit-node support
+	lb, err := ipnlocal.NewLocalBackend(logf, b.logIDPublic, store, dialer, engine, 0)
 	if err != nil {
 		engine.Close()
 		return nil, fmt.Errorf("runBackend: NewLocalBackend: %v", err)
 	}
+	ns.SetLocalBackend(lb)
+	if err := ns.Start(); err != nil {
+		return nil, fmt.Errorf("startNetstack: %w", err)
+	}
 	b.engine = engine
-	b.backend = local
+	b.backend = lb
 	return b, nil
 }
 
@@ -431,18 +442,4 @@ func (b *backend) getDNSBaseConfig() (dns.OSConfig, error) {
 	}
 
 	return config, nil
-}
-
-func startNetstack(logf logger.Logf, dialer *tsdial.Dialer, e wgengine.Engine) error {
-	tunDev, magicConn, ok := e.(wgengine.InternalsGetter).GetInternals()
-	if !ok {
-		return fmt.Errorf("%T is not a wgengine.InternalsGetter", e)
-	}
-	ns, err := netstack.Create(logf, tunDev, e, magicConn, dialer)
-	if err != nil {
-		return fmt.Errorf("netstack.Create: %w", err)
-	}
-	ns.ProcessLocalIPs = false
-	ns.ProcessSubnets = true
-	return ns.Start()
 }
