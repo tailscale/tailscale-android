@@ -97,6 +97,19 @@ adb shell am start -n com.tailscale.ipn/com.tailscale.ipn.IPNActivity
 adb shell pm uninstall com.tailscale.ipn
 ```
 
+## Building on macOS
+
+To build from the CLI on macOS:
+
+1. Install Android Studio
+2. In Android Studio's home screen: "More Actions" > "SDK Manager", install NDK.
+3. You can now close Android Studio, unless you want it to create virtual devices
+   ("More Actions" > "Virtual Device Manager").
+4. Then, from CLI:
+5. `export JAVA_HOME='/Applications/Android Studio.app/Contents/jre/Contents/Home'`
+6. `export ANDROID_SDK_ROOT=$HOME/Library/Android/sdk`
+7. `make tailscale-fdroid.apk`, etc
+
 ## Bugs
 
 Please file any issues about this code or the hosted service on
