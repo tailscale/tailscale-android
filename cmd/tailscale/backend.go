@@ -121,11 +121,11 @@ func newBackend(dataDir string, jvm *jni.JVM, appCtx jni.Object, store *stateSto
 		return nil, fmt.Errorf("runBackend: NewUserspaceEngine: %v", err)
 	}
 	b.logIDPublic = logID.Public().String()
-	tunDev, magicConn, ok := engine.(wgengine.InternalsGetter).GetInternals()
+	tunDev, magicConn, dnsMgr, ok := engine.(wgengine.InternalsGetter).GetInternals()
 	if !ok {
 		return nil, fmt.Errorf("%T is not a wgengine.InternalsGetter", engine)
 	}
-	ns, err := netstack.Create(logf, tunDev, engine, magicConn, dialer)
+	ns, err := netstack.Create(logf, tunDev, engine, magicConn, dialer, dnsMgr)
 	if err != nil {
 		return nil, fmt.Errorf("netstack.Create: %w", err)
 	}

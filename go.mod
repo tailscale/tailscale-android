@@ -11,7 +11,7 @@ require (
 	golang.org/x/sys v0.0.0-20220422013727-9388b58f7150
 	golang.zx2c4.com/wireguard v0.0.0-20220317000134-95b48cdb3961
 	inet.af/netaddr v0.0.0-20211027220019-c74959edd3b6
-	tailscale.com v1.1.1-0.20220430025040-e3619b890c20
+	tailscale.com v1.1.1-0.20220506211610-741ae9956e67
 )
 
 require (
@@ -30,7 +30,7 @@ require (
 	github.com/godbus/dbus/v5 v5.0.6 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/google/btree v1.0.1 // indirect
-	github.com/google/go-cmp v0.5.7 // indirect
+	github.com/google/go-cmp v0.5.8 // indirect
 	github.com/insomniacslk/dhcp v0.0.0-20211209223715-7d93572ebe8e // indirect
 	github.com/josharian/native v1.0.0 // indirect
 	github.com/jsimonetti/rtnetlink v1.1.2-0.20220408201609-d380b505068b // indirect
