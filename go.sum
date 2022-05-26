@@ -649,6 +649,8 @@ golang.org/x/sys v0.0.0-20220412211240-33da011f77ad h1:ntjMns5wyP/fN65tdBD4g8J5w
 golang.org/x/sys v0.0.0-20220412211240-33da011f77ad/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.0.0-20220422013727-9388b58f7150 h1:xHms4gcpe1YE7A3yIllJXP16CMAGuqwO2lX1mTyyRRc=
 golang.org/x/sys v0.0.0-20220422013727-9388b58f7150/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
+golang.org/x/sys v0.0.0-20220503163025-988cb79eb6c6 h1:nonptSpoQ4vQjyraW20DXPAglgQfVnM9ZC6MmNLMR60=
+golang.org/x/sys v0.0.0-20220503163025-988cb79eb6c6/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/term v0.0.0-20201117132131-f5c789dd3221/go.mod h1:Nr5EML6q2oocZ2LXRh80K7BxOlk5/8JxuGnuhpl+muw=
 golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1/go.mod h1:bj7SfCRtBDWHUb9snDiAeCFNEtKQo2Wmx5Cou7ajbmo=
 golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 h1:JGgROgKl9N8DuW20oFS5gxc+lE67/N3FcwmBPMe7ArY=
@@ -783,3 +785,5 @@ tailscale.com v1.1.1-0.20220430025040-e3619b890c20 h1:NTk7u7/6JiaJV1dcOtqwPE+zRE
 tailscale.com v1.1.1-0.20220430025040-e3619b890c20/go.mod h1:SjELlTggz8Lsgebu1kjfOoG+ZpYAr6t8qaxohrIPSLk=
 tailscale.com v1.1.1-0.20220506211610-741ae9956e67 h1:9kjMCMfJfTKJm53Ox9/1bQoLIvtYe2grCJG2d9Q00ms=
 tailscale.com v1.1.1-0.20220506211610-741ae9956e67/go.mod h1:2TUB66uN02iBFIH9XH3U8huzMuiulhMkWEBLOtP/L4I=
+tailscale.com v1.1.1-0.20220520203011-fc5839864bfb h1:ySbGnpei9LirCkocXjhGtNZlQqY8eb00rDOaAQh7k2g=
+tailscale.com v1.1.1-0.20220520203011-fc5839864bfb/go.mod h1:2affa2vYcxM5WnIlYtpkZsosVMZrrkF3oE5ZRx507MA=

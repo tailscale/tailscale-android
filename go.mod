@@ -8,10 +8,10 @@ require (
 	gioui.org/cmd v0.0.0-20210925100615-41f3a7e74ee6
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	golang.org/x/exp v0.0.0-20210722180016-6781d3edade3
-	golang.org/x/sys v0.0.0-20220422013727-9388b58f7150
+	golang.org/x/sys v0.0.0-20220503163025-988cb79eb6c6
 	golang.zx2c4.com/wireguard v0.0.0-20220317000134-95b48cdb3961
 	inet.af/netaddr v0.0.0-20211027220019-c74959edd3b6
-	tailscale.com v1.1.1-0.20220506211610-741ae9956e67
+	tailscale.com v1.1.1-0.20220520203011-fc5839864bfb
 )
 
 require (
