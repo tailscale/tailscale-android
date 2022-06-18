@@ -10,8 +10,8 @@ require (
 	golang.org/x/exp v0.0.0-20210722180016-6781d3edade3
 	golang.org/x/sys v0.0.0-20220513210249-45d2b4557a2a
 	golang.zx2c4.com/wireguard v0.0.0-20220317000134-95b48cdb3961
-	inet.af/netaddr v0.0.0-20211027220019-c74959edd3b6
-	tailscale.com v1.26.0
+	inet.af/netaddr v0.0.0-20220617031823-097006376321
+	tailscale.com v1.26.1
 )
 
 require (
@@ -53,7 +53,7 @@ require (
 	github.com/vishvananda/netns v0.0.0-20211101163701-50045581ed74 // indirect
 	go4.org/intern v0.0.0-20211027215823-ae77deb06f29 // indirect
 	go4.org/mem v0.0.0-20210711025021-927187094b94 // indirect
-	go4.org/unsafe/assume-no-moving-gc v0.0.0-20211027215541-db492cf91b37 // indirect
+	go4.org/unsafe/assume-no-moving-gc v0.0.0-20220617031537-928513b29760 // indirect
 	golang.org/x/crypto v0.0.0-20220427172511-eb4f295cb31f // indirect
 	golang.org/x/image v0.0.0-20210628002857-a66eb6448b8d // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220106191415-9b9b3d81d5e3 // indirect
