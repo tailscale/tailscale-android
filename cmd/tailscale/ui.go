@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"strings"
 	"time"
 
 	"gioui.org/f32"
@@ -74,7 +73,6 @@ type UI struct {
 		list    layout.List
 	}
 
-	showDebugMenu bool
 	runningExit   bool // are we an exit node now?
 
 	qr struct {
@@ -292,11 +290,7 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 
 	for _, e := range ui.search.Events() {
 		if _, ok := e.(widget.ChangeEvent); ok {
-			text := ui.search.Text()
-			if strings.EqualFold(text, "debug") {
-				ui.showDebugMenu = true
-			}
-			events = append(events, SearchEvent{Query: text})
+			events = append(events, SearchEvent{Query: ui.search.Text()})
 			break
 		}
 	}
@@ -1057,15 +1051,15 @@ func (ui *UI) layoutMenu(gtx layout.Context, sysIns system.Insets, expiry time.T
 				menuItem{title: "Reauthenticate", btn: &menu.reauth},
 				menuItem{title: "Log out", btn: &menu.logout},
 			)
-			if ui.runningExit || ui.showDebugMenu {
-				var title string
-				if ui.runningExit {
-					title = "Stop running exit node [BETA]"
-				} else {
-					title = "Run exit node [BETA]"
-				}
-				items = append(items, menuItem{title: title, btn: &menu.beExit})
+
+			var title string
+			if ui.runningExit {
+				title = "Stop running exit node"
+			} else {
+				title = "Run exit node"
 			}
+			items = append(items, menuItem{title: title, btn: &menu.beExit})
+
 			return layoutMenu(ui.theme, gtx, items, func(gtx C) D {
 				var expiryStr string
 				const fmtStr = time.Stamp
