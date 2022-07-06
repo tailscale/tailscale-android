@@ -9,9 +9,9 @@ require (
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	golang.org/x/exp v0.0.0-20210722180016-6781d3edade3
 	golang.org/x/sys v0.0.0-20220513210249-45d2b4557a2a
-	golang.zx2c4.com/wireguard v0.0.0-20220317000134-95b48cdb3961
+	golang.zx2c4.com/wireguard v0.0.0-20220703234212-c31a7b1ab478
 	inet.af/netaddr v0.0.0-20220617031823-097006376321
-	tailscale.com v1.26.1
+	tailscale.com v1.26.2
 )
 
 require (
