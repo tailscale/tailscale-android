@@ -48,6 +48,14 @@ public class IPNService extends VpnService {
 		return PendingIntent.getActivity(this, 0, new Intent(this, IPNActivity.class), PendingIntent.FLAG_UPDATE_CURRENT);
 	}
 
+	private void disallowApp(VpnService.Builder b, String name) {
+		try {
+			b.addDisallowedApplication(name);
+		} catch (PackageManager.NameNotFoundException e) {
+			return;
+		}
+	}
+
 	protected VpnService.Builder newBuilder() {
 		VpnService.Builder b = new VpnService.Builder()
 			.setConfigureIntent(configIntent())
@@ -57,6 +65,16 @@ public class IPNService extends VpnService {
 			b.setMetered(false); // Inherit the metered status from the underlying networks.
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
 			b.setUnderlyingNetworks(null); // Use all available networks.
+
+		// RCS/Jibe https://github.com/tailscale/tailscale/issues/2322
+		this.disallowApp(b, "com.google.android.apps.messaging");
+
+		// Stadia https://github.com/tailscale/tailscale/issues/3460
+		this.disallowApp(b, "com.google.stadia.android");
+
+		// Android Auto https://github.com/tailscale/tailscale/issues/3828
+		this.disallowApp(b, "com.google.android.projection.gearhead");
+
 		return b;
 	}
 
