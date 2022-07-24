@@ -1,34 +1,34 @@
 buildscript {
-    repositories {
-        google()
-        jcenter()
-    }
-    dependencies {
-        classpath 'com.android.tools.build:gradle:4.2.0'
-    }
+	repositories {
+		google()
+		jcenter()
+	}
+	dependencies {
+		classpath 'com.android.tools.build:gradle:4.2.0'
+	}
 }
 
 allprojects {
-    repositories {
-        google()
-        jcenter()
+	repositories {
+		google()
+		jcenter()
 		flatDir {
 			dirs 'libs'
 		}
-    }
+	}
 }
 
 apply plugin: 'com.android.application'
 
 android {
-    ndkVersion "23.1.7779620"
-    compileSdkVersion 30
-    defaultConfig {
-        minSdkVersion 22
-        targetSdkVersion 30
-        versionCode 114
-        versionName "1.29.0-t3c892d106-g42f688f1292"
-    }
+	ndkVersion "23.1.7779620"
+	compileSdkVersion 30
+	defaultConfig {
+		minSdkVersion 22
+		targetSdkVersion 30
+		versionCode 114
+		versionName "1.29.0-t3c892d106-g42f688f1292"
+	}
 	compileOptions {
 		sourceCompatibility 1.8
 		targetCompatibility 1.8
