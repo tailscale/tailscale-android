@@ -50,6 +50,7 @@ dependencies {
 	implementation "androidx.browser:browser:1.2.0"
 	implementation "androidx.security:security-crypto:1.1.0-alpha03"
 	implementation ':ipn@aar'
+	testCompile "junit:junit:4.12"
 
 	// Non-free dependencies.
 	playImplementation 'com.google.android.gms:play-services-auth:18.0.0'
