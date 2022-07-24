@@ -231,10 +231,10 @@ public class DnsConfig {
 
 	String intToInetString(int hostAddress) {
 		return String.format(java.util.Locale.ROOT, "%d.%d.%d.%d",
-			(byte)(0xff & hostAddress),
-			(byte)(0xff & (hostAddress >> 8)),
-			(byte)(0xff & (hostAddress >> 16)),
-			(byte)(0xff & (hostAddress >> 24)));
+			(0xff & hostAddress),
+			(0xff & (hostAddress >> 8)),
+			(0xff & (hostAddress >> 16)),
+			(0xff & (hostAddress >> 24)));
 	}
 
 	// getDnsServersFromNetworkInfo retrieves DNS servers using ConnectivityManager
