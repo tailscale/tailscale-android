@@ -53,7 +53,7 @@ endif
 $(DEBUG_APK): toolchain
 	mkdir -p android/libs
 	go run gioui.org/cmd/gogio -buildmode archive -target android -appid $(APPID) -tags novulkan -o $(AAR) github.com/tailscale/tailscale-android/cmd/tailscale
-	(cd android && ./gradlew assemblePlayDebug)
+	(cd android && ./gradlew test assemblePlayDebug)
 	mv android/build/outputs/apk/play/debug/android-play-debug.apk $@
 
 rundebug: $(DEBUG_APK)
@@ -66,7 +66,7 @@ rundebug: $(DEBUG_APK)
 tailscale-fdroid.apk: toolchain
 	mkdir -p android/libs
 	go run gioui.org/cmd/gogio -buildmode archive -target android -appid $(APPID) -tags novulkan -o $(AAR) github.com/tailscale/tailscale-android/cmd/tailscale
-	(cd android && ./gradlew assembleFdroidDebug)
+	(cd android && ./gradlew test assembleFdroidDebug)
 	mv android/build/outputs/apk/fdroid/debug/android-fdroid-debug.apk $@
 
 # This target is also used by the F-Droid builder.
@@ -76,7 +76,7 @@ release_aar:
 	go run gioui.org/cmd/gogio -ldflags "-X tailscale.com/version.Long=$(VERSIONNAME) -X tailscale.com/version.Short=$(VERSIONNAME_SHORT) -X tailscale.com/version.GitCommit=$(TAILSCALE_COMMIT) -X tailscale.com/version.ExtraGitCommit=$(OUR_VERSION)" -buildmode archive -target android -appid $(APPID) -tags novulkan -o $(AAR) github.com/tailscale/tailscale-android/cmd/tailscale
 
 $(RELEASE_AAB): release_aar
-	(cd android && ./gradlew bundlePlayRelease)
+	(cd android && ./gradlew test bundlePlayRelease)
 	mv ./android/build/outputs/bundle/playRelease/android-play-release.aab $@
 
 release: $(RELEASE_AAB)

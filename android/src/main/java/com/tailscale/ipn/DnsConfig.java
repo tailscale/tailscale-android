@@ -229,7 +229,7 @@ public class DnsConfig {
 	}
 
 
-	String intToInetString(int hostAddress) {
+	public String intToInetString(int hostAddress) {
 		return String.format(java.util.Locale.ROOT, "%d.%d.%d.%d",
 			(0xff & hostAddress),
 			(0xff & (hostAddress >> 8)),
