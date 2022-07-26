@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"net/netip"
 	"time"
 
 	"gioui.org/f32"
@@ -26,7 +27,6 @@ import (
 	"gioui.org/widget/material"
 	qrcode "github.com/skip2/go-qrcode"
 	"golang.org/x/exp/shiny/materialdesign/icons"
-	"inet.af/netaddr"
 	"tailscale.com/client/tailscale/apitype"
 	"tailscale.com/ipn"
 	"tailscale.com/tailcfg"
@@ -310,7 +310,7 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 		expiry = netmap.Expiry
 		localName = netmap.SelfNode.DisplayName(false)
 		if addrs := netmap.Addresses; len(addrs) > 0 {
-			localAddr = addrs[0].IP().String()
+			localAddr = addrs[0].Addr().String()
 		}
 	}
 	if p := state.backend.Prefs; p != nil {
@@ -476,7 +476,7 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 					clk := &ui.peers[pidx]
 					if clk.Clicked() {
 						if addrs := p.Peer.Addresses; len(addrs) > 0 {
-							a := addrs[0].IP().String()
+							a := addrs[0].Addr().String()
 							events = append(events, CopyEvent{Text: a})
 							ui.showCopied(gtx, a)
 						}
@@ -1133,9 +1133,9 @@ func (ui *UI) layoutPeer(gtx layout.Context, sysIns system.Insets, p *UIPeer, us
 					})
 				}),
 				layout.Rigid(func(gtx C) D {
-					var bestIP netaddr.IP // IP to show; first IPv4, or first IPv6 if no IPv4
+					var bestIP netip.Addr // IP to show; first IPv4, or first IPv6 if no IPv4
 					for _, addr := range p.Peer.Addresses {
-						if ip := addr.IP(); bestIP.IsZero() || bestIP.Is6() && ip.Is4() {
+						if ip := addr.Addr(); bestIP.IsUnspecified() || bestIP.Is6() && ip.Is4() {
 							bestIP = ip
 						}
 					}

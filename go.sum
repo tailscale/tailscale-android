@@ -492,6 +492,8 @@ go4.org/intern v0.0.0-20211027215823-ae77deb06f29 h1:UXLjNohABv4S58tHmeuIZDO6e3m
 go4.org/intern v0.0.0-20211027215823-ae77deb06f29/go.mod h1:cS2ma+47FKrLPdXFpr7CuxiTW3eyJbWew4qx0qtQWDA=
 go4.org/mem v0.0.0-20210711025021-927187094b94 h1:OAAkygi2Js191AJP1Ds42MhJRgeofeKGjuoUqNp1QC4=
 go4.org/mem v0.0.0-20210711025021-927187094b94/go.mod h1:reUoABIJ9ikfM5sgtSF3Wushcza7+WeD01VB9Lirh3g=
+go4.org/netipx v0.0.0-20220725152314-7e7bdc8411bf h1:IdwJUzqoIo5lkr2EOyKoe5qipUaEjbOKKY5+fzPBZ3A=
+go4.org/netipx v0.0.0-20220725152314-7e7bdc8411bf/go.mod h1:+QXzaoURFd0rGDIjDNpyIkv+F9R7EmeKorvlKRnhqgA=
 go4.org/unsafe/assume-no-moving-gc v0.0.0-20211027215541-db492cf91b37 h1:Tx9kY6yUkLge/pFG7IEMwDZy6CS2ajFc9TvQdPCW0uA=
 go4.org/unsafe/assume-no-moving-gc v0.0.0-20211027215541-db492cf91b37/go.mod h1:FftLjUGFEDu5k8lt0ddY+HcrH/qU/0qk+H8j9/nTl3E=
 go4.org/unsafe/assume-no-moving-gc v0.0.0-20220617031537-928513b29760 h1:FyBZqvoA/jbNzuAWLQE2kG820zMAkcilx6BMjGbL/E4=
@@ -773,6 +775,8 @@ gvisor.dev/gvisor v0.0.0-20220318082524-536b85ae1a6a h1:sQAuNyyy59GRxS8npo8nyOr5
 gvisor.dev/gvisor v0.0.0-20220318082524-536b85ae1a6a/go.mod h1:tWwEcFvJavs154OdjFCw78axNrsDlz4Zh8jvPqwcpGI=
 gvisor.dev/gvisor v0.0.0-20220407223209-21871174d445 h1:pLNQCtMzh4O6rdhoUeWHuutt4yMft+B9Cgw/bezWchE=
 gvisor.dev/gvisor v0.0.0-20220407223209-21871174d445/go.mod h1:tWwEcFvJavs154OdjFCw78axNrsDlz4Zh8jvPqwcpGI=
+gvisor.dev/gvisor v0.0.0-20220721202624-0b2c11c2773c h1:frrINYSQqhraHqy23/dWqdNt7mRlsGJJBwGHvI3Q+/c=
+gvisor.dev/gvisor v0.0.0-20220721202624-0b2c11c2773c/go.mod h1:TIvkJD0sxe8pIob3p6T8IzxXunlp6yfgktvTNp+DGNM=
 honnef.co/go/tools v0.0.0-20180728063816-88497007e858/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
 honnef.co/go/tools v0.0.0-20190102054323-c2f93a96b099/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
 honnef.co/go/tools v0.0.0-20190523083050-ea95bdfd59fc/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
@@ -822,3 +826,5 @@ tailscale.com v1.1.1-0.20220712041646-755396d6fe77 h1:1YQCCgvywvVuD3A1hzc4L9bYMJ
 tailscale.com v1.1.1-0.20220712041646-755396d6fe77/go.mod h1:bta0vbR8Cajmq+oq3as0/iAWWnWqnYv+cas4ftX9KAw=
 tailscale.com v1.1.1-0.20220718172352-3c892d106c2e h1:Mq8xSdoqp/UabuPt405owY20/mt3q5z7fSruQQzC9Z8=
 tailscale.com v1.1.1-0.20220718172352-3c892d106c2e/go.mod h1:T9uKhlkxVPdSu1Qvp882evcS/hQ1+TAyZ7sJ/VACGRI=
+tailscale.com v1.1.1-0.20220726050820-dd3e91b6785e h1:ni75z+HerxM3XwcsfGmONIrFhv8OudSKLx1E5r1vEmA=
+tailscale.com v1.1.1-0.20220726050820-dd3e91b6785e/go.mod h1:JxNomQ7IdfGKzHL4luWYRxWbD05oeT4a8ZPxL8CWBn0=
