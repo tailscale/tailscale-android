@@ -75,6 +75,9 @@ public class IPNService extends VpnService {
 		// Android Auto https://github.com/tailscale/tailscale/issues/3828
 		this.disallowApp(b, "com.google.android.projection.gearhead");
 
+		// GoPro https://github.com/tailscale/tailscale/issues/2554
+		this.disallowApp(b, "com.gopro.smarty");
+
 		return b;
 	}
 
