@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/netip"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -17,7 +18,6 @@ import (
 	"github.com/tailscale/tailscale-android/jni"
 	"golang.org/x/sys/unix"
 	"golang.zx2c4.com/wireguard/tun"
-	"inet.af/netaddr"
 	"tailscale.com/ipn"
 	"tailscale.com/ipn/ipnlocal"
 	"tailscale.com/logpolicy"
@@ -68,8 +68,8 @@ const (
 // googleDnsServers are used on ChromeOS, where an empty VpnBuilder DNS setting results
 // in erasing the platform DNS servers. The developer docs say this is not supposed to happen,
 // but nonetheless it does.
-var googleDnsServers = []netaddr.IP{netaddr.MustParseIP("8.8.8.8"), netaddr.MustParseIP("8.8.4.4"),
-	netaddr.MustParseIP("2001:4860:4860::8888"), netaddr.MustParseIP("2001:4860:4860::8844"),
+var googleDnsServers = []netip.Addr{netip.MustParseAddr("8.8.8.8"), netip.MustParseAddr("8.8.4.4"),
+	netip.MustParseAddr("2001:4860:4860::8888"), netip.MustParseAddr("2001:4860:4860::8844"),
 }
 
 // errVPNNotPrepared is used when VPNService.Builder.establish returns
@@ -236,7 +236,7 @@ func (b *backend) updateTUN(service jni.Object, rcfg *router.Config, dcfg *dns.O
 			_, err = jni.CallObjectMethod(env,
 				builder,
 				addRoute,
-				jni.Value(jni.JavaString(env, route.IP().String())),
+				jni.Value(jni.JavaString(env, route.Addr().String())),
 				jni.Value(route.Bits()),
 			)
 			if err != nil {
@@ -250,7 +250,7 @@ func (b *backend) updateTUN(service jni.Object, rcfg *router.Config, dcfg *dns.O
 			_, err = jni.CallObjectMethod(env,
 				builder,
 				addAddress,
-				jni.Value(jni.JavaString(env, addr.IP().String())),
+				jni.Value(jni.JavaString(env, addr.Addr().String())),
 				jni.Value(addr.Bits()),
 			)
 			if err != nil {
@@ -424,7 +424,7 @@ func (b *backend) getDNSBaseConfig() (dns.OSConfig, error) {
 	config := dns.OSConfig{}
 	addrs := strings.Trim(lines[0], " \n")
 	for _, addr := range strings.Split(addrs, " ") {
-		ip, err := netaddr.ParseIP(addr)
+		ip, err := netip.ParseAddr(addr)
 		if err == nil {
 			config.Nameservers = append(config.Nameservers, ip)
 		}

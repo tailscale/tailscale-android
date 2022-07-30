@@ -11,7 +11,7 @@ require (
 	golang.org/x/sys v0.0.0-20220610221304-9f5ed59c137d
 	golang.zx2c4.com/wireguard v0.0.0-20220703234212-c31a7b1ab478
 	inet.af/netaddr v0.0.0-20220617031823-097006376321
-	tailscale.com v1.1.1-0.20220718172352-3c892d106c2e
+	tailscale.com v1.1.1-0.20220726050820-dd3e91b6785e
 )
 
 require (
@@ -53,6 +53,7 @@ require (
 	github.com/vishvananda/netns v0.0.0-20211101163701-50045581ed74 // indirect
 	go4.org/intern v0.0.0-20211027215823-ae77deb06f29 // indirect
 	go4.org/mem v0.0.0-20210711025021-927187094b94 // indirect
+	go4.org/netipx v0.0.0-20220725152314-7e7bdc8411bf // indirect
 	go4.org/unsafe/assume-no-moving-gc v0.0.0-20220617031537-928513b29760 // indirect
 	golang.org/x/crypto v0.0.0-20220427172511-eb4f295cb31f // indirect
 	golang.org/x/image v0.0.0-20210628002857-a66eb6448b8d // indirect
@@ -66,6 +67,6 @@ require (
 	golang.org/x/xerrors v0.0.0-20220411194840-2f41105eb62f // indirect
 	golang.zx2c4.com/wintun v0.0.0-20211104114900-415007cec224 // indirect
 	golang.zx2c4.com/wireguard/windows v0.4.10 // indirect
-	gvisor.dev/gvisor v0.0.0-20220407223209-21871174d445 // indirect
+	gvisor.dev/gvisor v0.0.0-20220721202624-0b2c11c2773c // indirect
 	nhooyr.io/websocket v1.8.7 // indirect
 )
