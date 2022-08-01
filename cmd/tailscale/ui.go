@@ -30,6 +30,7 @@ import (
 	"tailscale.com/client/tailscale/apitype"
 	"tailscale.com/ipn"
 	"tailscale.com/tailcfg"
+	"tailscale.com/version"
 
 	_ "embed"
 
@@ -78,7 +79,7 @@ type UI struct {
 		list    layout.List
 	}
 
-	runningExit   bool // are we an exit node now?
+	runningExit bool // are we an exit node now?
 
 	qr struct {
 		show bool
@@ -92,9 +93,11 @@ type UI struct {
 	}
 
 	menu struct {
-		open    widget.Clickable
-		dismiss Dismiss
-		show    bool
+		open          widget.Clickable
+		dismiss       Dismiss
+		show          bool
+		showHistory   []showChange
+		showDebugMenu bool
 
 		useLoginServer widget.Clickable
 		copy           widget.Clickable
@@ -247,6 +250,12 @@ func newUI(store *stateStore) (*UI, error) {
 	ui.loginServer.SingleLine = true
 	ui.exitDialog.list.Axis = layout.Vertical
 	ui.shareDialog.list.Axis = layout.Vertical
+
+	// If they've ever set the control plane, give them the debug menu right away.
+	if v, _ := ui.store.ReadString(customLoginServerPrefKey, ""); v != "" {
+		ui.menu.showDebugMenu = true
+	}
+
 	return ui, nil
 }
 
@@ -278,6 +287,34 @@ func (ui *UI) activeDialog() *bool {
 	return nil
 }
 
+type showChange struct {
+	at    time.Time
+	shown bool
+}
+
+func (ui *UI) setMenuShown(v bool) {
+	if v == ui.menu.show {
+		return
+	}
+	ui.menu.show = v
+
+	now := time.Now()
+	const recent = 5 * time.Second
+	recentHistory := ui.menu.showHistory[:0]
+	for _, hi := range ui.menu.showHistory {
+		if now.Sub(hi.at) < recent {
+			recentHistory = append(recentHistory, hi)
+		}
+	}
+	ui.menu.showHistory = append(recentHistory, showChange{
+		at:    now,
+		shown: v,
+	})
+	if len(ui.menu.showHistory) >= 6 {
+		ui.menu.showDebugMenu = true
+	}
+}
+
 func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientState) []UIEvent {
 	// "Get started".
 	if ui.intro.show {
@@ -302,7 +339,7 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 		}
 	}
 	for ui.menu.open.Clicked() {
-		ui.menu.show = !ui.menu.show
+		ui.setMenuShown(!ui.menu.show)
 	}
 
 	netmap := state.backend.NetworkMap
@@ -844,7 +881,7 @@ func (ui *UI) layoutIntro(gtx layout.Context, sysIns system.Insets) {
 func (ui *UI) menuClicked(btn *widget.Clickable) bool {
 	cl := btn.Clicked()
 	if cl {
-		ui.menu.show = false
+		ui.setMenuShown(false)
 	}
 	return cl
 }
@@ -1091,7 +1128,7 @@ func layoutDialog(gtx layout.Context, w layout.Widget) layout.Dimensions {
 func (ui *UI) layoutMenu(gtx layout.Context, sysIns system.Insets, expiry time.Time, showExits bool, needsLogin bool) {
 	ui.menu.dismiss.Add(gtx, color.NRGBA{})
 	if ui.menu.dismiss.Dismissed(gtx) {
-		ui.menu.show = false
+		ui.setMenuShown(false)
 	}
 	layout.Inset{
 		Top:   unit.Add(gtx.Metric, sysIns.Top, unit.Dp(2)),
@@ -1103,11 +1140,15 @@ func (ui *UI) layoutMenu(gtx layout.Context, sysIns system.Insets, expiry time.T
 				return D{}
 			}
 			if needsLogin {
-				items := []menuItem{
-					{title: "Use login server", btn: &menu.useLoginServer},
+				var items []menuItem
+				title := "Tailscale " + version.Short
+				if ui.menu.showDebugMenu {
+					items = []menuItem{
+						{title: "Change server", btn: &menu.useLoginServer},
+					}
 				}
 				return layoutMenu(ui.theme, gtx, items, func(gtx C) D {
-					l := material.Caption(ui.theme, "Advanced settings")
+					l := material.Caption(ui.theme, title)
 					return l.Layout(gtx)
 				})
 			}
