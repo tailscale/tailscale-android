@@ -65,11 +65,14 @@ const (
 	loginMethodWeb    = "web"
 )
 
-// googleDnsServers are used on ChromeOS, where an empty VpnBuilder DNS setting results
+// googleDNSServers are used on ChromeOS, where an empty VpnBuilder DNS setting results
 // in erasing the platform DNS servers. The developer docs say this is not supposed to happen,
 // but nonetheless it does.
-var googleDnsServers = []netip.Addr{netip.MustParseAddr("8.8.8.8"), netip.MustParseAddr("8.8.4.4"),
-	netip.MustParseAddr("2001:4860:4860::8888"), netip.MustParseAddr("2001:4860:4860::8844"),
+var googleDNSServers = []netip.Addr{
+	netip.MustParseAddr("8.8.8.8"),
+	netip.MustParseAddr("8.8.4.4"),
+	netip.MustParseAddr("2001:4860:4860::8888"),
+	netip.MustParseAddr("2001:4860:4860::8844"),
 }
 
 // errVPNNotPrepared is used when VPNService.Builder.establish returns
@@ -203,7 +206,7 @@ func (b *backend) updateTUN(service jni.Object, rcfg *router.Config, dcfg *dns.O
 		if dcfg != nil {
 			nameservers := dcfg.Nameservers
 			if b.avoidEmptyDNS && len(nameservers) == 0 {
-				nameservers = googleDnsServers
+				nameservers = googleDNSServers
 			}
 			for _, dns := range nameservers {
 				_, err = jni.CallObjectMethod(env,
