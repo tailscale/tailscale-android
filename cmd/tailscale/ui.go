@@ -1135,7 +1135,7 @@ func (ui *UI) layoutPeer(gtx layout.Context, sysIns system.Insets, p *UIPeer, us
 				layout.Rigid(func(gtx C) D {
 					var bestIP netip.Addr // IP to show; first IPv4, or first IPv6 if no IPv4
 					for _, addr := range p.Peer.Addresses {
-						if ip := addr.Addr(); bestIP.IsUnspecified() || bestIP.Is6() && ip.Is4() {
+						if ip := addr.Addr(); !bestIP.IsValid() || bestIP.Is6() && ip.Is4() {
 							bestIP = ip
 						}
 					}
