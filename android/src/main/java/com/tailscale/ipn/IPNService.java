@@ -48,14 +48,6 @@ public class IPNService extends VpnService {
 		return PendingIntent.getActivity(this, 0, new Intent(this, IPNActivity.class), PendingIntent.FLAG_UPDATE_CURRENT);
 	}
 
-	private void disallowApp(VpnService.Builder b, String name) {
-		try {
-			b.addDisallowedApplication(name);
-		} catch (PackageManager.NameNotFoundException e) {
-			return;
-		}
-	}
-
 	protected VpnService.Builder newBuilder() {
 		VpnService.Builder b = new VpnService.Builder()
 			.setConfigureIntent(configIntent())
@@ -65,18 +57,24 @@ public class IPNService extends VpnService {
 			b.setMetered(false); // Inherit the metered status from the underlying networks.
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
 			b.setUnderlyingNetworks(null); // Use all available networks.
-
+		
+		App app = (App) this.getApplication();
+		
 		// RCS/Jibe https://github.com/tailscale/tailscale/issues/2322
-		this.disallowApp(b, "com.google.android.apps.messaging");
-
+		app.setupApp("com.google.android.apps.messaging", false);
+		
 		// Stadia https://github.com/tailscale/tailscale/issues/3460
-		this.disallowApp(b, "com.google.stadia.android");
-
+		app.setupApp("com.google.stadia.android", false);
+		
 		// Android Auto https://github.com/tailscale/tailscale/issues/3828
-		this.disallowApp(b, "com.google.android.projection.gearhead");
+		app.setupApp("com.google.android.projection.gearhead", false);
 
 		// GoPro https://github.com/tailscale/tailscale/issues/2554
-		this.disallowApp(b, "com.gopro.smarty");
+		app.setupApp("com.gopro.smarty", false);
+
+		// Apply changes
+		b = app.acfg.build(b);
+		//app.acfg.printConfig();
 
 		return b;
 	}
