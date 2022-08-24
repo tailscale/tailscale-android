@@ -59,13 +59,13 @@ public class IPNService extends VpnService {
 			b.setUnderlyingNetworks(null); // Use all available networks.
 		
 		App app = (App) this.getApplication();
-		
+
 		// RCS/Jibe https://github.com/tailscale/tailscale/issues/2322
 		app.setupApp("com.google.android.apps.messaging", false);
-		
+
 		// Stadia https://github.com/tailscale/tailscale/issues/3460
 		app.setupApp("com.google.stadia.android", false);
-		
+
 		// Android Auto https://github.com/tailscale/tailscale/issues/3828
 		app.setupApp("com.google.android.projection.gearhead", false);
 

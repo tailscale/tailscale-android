@@ -1104,9 +1104,6 @@ func (ui *UI) layoutAllowedAppsDialog(gtx layout.Context, sysIns system.Insets, 
 						gtx.Constraints.Min.Y = 0
 						n := len(apps)
 						return d.list.Layout(gtx, n, func(gtx C, idx int) D {
-							/*var w = new(widget.Bool)
-							w.Value = apps[idx].allowed
-							d.apps = append(d.apps, *w)*/
 							return ui.layoutAppConfig(gtx, apps[idx], idx)
 						})
 					}),

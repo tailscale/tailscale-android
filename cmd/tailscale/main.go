@@ -1247,7 +1247,7 @@ func (a *App) processUIEvents(w *app.Window, events []UIEvent, act jni.Object, s
 	for _, e := range events {
 		switch e := e.(type) {
 		case AllowedAppsEvent:
-		        log.Printf("tailscale Clicked AllowedApps")
+			log.Printf("tailscale Clicked AllowedApps")
 			var ev AllowedAppsEvent = AllowedAppsEvent(e)
 			log.Printf("%v %v",ev.packageName, ev.allowed)
 			err := a.setApp(ev.packageName, ev.allowed)
