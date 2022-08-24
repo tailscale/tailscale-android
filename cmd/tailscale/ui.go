@@ -510,15 +510,13 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 				}
 				return ui.layoutSearchbar(gtx, sysIns)
 			case 4:
-				if !needsLogin || state.backend.LostInternet {
+				if !needsLogin {
 					return D{}
 				}
 				return ui.layoutSignIn(gtx, &state.backend)
 			case 5:
-				if !state.backend.LostInternet {
-					return D{}
-				}
-				return ui.layoutDisconnected(gtx)
+				// Formerly "No internet connection", which has been removed.
+				return D{}
 			default:
 				if needsLogin {
 					return D{}
@@ -798,29 +796,6 @@ func (ui *UI) withLoader(gtx layout.Context, loading bool, w layout.Widget) layo
 			})
 		}),
 	)
-}
-
-// layoutDisconnected lays out the "please connect to the internet"
-// message.
-func (ui *UI) layoutDisconnected(gtx layout.Context) layout.Dimensions {
-	return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx C) D {
-		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-			layout.Rigid(func(gtx C) D {
-				return layout.Inset{Top: unit.Dp(8)}.Layout(gtx, func(gtx C) D {
-					title := material.H6(ui.theme, "No internet connection")
-					title.Alignment = text.Middle
-					return title.Layout(gtx)
-				})
-			}),
-			layout.Rigid(func(gtx C) D {
-				return layout.Inset{Top: unit.Dp(8)}.Layout(gtx, func(gtx C) D {
-					msg := material.Body2(ui.theme, "Tailscale is paused while your device is offline. Please reconnect to the internet.")
-					msg.Alignment = text.Middle
-					return msg.Layout(gtx)
-				})
-			}),
-		)
-	})
 }
 
 // layoutIntro lays out the intro page with the logo and terms.

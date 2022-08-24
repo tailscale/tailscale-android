@@ -495,11 +495,7 @@ func (a *App) runBackend() error {
 					notifyVPNClosed()
 				}
 			}
-		case connected := <-onConnectivityChange:
-			if state.LostInternet != !connected {
-				log.Printf("LostInternet state change: %v -> %v", state.LostInternet, !connected)
-			}
-			state.LostInternet = !connected
+		case <-onConnectivityChange:
 			if b != nil {
 				go b.LinkChange()
 			}
