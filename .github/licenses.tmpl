@@ -1,0 +1,19 @@
+{{/*
+
+This template is used to generate the license notices published at
+https://github.com/tailscale/tailscale/blob/main/licenses/android.md.
+Publishing is managed by the go-licenses GitHub Action.  Non-Go dependencies
+should be manually updated at the bottom of this file as needed.
+
+*/}}# Tailscale for Android dependencies
+
+The following open source dependencies are used to build the [Tailscale Android
+Client][].  See also the dependencies in the [Tailscale CLI][].
+
+[Tailscale Android Client]: https://github.com/tailscale/tailscale-android
+
+## Go Packages
+
+{{ range . }}
+ - [{{.Name}}](https://pkg.go.dev/{{.Name}}) ([{{.LicenseName}}]({{.LicenseURL}}))
+{{- end }}
