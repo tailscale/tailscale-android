@@ -696,5 +696,5 @@ nhooyr.io/websocket v1.8.7/go.mod h1:B70DZP8IakI65RVQ51MsWP/8jndNma26DVA/nFSCgW0
 sigs.k8s.io/yaml v1.1.0/go.mod h1:UJmg0vDUVViEyp3mgSv9WPwZCDxu4rQW1olrI1uml+o=
 software.sslmate.com/src/go-pkcs12 v0.0.0-20210415151418-c5206de65a78 h1:SqYE5+A2qvRhErbsXFfUEUmpWEKxxRSMgGLkvRAFOV4=
 sourcegraph.com/sourcegraph/appdash v0.0.0-20190731080439-ebfcffb1b5c0/go.mod h1:hI742Nqp5OhwiqlzhgfbWU4mW4yO10fP+LoT9WOswdU=
-tailscale.com v1.1.1-0.20220824183555-472529af38b1 h1:6D608zRiDU8BHKy5pfy/cWmgvY5eNf1/joWSm2OO1hQ=
-tailscale.com v1.1.1-0.20220824183555-472529af38b1/go.mod h1:MO+tWkQp2YIF3KBnnej/mQvgYccRS5Xk/IrEpZ4Z3BU=
+tailscale.com v1.1.1-0.20220825222825-e4b5b92b8289 h1:FObd/1+BzFlgVBfCLSYAf1oUkWcZLRlLE7Ll7z4SFcQ=
+tailscale.com v1.1.1-0.20220825222825-e4b5b92b8289/go.mod h1:MO+tWkQp2YIF3KBnnej/mQvgYccRS5Xk/IrEpZ4Z3BU=
