@@ -17,7 +17,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  licenses:
+  android:
     runs-on: ubuntu-latest
 
     steps:
@@ -41,7 +41,7 @@ jobs:
 
       - name: Run go-licenses
         run: |
-          go-licenses report ./cmd/tailscale --template .github/licenses.tmpl | tee oss/licenses/android.md
+          go-licenses report ./cmd/tailscale --template .github/licenses.tmpl --ignore tailscale.com | tee oss/licenses/android.md
 
       - name: Get access token
         uses: tibdex/github-app-token@f717b5ecd4534d3c4df4ce9b5c1c2214f0f7cd06 # v1.6.0
@@ -57,10 +57,11 @@ jobs:
           token: ${{ steps.generate-token.outputs.token }}
           path: oss
           author: License Updater <noreply@tailscale.com>
+          Committer: License Updater <noreply@tailscale.com>
           branch: licenses/android
-          branch-suffix: short-commit-hash
           commit-message: "licenses: update android licenses"
           title: "licenses: update android licenses"
           body: Triggered by ${{ github.repository }}@${{ github.sha }}
+          signoff: true
           delete-branch: true
           team-reviewers: opensource-license-reviewers
