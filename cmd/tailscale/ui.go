@@ -105,6 +105,7 @@ type UI struct {
 		bug            widget.Clickable
 		beExit         widget.Clickable
 		exits          widget.Clickable
+		about          widget.Clickable
 		logout         widget.Clickable
 	}
 
@@ -124,6 +125,15 @@ type UI struct {
 		loaded  bool
 		error   error
 	}
+
+	// aboutDialog is state for the about dialog.
+	aboutDialog struct {
+		show    bool
+		dismiss Dismiss
+	}
+
+	// ossLicenses is the button to show the OSS licenses.
+	ossLicenses widget.Clickable
 
 	icons struct {
 		search     *widget.Icon
@@ -283,6 +293,8 @@ func (ui *UI) activeDialog() *bool {
 		return &ui.shareDialog.show
 	case ui.exitDialog.show:
 		return &ui.exitDialog.show
+	case ui.aboutDialog.show:
+		return &ui.aboutDialog.show
 	}
 	return nil
 }
@@ -425,6 +437,14 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 		ui.exitDialog.show = true
 	}
 
+	if ui.menuClicked(&ui.menu.about) {
+		ui.aboutDialog.show = true
+	}
+
+	if ui.ossLicenses.Clicked() {
+		events = append(events, OSSLicensesEvent{})
+	}
+
 	if ui.menuClicked(&ui.menu.logout) {
 		events = append(events, LogoutEvent{})
 	}
@@ -547,6 +567,8 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 	ui.layoutExitNodeDialog(gtx, sysIns, state.backend.Exits)
 
 	ui.layoutShareDialog(gtx, sysIns)
+
+	ui.layoutAboutDialog(gtx, sysIns)
 
 	// Popup messages.
 	ui.layoutMessage(gtx, sysIns)
@@ -1043,6 +1065,58 @@ func (ui *UI) layoutExitNodeDialog(gtx layout.Context, sysIns system.Insets, exi
 	})
 }
 
+// layoutAboutDialog lays out the about dialog.
+func (ui *UI) layoutAboutDialog(gtx layout.Context, sysIns system.Insets) {
+	d := &ui.aboutDialog
+	if d.dismiss.Dismissed(gtx) {
+		d.show = false
+	}
+	if !d.show {
+		return
+	}
+	d.dismiss.Add(gtx, argb(0x66000000))
+	layout.Inset{
+		Top:    unit.Add(gtx.Metric, sysIns.Top, unit.Dp(16)),
+		Right:  unit.Add(gtx.Metric, sysIns.Right, unit.Dp(16)),
+		Bottom: unit.Add(gtx.Metric, sysIns.Bottom, unit.Dp(16)),
+		Left:   unit.Add(gtx.Metric, sysIns.Left, unit.Dp(16)),
+	}.Layout(gtx, func(gtx C) D {
+		return layout.Center.Layout(gtx, func(gtx C) D {
+			gtx.Constraints.Min.X = gtx.Px(unit.Dp(250))
+			gtx.Constraints.Max.X = gtx.Constraints.Min.X
+			return layoutDialog(gtx, func(gtx C) D {
+				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+					layout.Rigid(func(gtx C) D {
+						// Header.
+						return layout.Inset{
+							Top:    unit.Dp(16),
+							Right:  unit.Dp(20),
+							Left:   unit.Dp(20),
+							Bottom: unit.Dp(16),
+						}.Layout(gtx, func(gtx C) D {
+							l := material.Body1(ui.theme, "About")
+							l.Font.Weight = text.Bold
+							return l.Layout(gtx)
+						})
+					}),
+					layout.Rigid(func(gtx C) D {
+						return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx C) D {
+							return material.Body1(ui.theme, "version "+version.Short).Layout(gtx)
+						})
+					}),
+					layout.Rigid(func(gtx C) D {
+						return material.Clickable(gtx, &ui.ossLicenses, func(gtx C) D {
+							return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx C) D {
+								return material.Body1(ui.theme, "Open Source Licenses").Layout(gtx)
+							})
+						})
+					}),
+				)
+			})
+		})
+	})
+}
+
 func layoutMenu(th *material.Theme, gtx layout.Context, items []menuItem, header layout.Widget) layout.Dimensions {
 	return layoutDialog(gtx, func(gtx C) D {
 		// Lay out menu items twice; once for
@@ -1118,10 +1192,9 @@ func (ui *UI) layoutMenu(gtx layout.Context, sysIns system.Insets, expiry time.T
 				var items []menuItem
 				title := "Tailscale " + version.Short
 				if ui.menu.showDebugMenu {
-					items = []menuItem{
-						{title: "Change server", btn: &menu.useLoginServer},
-					}
+					items = append(items, menuItem{title: "Change server", btn: &menu.useLoginServer})
 				}
+				items = append(items, menuItem{title: "About", btn: &menu.about})
 				return layoutMenu(ui.theme, gtx, items, func(gtx C) D {
 					l := material.Caption(ui.theme, title)
 					return l.Layout(gtx)
@@ -1146,6 +1219,8 @@ func (ui *UI) layoutMenu(gtx layout.Context, sysIns system.Insets, expiry time.T
 				title = "Run exit node"
 			}
 			items = append(items, menuItem{title: title, btn: &menu.beExit})
+
+			items = append(items, menuItem{title: "About", btn: &menu.about})
 
 			return layoutMenu(ui.theme, gtx, items, func(gtx C) D {
 				var expiryStr string

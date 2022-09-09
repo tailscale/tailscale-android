@@ -193,6 +193,7 @@ type (
 	WebAuthEvent      struct{}
 	GoogleAuthEvent   struct{}
 	LogoutEvent       struct{}
+	OSSLicensesEvent  struct{}
 	BeExitNodeEvent   bool
 	ExitAllowLANEvent bool
 )
@@ -1134,6 +1135,8 @@ func (a *App) processUIEvents(w *app.Window, events []UIEvent, act jni.Object, s
 			a.updateState(act, state)
 		case FileSendEvent:
 			a.sendFiles(e, files)
+		case OSSLicensesEvent:
+			a.setURL("https://tailscale.com/licenses/android")
 		}
 	}
 }
