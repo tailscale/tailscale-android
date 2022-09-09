@@ -9,9 +9,9 @@ require (
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	golang.org/x/exp/shiny v0.0.0-20220823124025-807a23277127
 	golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8
-	golang.zx2c4.com/wireguard v0.0.0-20220703234212-c31a7b1ab478
+	golang.zx2c4.com/wireguard v0.0.0-20220904105730-b51010ba13f0
 	inet.af/netaddr v0.0.0-20220617031823-097006376321
-	tailscale.com v1.1.1-0.20220831153855-84b74825f000
+	tailscale.com v1.1.1-0.20220909001613-2aade349fc3f
 )
 
 require (
@@ -70,6 +70,6 @@ require (
 	golang.org/x/tools v0.1.11 // indirect
 	golang.zx2c4.com/wintun v0.0.0-20211104114900-415007cec224 // indirect
 	golang.zx2c4.com/wireguard/windows v0.5.3 // indirect
-	gvisor.dev/gvisor v0.0.0-20220801230058-850e42eb4444 // indirect
+	gvisor.dev/gvisor v0.0.0-20220817001344-846276b3dbc5 // indirect
 	nhooyr.io/websocket v1.8.7 // indirect
 )

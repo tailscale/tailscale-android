@@ -636,6 +636,8 @@ golang.zx2c4.com/wintun v0.0.0-20211104114900-415007cec224/go.mod h1:deeaetjYA+D
 golang.zx2c4.com/wireguard v0.0.0-20210905140043-2ef39d47540c/go.mod h1:laHzsbfMhGSobUmruXWAyMKKHSqvIcrqZJMyHD+/3O8=
 golang.zx2c4.com/wireguard v0.0.0-20220703234212-c31a7b1ab478 h1:vDy//hdR+GnROE3OdYbQKt9rdtNdHkDtONvpRwmls/0=
 golang.zx2c4.com/wireguard v0.0.0-20220703234212-c31a7b1ab478/go.mod h1:bVQfyl2sCM/QIIGHpWbFGfHPuDvqnCNkT6MQLTCjO/U=
+golang.zx2c4.com/wireguard v0.0.0-20220904105730-b51010ba13f0 h1:5ZkdpbduT/g+9OtbSDvbF3KvfQG45CtH/ppO8FUmvCQ=
+golang.zx2c4.com/wireguard v0.0.0-20220904105730-b51010ba13f0/go.mod h1:enML0deDxY1ux+B6ANGiwtg0yAJi1rctkTpcHNAVPyg=
 golang.zx2c4.com/wireguard/windows v0.4.10 h1:HmjzJnb+G4NCdX+sfjsQlsxGPuYaThxRbZUZFLyR0/s=
 golang.zx2c4.com/wireguard/windows v0.4.10/go.mod h1:v7w/8FC48tTBm1IzScDVPEEb0/GjLta+T0ybpP9UWRg=
 golang.zx2c4.com/wireguard/windows v0.5.3 h1:On6j2Rpn3OEMXqBq00QEDC7bWSZrPIHKIus8eIuExIE=
@@ -686,6 +688,8 @@ gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c/go.mod h1:K4uyk7z7BCEPqu6E+C
 gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b h1:h8qDotaEPuJATrMmW04NCwg7v22aHH28wwpauUhK9Oo=
 gvisor.dev/gvisor v0.0.0-20220801230058-850e42eb4444 h1:0d3ygmOM5RgQB8rmsZNeAY/7Q98fKt1HrGO2XIp4pDI=
 gvisor.dev/gvisor v0.0.0-20220801230058-850e42eb4444/go.mod h1:TIvkJD0sxe8pIob3p6T8IzxXunlp6yfgktvTNp+DGNM=
+gvisor.dev/gvisor v0.0.0-20220817001344-846276b3dbc5 h1:cv/zaNV0nr1mJzaeo4S5mHIm5va1W0/9J3/5prlsuRM=
+gvisor.dev/gvisor v0.0.0-20220817001344-846276b3dbc5/go.mod h1:TIvkJD0sxe8pIob3p6T8IzxXunlp6yfgktvTNp+DGNM=
 honnef.co/go/tools v0.0.0-20180728063816-88497007e858/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
 honnef.co/go/tools v0.0.0-20190102054323-c2f93a96b099/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
 honnef.co/go/tools v0.0.0-20190523083050-ea95bdfd59fc/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
@@ -704,3 +708,5 @@ tailscale.com v1.1.1-0.20220827035056-70f9fc8c7a0b h1:LYLmQAviZ4OJ45fdBvE/0lb/8f
 tailscale.com v1.1.1-0.20220827035056-70f9fc8c7a0b/go.mod h1:MO+tWkQp2YIF3KBnnej/mQvgYccRS5Xk/IrEpZ4Z3BU=
 tailscale.com v1.1.1-0.20220831153855-84b74825f000 h1:6p+hybS4DH/+Zrm2ieBTFO15XyDD/qQ/sR2gI8qBmRk=
 tailscale.com v1.1.1-0.20220831153855-84b74825f000/go.mod h1:t4DD+iaelFMJy6WtRKGhoya4epE1kbaW8LK3Paf/DoQ=
+tailscale.com v1.1.1-0.20220909001613-2aade349fc3f h1:+bEHKM1NkyIASiobo5rT4McKOEEnnL56FTIkvBaHrBU=
+tailscale.com v1.1.1-0.20220909001613-2aade349fc3f/go.mod h1:5amxy08qijEa8bcTW2SeIy4MIqcmd7LMsuOxqOlj2Ak=
