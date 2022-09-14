@@ -368,6 +368,9 @@ func (a *App) runBackend() error {
 				if service != 0 {
 					if cfg.rcfg != nil && state.State >= ipn.Starting {
 						if err := b.updateTUN(service, cfg.rcfg, cfg.dcfg); err != nil {
+							if errors.Is(err, errMultipleUsers) {
+								a.pushNotify(service, "Multiple Users", multipleUsersText)
+							}
 							log.Printf("VPN update failed: %v", err)
 							notifyVPNClosed()
 						}
@@ -1405,3 +1408,6 @@ func randHex(n int) string {
 	rand.Read(b)
 	return hex.EncodeToString(b)
 }
+
+const multipleUsersText = "Tailscale can't start due to an Android bug when multiple users are present on this device. " +
+	"Please see https://tailscale.com/s/multi-user-bug for more information."

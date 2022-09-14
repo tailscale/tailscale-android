@@ -81,6 +81,11 @@ var googleDNSServers = []netip.Addr{
 // VPN status was revoked.
 var errVPNNotPrepared = errors.New("VPN service not prepared or was revoked")
 
+// errMultipleUsers is used when we get a "INTERACT_ACROSS_USERS" error, which
+// happens due to a bug in Android. See:
+//    https://github.com/tailscale/tailscale/issues/2180
+var errMultipleUsers = errors.New("VPN cannot be created on this device due to an Android bug with multiple users")
+
 func newBackend(dataDir string, jvm *jni.JVM, appCtx jni.Object, store *stateStore,
 	settings settingsFunc) (*backend, error) {
 
@@ -266,6 +271,9 @@ func (b *backend) updateTUN(service jni.Object, rcfg *router.Config, dcfg *dns.O
 		establish := jni.GetMethodID(env, bcls, "establish", "()Landroid/os/ParcelFileDescriptor;")
 		parcelFD, err := jni.CallObjectMethod(env, builder, establish)
 		if err != nil {
+			if strings.Contains(err.Error(), "INTERACT_ACROSS_USERS") {
+				return errMultipleUsers
+			}
 			return fmt.Errorf("VpnService.Builder.establish: %v", err)
 		}
 		if parcelFD == 0 {
