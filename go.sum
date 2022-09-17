@@ -710,3 +710,9 @@ tailscale.com v1.1.1-0.20220831153855-84b74825f000 h1:6p+hybS4DH/+Zrm2ieBTFO15Xy
 tailscale.com v1.1.1-0.20220831153855-84b74825f000/go.mod h1:t4DD+iaelFMJy6WtRKGhoya4epE1kbaW8LK3Paf/DoQ=
 tailscale.com v1.1.1-0.20220909001613-2aade349fc3f h1:+bEHKM1NkyIASiobo5rT4McKOEEnnL56FTIkvBaHrBU=
 tailscale.com v1.1.1-0.20220909001613-2aade349fc3f/go.mod h1:5amxy08qijEa8bcTW2SeIy4MIqcmd7LMsuOxqOlj2Ak=
+tailscale.com v1.1.1-0.20220916191909-4bda41e7019d h1:FCsLzrv4eMVCfI7Wlz6yOoVcFROnir3bCqAUvaORAE4=
+tailscale.com v1.1.1-0.20220916191909-4bda41e7019d/go.mod h1:5amxy08qijEa8bcTW2SeIy4MIqcmd7LMsuOxqOlj2Ak=
+tailscale.com v1.1.1-0.20220916223019-65c24b6334e9 h1:VB9f7hHftkJr4wTWJw3sdMOX/w+DqFACjP4Sh40fabY=
+tailscale.com v1.1.1-0.20220916223019-65c24b6334e9/go.mod h1:5amxy08qijEa8bcTW2SeIy4MIqcmd7LMsuOxqOlj2Ak=
+tailscale.com v1.1.1-0.20220918061924-42f1d92ae020 h1:wftb2Pj+8cKg2z96ny603gw8kyB6e27WC0Q+Q1SfoXs=
+tailscale.com v1.1.1-0.20220918061924-42f1d92ae020/go.mod h1:5amxy08qijEa8bcTW2SeIy4MIqcmd7LMsuOxqOlj2Ak=
