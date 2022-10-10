@@ -400,6 +400,7 @@ github.com/tailscale/certstore v0.1.1-0.20220316223106-78d6e1c49d8d h1:K3j02b5j2
 github.com/tailscale/certstore v0.1.1-0.20220316223106-78d6e1c49d8d/go.mod h1:2P+hpOwd53e7JMX/L4f3VXkv1G+33ES6IWZSrkIeWNs=
 github.com/tailscale/golang-x-crypto v0.0.0-20221005023726-777337dba4cf h1:35sHeDlQ9DeWHkncKN7WW7L0Ialq/A35JcXDQBCxiRc=
 github.com/tailscale/golang-x-crypto v0.0.0-20221005023726-777337dba4cf/go.mod h1:95n9fbUCixVSI4QXLEvdKJjnYK2eUlkTx9+QwLPXFKU=
+github.com/tailscale/golang-x-crypto v0.0.0-20221009170451-62f465106986/go.mod h1:95n9fbUCixVSI4QXLEvdKJjnYK2eUlkTx9+QwLPXFKU=
 github.com/tailscale/goupnp v1.0.1-0.20210804011211-c64d0f06ea05 h1:4chzWmimtJPxRs2O36yuGRW3f9SYV+bMTTvMBI0EKio=
 github.com/tailscale/goupnp v1.0.1-0.20210804011211-c64d0f06ea05/go.mod h1:PdCqy9JzfWMJf1H5UJW2ip33/d4YkoKN0r67yKH1mG8=
 github.com/tailscale/netlink v1.1.1-0.20211101221916-cabfb018fe85 h1:zrsUcqrG2uQSPhaUPjUQwozcRdDdSxxqhNgNZ3drZFk=
@@ -689,3 +690,5 @@ software.sslmate.com/src/go-pkcs12 v0.0.0-20210415151418-c5206de65a78 h1:SqYE5+A
 sourcegraph.com/sourcegraph/appdash v0.0.0-20190731080439-ebfcffb1b5c0/go.mod h1:hI742Nqp5OhwiqlzhgfbWU4mW4yO10fP+LoT9WOswdU=
 tailscale.com v1.1.1-0.20221008042123-6d76764f3745 h1:w6mCUijGLP3QRNCyVyEtCKOOAC/deZnZfForkEYFQRA=
 tailscale.com v1.1.1-0.20221008042123-6d76764f3745/go.mod h1:0gepHKLs9BQEqTc0Qx08mHNKi0lKZCwFvi0V0sJRS4k=
+tailscale.com v1.1.1-0.20221010010704-8a187159b236 h1:CtuIcsex3BUL+wOA50kqh7R1ECRMHu9Du3tTWK7A3KI=
+tailscale.com v1.1.1-0.20221010010704-8a187159b236/go.mod h1:AwKk+tI7z1+EXzmLxVNXA4dBpgTKd6RVV1VjFYEiv94=
