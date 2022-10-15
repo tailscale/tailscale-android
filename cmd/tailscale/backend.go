@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/tailscale/tailscale-android/jni"
 	"golang.org/x/sys/unix"
@@ -328,7 +329,8 @@ func (b *backend) SetupLogs(logDir string, logID logtail.PrivateID) {
 			}
 			return w
 		},
-		HTTPC: &http.Client{Transport: logpolicy.NewLogtailTransport(logtail.DefaultHost)},
+		HTTPC:      &http.Client{Transport: logpolicy.NewLogtailTransport(logtail.DefaultHost)},
+		FlushDelay: 2 * time.Minute,
 	}
 
 	filchOpts := filch.Options{
