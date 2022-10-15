@@ -398,10 +398,6 @@ github.com/stretchr/testify v1.7.1 h1:5TQK59W5E3v0r2duFAb7P95B6hEeOyEnHRa8MjYSMT
 github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/tailscale/certstore v0.1.1-0.20220316223106-78d6e1c49d8d h1:K3j02b5j2Iw1xoggN9B2DIEkhWGheqFOeDkdJdBrJI8=
 github.com/tailscale/certstore v0.1.1-0.20220316223106-78d6e1c49d8d/go.mod h1:2P+hpOwd53e7JMX/L4f3VXkv1G+33ES6IWZSrkIeWNs=
-github.com/tailscale/golang-x-crypto v0.0.0-20221005023726-777337dba4cf h1:35sHeDlQ9DeWHkncKN7WW7L0Ialq/A35JcXDQBCxiRc=
-github.com/tailscale/golang-x-crypto v0.0.0-20221005023726-777337dba4cf/go.mod h1:95n9fbUCixVSI4QXLEvdKJjnYK2eUlkTx9+QwLPXFKU=
-github.com/tailscale/golang-x-crypto v0.0.0-20221009170451-62f465106986 h1:jWSwTR9CY13oa2oxhR3FInk1ybqC1NbF9cFeoWrrx+E=
-github.com/tailscale/golang-x-crypto v0.0.0-20221009170451-62f465106986/go.mod h1:95n9fbUCixVSI4QXLEvdKJjnYK2eUlkTx9+QwLPXFKU=
 github.com/tailscale/golang-x-crypto v0.0.0-20221011214003-2ffa11beee90 h1:Vw3TVi00T2/J3yU22807VB0K0Fo8lNMUBEo2gL0L1bM=
 github.com/tailscale/golang-x-crypto v0.0.0-20221011214003-2ffa11beee90/go.mod h1:95n9fbUCixVSI4QXLEvdKJjnYK2eUlkTx9+QwLPXFKU=
 github.com/tailscale/goupnp v1.0.1-0.20210804011211-c64d0f06ea05 h1:4chzWmimtJPxRs2O36yuGRW3f9SYV+bMTTvMBI0EKio=
@@ -691,9 +687,5 @@ nhooyr.io/websocket v1.8.7/go.mod h1:B70DZP8IakI65RVQ51MsWP/8jndNma26DVA/nFSCgW0
 sigs.k8s.io/yaml v1.1.0/go.mod h1:UJmg0vDUVViEyp3mgSv9WPwZCDxu4rQW1olrI1uml+o=
 software.sslmate.com/src/go-pkcs12 v0.0.0-20210415151418-c5206de65a78 h1:SqYE5+A2qvRhErbsXFfUEUmpWEKxxRSMgGLkvRAFOV4=
 sourcegraph.com/sourcegraph/appdash v0.0.0-20190731080439-ebfcffb1b5c0/go.mod h1:hI742Nqp5OhwiqlzhgfbWU4mW4yO10fP+LoT9WOswdU=
-tailscale.com v1.1.1-0.20221008042123-6d76764f3745 h1:w6mCUijGLP3QRNCyVyEtCKOOAC/deZnZfForkEYFQRA=
-tailscale.com v1.1.1-0.20221008042123-6d76764f3745/go.mod h1:0gepHKLs9BQEqTc0Qx08mHNKi0lKZCwFvi0V0sJRS4k=
-tailscale.com v1.1.1-0.20221010010704-8a187159b236 h1:CtuIcsex3BUL+wOA50kqh7R1ECRMHu9Du3tTWK7A3KI=
-tailscale.com v1.1.1-0.20221010010704-8a187159b236/go.mod h1:AwKk+tI7z1+EXzmLxVNXA4dBpgTKd6RVV1VjFYEiv94=
-tailscale.com v1.1.1-0.20221012185713-1b4e4cc1e835 h1:5BvI/i6hOYZeKTTcPlxbLvABnzDs5bhNRujl3P7gILo=
-tailscale.com v1.1.1-0.20221012185713-1b4e4cc1e835/go.mod h1:Plt8BR7hmtE7efa8osoqMgJRMnPg/hVliHtPyxDFRY4=
+tailscale.com v1.1.1-0.20221014202810-899b4cae109d h1:mrZOB74szZwjEWf5VtV6vrFV+QN5OkAgkaKTGiDzMqw=
+tailscale.com v1.1.1-0.20221014202810-899b4cae109d/go.mod h1:Y53dMo7XUIYScorwqsmc6ISTlXJY35PiTTmkIBDx99M=
