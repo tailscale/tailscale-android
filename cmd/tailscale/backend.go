@@ -13,7 +13,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
-	"time"
 
 	"github.com/tailscale/tailscale-android/jni"
 	"golang.org/x/sys/unix"
@@ -83,7 +82,8 @@ var errVPNNotPrepared = errors.New("VPN service not prepared or was revoked")
 
 // errMultipleUsers is used when we get a "INTERACT_ACROSS_USERS" error, which
 // happens due to a bug in Android. See:
-//    https://github.com/tailscale/tailscale/issues/2180
+//
+//	https://github.com/tailscale/tailscale/issues/2180
 var errMultipleUsers = errors.New("VPN cannot be created on this device due to an Android bug with multiple users")
 
 func newBackend(dataDir string, jvm *jni.JVM, appCtx jni.Object, store *stateStore,
@@ -330,19 +330,6 @@ func (b *backend) SetupLogs(logDir string, logID logtail.PrivateID) {
 		},
 		HTTPC: &http.Client{Transport: logpolicy.NewLogtailTransport(logtail.DefaultHost)},
 	}
-	drainCh := make(chan struct{})
-	logcfg.DrainLogs = drainCh
-	go func() {
-		// Upload logs infrequently. Interval chosen arbitrarily.
-		// The objective is to reduce phone power use.
-		t := time.NewTicker(2 * time.Minute)
-		for range t.C {
-			select {
-			case drainCh <- struct{}{}:
-			default:
-			}
-		}
-	}()
 
 	filchOpts := filch.Options{
 		ReplaceStderr: true,
