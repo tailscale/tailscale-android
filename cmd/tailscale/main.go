@@ -349,9 +349,9 @@ func (a *App) runBackend() error {
 			configErrs <- b.updateTUN(service, cfg.rcfg, cfg.dcfg)
 		case n := <-notifications:
 			exitWasOnline := state.ExitStatus == ExitOnline
-			if p := n.Prefs; p != nil {
+			if p := n.Prefs; n.Prefs.Valid() {
 				first := state.Prefs == nil
-				state.Prefs = p.Clone()
+				state.Prefs = p.AsStruct()
 				state.updateExitNodes()
 				if first {
 					state.Prefs.Hostname = a.hostname()
