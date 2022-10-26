@@ -45,7 +45,8 @@ public class IPNService extends VpnService {
 	}
 
 	private PendingIntent configIntent() {
-		return PendingIntent.getActivity(this, 0, new Intent(this, IPNActivity.class), PendingIntent.FLAG_UPDATE_CURRENT);
+		return PendingIntent.getActivity(this, 0, new Intent(this, IPNActivity.class),
+			PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 	}
 
 	private void disallowApp(VpnService.Builder b, String name) {
