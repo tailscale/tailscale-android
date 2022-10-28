@@ -401,4 +401,9 @@ public class App extends Application {
 		UiModeManager mm = (UiModeManager)getSystemService(UI_MODE_SERVICE);
 		return mm.getCurrentModeType() == Configuration.UI_MODE_TYPE_TELEVISION;
 	}
+
+	boolean isDarkMode() {
+		Configuration config = getResources().getConfiguration();
+		return (config.uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
+	}
 }

@@ -201,7 +201,7 @@ var (
 	googleLogo []byte
 )
 
-func newUI(store *stateStore) (*UI, error) {
+func newUI(store *stateStore, darkMode bool) (*UI, error) {
 	searchIcon, err := widget.NewIcon(icons.ActionSearch)
 	if err != nil {
 		return nil, err
@@ -245,6 +245,10 @@ func newUI(store *stateStore) (*UI, error) {
 	ui := &UI{
 		theme: material.NewTheme(fonts),
 		store: store,
+	}
+	if darkMode {
+		ui.theme.Palette.Bg, ui.theme.Palette.Fg = ui.theme.Palette.Fg, ui.theme.Palette.Bg
+		ui.theme.ContrastBg, ui.theme.ContrastFg = ui.theme.ContrastFg, ui.theme.ContrastBg
 	}
 	ui.intro.show, _ = store.ReadBool(keyShowIntro, true)
 	ui.icons.search = searchIcon

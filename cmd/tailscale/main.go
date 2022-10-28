@@ -833,7 +833,7 @@ func (a *App) setURL(url string) {
 
 func (a *App) runUI() error {
 	w := app.NewWindow()
-	ui, err := newUI(a.store)
+	ui, err := newUI(a.store, a.isDarkMode())
 	if err != nil {
 		return err
 	}
@@ -977,6 +977,21 @@ func (a *App) isTV() bool {
 		fatalErr(err)
 	}
 	return istv
+}
+
+func (a *App) isDarkMode() bool {
+	var isdarkmode bool
+	err := jni.Do(a.jvm, func(env *jni.Env) error {
+		cls := jni.GetObjectClass(env, a.appCtx)
+		m := jni.GetMethodID(env, cls, "isDarkMode", "()Z")
+		b, err := jni.CallBooleanMethod(env, a.appCtx, m)
+		isdarkmode = b
+		return err
+	})
+	if err != nil {
+		fatalErr(err)
+	}
+	return isdarkmode
 }
 
 // isReleaseSigned reports whether the app is signed with a release
