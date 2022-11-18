@@ -16,8 +16,8 @@ import (
 	"time"
 
 	"github.com/tailscale/tailscale-android/jni"
+	"github.com/tailscale/wireguard-go/tun"
 	"golang.org/x/sys/unix"
-	"golang.zx2c4.com/wireguard/tun"
 	"tailscale.com/ipn"
 	"tailscale.com/ipn/ipnlocal"
 	"tailscale.com/logpolicy"

@@ -7,7 +7,7 @@ package main
 import (
 	"os"
 
-	"golang.zx2c4.com/wireguard/tun"
+	"github.com/tailscale/wireguard-go/tun"
 )
 
 // multiTUN implements a tun.Device that supports multiple
@@ -25,7 +25,6 @@ type multiTUN struct {
 
 	reads        chan ioRequest
 	writes       chan ioRequest
-	flushes      chan chan error
 	mtus         chan chan mtuReply
 	names        chan chan nameReply
 	shutdowns    chan struct{}
@@ -43,13 +42,14 @@ type tunDevice struct {
 }
 
 type ioRequest struct {
-	data   []byte
+	data   [][]byte
+	sizes  []int
 	offset int
 	reply  chan<- ioReply
 }
 
 type ioReply struct {
-	bytes int
+	count int
 	err   error
 }
 
@@ -71,7 +71,6 @@ func newTUNDevices() *multiTUN {
 		closeErr:     make(chan error),
 		reads:        make(chan ioRequest),
 		writes:       make(chan ioRequest),
-		flushes:      make(chan chan error),
 		mtus:         make(chan chan mtuReply),
 		names:        make(chan chan nameReply),
 		shutdowns:    make(chan struct{}),
@@ -144,13 +143,6 @@ func (d *multiTUN) run() {
 				go d.runDevice(wrap)
 			}
 			devices = append(devices, wrap)
-		case f := <-d.flushes:
-			var err error
-			if len(devices) > 0 {
-				dev := devices[len(devices)-1]
-				err = dev.dev.Flush()
-			}
-			f <- err
 		case m := <-d.mtus:
 			r := mtuReply{mtu: defaultMTU}
 			if len(devices) > 0 {
@@ -176,7 +168,7 @@ func (d *multiTUN) readFrom(dev *tunDevice) {
 	for {
 		select {
 		case r := <-d.reads:
-			n, err := dev.dev.Read(r.data, r.offset)
+			n, err := dev.dev.Read(r.data, r.sizes, r.offset)
 			stop := false
 			if err != nil {
 				select {
@@ -242,24 +234,18 @@ func (d *multiTUN) File() *os.File {
 	panic("not available on Android")
 }
 
-func (d *multiTUN) Read(data []byte, offset int) (int, error) {
+func (d *multiTUN) Read(data [][]byte, sizes []int, offset int) (int, error) {
 	r := make(chan ioReply)
-	d.reads <- ioRequest{data, offset, r}
+	d.reads <- ioRequest{data, sizes, offset, r}
 	rep := <-r
-	return rep.bytes, rep.err
+	return rep.count, rep.err
 }
 
-func (d *multiTUN) Write(data []byte, offset int) (int, error) {
+func (d *multiTUN) Write(data [][]byte, offset int) (int, error) {
 	r := make(chan ioReply)
-	d.writes <- ioRequest{data, offset, r}
+	d.writes <- ioRequest{data, nil, offset, r}
 	rep := <-r
-	return rep.bytes, rep.err
-}
-
-func (d *multiTUN) Flush() error {
-	r := make(chan error)
-	d.flushes <- r
-	return <-r
+	return rep.count, rep.err
 }
 
 func (d *multiTUN) MTU() (int, error) {
@@ -276,7 +262,7 @@ func (d *multiTUN) Name() (string, error) {
 	return rep.name, rep.err
 }
 
-func (d *multiTUN) Events() chan tun.Event {
+func (d *multiTUN) Events() <-chan tun.Event {
 	return d.events
 }
 
@@ -288,4 +274,10 @@ func (d *multiTUN) Shutdown() {
 func (d *multiTUN) Close() error {
 	close(d.close)
 	return <-d.closeErr
+}
+
+func (d *multiTUN) BatchSize() int {
+	// TODO(raggi): currently Android disallows the necessary ioctls to enable
+	// batching. File a bug.
+	return 1
 }
