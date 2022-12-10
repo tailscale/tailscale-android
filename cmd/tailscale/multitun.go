@@ -7,7 +7,7 @@ package main
 import (
 	"os"
 
-	"golang.zx2c4.com/wireguard/tun"
+	"github.com/tailscale/wireguard-go/tun"
 )
 
 // multiTUN implements a tun.Device that supports multiple
@@ -25,11 +25,11 @@ type multiTUN struct {
 
 	reads        chan ioRequest
 	writes       chan ioRequest
-	flushes      chan chan error
 	mtus         chan chan mtuReply
 	names        chan chan nameReply
 	shutdowns    chan struct{}
 	shutdownDone chan struct{}
+	batchsizes   chan chan int
 }
 
 // tunDevice wraps and drives a single run.Device.
@@ -43,7 +43,8 @@ type tunDevice struct {
 }
 
 type ioRequest struct {
-	data   []byte
+	buffs  [][]byte
+	sizes  []int
 	offset int
 	reply  chan<- ioReply
 }
@@ -71,11 +72,11 @@ func newTUNDevices() *multiTUN {
 		closeErr:     make(chan error),
 		reads:        make(chan ioRequest),
 		writes:       make(chan ioRequest),
-		flushes:      make(chan chan error),
 		mtus:         make(chan chan mtuReply),
 		names:        make(chan chan nameReply),
 		shutdowns:    make(chan struct{}),
 		shutdownDone: make(chan struct{}),
+		batchsizes:   make(chan chan int),
 	}
 	go d.run()
 	return d
@@ -144,13 +145,6 @@ func (d *multiTUN) run() {
 				go d.runDevice(wrap)
 			}
 			devices = append(devices, wrap)
-		case f := <-d.flushes:
-			var err error
-			if len(devices) > 0 {
-				dev := devices[len(devices)-1]
-				err = dev.dev.Flush()
-			}
-			f <- err
 		case m := <-d.mtus:
 			r := mtuReply{mtu: defaultMTU}
 			if len(devices) > 0 {
@@ -165,6 +159,13 @@ func (d *multiTUN) run() {
 				r.name, r.err = dev.dev.Name()
 			}
 			n <- r
+		case s := <-d.batchsizes:
+			siz := 1
+			if len(devices) > 0 {
+				dev := devices[len(devices)-1]
+				siz = dev.dev.BatchSize()
+			}
+			s <- siz
 		}
 	}
 }
@@ -176,7 +177,7 @@ func (d *multiTUN) readFrom(dev *tunDevice) {
 	for {
 		select {
 		case r := <-d.reads:
-			n, err := dev.dev.Read(r.data, r.offset)
+			n, err := dev.dev.Read(r.buffs, r.sizes, r.offset)
 			stop := false
 			if err != nil {
 				select {
@@ -220,7 +221,7 @@ func (d *multiTUN) runDevice(dev *tunDevice) {
 	for {
 		select {
 		case w := <-d.writes:
-			n, err := dev.dev.Write(w.data, w.offset)
+			n, err := dev.dev.Write(w.buffs, w.offset)
 			w.reply <- ioReply{n, err}
 		case <-dev.close:
 			// Device closed.
@@ -242,24 +243,18 @@ func (d *multiTUN) File() *os.File {
 	panic("not available on Android")
 }
 
-func (d *multiTUN) Read(data []byte, offset int) (int, error) {
+func (d *multiTUN) Read(buffs [][]byte, sizes []int, offset int) (n int, err error) {
 	r := make(chan ioReply)
-	d.reads <- ioRequest{data, offset, r}
+	d.reads <- ioRequest{buffs, sizes, offset, r}
 	rep := <-r
 	return rep.bytes, rep.err
 }
 
-func (d *multiTUN) Write(data []byte, offset int) (int, error) {
+func (d *multiTUN) Write(buffs [][]byte, offset int) (int, error) {
 	r := make(chan ioReply)
-	d.writes <- ioRequest{data, offset, r}
+	d.writes <- ioRequest{buffs, nil, offset, r}
 	rep := <-r
 	return rep.bytes, rep.err
-}
-
-func (d *multiTUN) Flush() error {
-	r := make(chan error)
-	d.flushes <- r
-	return <-r
 }
 
 func (d *multiTUN) MTU() (int, error) {
@@ -276,7 +271,7 @@ func (d *multiTUN) Name() (string, error) {
 	return rep.name, rep.err
 }
 
-func (d *multiTUN) Events() chan tun.Event {
+func (d *multiTUN) Events() <-chan tun.Event {
 	return d.events
 }
 
@@ -288,4 +283,10 @@ func (d *multiTUN) Shutdown() {
 func (d *multiTUN) Close() error {
 	close(d.close)
 	return <-d.closeErr
+}
+
+func (d *multiTUN) BatchSize() int {
+	r := make(chan int)
+	d.batchsizes <- r
+	return <-r
 }
