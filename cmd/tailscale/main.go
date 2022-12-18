@@ -441,9 +441,15 @@ func (a *App) runBackend() error {
 			case SetLoginServerEvent:
 				state.Prefs.ControlURL = e.URL
 				b.backend.SetPrefs(state.Prefs)
-				// A hack to get around ipnlocal's inability to update
-				// ControlURL after Start()... Can we re-init instead?
-				os.Exit(0)
+				// Need to restart to force the login URL to be regenerated
+				// with the new control URL. Start from a goroutine to avoid
+				// deadlock.
+				go func() {
+					err := b.backend.Start(ipn.Options{})
+					if err != nil {
+						fatalErr(err)
+					}
+				}()
 			case LogoutEvent:
 				go b.backend.Logout()
 			case ConnectEvent:
