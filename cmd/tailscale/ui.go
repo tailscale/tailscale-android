@@ -396,8 +396,9 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 
 	if ui.loginServerSave.Clicked() {
 		text := ui.loginServer.Text()
-		ui.showMessage(gtx, "Login server saved, relaunch the app")
+		ui.showMessage(gtx, "Login server saved")
 		events = append(events, SetLoginServerEvent{URL: text})
+		ui.setLoginServer = false
 	}
 	if ui.loginServerCancel.Clicked() {
 		ui.setLoginServer = false
@@ -725,7 +726,7 @@ func (ui *UI) layoutSignIn(gtx layout.Context, state *BackendState) layout.Dimen
 				layout.Rigid(func(gtx C) D {
 					return layout.Inset{Bottom: unit.Dp(16)}.Layout(gtx, func(gtx C) D {
 						return border.Layout(gtx, func(gtx C) D {
-							button := material.Button(ui.theme, &ui.loginServerSave, "Save and restart")
+							button := material.Button(ui.theme, &ui.loginServerSave, "Save")
 							button.Background = color.NRGBA{} // transparent
 							button.Color = rgb(textColor)
 							return button.Layout(gtx)
