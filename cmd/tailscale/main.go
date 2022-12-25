@@ -27,6 +27,7 @@ import (
 	"unsafe"
 
 	"gioui.org/app"
+	"gioui.org/io/key"
 	"gioui.org/io/system"
 	"gioui.org/layout"
 	"gioui.org/op"
@@ -951,10 +952,9 @@ func (a *App) runUI() error {
 				}
 			case system.DestroyEvent:
 				return e.Err
-			case *system.CommandEvent:
-				if e.Type == system.CommandBack {
+			case key.Event:
+				if e.Name == key.NameBack {
 					if ui.onBack() {
-						e.Cancel = true
 						w.Invalidate()
 					}
 				}

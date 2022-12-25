@@ -4,11 +4,11 @@ go 1.19
 
 require (
 	eliasnaur.com/font v0.0.0-20220124212145-832bb8fc08c3
-	gioui.org v0.0.0-20220331105829-a1b5ff059c07
+	gioui.org v0.0.0-20221223153152-aa2a948b863a
 	gioui.org/cmd v0.0.0-20210925100615-41f3a7e74ee6
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/tailscale/wireguard-go v0.0.0-20221219190806-4fa124729667
-	golang.org/x/exp/shiny v0.0.0-20220823124025-807a23277127
+	golang.org/x/exp/shiny v0.0.0-20220827204233-334a2380cb91
 	golang.org/x/sys v0.2.0
 	inet.af/netaddr v0.0.0-20220617031823-097006376321
 	tailscale.com v1.1.1-0.20221219220559-237f030cd958
@@ -22,13 +22,12 @@ require (
 	github.com/akavel/rsrc v0.10.1 // indirect
 	github.com/akutz/memconn v0.1.0 // indirect
 	github.com/alexbrainman/sspi v0.0.0-20210105120005-909beea2cc74 // indirect
-	github.com/benoitkugler/textlayout v0.0.10 // indirect
+	github.com/benoitkugler/textlayout v0.3.0 // indirect
 	github.com/coreos/go-iptables v0.6.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.4.0 // indirect
 	github.com/gin-gonic/gin v1.8.1 // indirect
-	github.com/gioui/uax v0.2.1-0.20220325163150-e3d987515a12 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
-	github.com/go-text/typesetting v0.0.0-20220112121102-58fe93c84506 // indirect
+	github.com/go-text/typesetting v0.0.0-20221214153724-0399769901d5 // indirect
 	github.com/godbus/dbus/v5 v5.0.6 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/google/btree v1.0.1 // indirect
@@ -61,7 +60,7 @@ require (
 	go4.org/unsafe/assume-no-moving-gc v0.0.0-20220617031537-928513b29760 // indirect
 	golang.org/x/crypto v0.3.0 // indirect
 	golang.org/x/exp v0.0.0-20221205204356-47842c84f3db // indirect
-	golang.org/x/image v0.0.0-20210628002857-a66eb6448b8d // indirect
+	golang.org/x/image v0.0.0-20220722155232-062f8c9fd539 // indirect
 	golang.org/x/mod v0.6.0 // indirect
 	golang.org/x/net v0.2.0 // indirect
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4 // indirect
