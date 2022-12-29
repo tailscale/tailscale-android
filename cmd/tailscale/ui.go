@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"math"
 	"net/netip"
 	"time"
 
@@ -706,7 +707,7 @@ func (ui *UI) layoutSignIn(gtx layout.Context, state *BackendState) layout.Dimen
 			textColor = 0x555555
 		)
 
-		border := widget.Border{Color: rgb(textColor), CornerRadius: unit.Dp(4), Width: unit.Px(1)}
+		border := widget.Border{Color: rgb(textColor), CornerRadius: unit.Dp(4), Width: unit.Dp(1)}
 
 		if ui.setLoginServer {
 			return layout.Flex{Axis: layout.Vertical, Alignment: layout.Middle}.Layout(gtx,
@@ -759,7 +760,7 @@ func (ui *UI) layoutSignIn(gtx layout.Context, state *BackendState) layout.Dimen
 								gtx.Queue = nil
 							}
 							return signin.Layout(gtx, func(gtx C) D {
-								gtx.Constraints.Max.Y = gtx.Px(unit.Dp(48))
+								gtx.Constraints.Max.Y = gtx.Dp(unit.Dp(48))
 								return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
 									layout.Rigid(func(gtx C) D {
 										return layout.Inset{Right: unit.Dp(4)}.Layout(gtx, func(gtx C) D {
@@ -813,7 +814,7 @@ func (ui *UI) withLoader(gtx layout.Context, loading bool, w layout.Widget) layo
 			}
 			return layout.Inset{Left: unit.Dp(16)}.Layout(gtx, func(gtx C) D {
 				gtx.Constraints.Min = image.Point{
-					X: gtx.Px(unit.Dp(16)),
+					X: gtx.Dp(unit.Dp(16)),
 				}
 				return material.Loader(ui.theme).Layout(gtx)
 			})
@@ -830,7 +831,7 @@ func (ui *UI) layoutIntro(gtx layout.Context, sysIns system.Insets) {
 			layout.Rigid(func(gtx C) D {
 				return layout.Inset{Top: unit.Dp(80), Bottom: unit.Dp(48)}.Layout(gtx, func(gtx C) D {
 					return layout.N.Layout(gtx, func(gtx C) D {
-						sz := gtx.Px(unit.Dp(72))
+						sz := gtx.Dp(unit.Dp(72))
 						drawLogo(gtx.Ops, sz)
 						return layout.Dimensions{Size: image.Pt(sz, sz)}
 					})
@@ -861,7 +862,7 @@ func (ui *UI) layoutIntro(gtx layout.Context, sysIns system.Insets) {
 					Top:    unit.Dp(16),
 					Left:   unit.Dp(16),
 					Right:  unit.Dp(16),
-					Bottom: unit.Add(gtx.Metric, sysIns.Bottom),
+					Bottom: sysIns.Bottom,
 				}.Layout(gtx, func(gtx C) D {
 					start := material.Button(ui.theme, &ui.intro.start, "Get Started")
 					start.Inset = layout.UniformInset(unit.Dp(16))
@@ -895,13 +896,13 @@ func (ui *UI) layoutShareDialog(gtx layout.Context, sysIns system.Insets) {
 	}
 	d.dismiss.Add(gtx, argb(0x66000000))
 	layout.Inset{
-		Top:    unit.Add(gtx.Metric, sysIns.Top, unit.Dp(16)),
-		Right:  unit.Add(gtx.Metric, sysIns.Right, unit.Dp(16)),
-		Bottom: unit.Add(gtx.Metric, sysIns.Bottom, unit.Dp(16)),
-		Left:   unit.Add(gtx.Metric, sysIns.Left, unit.Dp(16)),
+		Top:    sysIns.Top + unit.Dp(16),
+		Right:  sysIns.Right + unit.Dp(16),
+		Bottom: sysIns.Bottom + unit.Dp(16),
+		Left:   sysIns.Left + unit.Dp(16),
 	}.Layout(gtx, func(gtx C) D {
 		return layout.Center.Layout(gtx, func(gtx C) D {
-			gtx.Constraints.Min.X = gtx.Px(unit.Dp(250))
+			gtx.Constraints.Min.X = gtx.Dp(unit.Dp(250))
 			gtx.Constraints.Max.X = gtx.Constraints.Min.X
 			return layoutDialog(gtx, func(gtx C) D {
 				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
@@ -928,7 +929,7 @@ func (ui *UI) layoutShareDialog(gtx layout.Context, sysIns system.Insets) {
 						}
 						return layout.UniformInset(unit.Dp(50)).Layout(gtx, func(gtx C) D {
 							return layout.Center.Layout(gtx, func(gtx C) D {
-								sz := gtx.Px(unit.Dp(32))
+								sz := gtx.Dp(unit.Dp(32))
 								gtx.Constraints.Min = image.Pt(sz, sz)
 								gtx.Constraints.Max = gtx.Constraints.Min
 								return material.Loader(ui.theme).Layout(gtx)
@@ -939,7 +940,7 @@ func (ui *UI) layoutShareDialog(gtx layout.Context, sysIns system.Insets) {
 						if d.error == nil {
 							return D{}
 						}
-						sz := gtx.Px(unit.Dp(50))
+						sz := gtx.Dp(unit.Dp(50))
 						gtx.Constraints.Min.Y = sz
 						return layout.UniformInset(unit.Dp(20)).Layout(gtx, func(gtx C) D {
 							return layout.W.Layout(gtx, func(gtx C) D {
@@ -967,7 +968,7 @@ func (ui *UI) layoutShareDialog(gtx layout.Context, sysIns system.Insets) {
 									return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
 										layout.Flexed(1, w.Layout),
 										layout.Rigid(func(gtx C) D {
-											sz := gtx.Px(unit.Dp(16))
+											sz := gtx.Dp(unit.Dp(16))
 											gtx.Constraints.Min = image.Pt(sz, sz)
 											switch node.info.State {
 											case FileSendConnecting:
@@ -1004,13 +1005,13 @@ func (ui *UI) layoutExitNodeDialog(gtx layout.Context, sysIns system.Insets, exi
 	}
 	d.dismiss.Add(gtx, argb(0x66000000))
 	layout.Inset{
-		Top:    unit.Add(gtx.Metric, sysIns.Top, unit.Dp(16)),
-		Right:  unit.Add(gtx.Metric, sysIns.Right, unit.Dp(16)),
-		Bottom: unit.Add(gtx.Metric, sysIns.Bottom, unit.Dp(16)),
-		Left:   unit.Add(gtx.Metric, sysIns.Left, unit.Dp(16)),
+		Top:    sysIns.Top + unit.Dp(16),
+		Right:  sysIns.Right + unit.Dp(16),
+		Bottom: sysIns.Bottom + unit.Dp(16),
+		Left:   sysIns.Left + unit.Dp(16),
 	}.Layout(gtx, func(gtx C) D {
 		return layout.Center.Layout(gtx, func(gtx C) D {
-			gtx.Constraints.Min.X = gtx.Px(unit.Dp(250))
+			gtx.Constraints.Min.X = gtx.Dp(unit.Dp(250))
 			gtx.Constraints.Max.X = gtx.Constraints.Min.X
 			return layoutDialog(gtx, func(gtx C) D {
 				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
@@ -1077,13 +1078,13 @@ func (ui *UI) layoutAboutDialog(gtx layout.Context, sysIns system.Insets) {
 	}
 	d.dismiss.Add(gtx, argb(0x66000000))
 	layout.Inset{
-		Top:    unit.Add(gtx.Metric, sysIns.Top, unit.Dp(16)),
-		Right:  unit.Add(gtx.Metric, sysIns.Right, unit.Dp(16)),
-		Bottom: unit.Add(gtx.Metric, sysIns.Bottom, unit.Dp(16)),
-		Left:   unit.Add(gtx.Metric, sysIns.Left, unit.Dp(16)),
+		Top:    sysIns.Top + unit.Dp(16),
+		Right:  sysIns.Right + unit.Dp(16),
+		Bottom: sysIns.Bottom + unit.Dp(16),
+		Left:   sysIns.Left + unit.Dp(16),
 	}.Layout(gtx, func(gtx C) D {
 		return layout.Center.Layout(gtx, func(gtx C) D {
-			gtx.Constraints.Min.X = gtx.Px(unit.Dp(250))
+			gtx.Constraints.Min.X = gtx.Dp(unit.Dp(250))
 			gtx.Constraints.Max.X = gtx.Constraints.Min.X
 			return layoutDialog(gtx, func(gtx C) D {
 				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
@@ -1169,7 +1170,7 @@ func layoutMenu(th *material.Theme, gtx layout.Context, items []menuItem, header
 }
 
 func layoutDialog(gtx layout.Context, w layout.Widget) layout.Dimensions {
-	return widget.Border{Color: argb(0x33000000), CornerRadius: unit.Dp(2), Width: unit.Px(1)}.Layout(gtx, func(gtx C) D {
+	return widget.Border{Color: argb(0x33000000), CornerRadius: unit.Dp(2), Width: unit.Dp(1)}.Layout(gtx, func(gtx C) D {
 		return Background{Color: rgb(0xfafafa), CornerRadius: unit.Dp(2)}.Layout(gtx, w)
 	})
 }
@@ -1181,8 +1182,8 @@ func (ui *UI) layoutMenu(gtx layout.Context, sysIns system.Insets, expiry time.T
 		ui.setMenuShown(false)
 	}
 	layout.Inset{
-		Top:   unit.Add(gtx.Metric, sysIns.Top, unit.Dp(2)),
-		Right: unit.Add(gtx.Metric, sysIns.Right, unit.Dp(2)),
+		Top:   sysIns.Top + unit.Dp(2),
+		Right: sysIns.Right + unit.Dp(2),
 	}.Layout(gtx, func(gtx C) D {
 		return layout.NE.Layout(gtx, func(gtx C) D {
 			menu := &ui.menu
@@ -1256,9 +1257,9 @@ func (ui *UI) layoutMessage(gtx layout.Context, sysIns system.Insets) layout.Dim
 	op.InvalidateOp{At: now.Add(rem)}.Add(gtx.Ops)
 	return layout.S.Layout(gtx, func(gtx C) D {
 		return layout.Inset{
-			Left:   unit.Add(gtx.Metric, sysIns.Left, unit.Dp(8)),
-			Right:  unit.Add(gtx.Metric, sysIns.Right, unit.Dp(8)),
-			Bottom: unit.Add(gtx.Metric, sysIns.Bottom, unit.Dp(8)),
+			Left:   sysIns.Left + unit.Dp(8),
+			Right:  sysIns.Right + unit.Dp(8),
+			Bottom: sysIns.Bottom + unit.Dp(8),
 		}.Layout(gtx, func(gtx C) D {
 			return Background{Color: rgb(0x323232), CornerRadius: unit.Dp(5)}.Layout(gtx, func(gtx C) D {
 				return layout.UniformInset(unit.Dp(12)).Layout(gtx, func(gtx C) D {
@@ -1277,14 +1278,21 @@ func (ui *UI) showMessage(gtx layout.Context, msg string) {
 	op.InvalidateOp{}.Add(gtx.Ops)
 }
 
+func MaxDp(p1, p2 unit.Dp) unit.Dp {
+	if p1 > p2 {
+		return p1
+	}
+	return p2
+}
+
 // layoutPeer lays out a peer name and IP address (e.g.
 // "localhost\n100.100.100.101")
 func (ui *UI) layoutPeer(gtx layout.Context, sysIns system.Insets, p *UIPeer, user tailcfg.UserID, clk *widget.Clickable) layout.Dimensions {
 	return material.Clickable(gtx, clk, func(gtx C) D {
 		return layout.Inset{
 			Top:    unit.Dp(8),
-			Right:  unit.Max(gtx.Metric, sysIns.Right, unit.Dp(16)),
-			Left:   unit.Max(gtx.Metric, sysIns.Left, unit.Dp(16)),
+			Right:  MaxDp(sysIns.Right, unit.Dp(16)),
+			Left:   MaxDp(sysIns.Left, unit.Dp(16)),
 			Bottom: unit.Dp(8),
 		}.Layout(gtx, func(gtx C) D {
 			gtx.Constraints.Min.X = gtx.Constraints.Max.X
@@ -1316,8 +1324,8 @@ func (ui *UI) layoutSection(gtx layout.Context, sysIns system.Insets, title stri
 	return Background{Color: rgb(0xe1e0e9)}.Layout(gtx, func(gtx C) D {
 		return layout.Inset{
 			Top:    unit.Dp(16),
-			Right:  unit.Max(gtx.Metric, sysIns.Right, unit.Dp(16)),
-			Left:   unit.Max(gtx.Metric, sysIns.Left, unit.Dp(16)),
+			Right:  MaxDp(sysIns.Right, unit.Dp(16)),
+			Left:   MaxDp(sysIns.Left, unit.Dp(16)),
 			Bottom: unit.Dp(16),
 		}.Layout(gtx, func(gtx C) D {
 			l := material.Body1(ui.theme, title)
@@ -1336,8 +1344,8 @@ func (ui *UI) layoutTop(gtx layout.Context, sysIns system.Insets, state *Backend
 	return Background{Color: rgb(headerColor)}.Layout(gtx, func(gtx C) D {
 		return layout.Inset{
 			Top:   sysIns.Top,
-			Right: unit.Max(gtx.Metric, sysIns.Right, unit.Dp(8)),
-			Left:  unit.Max(gtx.Metric, sysIns.Left, unit.Dp(16)),
+			Right: MaxDp(sysIns.Right, unit.Dp(8)),
+			Left:  MaxDp(sysIns.Left, unit.Dp(16)),
 		}.Layout(gtx, func(gtx C) D {
 			return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
 				layout.Rigid(func(gtx C) D {
@@ -1400,8 +1408,8 @@ func (ui *UI) showCopied(gtx layout.Context, addr string) {
 func (ui *UI) layoutLocal(gtx layout.Context, sysIns system.Insets, host, addr string) layout.Dimensions {
 	return Background{Color: rgb(headerColor)}.Layout(gtx, func(gtx C) D {
 		return layout.Inset{
-			Right:  unit.Max(gtx.Metric, sysIns.Right, unit.Dp(8)),
-			Left:   unit.Max(gtx.Metric, sysIns.Left, unit.Dp(8)),
+			Right:  MaxDp(sysIns.Right, unit.Dp(8)),
+			Left:   MaxDp(sysIns.Left, unit.Dp(8)),
 			Bottom: unit.Dp(8),
 		}.Layout(gtx, func(gtx C) D {
 			return Background{Color: rgb(infoColor), CornerRadius: unit.Dp(8)}.Layout(gtx, func(gtx C) D {
@@ -1433,8 +1441,8 @@ func (ui *UI) layoutSearchbar(gtx layout.Context, sysIns system.Insets) layout.D
 	return Background{Color: rgb(0xf0eff6)}.Layout(gtx, func(gtx C) D {
 		return layout.Inset{
 			Top:    unit.Dp(8),
-			Right:  unit.Max(gtx.Metric, sysIns.Right, unit.Dp(8)),
-			Left:   unit.Max(gtx.Metric, sysIns.Left, unit.Dp(8)),
+			Right:  MaxDp(sysIns.Right, unit.Dp(8)),
+			Left:   MaxDp(sysIns.Left, unit.Dp(8)),
 			Bottom: unit.Dp(8),
 		}.Layout(gtx, func(gtx C) D {
 			return Background{Color: rgb(0xe3e2ea), CornerRadius: unit.Dp(8)}.Layout(gtx, func(gtx C) D {
@@ -1456,16 +1464,16 @@ func (ui *UI) layoutSearchbar(gtx layout.Context, sysIns system.Insets) layout.D
 
 // drawLogo draws the Tailscale logo using vector operations.
 func drawLogo(ops *op.Ops, size int) {
-	scale := float32(size) / 680
-	discDia := 170 * scale
-	off := 172 * 1.5 * scale
-	tx := op.Offset(f32.Pt(off, 0))
-	ty := op.Offset(f32.Pt(0, off))
+	scale := float64(size) / 680
+	discDia := float32(170 * scale)
+	off := int(math.Round(172 * 1.5 * scale))
+	tx := op.Offset(image.Pt(off, 0))
+	ty := op.Offset(image.Pt(0, off))
 
-	defer op.Offset(f32.Point{}).Push(ops).Pop()
+	defer op.Offset(image.Point{}).Push(ops).Pop()
 
 	// First row of discs.
-	row := op.Offset(f32.Point{}).Push(ops)
+	row := op.Offset(image.Point{}).Push(ops)
 	drawDisc(ops, discDia, rgb(0x54514d))
 	tx.Add(ops)
 	drawDisc(ops, discDia, rgb(0x54514d))
@@ -1475,7 +1483,7 @@ func drawLogo(ops *op.Ops, size int) {
 
 	ty.Add(ops)
 	// Second row.
-	row = op.Offset(f32.Point{}).Push(ops)
+	row = op.Offset(image.Point{}).Push(ops)
 	drawDisc(ops, discDia, rgb(0xfffdfa))
 	tx.Add(ops)
 	drawDisc(ops, discDia, rgb(0xfffdfa))
@@ -1485,7 +1493,7 @@ func drawLogo(ops *op.Ops, size int) {
 
 	ty.Add(ops)
 	// Third row.
-	row = op.Offset(f32.Point{}).Push(ops)
+	row = op.Offset(image.Point{}).Push(ops)
 	drawDisc(ops, discDia, rgb(0xfffdfa))
 	drawDisc(ops, discDia, rgb(0x54514d))
 	tx.Add(ops)
@@ -1495,11 +1503,11 @@ func drawLogo(ops *op.Ops, size int) {
 	row.Pop()
 }
 
-func drawImage(gtx layout.Context, img paint.ImageOp, size unit.Value) layout.Dimensions {
+func drawImage(gtx layout.Context, img paint.ImageOp, size unit.Dp) layout.Dimensions {
 	img.Add(gtx.Ops)
 	sz := img.Size()
 	aspect := float32(sz.Y) / float32(sz.X)
-	w := gtx.Px(size)
+	w := gtx.Dp(size)
 	h := int(float32(w)*aspect + .5)
 	scale := float32(w) / float32(sz.X)
 	defer op.Affine(f32.Affine2D{}.Scale(f32.Point{}, f32.Point{X: scale, Y: scale})).Push(gtx.Ops).Pop()
@@ -1508,10 +1516,10 @@ func drawImage(gtx layout.Context, img paint.ImageOp, size unit.Value) layout.Di
 }
 
 func drawDisc(ops *op.Ops, radius float32, col color.NRGBA) {
-	r2 := radius * .5
-	dr := f32.Rectangle{Max: f32.Pt(radius, radius)}
+	r := int(math.Round(float64(radius)))
+	r2 := int(math.Round(float64(radius * .5)))
 	defer clip.RRect{
-		Rect: dr,
+		Rect: image.Rect(0, 0, r, r),
 		NE:   r2, NW: r2, SE: r2, SW: r2,
 	}.Push(ops).Pop()
 	paint.ColorOp{Color: col}.Add(ops)
@@ -1521,7 +1529,7 @@ func drawDisc(ops *op.Ops, radius float32, col color.NRGBA) {
 // Background lays out a widget and draws a color background behind it.
 type Background struct {
 	Color        color.NRGBA
-	CornerRadius unit.Value
+	CornerRadius unit.Dp
 }
 
 func (b Background) Layout(gtx layout.Context, w layout.Widget) layout.Dimensions {
@@ -1530,14 +1538,10 @@ func (b Background) Layout(gtx layout.Context, w layout.Widget) layout.Dimension
 	sz := dims.Size
 	call := m.Stop()
 	// Clip corners, if any.
-	if r := gtx.Px(b.CornerRadius); r > 0 {
-		rr := float32(r)
+	if r := gtx.Dp(b.CornerRadius); r > 0 {
 		defer clip.RRect{
-			Rect: f32.Rectangle{Max: f32.Point{
-				X: float32(sz.X),
-				Y: float32(sz.Y),
-			}},
-			NE: rr, NW: rr, SE: rr, SW: rr,
+			Rect: image.Rect(0, 0, sz.X, sz.Y),
+			NE:   r, NW: r, SE: r, SW: r,
 		}.Push(gtx.Ops).Pop()
 	}
 	fill{b.Color}.Layout(gtx, sz)
