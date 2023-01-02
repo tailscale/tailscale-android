@@ -668,35 +668,48 @@ func (ui *UI) layoutExitStatus(gtx layout.Context, state *BackendState) layout.D
 		text = "Using exit node"
 		bg = rgb(0x338b51)
 	}
-	paint.Fill(gtx.Ops, bg)
 	return material.Clickable(gtx, &ui.openExitDialog, func(gtx C) D {
 		gtx.Constraints.Min.X = gtx.Constraints.Max.X
-		return layout.Inset{
-			Top:    unit.Dp(12),
-			Bottom: unit.Dp(12),
-			Right:  unit.Dp(24),
-			Left:   unit.Dp(24),
-		}.Layout(gtx, func(gtx C) D {
-			return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
-				layout.Flexed(1, func(gtx C) D {
-					return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-						layout.Rigid(func(gtx C) D {
-							lbl := material.Body2(ui.theme, text)
-							lbl.Color = rgb(white)
-							return lbl.Layout(gtx)
+		return layout.Stack{}.Layout(gtx,
+			layout.Expanded(func(gtx layout.Context) layout.Dimensions {
+				sz := image.Point{
+					X: gtx.Constraints.Min.X,
+					Y: gtx.Constraints.Min.Y,
+				}
+				defer clip.Rect(image.Rectangle{Max: sz}).Push(gtx.Ops).Pop()
+				paint.ColorOp{Color: bg}.Add(gtx.Ops)
+				paint.PaintOp{}.Add(gtx.Ops)
+				return layout.Dimensions{Size: sz}
+			}),
+			layout.Stacked(func(gtx layout.Context) layout.Dimensions {
+				return layout.Inset{
+					Top:    unit.Dp(12),
+					Bottom: unit.Dp(12),
+					Right:  unit.Dp(24),
+					Left:   unit.Dp(24),
+				}.Layout(gtx, func(gtx C) D {
+					return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
+						layout.Flexed(1, func(gtx C) D {
+							return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+								layout.Rigid(func(gtx C) D {
+									lbl := material.Body2(ui.theme, text)
+									lbl.Color = rgb(white)
+									return lbl.Layout(gtx)
+								}),
+								layout.Rigid(func(gtx C) D {
+									node := material.Body2(ui.theme, state.Exit.Label)
+									node.Color = argb(0x88ffffff)
+									return node.Layout(gtx)
+								}),
+							)
 						}),
 						layout.Rigid(func(gtx C) D {
-							node := material.Body2(ui.theme, state.Exit.Label)
-							node.Color = argb(0x88ffffff)
-							return node.Layout(gtx)
+							return ui.icons.exitStatus.Layout(gtx, rgb(white))
 						}),
 					)
-				}),
-				layout.Rigid(func(gtx C) D {
-					return ui.icons.exitStatus.Layout(gtx, rgb(white))
-				}),
-			)
-		})
+				})
+			}),
+		)
 	})
 }
 
