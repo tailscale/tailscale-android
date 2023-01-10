@@ -80,6 +80,7 @@ public class IPNService extends VpnService {
 		this.disallowApp(b, "com.gopro.smarty");
 
 		// Sonos https://github.com/tailscale/tailscale/issues/2548
+		this.disallowApp(b, "com.sonos.acr");
 		this.disallowApp(b, "com.sonos.acr2");
 
 		return b;
