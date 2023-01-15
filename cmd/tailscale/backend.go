@@ -326,9 +326,9 @@ func (b *backend) SetupLogs(logDir string, logID logtail.PrivateID) {
 			}
 			return w
 		},
-		HTTPC:      &http.Client{Transport: logpolicy.NewLogtailTransport(logtail.DefaultHost)},
-		FlushDelay: 2 * time.Minute,
+		HTTPC: &http.Client{Transport: logpolicy.NewLogtailTransport(logtail.DefaultHost)},
 	}
+	logcfg.FlushDelayFn = func() time.Duration { return 2 * time.Minute }
 
 	filchOpts := filch.Options{
 		ReplaceStderr: true,
