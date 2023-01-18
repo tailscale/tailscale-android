@@ -7,8 +7,8 @@ filippo.io/edwards25519 v1.0.0-rc.1 h1:m0VOOB23frXZvAOK44usCgLWvtsxIoMCTBGJZlpmG
 filippo.io/edwards25519 v1.0.0-rc.1/go.mod h1:N1IkdkCkiLB6tki+MYJoSx2JTY9NUlxZE7eHn5EwJns=
 filippo.io/mkcert v1.4.3 h1:axpnmtrZMM8u5Hf4N3UXxboGemMOV+Tn+e+pkHM6E3o=
 gioui.org v0.0.0-20210910062418-d5d0a75a9bcb/go.mod h1:BTldRXnY5mrUrYZCdWyDwyMzyUzpfZN1cF4MMRrOt9w=
-gioui.org v0.0.0-20221223153152-aa2a948b863a h1:Tv0ZdLLS8zkWgxFFOBXR/RSp4YvFzk7f7B9000lzo94=
-gioui.org v0.0.0-20221223153152-aa2a948b863a/go.mod h1:3lLo7xMHYnnHTrgKNNctBjEKKH3wQCO2Sn7ti5Jy8mU=
+gioui.org v0.0.0-20230114155955-af7afea5a380 h1:1eD20Z5i3apIOLBHW/X1SFqDC9rjYxkECjWRtkk8miw=
+gioui.org v0.0.0-20230114155955-af7afea5a380/go.mod h1:3lLo7xMHYnnHTrgKNNctBjEKKH3wQCO2Sn7ti5Jy8mU=
 gioui.org/cmd v0.0.0-20210925100615-41f3a7e74ee6 h1:SkAdohDhTUjl+ZtM417Xeu+uFd7SQubwR9uAyqJqC8c=
 gioui.org/cmd v0.0.0-20210925100615-41f3a7e74ee6/go.mod h1:qrH3h4nt/PyIqx/XabL/eJ5cXQnQ0ERHqC3VEXx/Rmg=
 gioui.org/cpu v0.0.0-20210808092351-bfe733dd3334/go.mod h1:A8M0Cn5o+vY5LTMlnRoK3O5kG+rH0kWfJjeKd9QpBmQ=
@@ -664,5 +664,5 @@ nhooyr.io/websocket v1.8.7/go.mod h1:B70DZP8IakI65RVQ51MsWP/8jndNma26DVA/nFSCgW0
 sigs.k8s.io/yaml v1.1.0/go.mod h1:UJmg0vDUVViEyp3mgSv9WPwZCDxu4rQW1olrI1uml+o=
 software.sslmate.com/src/go-pkcs12 v0.2.0 h1:nlFkj7bTysH6VkC4fGphtjXRbezREPgrHuJG20hBGPE=
 sourcegraph.com/sourcegraph/appdash v0.0.0-20190731080439-ebfcffb1b5c0/go.mod h1:hI742Nqp5OhwiqlzhgfbWU4mW4yO10fP+LoT9WOswdU=
-tailscale.com v1.1.1-0.20230115192328-b657187a69a3 h1:fyggEEipV6O3BPJ5zxL3pwdctWqsGTmEO5clzts1ikA=
-tailscale.com v1.1.1-0.20230115192328-b657187a69a3/go.mod h1:5w5o9zHeK/RRy/q9iTLwU8L7v26dPZs8y6Y7nkB4Kvg=
+tailscale.com v1.1.1-0.20230118030559-2df38b1febd4 h1:se5TJp0lOZIvFvrCjaA2n1atU7DHUO8AwlD0+gAUw6Y=
+tailscale.com v1.1.1-0.20230118030559-2df38b1febd4/go.mod h1:5w5o9zHeK/RRy/q9iTLwU8L7v26dPZs8y6Y7nkB4Kvg=
