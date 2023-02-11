@@ -1116,7 +1116,7 @@ func (ui *UI) layoutAboutDialog(gtx layout.Context, sysIns system.Insets) {
 					}),
 					layout.Rigid(func(gtx C) D {
 						return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx C) D {
-							return material.Body1(ui.theme, "version "+version.Short).Layout(gtx)
+							return material.Body1(ui.theme, "version "+version.Short()).Layout(gtx)
 						})
 					}),
 					layout.Rigid(func(gtx C) D {
@@ -1205,7 +1205,7 @@ func (ui *UI) layoutMenu(gtx layout.Context, sysIns system.Insets, expiry time.T
 			}
 			if needsLogin {
 				var items []menuItem
-				title := "Tailscale " + version.Short
+				title := "Tailscale " + version.Short()
 				if ui.menu.showDebugMenu {
 					items = append(items, menuItem{title: "Change server", btn: &menu.useLoginServer})
 				}
