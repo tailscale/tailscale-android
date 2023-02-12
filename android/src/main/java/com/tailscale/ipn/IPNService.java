@@ -83,6 +83,9 @@ public class IPNService extends VpnService {
 		this.disallowApp(b, "com.sonos.acr");
 		this.disallowApp(b, "com.sonos.acr2");
 
+		// Google Chromecast https://github.com/tailscale/tailscale/issues/3636
+		this.disallowApp(b, "com.google.android.apps.chromecast.app");
+
 		return b;
 	}
 
