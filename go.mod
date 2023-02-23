@@ -4,14 +4,14 @@ go 1.19
 
 require (
 	eliasnaur.com/font v0.0.0-20220124212145-832bb8fc08c3
-	gioui.org v0.0.0-20230114155955-af7afea5a380
+	gioui.org v0.0.0-20230206180804-32c6a9b10d0b
 	gioui.org/cmd v0.0.0-20210925100615-41f3a7e74ee6
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/tailscale/wireguard-go v0.0.0-20221219190806-4fa124729667
 	golang.org/x/exp/shiny v0.0.0-20220827204233-334a2380cb91
 	golang.org/x/sys v0.4.0
 	inet.af/netaddr v0.0.0-20220617031823-097006376321
-	tailscale.com v1.36.1
+	tailscale.com v1.36.2
 )
 
 require (
