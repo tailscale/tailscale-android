@@ -8,9 +8,9 @@ public class IPNReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        if (intent.getAction() == "com.tailscale.ipn.CONNECT_VPN"){ //  android.intent.action.CONNECT_VPN
+        if (intent.getAction() == "com.tailscale.ipn.CONNECT_VPN") {
             connect();
-        }else if(intent.getAction() == "com.tailscale.ipn.DISCONNECT_VPN"){
+        } else if (intent.getAction() == "com.tailscale.ipn.DISCONNECT_VPN") {
             disconnect();
         }
     }
