@@ -27,6 +27,7 @@ import (
 	"tailscale.com/net/tsdial"
 	"tailscale.com/smallzstd"
 	"tailscale.com/types/logger"
+	"tailscale.com/types/logid"
 	"tailscale.com/util/dnsname"
 	"tailscale.com/wgengine"
 	"tailscale.com/wgengine/netstack"
@@ -97,13 +98,13 @@ func newBackend(dataDir string, jvm *jni.JVM, appCtx jni.Object, store *stateSto
 		settings: settings,
 		appCtx:   appCtx,
 	}
-	var logID logtail.PrivateID
+	var logID logid.PrivateID
 	logID.UnmarshalText([]byte("dead0000dead0000dead0000dead0000dead0000dead0000dead0000dead0000"))
 	storedLogID, err := store.read(logPrefKey)
 	// In all failure cases we ignore any errors and continue with the dead value above.
 	if err != nil || storedLogID == nil {
 		// Read failed or there was no previous log id.
-		newLogID, err := logtail.NewPrivateID()
+		newLogID, err := logid.NewPrivateID()
 		if err == nil {
 			logID = newLogID
 			enc, err := newLogID.MarshalText()
@@ -314,7 +315,7 @@ func (b *backend) CloseTUNs() {
 }
 
 // SetupLogs sets up remote logging.
-func (b *backend) SetupLogs(logDir string, logID logtail.PrivateID) {
+func (b *backend) SetupLogs(logDir string, logID logid.PrivateID) {
 	logcfg := logtail.Config{
 		Collection: "tailnode.log.tailscale.io",
 		PrivateID:  logID,
