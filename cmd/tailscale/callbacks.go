@@ -102,16 +102,6 @@ func Java_com_tailscale_ipn_IPNService_disconnect(env *C.JNIEnv, this C.jobject)
 	onDisconnect <- jni.NewGlobalRef(jenv, jni.Object(this))
 }
 
-//export Java_com_tailscale_ipn_IPNReceiver_connect
-func Java_com_tailscale_ipn_IPNReceiver_connect(env *C.JNIEnv, this C.jobject) {
-    requestBackend(ConnectEvent{Enable: true})
-}
-
-//export Java_com_tailscale_ipn_IPNReceiver_disconnect
-func Java_com_tailscale_ipn_IPNReceiver_disconnect(env *C.JNIEnv, this C.jobject) {
-    requestBackend(ConnectEvent{Enable: false})
-}
-
 //export Java_com_tailscale_ipn_App_onConnectivityChanged
 func Java_com_tailscale_ipn_App_onConnectivityChanged(env *C.JNIEnv, cls C.jclass, connected C.jboolean) {
 	select {
