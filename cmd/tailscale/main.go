@@ -5,12 +5,16 @@
 package main
 
 import (
+	b64 "encoding/base64"
+	"bytes"
 	"context"
 	"crypto/rand"
 	"crypto/sha1"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"image"
+	_ "image/png"
 	"io"
 	"log"
 	"mime"
@@ -65,6 +69,8 @@ type App struct {
 	targetsLoaded chan FileTargets
 	// invalidates receives whenever the window should be refreshed.
 	invalidates chan struct{}
+	
+	Apps []AppConfig
 }
 
 var (
@@ -101,6 +107,8 @@ type clientState struct {
 	backend   BackendState
 	// query is the search query, in lowercase.
 	query string
+	
+	Apps []AppConfig
 
 	Peers []UIPeer
 }
@@ -133,6 +141,13 @@ const (
 	FileSendComplete
 	FileSendFailed
 )
+
+type AppConfig struct {
+	allowed 	bool
+	icon		image.Image
+	packageName 	string
+	label		string
+}
 
 type Peer struct {
 	Label  string
@@ -186,6 +201,11 @@ type SetLoginServerEvent struct {
 	URL string
 }
 
+type AllowedAppsEvent struct {
+	packageName string
+	allowed bool
+}
+
 // UIEvent types.
 type (
 	ToggleEvent       struct{}
@@ -235,6 +255,9 @@ func main() {
 	}
 	a.store = newStateStore(a.jvm, a.appCtx)
 	interfaces.RegisterInterfaceGetter(a.getInterfaces)
+	log.Printf("Loading apps in go: " + time.Now().String())
+	a.loadAndroidApps()
+	log.Printf("Apps loaded in go: " + time.Now().String())
 	go func() {
 		if err := a.runBackend(); err != nil {
 			fatalErr(err)
@@ -246,6 +269,7 @@ func main() {
 		}
 	}()
 	app.Main()
+
 }
 
 func (a *App) runBackend() error {
@@ -594,6 +618,93 @@ func (a *App) downloadFile(b *ipnlocal.LocalBackend, f apitype.WaitingFile) (cer
 	return b.DeleteFile(f.Name)
 }
 
+func (a *App) setApp(packageName string, allowed bool) (error) {
+	err := jni.Do(a.jvm, func(env *jni.Env) error {
+		cls := jni.GetObjectClass(env, a.appCtx)
+		m := jni.GetMethodID(env, cls, "setupApp", "(Ljava/lang/String;Z)V")
+		err := jni.CallVoidMethod(env, a.appCtx, m, jni.Value(jni.JavaString(env, packageName)), jni.Value(jni.Bool(allowed)))
+		return err
+	})
+	return err
+}
+
+func (a *App) getIcon(packageName string) (image.Image, error) {
+	var enc string
+	err := jni.Do(a.jvm, func(env *jni.Env) error {
+		cls := jni.GetObjectClass(env, a.appCtx)
+		m := jni.GetMethodID(env, cls, "getIcon", "(Ljava/lang/String;)Ljava/lang/String;")
+		n, err := jni.CallObjectMethod(env, a.appCtx, m, jni.Value(jni.JavaString(env, packageName)))
+		enc = jni.GoString(env, jni.String(n))
+		return err
+	})
+	if(err != nil){
+		return nil, err
+	}
+	dec, err := b64.StdEncoding.DecodeString(enc)
+	if(err != nil){
+		return nil, err
+	}
+	img, _, err := image.Decode(bytes.NewReader(dec))
+    	if err != nil {
+        	return nil, err
+    	}
+	return img, err
+}
+
+func (a *App) getTotalApps() (int32, error) {
+	var size int32 = 0
+	err := jni.Do(a.jvm, func(env *jni.Env) error {
+		cls := jni.GetObjectClass(env, a.appCtx)
+		getTotalApps := jni.GetMethodID(env, cls, "getTotalApps", "()I")
+		ret, err := jni.CallIntMethod(env, a.appCtx, getTotalApps)
+		if err != nil {
+			return err
+		}
+		size = ret
+		return nil
+	})
+	return size, err
+}
+
+func (a *App) getPackageLabel(i int32) (string, error) {
+	var ret string
+	err := jni.Do(a.jvm, func(env *jni.Env) error {
+		cls := jni.GetObjectClass(env, a.appCtx)
+		m := jni.GetMethodID(env, cls, "getPackageLabel", "(I)Ljava/lang/String;")
+		n, err := jni.CallObjectMethod(env, a.appCtx, m, jni.Value(i))
+		ret = jni.GoString(env, jni.String(n))
+		return err
+
+	})
+	return ret, err
+}
+
+func (a *App) getPackageName(i int32) (string, error) {
+	var ret string
+	err := jni.Do(a.jvm, func(env *jni.Env) error {
+		cls := jni.GetObjectClass(env, a.appCtx)
+		m := jni.GetMethodID(env, cls, "getPackageName", "(I)Ljava/lang/String;")
+		n, err := jni.CallObjectMethod(env, a.appCtx, m, jni.Value(i))
+		ret = jni.GoString(env, jni.String(n))
+		return err
+
+	})
+	return ret, err
+}
+
+func (a *App) appIsAllowed(i int32) (bool, error) {
+	var ret bool
+	err := jni.Do(a.jvm, func(env *jni.Env) error {
+		cls := jni.GetObjectClass(env, a.appCtx)
+		m := jni.GetMethodID(env, cls, "appIsAllowed", "(I)Z")
+		n, err := jni.CallBooleanMethod(env, a.appCtx, m, jni.Value(i))
+		ret = n
+		return err
+
+	})
+	return ret, err
+}
+
 // openURI calls a.appCtx.getContentResolver().openFileDescriptor on uri and
 // mode and returns the detached file descriptor.
 func (a *App) openURI(uri, mode string) (*os.File, error) {
@@ -846,6 +957,7 @@ func (a *App) runUI() error {
 	}
 	var ops op.Ops
 	state := new(clientState)
+	state.Apps = a.Apps
 	var (
 		// activity is the most recent Android Activity reference as reported
 		// by Gio ViewEvents.
@@ -1020,6 +1132,42 @@ func (a *App) attachPeer(act jni.Object) {
 	}
 }
 
+func (a *App) loadAndroidApps() {
+	//Load Android Applications
+	total, err := a.getTotalApps()
+	if(err != nil){
+		log.Printf("Error: %v",err)
+	} else {
+		log.Printf("Exiting... %d", total)
+	}
+	if total != int32(len(a.Apps)){
+		var apps []AppConfig
+		var i int32 = 0
+		for i < total {
+			pn, err := a.getPackageName(int32(i))
+			if(err != nil){
+				log.Printf("Error: %v", err)
+			}
+			label, err := a.getPackageLabel(int32(i))
+			if(err != nil){
+				log.Printf("Error: %v", err)
+			}
+			allowed, err := a.appIsAllowed(int32(i))
+			if(err != nil){
+				log.Printf("Error: %v", err)
+			}
+			icon, err := a.getIcon(pn)
+			if(err != nil){
+				log.Printf("Error: %v", err)
+			}
+			//log.Printf("%v %v %v", pn, icon, allowed)
+			i = i + 1
+			apps = append(apps, AppConfig{allowed: allowed, icon: icon, label: label, packageName: pn})
+		}
+		a.Apps = apps
+	}
+}
+
 func (a *App) updateState(act jni.Object, state *clientState) {
 	if act != 0 && state.browseURL != "" {
 		a.browseToURL(act, state.browseURL)
@@ -1104,6 +1252,14 @@ func requestBackend(e UIEvent) {
 func (a *App) processUIEvents(w *app.Window, events []UIEvent, act jni.Object, state *clientState, files []File) {
 	for _, e := range events {
 		switch e := e.(type) {
+		case AllowedAppsEvent:
+			log.Printf("tailscale Clicked AllowedApps")
+			var ev AllowedAppsEvent = AllowedAppsEvent(e)
+			log.Printf("%v %v",ev.packageName, ev.allowed)
+			err := a.setApp(ev.packageName, ev.allowed)
+			if (err != nil){
+				log.Printf("Error configuring app: %v", err)
+			}
 		case ReauthEvent:
 			method, _ := a.store.ReadString(loginMethodPrefKey, loginMethodWeb)
 			switch method {
