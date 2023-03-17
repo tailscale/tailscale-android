@@ -8,7 +8,6 @@ import android.content.Context;
 import android.Manifest;
 import android.content.SharedPreferences;
 import android.util.Base64;
-import android.util.Log;
 import android.net.VpnService;
 import java.lang.reflect.Method;
 import android.content.pm.PackageManager;
@@ -131,15 +130,13 @@ public class AppsConfig {
 		if(config == null || packageName == null || packageName.length() == 0)
 			return;
 		
-		Log.d("com.tailscale.ipn", "Disabling " + packageName);
 		AppConfig ac = null;
 
-		Log.d("com.tailscale.ipn", "size: " + config.size());
+		for (int i = 0; i < config.size(); i++) {
 		for (int i = 0;i < config.size(); i++) {
 			ac = config.get(i);
 			if(ac.packageName.equals(packageName) && 
 				ac.allowed != allowed){
-				//Log.d("com.tailscale.ipn", packageName);
 				ac.allowed = allowed;
 				config.set(i, ac);
 				writeAppsConfig();
@@ -160,16 +157,13 @@ public class AppsConfig {
 			}
 		}
 		
-		//Log.d("com.tailscale.ipn", sb.toString());
 		return sb.toString();
 	}
 
 	// persists blacklisted apps in the settings
 	public void writeAppsConfig() {
-		//Log.d("com.tailscale.ipn", "writeAppsConfig");
 		if(sp == null)
 			return;
-		//Log.d("com.tailscale.ipn", getDisallowedApps());
 		sp.edit().putString(PREFS_NAME, getDisallowedApps()).apply();
 	}
 
@@ -194,18 +188,6 @@ public class AppsConfig {
 						}
 					}
 				}
-			}
-		}
-	}
-
-	// Just for debug purposes prints all the apps and state
-	public void printConfig() {
-		if (config != null) {
-			for (int i = 0;i < config.size(); i++) {
-				AppConfig ac = config.get(i);
-				Log.v("com.tailscale.ipn", 
-					ac.packageName + " " + ac.allowed);
-				Log.v("com.tailscale.ipn", ac.icon);
 			}
 		}
 	}

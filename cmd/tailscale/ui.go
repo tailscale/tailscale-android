@@ -13,7 +13,6 @@ import (
 	"math"
 	"net/netip"
 	"time"
-	"log"
 
 	"gioui.org/f32"
 	"gioui.org/font/opentype"
@@ -401,10 +400,9 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 	//TODO: A message in the log has to be generated when I click on something
 	if d := &ui.allowedAppsDialog; d.show {
 		var i int = 0
-		log.Printf("Checking clicks: %v", len(d.apps))
+			if a.Changed() {
 		for i < len(d.apps) {
 			if(d.apps[i].Changed()){
-				log.Printf("App number %v changed state", i)			
 				state.Apps[i].allowed = d.apps[i].Value			
 				events = 
 					append(events, AllowedAppsEvent{packageName: state.Apps[i].packageName, allowed: state.Apps[i].allowed})

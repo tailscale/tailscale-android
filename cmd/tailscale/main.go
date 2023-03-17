@@ -255,9 +255,7 @@ func main() {
 	}
 	a.store = newStateStore(a.jvm, a.appCtx)
 	interfaces.RegisterInterfaceGetter(a.getInterfaces)
-	log.Printf("Loading apps in go: " + time.Now().String())
 	a.loadAndroidApps()
-	log.Printf("Apps loaded in go: " + time.Now().String())
 	go func() {
 		if err := a.runBackend(); err != nil {
 			fatalErr(err)

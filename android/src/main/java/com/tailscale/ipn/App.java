@@ -38,8 +38,6 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 
-import android.util.Log;
-
 import android.Manifest;
 import android.webkit.MimeTypeMap;
 
@@ -92,15 +90,9 @@ public class App extends Application {
 
 	@Override public void onCreate() {
 		super.onCreate();
-		Log.v("com.tailscale.ipn", "Loading apps: " + System.currentTimeMillis()/1000L);
 		try {
 			acfg = new AppsConfig(this, getEncryptedPrefs());
-			//acfg.printConfig();
-		} catch (Exception e) {
-			Log.e("com.tailscale.ipn", "exception", e);
-		}
-		Log.v("com.tailscale.ipn", "Apps loaded: " + System.currentTimeMillis()/1000L);
-
+		} catch (Exception e) {}
 		// Load and initialize the Go library.
 		Gio.init(this);
 		registerNetworkCallback();

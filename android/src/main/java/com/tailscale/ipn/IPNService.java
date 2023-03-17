@@ -75,7 +75,6 @@ public class IPNService extends VpnService {
 
 		// Apply changes
 		b = app.acfg.build(b);
-		//app.acfg.printConfig();
 
 		// Sonos https://github.com/tailscale/tailscale/issues/2548
 		this.disallowApp(b, "com.sonos.acr");
