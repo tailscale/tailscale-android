@@ -54,8 +54,8 @@ type UI struct {
 	exitLAN widget.Bool
 
 	allowIncomingTransactions widget.Bool
-	useTailscaleDNS widget.Bool
-	useTailscaleSubnets widget.Bool
+	useTailscaleDNS           widget.Bool
+	useTailscaleSubnets       widget.Bool
 
 	// webSigin is the button for the web-based sign-in flow.
 	webSignin widget.Clickable
@@ -117,7 +117,7 @@ type UI struct {
 
 		useLoginServer widget.Clickable
 		copy           widget.Clickable
-		preferences           widget.Clickable
+		preferences    widget.Clickable
 		reauth         widget.Clickable
 		bug            widget.Clickable
 		beExit         widget.Clickable

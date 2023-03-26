@@ -188,18 +188,18 @@ type SetLoginServerEvent struct {
 
 // UIEvent types.
 type (
-	ToggleEvent       struct{}
-	ReauthEvent       struct{}
-	BugEvent          struct{}
-	WebAuthEvent      struct{}
-	GoogleAuthEvent   struct{}
-	LogoutEvent       struct{}
-	OSSLicensesEvent  struct{}
-	BeExitNodeEvent   bool
-	ExitAllowLANEvent bool
+	ToggleEvent                    struct{}
+	ReauthEvent                    struct{}
+	BugEvent                       struct{}
+	WebAuthEvent                   struct{}
+	GoogleAuthEvent                struct{}
+	LogoutEvent                    struct{}
+	OSSLicensesEvent               struct{}
+	BeExitNodeEvent                bool
+	ExitAllowLANEvent              bool
 	AllowIncomingTransactionsEvent bool
-	UseTailscaleDNSEvent bool
-	UseTailscaleSubnetsEvent bool
+	UseTailscaleDNSEvent           bool
+	UseTailscaleSubnetsEvent       bool
 )
 
 // serverOAuthID is the OAuth ID of the tailscale-android server, used
