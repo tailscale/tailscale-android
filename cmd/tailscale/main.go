@@ -441,7 +441,7 @@ func (a *App) runBackend() error {
 				state.Prefs.CorpDNS = bool(e)
 				go b.backend.SetPrefs(state.Prefs)
 			case UseTailscaleSubnetsEvent:
-				state.Prefs.NoSNAT = !bool(e)
+				state.Prefs.RouteAll = !bool(e)
 				go b.backend.SetPrefs(state.Prefs)
 			case AllowIncomingTransactionsEvent:
 				state.Prefs.ShieldsUp = !bool(e)
