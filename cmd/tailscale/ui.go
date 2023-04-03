@@ -1131,7 +1131,7 @@ func (ui *UI) layoutPreferencesDialog(gtx layout.Context, sysIns system.Insets, 
 		Left:   sysIns.Left + unit.Dp(16),
 	}.Layout(gtx, func(gtx C) D {
 		return layout.Center.Layout(gtx, func(gtx C) D {
-			gtx.Constraints.Min.X = gtx.Dp(unit.Dp(250))
+			gtx.Constraints.Min.X = gtx.Dp(unit.Dp(300))
 			gtx.Constraints.Max.X = gtx.Constraints.Min.X
 			return layoutDialog(gtx, func(gtx C) D {
 				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
