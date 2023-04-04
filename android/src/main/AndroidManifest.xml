@@ -56,7 +56,8 @@
 			</intent-filter>
 		</activity>
 		<receiver android:name="IPNReceiver"
-			android:exported="true">
+			android:exported="true"
+			>
 			<intent-filter>
 				<action android:name="com.tailscale.ipn.CONNECT_VPN" />
 				<action android:name="com.tailscale.ipn.DISCONNECT_VPN" />

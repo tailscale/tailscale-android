@@ -26,6 +26,11 @@ public class IPNService extends VpnService {
 			return START_NOT_STICKY;
 		}
 		connect();
+		App app = ((App)getApplicationContext());
+		if (app.vpnReady && app.autoConnect) {
+			app.autoConnect = false;
+			directConnect();
+		}
 		return START_STICKY;
 	}
 
@@ -116,4 +121,6 @@ public class IPNService extends VpnService {
 
 	private native void connect();
 	private native void disconnect();
+
+	public native void directConnect();
 }

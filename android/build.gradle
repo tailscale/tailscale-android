@@ -22,7 +22,7 @@ apply plugin: 'com.android.application'
 
 android {
 	ndkVersion "23.1.7779620"
-	compileSdkVersion 30
+	compileSdkVersion 31
 	defaultConfig {
 		minSdkVersion 22
 		targetSdkVersion 31
@@ -49,6 +49,7 @@ dependencies {
 	implementation "androidx.core:core:1.2.0"
 	implementation "androidx.browser:browser:1.2.0"
 	implementation "androidx.security:security-crypto:1.1.0-alpha03"
+	implementation "androidx.work:work-runtime:2.7.0"
 	implementation ':ipn@aar'
 	testCompile "junit:junit:4.12"
 
