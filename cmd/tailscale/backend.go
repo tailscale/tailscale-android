@@ -142,7 +142,7 @@ func newBackend(dataDir string, jvm *jni.JVM, appCtx jni.Object, store *stateSto
 	}
 	ns.ProcessLocalIPs = false // let Android kernel handle it; VpnBuilder sets this up
 	ns.ProcessSubnets = true   // for Android-being-an-exit-node support
-	lb, err := ipnlocal.NewLocalBackend(logf, b.logIDPublic, store, dialer, engine, 0)
+	lb, err := ipnlocal.NewLocalBackend(logf, logID.Public(), store, dialer, engine, 0)
 	if err != nil {
 		engine.Close()
 		return nil, fmt.Errorf("runBackend: NewLocalBackend: %v", err)
