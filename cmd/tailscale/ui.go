@@ -1039,7 +1039,7 @@ func (ui *UI) layoutShareDialog(gtx layout.Context, sysIns system.Insets) {
 // layoutAppConfig lays out the app list
 func (ui *UI) layoutAppConfig(gtx layout.Context, app AppConfig, idx int) layout.Dimensions {
 	d := &ui.allowedAppsDialog
-	return layout.Flex{}.Layout(gtx,
+	return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
 		// Checkbox and app name
 		layout.Flexed(5, func(gtx layout.Context) layout.Dimensions {
 			w := &(d.apps[idx])
@@ -1058,7 +1058,8 @@ func (ui *UI) layoutAppConfig(gtx layout.Context, app AppConfig, idx int) layout
 			iconOp := paint.NewImageOp(app.icon)
 			img := widget.Image{Src: iconOp, Fit: widget.ScaleDown}
 			return layout.Inset{
-				Right: unit.Dp(16),
+				Right:  unit.Dp(16),
+				Bottom: unit.Dp(10),
 			}.Layout(gtx, img.Layout)
 		}),
 	)
