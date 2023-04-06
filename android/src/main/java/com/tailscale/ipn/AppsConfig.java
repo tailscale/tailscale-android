@@ -192,9 +192,9 @@ public class AppsConfig {
 	// Retrieves the icon in png encoded in base64 from android using a PackageManager
 	private String retrieveAppIcon(PackageManager pm, ApplicationInfo info) {
 		Drawable d = pm.getApplicationIcon(info);
-    		Bitmap mutableBitmap = Bitmap.createBitmap(48, 48, Bitmap.Config.ARGB_8888);
+		Bitmap mutableBitmap = Bitmap.createBitmap(64, 64, Bitmap.Config.ARGB_8888);
 		Canvas canvas = new Canvas(mutableBitmap);
-    		d.setBounds(0, 0, 48, 48);
+		d.setBounds(0, 0, 64, 64);
 		d.draw(canvas);
 		// Bitmap to png to ByteArrayOutputStream to byte[] to base64 String
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
