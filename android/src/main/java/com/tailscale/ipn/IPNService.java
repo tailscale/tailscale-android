@@ -73,15 +73,15 @@ public class IPNService extends VpnService {
 		// GoPro https://github.com/tailscale/tailscale/issues/2554
 		app.setupApp("com.gopro.smarty", false);
 
-		// Apply changes
-		b = app.acfg.build(b);
-
 		// Sonos https://github.com/tailscale/tailscale/issues/2548
-		this.disallowApp(b, "com.sonos.acr");
-		this.disallowApp(b, "com.sonos.acr2");
+		app.setupApp("com.sonos.acr", false);
+		app.setupApp("com.sonos.acr2", false);
 
 		// Google Chromecast https://github.com/tailscale/tailscale/issues/3636
-		this.disallowApp(b, "com.google.android.apps.chromecast.app");
+		app.setupApp("com.google.android.apps.chromecast.app", false);
+
+		// Apply changes
+		b = app.acfg.build(b);
 
 		return b;
 	}
