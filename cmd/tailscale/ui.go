@@ -340,7 +340,7 @@ func (ui *UI) setMenuShown(v bool) {
 	}
 }
 
-func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientState) []UIEvent {
+func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientState, a *App) []UIEvent {
 	// "Get started".
 	if ui.intro.show {
 		if ui.intro.start.Clicked() {
@@ -443,6 +443,7 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 	}
 
 	if ui.menuClicked(&ui.menu.allowedapps) {
+		a.loadAndroidApps(state)
 		ui.allowedAppsDialog.show = true
 	}
 

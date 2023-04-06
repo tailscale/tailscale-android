@@ -255,7 +255,6 @@ func main() {
 	}
 	a.store = newStateStore(a.jvm, a.appCtx)
 	interfaces.RegisterInterfaceGetter(a.getInterfaces)
-	a.loadAndroidApps()
 	go func() {
 		if err := a.runBackend(); err != nil {
 			fatalErr(err)
@@ -1071,7 +1070,7 @@ func (a *App) runUI() error {
 				ins := e.Insets
 				e.Insets = system.Insets{}
 				gtx := layout.NewContext(&ops, e)
-				events := ui.layout(gtx, ins, state)
+				events := ui.layout(gtx, ins, state, a)
 				e.Frame(gtx.Ops)
 				a.processUIEvents(w, events, activity, state, files)
 			}
@@ -1129,13 +1128,13 @@ func (a *App) attachPeer(act jni.Object) {
 	}
 }
 
-func (a *App) loadAndroidApps() {
+func (a *App) loadAndroidApps(state *clientState) {
 	// Load Android Applications
 	total, err := a.getTotalApps()
 	if err != nil {
 		log.Printf("Error: %v", err)
 	} else {
-		log.Printf("Exiting... %d", total)
+		log.Printf("Loading %d apps", total)
 	}
 	if total != int32(len(a.Apps)) {
 		var apps []AppConfig
@@ -1161,6 +1160,7 @@ func (a *App) loadAndroidApps() {
 			apps = append(apps, AppConfig{allowed: allowed, icon: icon, label: label, packageName: pn})
 		}
 		a.Apps = apps
+		state.Apps = apps
 	}
 }
 
