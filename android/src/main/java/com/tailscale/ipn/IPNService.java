@@ -58,7 +58,7 @@ public class IPNService extends VpnService {
 			b.setMetered(false); // Inherit the metered status from the underlying networks.
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
 			b.setUnderlyingNetworks(null); // Use all available networks.
-		
+
 		App app = (App) this.getApplication();
 
 		// RCS/Jibe https://github.com/tailscale/tailscale/issues/2322

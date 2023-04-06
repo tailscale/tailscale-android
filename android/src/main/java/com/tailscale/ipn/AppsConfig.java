@@ -44,14 +44,14 @@ public class AppsConfig {
 		config = new ArrayList<AppConfig>();
 		List<ApplicationInfo> instApps = getInstalledApps(pm);
 
-		for (int i = 0;i < instApps.size(); i++) {
+		for (int i = 0; i < instApps.size(); i++) {
 			ApplicationInfo appinfo = instApps.get(i);
 			AppConfig ac = new AppConfig();
 			ac.packageName = appinfo.packageName;
 			ac.allowed = true;
-			ac.icon = retrieveAppIcon(pm,appinfo);
+			ac.icon = retrieveAppIcon(pm, appinfo);
 			CharSequence label = pm.getApplicationLabel(appinfo);
-			if(label != null){
+			if (label != null) {
 				ac.label = label.toString();
 			} else {
 				ac.label = ac.packageName;
@@ -61,49 +61,48 @@ public class AppsConfig {
 		readAppsConfig();
 	}
 
-	public VpnService.Builder build(VpnService.Builder b){
-		if(b == null)
+	public VpnService.Builder build(VpnService.Builder b) {
+		if (b == null)
 			return b;
 
-		for (int i = 0;i < config.size(); i++) {
+		for (int i = 0; i < config.size(); i++) {
 			AppConfig ac = config.get(i);
-			if(ac.allowed == false){
+			if (ac.allowed == false) {
 				try {
-                        		b.addDisallowedApplication(ac.packageName);
-                		} catch (PackageManager.NameNotFoundException e) {
-                		
+					b.addDisallowedApplication(ac.packageName);
+				} catch (PackageManager.NameNotFoundException e) {
 				}
 			}
 		}
 
 		return b;
 	}
-	
-	public int getTotalApps(){
+
+	public int getTotalApps() {
 		return config.size();
 	}
 
-	public boolean appIsAllowed(int i){
+	public boolean appIsAllowed(int i) {
 		AppConfig ac = config.get(i);
-		if(ac != null){
+		if (ac != null) {
 			return ac.allowed;
 		}
 
 		return false;
 	}
 
-	public String getPackageLabel(int i){
+	public String getPackageLabel(int i) {
 		AppConfig ac = config.get(i);
-		if(ac != null){
+		if (ac != null) {
 			return ac.label;
 		}
 
 		return null;
 	}
 
-	public String getPackageName(int i){
+	public String getPackageName(int i) {
 		AppConfig ac = config.get(i);
-		if(ac != null){
+		if (ac != null) {
 			return ac.packageName;
 		}
 
@@ -112,12 +111,12 @@ public class AppsConfig {
 
 	// Get the icon as a png encoded as a base64 string
 	public String getAppIcon(String packageName) {
-		if(config == null)
+		if (config == null)
 			return null;
 
-		for(int i = 0;i < config.size(); i++) {
+		for (int i = 0; i < config.size(); i++) {
 			AppConfig ac = config.get(i);
-			if(ac.packageName.equals(packageName)){
+			if (ac.packageName.equals(packageName)) {
 				return ac.icon;
 			}
 		}
@@ -125,18 +124,17 @@ public class AppsConfig {
 		return null;
 	}
 
-	// Allow,Disallow application to connect to the VPN
+	// Allow/disallow application to connect to the VPN
 	public void setApp(String packageName, boolean allowed) {
-		if(config == null || packageName == null || packageName.length() == 0)
+		if (config == null || packageName == null || packageName.length() == 0)
 			return;
-		
+
 		AppConfig ac = null;
 
 		for (int i = 0; i < config.size(); i++) {
-		for (int i = 0;i < config.size(); i++) {
 			ac = config.get(i);
-			if(ac.packageName.equals(packageName) && 
-				ac.allowed != allowed){
+			if (ac.packageName.equals(packageName) &&
+					ac.allowed != allowed) {
 				ac.allowed = allowed;
 				config.set(i, ac);
 				writeAppsConfig();
@@ -145,44 +143,43 @@ public class AppsConfig {
 		}
 	}
 
-	//returns a String like packageName;packageName;... or ""
+	// Returns a String like packageName;packageName;... or ""
 	private String getDisallowedApps() {
 		StringBuilder sb = new StringBuilder();
-		
-		for (int i = 0;i < config.size(); i++) {
+
+		for (int i = 0; i < config.size(); i++) {
 			AppConfig ac = config.get(i);
-			if(ac.allowed == false){
+			if (ac.allowed == false) {
 				sb.append(ac.packageName);
 				sb.append(";");
 			}
 		}
-		
+
 		return sb.toString();
 	}
 
-	// persists blacklisted apps in the settings
+	// Persists blacklisted apps in the settings
 	public void writeAppsConfig() {
-		if(sp == null)
+		if (sp == null)
 			return;
 		sp.edit().putString(PREFS_NAME, getDisallowedApps()).apply();
 	}
 
-	// read apps blacklisted in the settings
+	// Read apps blacklisted in the settings
 	private void readAppsConfig() {
-		if(sp == null)
+		if (sp == null)
 			return;
-		
+
 		String disallowedApps = sp.getString(PREFS_NAME, "");
-		
-		if(disallowedApps.length() != 0){
-			List<String> strapps = 
-				Arrays.asList(disallowedApps.split(";"));
-			
-			if(strapps.size() > 0){
-				for(int i = 0; i < strapps.size(); i++){
-					for (int j = 0;j < config.size(); j++) {
+
+		if (disallowedApps.length() != 0) {
+			List<String> strapps = Arrays.asList(disallowedApps.split(";"));
+
+			if (strapps.size() > 0) {
+				for (int i = 0; i < strapps.size(); i++) {
+					for (int j = 0; j < config.size(); j++) {
 						AppConfig ac = config.get(j);
-						if(ac.packageName.equals(strapps.get(i))){
+						if (ac.packageName.equals(strapps.get(i))) {
 							ac.allowed = false;
 							config.set(j, ac);
 						}
@@ -194,59 +191,55 @@ public class AppsConfig {
 
 	// Retrieves the icon in png encoded in base64 from android using a PackageManager
 	private String retrieveAppIcon(PackageManager pm, ApplicationInfo info) {
-    		Drawable d = pm.getApplicationIcon(info);
+		Drawable d = pm.getApplicationIcon(info);
     		Bitmap mutableBitmap = Bitmap.createBitmap(48, 48, Bitmap.Config.ARGB_8888);
-    		Canvas canvas = new Canvas(mutableBitmap);
+		Canvas canvas = new Canvas(mutableBitmap);
     		d.setBounds(0, 0, 48, 48);
-    		d.draw(canvas);
-    		//Bitmap to png to ByteArrayOutputStream to byte[] to base64 String
+		d.draw(canvas);
+		// Bitmap to png to ByteArrayOutputStream to byte[] to base64 String
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		//100 is the quality, but it is ignored for PNG
+		// 100 is the quality, but it is ignored for PNG
 		mutableBitmap.compress(Bitmap.CompressFormat.PNG, 100, baos);
-		//Return the png encoded as a base64 string
-		return Base64.encodeToString(baos.toByteArray(),Base64.DEFAULT);
+		// Return the png encoded as a base64 string
+		return Base64.encodeToString(baos.toByteArray(), Base64.DEFAULT);
 	}
 
 	// Returns a sorted list of installed apps with access to The Internet
 	private List<ApplicationInfo> getInstalledApps(PackageManager pm) {
-		if(this.ctx == null)
+		if (this.ctx == null)
 			return null;
-		
-		if(pm == null)
+
+		if (pm == null)
 			pm = this.ctx.getPackageManager();
 
 		// Initialize variables
 		List<ApplicationInfo> ret = null;
-		List<ApplicationInfo> insApps = 
-			pm.getInstalledApplications(PackageManager.GET_META_DATA);
+		List<ApplicationInfo> insApps = pm.getInstalledApplications(PackageManager.GET_META_DATA);
 
-		// This is done in the OpenVPN code
 		int androidSystemUid = 0;
 		ret = new ArrayList<ApplicationInfo>();
 
 		try {
-			ApplicationInfo system = 
-				pm.getApplicationInfo("android", PackageManager.GET_META_DATA);
-			if(system != null){
-		  		ret.add(system);
+			ApplicationInfo system = pm.getApplicationInfo("android", PackageManager.GET_META_DATA);
+			if (system != null) {
+				ret.add(system);
 				androidSystemUid = system.uid;
 			}
 		} catch (PackageManager.NameNotFoundException e) {
-			// it's ok if the "android" app doesn't exists
+			// it's ok if the "android" app doesn't exist
 		}
 
-		for (int i = 0;i < insApps.size(); i++){
+		for (int i = 0; i < insApps.size(); i++) {
 			ApplicationInfo app = insApps.get(i);
 			if (pm.checkPermission(
-					Manifest.permission.INTERNET, 
-					app.packageName) 
-				== PackageManager.PERMISSION_GRANTED 
-					&& app.uid != androidSystemUid){
-				if(app.packageName != "android")
+					Manifest.permission.INTERNET,
+					app.packageName) == PackageManager.PERMISSION_GRANTED
+					&& app.uid != androidSystemUid) {
+				if (app.packageName != "android")
 					ret.add(app);
 			}
 		}
-		
+
 		Collections.sort(ret, new ApplicationInfo.DisplayNameComparator(pm));
 		return ret;
 	}

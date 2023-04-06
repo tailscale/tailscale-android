@@ -76,8 +76,8 @@ type UI struct {
 	allowedAppsDialog struct {
 		show    bool
 		dismiss Dismiss
-		apps 	[]widget.Bool
-		list	layout.List
+		apps    []widget.Bool
+		list    layout.List
 	}
 
 	// exitDialog is state for the exit node dialog.
@@ -1053,7 +1053,7 @@ func (ui *UI) layoutAppConfig(gtx layout.Context, app AppConfig, idx int) layout
 				Bottom: unit.Dp(16),
 			}.Layout(gtx, btn.Layout)
 		}),
-		//Separator
+		// Separator
 		layout.Rigid(layout.Spacer{Height: unit.Dp(10)}.Layout),
 		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 			iconOp := paint.NewImageOp(app.icon)
@@ -1068,7 +1068,7 @@ func (ui *UI) layoutAppConfig(gtx layout.Context, app AppConfig, idx int) layout
 	)
 }
 
-//Displays the allowed Apps Dialog
+// Displays the allowed Apps Dialog
 func (ui *UI) layoutAllowedAppsDialog(gtx layout.Context, sysIns system.Insets, apps []AppConfig) {
 	d := &ui.allowedAppsDialog
 	if(len(d.apps) != len(apps)){
@@ -1098,14 +1098,14 @@ func (ui *UI) layoutAllowedAppsDialog(gtx layout.Context, sysIns system.Insets, 
 			return layoutDialog(gtx, func(gtx C) D {
 				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 					layout.Rigid(func(gtx C) D {
-						// Header.
+						// Header
 						return layout.Inset{
 							Top:    unit.Dp(16),
 							Right:  unit.Dp(20),
 							Left:   unit.Dp(20),
 							Bottom: unit.Dp(16),
 						}.Layout(gtx, func(gtx C) D {
-							l := material.Body1(ui.theme, "Allowed Applications")
+							l := material.Body1(ui.theme, "Allowed apps")
 							l.Font.Weight = text.Bold
 							return l.Layout(gtx)
 						})
@@ -1338,7 +1338,7 @@ func (ui *UI) layoutMenu(gtx layout.Context, sysIns system.Insets, expiry time.T
 				items = append(items, menuItem{title: "Use exit node...", btn: &menu.exits})
 			}
 			items = append(items,
-				menuItem{title: "Allowed Apps", btn: &menu.allowedapps},
+				menuItem{title: "Allowed apps", btn: &menu.allowedapps},
 				menuItem{title: "Bug report", btn: &menu.bug},
 				menuItem{title: "Reauthenticate", btn: &menu.reauth},
 				menuItem{title: "Log out", btn: &menu.logout},

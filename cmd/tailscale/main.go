@@ -5,11 +5,11 @@
 package main
 
 import (
-	b64 "encoding/base64"
 	"bytes"
 	"context"
 	"crypto/rand"
 	"crypto/sha1"
+	b64 "encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -69,7 +69,7 @@ type App struct {
 	targetsLoaded chan FileTargets
 	// invalidates receives whenever the window should be refreshed.
 	invalidates chan struct{}
-	
+
 	Apps []AppConfig
 }
 
@@ -107,7 +107,7 @@ type clientState struct {
 	backend   BackendState
 	// query is the search query, in lowercase.
 	query string
-	
+
 	Apps []AppConfig
 
 	Peers []UIPeer
@@ -143,10 +143,10 @@ const (
 )
 
 type AppConfig struct {
-	allowed 	bool
-	icon		image.Image
-	packageName 	string
-	label		string
+	allowed     bool
+	icon        image.Image
+	packageName string
+	label       string
 }
 
 type Peer struct {
@@ -203,7 +203,7 @@ type SetLoginServerEvent struct {
 
 type AllowedAppsEvent struct {
 	packageName string
-	allowed bool
+	allowed     bool
 }
 
 // UIEvent types.
@@ -267,7 +267,6 @@ func main() {
 		}
 	}()
 	app.Main()
-
 }
 
 func (a *App) runBackend() error {
@@ -616,7 +615,7 @@ func (a *App) downloadFile(b *ipnlocal.LocalBackend, f apitype.WaitingFile) (cer
 	return b.DeleteFile(f.Name)
 }
 
-func (a *App) setApp(packageName string, allowed bool) (error) {
+func (a *App) setApp(packageName string, allowed bool) error {
 	err := jni.Do(a.jvm, func(env *jni.Env) error {
 		cls := jni.GetObjectClass(env, a.appCtx)
 		m := jni.GetMethodID(env, cls, "setupApp", "(Ljava/lang/String;Z)V")
@@ -635,17 +634,17 @@ func (a *App) getIcon(packageName string) (image.Image, error) {
 		enc = jni.GoString(env, jni.String(n))
 		return err
 	})
-	if(err != nil){
+	if err != nil {
 		return nil, err
 	}
 	dec, err := b64.StdEncoding.DecodeString(enc)
-	if(err != nil){
+	if err != nil {
 		return nil, err
 	}
 	img, _, err := image.Decode(bytes.NewReader(dec))
-    	if err != nil {
-        	return nil, err
-    	}
+	if err != nil {
+		return nil, err
+	}
 	return img, err
 }
 
@@ -1131,34 +1130,33 @@ func (a *App) attachPeer(act jni.Object) {
 }
 
 func (a *App) loadAndroidApps() {
-	//Load Android Applications
+	// Load Android Applications
 	total, err := a.getTotalApps()
-	if(err != nil){
-		log.Printf("Error: %v",err)
+	if err != nil {
+		log.Printf("Error: %v", err)
 	} else {
 		log.Printf("Exiting... %d", total)
 	}
-	if total != int32(len(a.Apps)){
+	if total != int32(len(a.Apps)) {
 		var apps []AppConfig
 		var i int32 = 0
 		for i < total {
 			pn, err := a.getPackageName(int32(i))
-			if(err != nil){
+			if err != nil {
 				log.Printf("Error: %v", err)
 			}
 			label, err := a.getPackageLabel(int32(i))
-			if(err != nil){
+			if err != nil {
 				log.Printf("Error: %v", err)
 			}
 			allowed, err := a.appIsAllowed(int32(i))
-			if(err != nil){
+			if err != nil {
 				log.Printf("Error: %v", err)
 			}
 			icon, err := a.getIcon(pn)
-			if(err != nil){
+			if err != nil {
 				log.Printf("Error: %v", err)
 			}
-			//log.Printf("%v %v %v", pn, icon, allowed)
 			i = i + 1
 			apps = append(apps, AppConfig{allowed: allowed, icon: icon, label: label, packageName: pn})
 		}
@@ -1253,9 +1251,9 @@ func (a *App) processUIEvents(w *app.Window, events []UIEvent, act jni.Object, s
 		case AllowedAppsEvent:
 			log.Printf("tailscale Clicked AllowedApps")
 			var ev AllowedAppsEvent = AllowedAppsEvent(e)
-			log.Printf("%v %v",ev.packageName, ev.allowed)
+			log.Printf("%v %v", ev.packageName, ev.allowed)
 			err := a.setApp(ev.packageName, ev.allowed)
-			if (err != nil){
+			if err != nil {
 				log.Printf("Error configuring app: %v", err)
 			}
 		case ReauthEvent:
