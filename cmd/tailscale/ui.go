@@ -397,17 +397,13 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 		events = append(events, ExitAllowLANEvent(ui.exitLAN.Value))
 	}
 
-	//TODO: A message in the log has to be generated when I click on something
 	if d := &ui.allowedAppsDialog; d.show {
-		var i int = 0
+		for i, a := range d.apps {
 			if a.Changed() {
-		for i < len(d.apps) {
-			if(d.apps[i].Changed()){
-				state.Apps[i].allowed = d.apps[i].Value			
-				events = 
+				state.Apps[i].allowed = a.Value
+				events =
 					append(events, AllowedAppsEvent{packageName: state.Apps[i].packageName, allowed: state.Apps[i].allowed})
 			}
-			i = i + 1
 		}
 	}
 
@@ -1073,10 +1069,8 @@ func (ui *UI) layoutAllowedAppsDialog(gtx layout.Context, sysIns system.Insets, 
 	d := &ui.allowedAppsDialog
 	if(len(d.apps) != len(apps)){
 		d.apps = nil
-		var i = 0
-		for i < len(apps){
-			d.apps = append(d.apps, widget.Bool{ Value: apps[i].allowed })
-			i = i + 1
+		for i := range apps {
+			d.apps = append(d.apps, widget.Bool{Value: apps[i].allowed})
 		}
 	}
 	if d.dismiss.Dismissed(gtx) {
