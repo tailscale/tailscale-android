@@ -1035,39 +1035,38 @@ func (ui *UI) layoutShareDialog(gtx layout.Context, sysIns system.Insets) {
 	})
 }
 
+// layoutAppConfig lays out the app list
 func (ui *UI) layoutAppConfig(gtx layout.Context, app AppConfig, idx int) layout.Dimensions {
 	d := &ui.allowedAppsDialog
 	return layout.Flex{}.Layout(gtx,
-		//2 is the weight, this side takes more space
-		layout.Flexed(2, func(gtx layout.Context) layout.Dimensions {
+		// Checkbox and app name
+		layout.Flexed(5, func(gtx layout.Context) layout.Dimensions {
 			w := &(d.apps[idx])
 			w.Value = app.allowed
 			btn := material.CheckBox(ui.theme, &(d.apps[idx]), app.label)
 			return layout.Inset{
 				Right:  unit.Dp(16),
 				Left:   unit.Dp(16),
-				Bottom: unit.Dp(16),
+				Bottom: unit.Dp(10),
 			}.Layout(gtx, btn.Layout)
 		}),
-		// Separator
-		layout.Rigid(layout.Spacer{Height: unit.Dp(10)}.Layout),
+		// App icon
 		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+			gtx.Constraints.Max.X = gtx.Dp(unit.Dp(48))
+			gtx.Constraints.Max.Y = gtx.Constraints.Max.Y
 			iconOp := paint.NewImageOp(app.icon)
-			img := widget.Image{Src: iconOp}
-			img.Scale = 1
+			img := widget.Image{Src: iconOp, Fit: widget.ScaleDown}
 			return layout.Inset{
-				Right:  unit.Dp(16),
-				Left:   unit.Dp(16),
-				Bottom: unit.Dp(16),
+				Right: unit.Dp(16),
 			}.Layout(gtx, img.Layout)
 		}),
 	)
 }
 
-// Displays the allowed Apps Dialog
+// layoutAllowedAppsDialog lays out the allowed apps dialog
 func (ui *UI) layoutAllowedAppsDialog(gtx layout.Context, sysIns system.Insets, apps []AppConfig) {
 	d := &ui.allowedAppsDialog
-	if(len(d.apps) != len(apps)){
+	if len(d.apps) != len(apps) {
 		d.apps = nil
 		for i := range apps {
 			d.apps = append(d.apps, widget.Bool{Value: apps[i].allowed})
@@ -1081,14 +1080,13 @@ func (ui *UI) layoutAllowedAppsDialog(gtx layout.Context, sysIns system.Insets, 
 	}
 	d.dismiss.Add(gtx, argb(0x66000000))
 	layout.Inset{
-		Top:    unit.Add(gtx.Metric, sysIns.Top, unit.Dp(16)),
-		Right:  unit.Add(gtx.Metric, sysIns.Right, unit.Dp(16)),
-		Bottom: unit.Add(gtx.Metric, sysIns.Bottom, unit.Dp(16)),
-		Left:   unit.Add(gtx.Metric, sysIns.Left, unit.Dp(16)),
+		Top:    sysIns.Top + unit.Dp(16),
+		Right:  sysIns.Right + unit.Dp(16),
+		Bottom: sysIns.Bottom + unit.Dp(16),
+		Left:   sysIns.Left + unit.Dp(16),
 	}.Layout(gtx, func(gtx C) D {
 		return layout.Center.Layout(gtx, func(gtx C) D {
-			gtx.Constraints.Min.X = gtx.Px(unit.Dp(300))
-			gtx.Constraints.Max.X = gtx.Constraints.Min.X
+			gtx.Constraints.Min.X = gtx.Dp(unit.Dp(300))
 			return layoutDialog(gtx, func(gtx C) D {
 				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 					layout.Rigid(func(gtx C) D {
@@ -1105,7 +1103,6 @@ func (ui *UI) layoutAllowedAppsDialog(gtx layout.Context, sysIns system.Insets, 
 						})
 					}),
 					layout.Flexed(1, func(gtx C) D {
-						gtx.Constraints.Min.Y = 0
 						n := len(apps)
 						return d.list.Layout(gtx, n, func(gtx C, idx int) D {
 							return ui.layoutAppConfig(gtx, apps[idx], idx)
