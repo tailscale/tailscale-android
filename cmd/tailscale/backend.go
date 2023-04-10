@@ -28,7 +28,9 @@ import (
 	"tailscale.com/smallzstd"
 	"tailscale.com/types/logger"
 	"tailscale.com/types/logid"
+	"tailscale.com/util/clientmetric"
 	"tailscale.com/util/dnsname"
+	"tailscale.com/util/must"
 	"tailscale.com/wgengine"
 	"tailscale.com/wgengine/netstack"
 	"tailscale.com/wgengine/router"
@@ -317,15 +319,14 @@ func (b *backend) CloseTUNs() {
 // SetupLogs sets up remote logging.
 func (b *backend) SetupLogs(logDir string, logID logid.PrivateID) {
 	logcfg := logtail.Config{
-		Collection: "tailnode.log.tailscale.io",
-		PrivateID:  logID,
-		Stderr:     log.Writer(),
+		Collection:          logtail.CollectionNode,
+		PrivateID:           logID,
+		Stderr:              log.Writer(),
+		MetricsDelta:        clientmetric.EncodeLogTailMetricsDelta,
+		IncludeProcID:       true,
+		IncludeProcSequence: true,
 		NewZstdEncoder: func() logtail.Encoder {
-			w, err := smallzstd.NewEncoder(nil)
-			if err != nil {
-				panic(err)
-			}
-			return w
+			return must.Get(smallzstd.NewEncoder(nil))
 		},
 		HTTPC: &http.Client{Transport: logpolicy.NewLogtailTransport(logtail.DefaultHost)},
 	}
