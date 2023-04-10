@@ -53,6 +53,10 @@ type UI struct {
 
 	exitLAN widget.Bool
 
+	allowIncomingTransactions widget.Bool
+	useTailscaleDNS           widget.Bool
+	useTailscaleSubnets       widget.Bool
+
 	// webSigin is the button for the web-based sign-in flow.
 	webSignin widget.Clickable
 
@@ -61,6 +65,9 @@ type UI struct {
 
 	// openExitDialog opens the exit node picker.
 	openExitDialog widget.Clickable
+
+	// openPreferencesDialog opens the preferences dialog
+	openPreferencesDialog widget.Clickable
 
 	signinType signinType
 
@@ -82,6 +89,14 @@ type UI struct {
 
 	// exitDialog is state for the exit node dialog.
 	exitDialog struct {
+		show    bool
+		dismiss Dismiss
+		exits   widget.Enum
+		list    layout.List
+	}
+
+	// exitDialog is state for the exit node dialog.
+	preferencesDialog struct {
 		show    bool
 		dismiss Dismiss
 		exits   widget.Enum
@@ -111,6 +126,7 @@ type UI struct {
 		useLoginServer widget.Clickable
 		copy           widget.Clickable
 		allowedapps    widget.Clickable
+		preferences    widget.Clickable
 		reauth         widget.Clickable
 		bug            widget.Clickable
 		beExit         widget.Clickable
@@ -270,6 +286,7 @@ func newUI(store *stateStore) (*UI, error) {
 	ui.loginServer.SingleLine = true
 	ui.exitDialog.list.Axis = layout.Vertical
 	ui.allowedAppsDialog.list.Axis = layout.Vertical
+	ui.preferencesDialog.list.Axis = layout.Vertical
 	ui.shareDialog.list.Axis = layout.Vertical
 
 	// If they've ever set the control plane, give them the debug menu right away.
@@ -304,6 +321,8 @@ func (ui *UI) activeDialog() *bool {
 		return &ui.shareDialog.show
 	case ui.exitDialog.show:
 		return &ui.exitDialog.show
+	case ui.preferencesDialog.show:
+		return &ui.preferencesDialog.show
 	case ui.aboutDialog.show:
 		return &ui.aboutDialog.show
 	case ui.allowedAppsDialog.show:
@@ -396,6 +415,15 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 	if ui.exitLAN.Changed() {
 		events = append(events, ExitAllowLANEvent(ui.exitLAN.Value))
 	}
+	if ui.allowIncomingTransactions.Changed() {
+		events = append(events, AllowIncomingTransactionsEvent(ui.allowIncomingTransactions.Value))
+	}
+	if ui.useTailscaleDNS.Changed() {
+		events = append(events, UseTailscaleDNSEvent(ui.useTailscaleDNS.Value))
+	}
+	if ui.useTailscaleSubnets.Changed() {
+		events = append(events, UseTailscaleSubnetsEvent(ui.useTailscaleSubnets.Value))
+	}
 
 	if d := &ui.allowedAppsDialog; d.show {
 		for i, a := range d.apps {
@@ -464,6 +492,10 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 
 	if ui.menuClicked(&ui.menu.exits) || ui.openExitDialog.Clicked() {
 		ui.exitDialog.show = true
+	}
+
+	if ui.menuClicked(&ui.menu.preferences) || ui.openPreferencesDialog.Clicked() {
+		ui.preferencesDialog.show = true
 	}
 
 	if ui.menuClicked(&ui.menu.about) {
@@ -596,6 +628,8 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 	ui.layoutExitNodeDialog(gtx, sysIns, state.backend.Exits)
 
 	ui.layoutAllowedAppsDialog(gtx, sysIns, state.Apps)
+
+	ui.layoutPreferencesDialog(gtx, sysIns, state.backend.Exits)
 
 	ui.layoutShareDialog(gtx, sysIns)
 
@@ -1189,6 +1223,70 @@ func (ui *UI) layoutExitNodeDialog(gtx layout.Context, sysIns system.Insets, exi
 	})
 }
 
+// layoutPreferencesDialog lays out the preferences dialog.
+func (ui *UI) layoutPreferencesDialog(gtx layout.Context, sysIns system.Insets, exits []Peer) {
+	d := &ui.preferencesDialog
+	if d.dismiss.Dismissed(gtx) {
+		d.show = false
+	}
+	if !d.show {
+		return
+	}
+	d.dismiss.Add(gtx, argb(0x66000000))
+	layout.Inset{
+		Top:    sysIns.Top + unit.Dp(16),
+		Right:  sysIns.Right + unit.Dp(16),
+		Bottom: sysIns.Bottom + unit.Dp(16),
+		Left:   sysIns.Left + unit.Dp(16),
+	}.Layout(gtx, func(gtx C) D {
+		return layout.Center.Layout(gtx, func(gtx C) D {
+			gtx.Constraints.Min.X = gtx.Dp(unit.Dp(300))
+			gtx.Constraints.Max.X = gtx.Constraints.Min.X
+			return layoutDialog(gtx, func(gtx C) D {
+				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+					layout.Rigid(func(gtx C) D {
+						// Header.
+						return layout.Inset{
+							Top:    unit.Dp(16),
+							Right:  unit.Dp(20),
+							Left:   unit.Dp(20),
+							Bottom: unit.Dp(16),
+						}.Layout(gtx, func(gtx C) D {
+							l := material.Body1(ui.theme, "Preferences")
+							l.Font.Weight = text.Bold
+							return l.Layout(gtx)
+						})
+					}),
+					layout.Rigid(func(gtx C) D {
+						btn := material.CheckBox(ui.theme, &ui.allowIncomingTransactions, "Allow Incoming Connections")
+						return layout.Inset{
+							Right:  unit.Dp(16),
+							Left:   unit.Dp(16),
+							Bottom: unit.Dp(16),
+						}.Layout(gtx, btn.Layout)
+					}),
+					layout.Rigid(func(gtx C) D {
+						btn := material.CheckBox(ui.theme, &ui.useTailscaleDNS, "Use Tailscale DNS")
+						return layout.Inset{
+							Right:  unit.Dp(16),
+							Left:   unit.Dp(16),
+							Bottom: unit.Dp(16),
+						}.Layout(gtx, btn.Layout)
+					}),
+					layout.Rigid(func(gtx C) D {
+						btn := material.CheckBox(ui.theme, &ui.useTailscaleSubnets, "Use Tailscale Subnets")
+						return layout.Inset{
+							Right:  unit.Dp(16),
+							Left:   unit.Dp(16),
+							Bottom: unit.Dp(16),
+						}.Layout(gtx, btn.Layout)
+					}),
+				)
+			})
+		})
+	})
+}
+
 // layoutAboutDialog lays out the about dialog.
 func (ui *UI) layoutAboutDialog(gtx layout.Context, sysIns system.Insets) {
 	d := &ui.aboutDialog
@@ -1330,6 +1428,7 @@ func (ui *UI) layoutMenu(gtx layout.Context, sysIns system.Insets, expiry time.T
 			if showExits {
 				items = append(items, menuItem{title: "Use exit node...", btn: &menu.exits})
 			}
+			items = append(items, menuItem{title: "Preferences", btn: &menu.preferences})
 			items = append(items,
 				menuItem{title: "Allowed apps", btn: &menu.allowedapps},
 				menuItem{title: "Bug report", btn: &menu.bug},
