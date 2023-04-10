@@ -7,11 +7,11 @@ require (
 	gioui.org v0.0.0-20230206180804-32c6a9b10d0b
 	gioui.org/cmd v0.0.0-20210925100615-41f3a7e74ee6
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
-	github.com/tailscale/wireguard-go v0.0.0-20230405021932-8e891ab18002
+	github.com/tailscale/wireguard-go v0.0.0-20230410165232-af172621b4dd
 	golang.org/x/exp/shiny v0.0.0-20220827204233-334a2380cb91
 	golang.org/x/sys v0.5.1-0.20230222185716-a3b23cc77e89
 	inet.af/netaddr v0.0.0-20220617031823-097006376321
-	tailscale.com v1.1.1-0.20230405025600-765d3253f352
+	tailscale.com v1.1.1-0.20230410173246-f57153659805
 )
 
 require (

@@ -430,8 +430,8 @@ github.com/tailscale/goupnp v1.0.1-0.20210804011211-c64d0f06ea05 h1:4chzWmimtJPx
 github.com/tailscale/goupnp v1.0.1-0.20210804011211-c64d0f06ea05/go.mod h1:PdCqy9JzfWMJf1H5UJW2ip33/d4YkoKN0r67yKH1mG8=
 github.com/tailscale/netlink v1.1.1-0.20211101221916-cabfb018fe85 h1:zrsUcqrG2uQSPhaUPjUQwozcRdDdSxxqhNgNZ3drZFk=
 github.com/tailscale/netlink v1.1.1-0.20211101221916-cabfb018fe85/go.mod h1:NzVQi3Mleb+qzq8VmcWpSkcSYxXIg0DkI6XDzpVkhJ0=
-github.com/tailscale/wireguard-go v0.0.0-20230405021932-8e891ab18002 h1:+WMDToJq2qGuvG9rO9NwuSxculo0jszGQUYlxvY0Lx0=
-github.com/tailscale/wireguard-go v0.0.0-20230405021932-8e891ab18002/go.mod h1:QRIcq2+DbdIC5sKh/gcAZhuqu6WT6L6G8/ALPN5wqYw=
+github.com/tailscale/wireguard-go v0.0.0-20230410165232-af172621b4dd h1:+fBevMGmDRNi0oWD4SJXmPKLWvIBYX1NroMjo9czjcY=
+github.com/tailscale/wireguard-go v0.0.0-20230410165232-af172621b4dd/go.mod h1:QRIcq2+DbdIC5sKh/gcAZhuqu6WT6L6G8/ALPN5wqYw=
 github.com/tcnksm/go-httpstat v0.2.0 h1:rP7T5e5U2HfmOBmZzGgGZjBQ5/GluWUylujl0tJ04I0=
 github.com/tcnksm/go-httpstat v0.2.0/go.mod h1:s3JVJFtQxtBEBC9dwcdTTXS9xFnM3SXAZwPG41aurT8=
 github.com/tmc/grpc-websocket-proxy v0.0.0-20170815181823-89b8d40f7ca8/go.mod h1:ncp9v5uamzpCO7NfCPTXjqaC+bZgJeR0sMTm6dMHP7U=
@@ -711,5 +711,5 @@ nhooyr.io/websocket v1.8.7/go.mod h1:B70DZP8IakI65RVQ51MsWP/8jndNma26DVA/nFSCgW0
 sigs.k8s.io/yaml v1.1.0/go.mod h1:UJmg0vDUVViEyp3mgSv9WPwZCDxu4rQW1olrI1uml+o=
 software.sslmate.com/src/go-pkcs12 v0.2.0 h1:nlFkj7bTysH6VkC4fGphtjXRbezREPgrHuJG20hBGPE=
 sourcegraph.com/sourcegraph/appdash v0.0.0-20190731080439-ebfcffb1b5c0/go.mod h1:hI742Nqp5OhwiqlzhgfbWU4mW4yO10fP+LoT9WOswdU=
-tailscale.com v1.1.1-0.20230405025600-765d3253f352 h1:x72UhcvewkXUXE8QSkPVHQpHgXihjunX+urLrHM4MZw=
-tailscale.com v1.1.1-0.20230405025600-765d3253f352/go.mod h1:wOwTnQdLSzj4P8k6dULjCj+5fkkA92KAOBcYdnh+Mfw=
+tailscale.com v1.1.1-0.20230410173246-f57153659805 h1:9e293aS9RxW+a+axJYadtOldgzNiAcyTg8zEEBGD9ms=
+tailscale.com v1.1.1-0.20230410173246-f57153659805/go.mod h1:IGG8GkTKMdBzo2v/OimnIeCYExTJhupoYIblssKou0g=
