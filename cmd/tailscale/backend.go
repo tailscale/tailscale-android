@@ -45,6 +45,7 @@ type backend struct {
 	lastDNSCfg *dns.OSConfig
 
 	logIDPublic string
+	logger      *logtail.Logger
 
 	// avoidEmptyDNS controls whether to use fallback nameservers
 	// when no nameservers are provided by Tailscale.
@@ -151,6 +152,9 @@ func newBackend(dataDir string, jvm *jni.JVM, appCtx jni.Object, store *stateSto
 	}
 	if err := ns.Start(lb); err != nil {
 		return nil, fmt.Errorf("startNetstack: %w", err)
+	}
+	if b.logger != nil {
+		lb.SetLogFlusher(b.logger.StartFlush)
 	}
 	b.engine = engine
 	b.backend = lb
@@ -343,10 +347,10 @@ func (b *backend) SetupLogs(logDir string, logID logid.PrivateID) {
 	}
 
 	logf := logger.RusagePrefixLog(log.Printf)
-	tlog := logtail.NewLogger(logcfg, logf)
+	b.logger = logtail.NewLogger(logcfg, logf)
 
 	log.SetFlags(0)
-	log.SetOutput(tlog)
+	log.SetOutput(b.logger)
 
 	log.Printf("goSetupLogs: success")
 
