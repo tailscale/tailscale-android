@@ -343,7 +343,7 @@ public class App extends Application {
 		nm.notify(FILE_NOTIFICATION_ID, builder.build());
 	}
 
-	private void createNotificationChannel(String id, String name, int importance) {
+	public void createNotificationChannel(String id, String name, int importance) {
 		if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
 			return;
 		}
