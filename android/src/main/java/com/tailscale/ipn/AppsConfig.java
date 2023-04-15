@@ -213,35 +213,19 @@ public class AppsConfig {
 		if (pm == null)
 			pm = this.ctx.getPackageManager();
 
-		// Initialize variables
-		List<ApplicationInfo> ret = null;
-		List<ApplicationInfo> insApps = pm.getInstalledApplications(PackageManager.GET_META_DATA);
+		// Get all installed applications without filtering
+		List<ApplicationInfo> installed = pm.getInstalledApplications(0);
 
-		int androidSystemUid = 0;
-		ret = new ArrayList<ApplicationInfo>();
+		// Filter out apps without internet permission and Tailscale itself
+		List<ApplicationInfo> filtered = new ArrayList<ApplicationInfo>();
+		for (ApplicationInfo app : installed)
+			if (pm.checkPermission(Manifest.permission.INTERNET, app.packageName) == PackageManager.PERMISSION_GRANTED
+					&& !app.packageName.equals("com.tailscale.ipn"))
+				filtered.add(app);
 
-		try {
-			ApplicationInfo system = pm.getApplicationInfo("android", PackageManager.GET_META_DATA);
-			if (system != null) {
-				ret.add(system);
-				androidSystemUid = system.uid;
-			}
-		} catch (PackageManager.NameNotFoundException e) {
-			// it's ok if the "android" app doesn't exist
-		}
+		// Sort list by app name
+		filtered.sort(new ApplicationInfo.DisplayNameComparator(pm));
 
-		for (int i = 0; i < insApps.size(); i++) {
-			ApplicationInfo app = insApps.get(i);
-			if (pm.checkPermission(
-					Manifest.permission.INTERNET,
-					app.packageName) == PackageManager.PERMISSION_GRANTED
-					&& app.uid != androidSystemUid) {
-				if (app.packageName != "android")
-					ret.add(app);
-			}
-		}
-
-		Collections.sort(ret, new ApplicationInfo.DisplayNameComparator(pm));
-		return ret;
+		return filtered;
 	}
 }
