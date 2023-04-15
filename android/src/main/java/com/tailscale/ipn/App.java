@@ -106,6 +106,9 @@ public class App extends Application {
 				NetworkInfo active = cMgr.getActiveNetworkInfo();
 				// https://developer.android.com/training/monitoring-device-state/connectivity-status-type
 				boolean isConnected = active != null && active.isConnectedOrConnecting();
+				if (isConnected) {
+					((App)getApplicationContext()).autoConnect = false;
+				}
 				onConnectivityChanged(isConnected);
 			}
 
@@ -173,8 +176,7 @@ public class App extends Application {
 
 		vpnReady = ready;
 		if (ready && autoConnect) {
-			connect();
-			autoConnect = false;
+			startVPN();
 		}
 	}
 
@@ -356,8 +358,6 @@ public class App extends Application {
 	private static native void onConnectivityChanged(boolean connected);
 	static native void onShareIntent(int nfiles, int[] types, String[] mimes, String[] items, String[] names, long[] sizes);
 	static native void onWriteStorageGranted();
-
-	public static native void connect();
 
         // Returns details of the interfaces in the system, encoded as a single string for ease
         // of JNI transfer over to the Go environment.

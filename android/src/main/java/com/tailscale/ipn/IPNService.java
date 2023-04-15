@@ -28,7 +28,6 @@ public class IPNService extends VpnService {
 		connect();
 		App app = ((App)getApplicationContext());
 		if (app.vpnReady && app.autoConnect) {
-			app.autoConnect = false;
 			directConnect();
 		}
 		return START_STICKY;
