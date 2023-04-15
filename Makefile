@@ -52,7 +52,7 @@ endif
 
 $(DEBUG_APK): toolchain
 	mkdir -p android/libs
-	go run gioui.org/cmd/gogio -buildmode archive -target android -appid $(APPID) -tags novulkan -o $(AAR) github.com/tailscale/tailscale-android/cmd/tailscale
+	go run gioui.org/cmd/gogio -buildmode archive -target android -appid $(APPID) -tags novulkan,tailscale_go -o $(AAR) github.com/tailscale/tailscale-android/cmd/tailscale
 	(cd android && ./gradlew test assemblePlayDebug)
 	mv android/build/outputs/apk/play/debug/android-play-debug.apk $@
 
@@ -65,7 +65,7 @@ rundebug: $(DEBUG_APK)
 # This is useful for testing on e.g. Amazon Fire Stick devices.
 tailscale-fdroid.apk: toolchain
 	mkdir -p android/libs
-	go run gioui.org/cmd/gogio -buildmode archive -target android -appid $(APPID) -tags novulkan -o $(AAR) github.com/tailscale/tailscale-android/cmd/tailscale
+	go run gioui.org/cmd/gogio -buildmode archive -target android -appid $(APPID) -tags novulkan,tailscale_go -o $(AAR) github.com/tailscale/tailscale-android/cmd/tailscale
 	(cd android && ./gradlew test assembleFdroidDebug)
 	mv android/build/outputs/apk/fdroid/debug/android-fdroid-debug.apk $@
 
@@ -73,7 +73,7 @@ tailscale-fdroid.apk: toolchain
 release_aar: toolchain
 release_aar:
 	mkdir -p android/libs
-	go run gioui.org/cmd/gogio -ldflags "-X tailscale.com/version.longStamp=$(VERSIONNAME) -X tailscale.com/version.shortStamp=$(VERSIONNAME_SHORT) -X tailscale.com/version.gitCommitStamp=$(TAILSCALE_COMMIT) -X tailscale.com/version.extraGitCommitStamp=$(OUR_VERSION)" -buildmode archive -target android -appid $(APPID) -tags novulkan -o $(AAR) github.com/tailscale/tailscale-android/cmd/tailscale
+	go run gioui.org/cmd/gogio -ldflags "-X tailscale.com/version.longStamp=$(VERSIONNAME) -X tailscale.com/version.shortStamp=$(VERSIONNAME_SHORT) -X tailscale.com/version.gitCommitStamp=$(TAILSCALE_COMMIT) -X tailscale.com/version.extraGitCommitStamp=$(OUR_VERSION)" -buildmode archive -target android -appid $(APPID) -tags novulkan,tailscale_go -o $(AAR) github.com/tailscale/tailscale-android/cmd/tailscale
 
 $(RELEASE_AAB): release_aar
 	(cd android && ./gradlew test bundlePlayRelease)

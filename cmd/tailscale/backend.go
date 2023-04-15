@@ -28,7 +28,9 @@ import (
 	"tailscale.com/smallzstd"
 	"tailscale.com/types/logger"
 	"tailscale.com/types/logid"
+	"tailscale.com/util/clientmetric"
 	"tailscale.com/util/dnsname"
+	"tailscale.com/util/must"
 	"tailscale.com/wgengine"
 	"tailscale.com/wgengine/netstack"
 	"tailscale.com/wgengine/router"
@@ -43,6 +45,7 @@ type backend struct {
 	lastDNSCfg *dns.OSConfig
 
 	logIDPublic string
+	logger      *logtail.Logger
 
 	// avoidEmptyDNS controls whether to use fallback nameservers
 	// when no nameservers are provided by Tailscale.
@@ -149,6 +152,9 @@ func newBackend(dataDir string, jvm *jni.JVM, appCtx jni.Object, store *stateSto
 	}
 	if err := ns.Start(lb); err != nil {
 		return nil, fmt.Errorf("startNetstack: %w", err)
+	}
+	if b.logger != nil {
+		lb.SetLogFlusher(b.logger.StartFlush)
 	}
 	b.engine = engine
 	b.backend = lb
@@ -317,15 +323,14 @@ func (b *backend) CloseTUNs() {
 // SetupLogs sets up remote logging.
 func (b *backend) SetupLogs(logDir string, logID logid.PrivateID) {
 	logcfg := logtail.Config{
-		Collection: "tailnode.log.tailscale.io",
-		PrivateID:  logID,
-		Stderr:     log.Writer(),
+		Collection:          logtail.CollectionNode,
+		PrivateID:           logID,
+		Stderr:              log.Writer(),
+		MetricsDelta:        clientmetric.EncodeLogTailMetricsDelta,
+		IncludeProcID:       true,
+		IncludeProcSequence: true,
 		NewZstdEncoder: func() logtail.Encoder {
-			w, err := smallzstd.NewEncoder(nil)
-			if err != nil {
-				panic(err)
-			}
-			return w
+			return must.Get(smallzstd.NewEncoder(nil))
 		},
 		HTTPC: &http.Client{Transport: logpolicy.NewLogtailTransport(logtail.DefaultHost)},
 	}
@@ -342,10 +347,10 @@ func (b *backend) SetupLogs(logDir string, logID logid.PrivateID) {
 	}
 
 	logf := logger.RusagePrefixLog(log.Printf)
-	tlog := logtail.NewLogger(logcfg, logf)
+	b.logger = logtail.NewLogger(logcfg, logf)
 
 	log.SetFlags(0)
-	log.SetOutput(tlog)
+	log.SetOutput(b.logger)
 
 	log.Printf("goSetupLogs: success")
 
