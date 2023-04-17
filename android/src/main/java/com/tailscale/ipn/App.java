@@ -106,6 +106,9 @@ public class App extends Application {
 				NetworkInfo active = cMgr.getActiveNetworkInfo();
 				// https://developer.android.com/training/monitoring-device-state/connectivity-status-type
 				boolean isConnected = active != null && active.isConnectedOrConnecting();
+				if (isConnected) {
+					((App)getApplicationContext()).autoConnect = false;
+				}
 				onConnectivityChanged(isConnected);
 			}
 
@@ -161,11 +164,20 @@ public class App extends Application {
 		);
 	}
 
+	public boolean autoConnect = false;
+	public boolean vpnReady = false;
+
 	void setTileReady(boolean ready) {
 		if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
 			return;
 		}
 		QuickToggleService.setReady(this, ready);
+		android.util.Log.d("App", "Set Tile Ready: " + ready + " " + autoConnect);
+
+		vpnReady = ready;
+		if (ready && autoConnect) {
+			startVPN();
+		}
 	}
 
 	void setTileStatus(boolean status) {
@@ -333,7 +345,7 @@ public class App extends Application {
 		nm.notify(FILE_NOTIFICATION_ID, builder.build());
 	}
 
-	private void createNotificationChannel(String id, String name, int importance) {
+	public void createNotificationChannel(String id, String name, int importance) {
 		if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
 			return;
 		}

@@ -55,6 +55,14 @@
 				<data android:mimeType="video/*" />
 			</intent-filter>
 		</activity>
+		<receiver android:name="IPNReceiver"
+			android:exported="true"
+			>
+			<intent-filter>
+				<action android:name="com.tailscale.ipn.CONNECT_VPN" />
+				<action android:name="com.tailscale.ipn.DISCONNECT_VPN" />
+			</intent-filter>
+		</receiver>
 		<service android:name=".IPNService"
 			android:permission="android.permission.BIND_VPN_SERVICE"
 			android:exported="false">
