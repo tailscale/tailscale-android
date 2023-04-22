@@ -712,5 +712,5 @@ nhooyr.io/websocket v1.8.7/go.mod h1:B70DZP8IakI65RVQ51MsWP/8jndNma26DVA/nFSCgW0
 sigs.k8s.io/yaml v1.1.0/go.mod h1:UJmg0vDUVViEyp3mgSv9WPwZCDxu4rQW1olrI1uml+o=
 software.sslmate.com/src/go-pkcs12 v0.2.0 h1:nlFkj7bTysH6VkC4fGphtjXRbezREPgrHuJG20hBGPE=
 sourcegraph.com/sourcegraph/appdash v0.0.0-20190731080439-ebfcffb1b5c0/go.mod h1:hI742Nqp5OhwiqlzhgfbWU4mW4yO10fP+LoT9WOswdU=
-tailscale.com v1.1.1-0.20230417223824-280255acae60 h1:2HRc4eZppqmfGjsih892UFBgFbBH9t9iW1GM26OZqTw=
-tailscale.com v1.1.1-0.20230417223824-280255acae60/go.mod h1:j5vekUD4eLhLpHl/tNBps25strCOBXyiKUsdR1HhMq8=
+tailscale.com v1.1.1-0.20230422043621-e3b2250e2654 h1:lSCSMwc0Zo24IUi9xwB8KbsCJvJxP76eNpNIaZNyGJ0=
+tailscale.com v1.1.1-0.20230422043621-e3b2250e2654/go.mod h1:j5vekUD4eLhLpHl/tNBps25strCOBXyiKUsdR1HhMq8=

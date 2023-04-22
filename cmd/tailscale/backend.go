@@ -24,6 +24,7 @@ import (
 	"tailscale.com/logtail"
 	"tailscale.com/logtail/filch"
 	"tailscale.com/net/dns"
+	"tailscale.com/net/netmon"
 	"tailscale.com/net/tsdial"
 	"tailscale.com/smallzstd"
 	"tailscale.com/types/logger"
@@ -322,6 +323,15 @@ func (b *backend) CloseTUNs() {
 
 // SetupLogs sets up remote logging.
 func (b *backend) SetupLogs(logDir string, logID logid.PrivateID) {
+	logf := logger.RusagePrefixLog(log.Printf)
+	netMon, err := netmon.New(func(format string, args ...any) {
+		logf(format, args...)
+	})
+	if err != nil {
+		log.Printf("netmon.New: %w", err)
+	}
+	transport := logpolicy.NewLogtailTransport(logtail.DefaultHost, netMon)
+
 	logcfg := logtail.Config{
 		Collection:          logtail.CollectionNode,
 		PrivateID:           logID,
@@ -332,7 +342,7 @@ func (b *backend) SetupLogs(logDir string, logID logid.PrivateID) {
 		NewZstdEncoder: func() logtail.Encoder {
 			return must.Get(smallzstd.NewEncoder(nil))
 		},
-		HTTPC: &http.Client{Transport: logpolicy.NewLogtailTransport(logtail.DefaultHost)},
+		HTTPC: &http.Client{Transport: transport},
 	}
 	logcfg.FlushDelayFn = func() time.Duration { return 2 * time.Minute }
 
@@ -346,7 +356,6 @@ func (b *backend) SetupLogs(logDir string, logID logid.PrivateID) {
 		logcfg.Buffer, filchErr = filch.New(logPath, filchOpts)
 	}
 
-	logf := logger.RusagePrefixLog(log.Printf)
 	b.logger = logtail.NewLogger(logcfg, logf)
 
 	log.SetFlags(0)
