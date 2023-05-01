@@ -4,16 +4,21 @@
 
 package com.tailscale.ipn;
 
-import androidx.work.Worker;
-import android.content.Context;
-import androidx.work.WorkerParameters;
-import android.net.VpnService;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
+import android.net.NetworkInfo;
+import android.net.VpnService;
 import android.os.Build;
+import androidx.work.Worker;
+import androidx.work.WorkerParameters;
 
 public final class StartVPNWorker extends Worker {
 
@@ -24,8 +29,13 @@ public final class StartVPNWorker extends Worker {
     }
 
     @Override public Result doWork() {
-        // We will start the VPN from the background
+        // Check if the app's VPN is already connected
         App app = ((App)getApplicationContext());
+        if (isVpnConnected(app)) {
+            return Result.success();
+        }
+
+        // We will start the VPN from the background
         app.autoConnect = true;
         // We need to make sure we prepare the VPN Service, just in case it isn't prepared.
 
@@ -61,5 +71,25 @@ public final class StartVPNWorker extends Worker {
 
             return Result.failure();
         }
+    }
+
+    public static boolean isVpnConnected(Context context) {
+        ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+
+        if (connectivityManager != null) {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                Network activeNetwork = connectivityManager.getActiveNetwork();
+                NetworkCapabilities networkCapabilities = connectivityManager.getNetworkCapabilities(activeNetwork);
+                if (networkCapabilities != null) {
+                    return networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN);
+                }
+            } else {
+                // Deprecated method for API levels below 23 (Android 6.0)
+                NetworkInfo networkInfo = connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_VPN);
+                return networkInfo != null && networkInfo.isConnected();
+            }
+        }
+
+        return false;
     }
 }
