@@ -473,6 +473,9 @@ func (a *App) runBackend() error {
 				go b.backend.SetPrefs(state.Prefs)
 				state.updateExitNodes()
 				a.notify(state)
+				if service != 0 {
+					a.updateNotification(service, state.State, state.ExitStatus, state.Exit)
+				}
 			}
 		case s := <-onConnect:
 			jni.Do(a.jvm, func(env *jni.Env) error {
