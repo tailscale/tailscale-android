@@ -426,7 +426,19 @@ func (b *backend) getPlatformDNSConfig() string {
 	return baseConfig
 }
 
-func (b *backend) getDNSBaseConfig() (dns.OSConfig, error) {
+func (b *backend) getDNSBaseConfig() (ret dns.OSConfig, _ error) {
+	defer func() {
+		// If we couldn't find any base nameservers, ultimately fall back to
+		// Google's. Normally Tailscale doesn't ever pick a default nameserver
+		// for users but in this case Android's APIs for reading the underlying
+		// DNS config are lacking, and almost all Android phones use Google
+		// services anyway, so it's a reasonable default: it's an ecosystem the
+		// user has selected by having an Android device.
+		if len(ret.Nameservers) == 0 && googleSignInEnabled() {
+			log.Printf("getDNSBaseConfig: none found; falling back to Google public DNS")
+			ret.Nameservers = append(ret.Nameservers, googleDNSServers...)
+		}
+	}()
 	b.logDNSConfigMechanisms()
 	baseConfig := b.getPlatformDNSConfig()
 	lines := strings.Split(baseConfig, "\n")
