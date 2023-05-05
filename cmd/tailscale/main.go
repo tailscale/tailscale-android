@@ -367,9 +367,6 @@ func (a *App) runBackend() error {
 				oldState := state.State
 				state.State = *s
 				if service != 0 {
-					a.updateNotification(service, state.State)
-				}
-				if service != 0 {
 					if cfg.rcfg != nil && state.State >= ipn.Starting {
 						if err := b.updateTUN(service, cfg.rcfg, cfg.dcfg); err != nil {
 							if errors.Is(err, errMultipleUsers) {
@@ -389,6 +386,9 @@ func (a *App) runBackend() error {
 					}
 				}
 				a.notify(state)
+				if service != 0 {
+					a.updateNotification(service, state.State, state.ExitStatus, state.Exit)
+				}
 			}
 			if u := n.BrowseToURL; u != nil {
 				signingIn = false
@@ -473,6 +473,9 @@ func (a *App) runBackend() error {
 				go b.backend.SetPrefs(state.Prefs)
 				state.updateExitNodes()
 				a.notify(state)
+				if service != 0 {
+					a.updateNotification(service, state.State, state.ExitStatus, state.Exit)
+				}
 			}
 		case s := <-onConnect:
 			jni.Do(a.jvm, func(env *jni.Env) error {
@@ -508,7 +511,7 @@ func (a *App) runBackend() error {
 				service = s
 				return nil
 			})
-			a.updateNotification(service, state.State)
+			a.updateNotification(service, state.State, state.ExitStatus, state.Exit)
 			if m := state.NetworkMap; m != nil {
 				alarm(a.notifyExpiry(service, m.Expiry))
 			}
@@ -746,13 +749,19 @@ func googleSignInEnabled() bool {
 }
 
 // updateNotification updates the foreground persistent status notification.
-func (a *App) updateNotification(service jni.Object, state ipn.State) error {
+func (a *App) updateNotification(service jni.Object, state ipn.State, exitStatus ExitStatus, exit Peer) error {
 	var msg, title string
 	switch state {
 	case ipn.Starting:
 		title, msg = "Connecting...", ""
 	case ipn.Running:
-		title, msg = "Connected", ""
+		title = "Connected"
+		switch exitStatus {
+		case ExitOnline:
+			msg = fmt.Sprintf("Exit node: %s", exit.Label)
+		default:
+			msg = ""
+		}
 	default:
 		return nil
 	}
