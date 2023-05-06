@@ -56,8 +56,8 @@ jobs:
         with:
           token: ${{ steps.generate-token.outputs.token }}
           path: oss
-          author: License Updater <noreply@tailscale.com>
-          Committer: License Updater <noreply@tailscale.com>
+          author: License Updater <noreply+license-updater@tailscale.com>
+          Committer: License Updater <noreply+license-updater@tailscale.com>
           branch: licenses/android
           commit-message: "licenses: update android licenses"
           title: "licenses: update android licenses"
