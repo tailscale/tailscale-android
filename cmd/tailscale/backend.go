@@ -131,10 +131,11 @@ func newBackend(dataDir string, jvm *jni.JVM, appCtx jni.Object, store *stateSto
 		GetBaseConfigFunc: b.getDNSBaseConfig,
 	}
 	engine, err := wgengine.NewUserspaceEngine(logf, wgengine.Config{
-		Tun:    b.devices,
-		Router: cb,
-		DNS:    cb,
-		Dialer: dialer,
+		Tun:          b.devices,
+		Router:       cb,
+		DNS:          cb,
+		Dialer:       dialer,
+		SetSubsystem: sys.Set,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("runBackend: NewUserspaceEngine: %v", err)
