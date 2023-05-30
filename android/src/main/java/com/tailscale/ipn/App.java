@@ -106,9 +106,6 @@ public class App extends Application {
 				NetworkInfo active = cMgr.getActiveNetworkInfo();
 				// https://developer.android.com/training/monitoring-device-state/connectivity-status-type
 				boolean isConnected = active != null && active.isConnectedOrConnecting();
-				if (isConnected) {
-					((App)getApplicationContext()).autoConnect = false;
-				}
 				onConnectivityChanged(isConnected);
 			}
 
