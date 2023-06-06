@@ -9,3 +9,7 @@ android/libs
 
 # Output files from the Makefile:
 tailscale-debug.apk
+tailscale-release.aab
+
+# Signing key
+tailscale.jks
