@@ -53,14 +53,6 @@ public class IPNService extends VpnService {
 			PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 	}
 
-	private void disallowApp(VpnService.Builder b, String name) {
-		try {
-			b.addDisallowedApplication(name);
-		} catch (PackageManager.NameNotFoundException e) {
-			return;
-		}
-	}
-
 	protected VpnService.Builder newBuilder() {
 		VpnService.Builder b = new VpnService.Builder()
 			.setConfigureIntent(configIntent())
@@ -71,24 +63,29 @@ public class IPNService extends VpnService {
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
 			b.setUnderlyingNetworks(null); // Use all available networks.
 
+		App app = (App) this.getApplication();
+
 		// RCS/Jibe https://github.com/tailscale/tailscale/issues/2322
-		this.disallowApp(b, "com.google.android.apps.messaging");
+		app.setupApp("com.google.android.apps.messaging", false);
 
 		// Stadia https://github.com/tailscale/tailscale/issues/3460
-		this.disallowApp(b, "com.google.stadia.android");
+		app.setupApp("com.google.stadia.android", false);
 
 		// Android Auto https://github.com/tailscale/tailscale/issues/3828
-		this.disallowApp(b, "com.google.android.projection.gearhead");
+		app.setupApp("com.google.android.projection.gearhead", false);
 
 		// GoPro https://github.com/tailscale/tailscale/issues/2554
-		this.disallowApp(b, "com.gopro.smarty");
+		app.setupApp("com.gopro.smarty", false);
 
 		// Sonos https://github.com/tailscale/tailscale/issues/2548
-		this.disallowApp(b, "com.sonos.acr");
-		this.disallowApp(b, "com.sonos.acr2");
+		app.setupApp("com.sonos.acr", false);
+		app.setupApp("com.sonos.acr2", false);
 
 		// Google Chromecast https://github.com/tailscale/tailscale/issues/3636
-		this.disallowApp(b, "com.google.android.apps.chromecast.app");
+		app.setupApp("com.google.android.apps.chromecast.app", false);
+
+		// Apply changes
+		b = app.acfg.build(b);
 
 		return b;
 	}

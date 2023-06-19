@@ -86,9 +86,13 @@ public class App extends Application {
 
 	public DnsConfig dns = new DnsConfig(this);
 	public DnsConfig getDnsConfigObj() { return this.dns; }
+	public AppsConfig acfg = null;
 
 	@Override public void onCreate() {
 		super.onCreate();
+		try {
+			acfg = new AppsConfig(this, getEncryptedPrefs());
+		} catch (Exception e) {}
 		// Load and initialize the Go library.
 		Gio.init(this);
 		registerNetworkCallback();
@@ -96,7 +100,6 @@ public class App extends Application {
 		createNotificationChannel(NOTIFY_CHANNEL_ID, "Notifications", NotificationManagerCompat.IMPORTANCE_DEFAULT);
 		createNotificationChannel(STATUS_CHANNEL_ID, "VPN Status", NotificationManagerCompat.IMPORTANCE_LOW);
 		createNotificationChannel(FILE_CHANNEL_ID, "File transfers", NotificationManagerCompat.IMPORTANCE_DEFAULT);
-
 	}
 
 	private void registerNetworkCallback() {
@@ -124,6 +127,30 @@ public class App extends Application {
 				this.reportConnectivityChange();
 			}
 		});
+	}
+
+	public void setupApp(String packageName, boolean allowed){
+		acfg.setApp(packageName, allowed);
+	}
+
+	public int getTotalApps(){
+		return acfg.getTotalApps();
+	}
+
+	public String getPackageLabel(int i){
+		return acfg.getPackageLabel(i);
+	}
+
+	public String getPackageName(int i){
+		return acfg.getPackageName(i);
+	}
+
+	public boolean appIsAllowed(int i){
+		return acfg.appIsAllowed(i);
+	}
+
+	public String getIcon(String packageName) {
+		return acfg.getAppIcon(packageName);
 	}
 
 	public void startVPN() {

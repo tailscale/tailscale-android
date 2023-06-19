@@ -79,6 +79,14 @@ type UI struct {
 	self  widget.Clickable
 	peers []widget.Clickable
 
+	// allowedAppsDialog is state for the allowed apps dialog.
+	allowedAppsDialog struct {
+		show    bool
+		dismiss Dismiss
+		apps    []widget.Bool
+		list    layout.List
+	}
+
 	// exitDialog is state for the exit node dialog.
 	exitDialog struct {
 		show    bool
@@ -117,6 +125,7 @@ type UI struct {
 
 		useLoginServer widget.Clickable
 		copy           widget.Clickable
+		allowedapps    widget.Clickable
 		preferences    widget.Clickable
 		reauth         widget.Clickable
 		bug            widget.Clickable
@@ -276,6 +285,7 @@ func newUI(store *stateStore) (*UI, error) {
 	ui.search.SingleLine = true
 	ui.loginServer.SingleLine = true
 	ui.exitDialog.list.Axis = layout.Vertical
+	ui.allowedAppsDialog.list.Axis = layout.Vertical
 	ui.preferencesDialog.list.Axis = layout.Vertical
 	ui.shareDialog.list.Axis = layout.Vertical
 
@@ -315,6 +325,8 @@ func (ui *UI) activeDialog() *bool {
 		return &ui.preferencesDialog.show
 	case ui.aboutDialog.show:
 		return &ui.aboutDialog.show
+	case ui.allowedAppsDialog.show:
+		return &ui.allowedAppsDialog.show
 	}
 	return nil
 }
@@ -347,7 +359,7 @@ func (ui *UI) setMenuShown(v bool) {
 	}
 }
 
-func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientState) []UIEvent {
+func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientState, a *App) []UIEvent {
 	// "Get started".
 	if ui.intro.show {
 		if ui.intro.start.Clicked() {
@@ -413,6 +425,16 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 		events = append(events, UseTailscaleSubnetsEvent(ui.useTailscaleSubnets.Value))
 	}
 
+	if d := &ui.allowedAppsDialog; d.show {
+		for i, a := range d.apps {
+			if a.Changed() {
+				state.Apps[i].allowed = a.Value
+				events =
+					append(events, AllowedAppsEvent{packageName: state.Apps[i].packageName, allowed: state.Apps[i].allowed})
+			}
+		}
+	}
+
 	if ui.googleSignin.Clicked() {
 		ui.signinType = googleSignin
 		events = append(events, GoogleAuthEvent{})
@@ -446,6 +468,11 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 
 	if ui.menuClicked(&ui.menu.reauth) {
 		events = append(events, ReauthEvent{})
+	}
+
+	if ui.menuClicked(&ui.menu.allowedapps) {
+		a.loadAndroidApps(state)
+		ui.allowedAppsDialog.show = true
 	}
 
 	if ui.menuClicked(&ui.menu.bug) {
@@ -599,6 +626,8 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 	})
 
 	ui.layoutExitNodeDialog(gtx, sysIns, state.backend.Exits)
+
+	ui.layoutAllowedAppsDialog(gtx, sysIns, state.Apps)
 
 	ui.layoutPreferencesDialog(gtx, sysIns, state.backend.Exits)
 
@@ -1041,6 +1070,86 @@ func (ui *UI) layoutShareDialog(gtx layout.Context, sysIns system.Insets) {
 	})
 }
 
+// layoutAppConfig lays out the app list
+func (ui *UI) layoutAppConfig(gtx layout.Context, app AppConfig, idx int) layout.Dimensions {
+	d := &ui.allowedAppsDialog
+	return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
+		// Checkbox and app name
+		layout.Flexed(5, func(gtx layout.Context) layout.Dimensions {
+			w := &(d.apps[idx])
+			w.Value = app.allowed
+			btn := material.CheckBox(ui.theme, &(d.apps[idx]), app.label)
+			return layout.Inset{
+				Right:  unit.Dp(16),
+				Left:   unit.Dp(16),
+				Bottom: unit.Dp(10),
+			}.Layout(gtx, btn.Layout)
+		}),
+		// App icon
+		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+			gtx.Constraints.Max.X = gtx.Dp(unit.Dp(48))
+			gtx.Constraints.Max.Y = gtx.Constraints.Max.Y
+			iconOp := paint.NewImageOp(app.icon)
+			img := widget.Image{Src: iconOp, Fit: widget.ScaleDown}
+			return layout.Inset{
+				Right:  unit.Dp(16),
+				Bottom: unit.Dp(10),
+			}.Layout(gtx, img.Layout)
+		}),
+	)
+}
+
+// layoutAllowedAppsDialog lays out the allowed apps dialog
+func (ui *UI) layoutAllowedAppsDialog(gtx layout.Context, sysIns system.Insets, apps []AppConfig) {
+	d := &ui.allowedAppsDialog
+	if len(d.apps) != len(apps) {
+		d.apps = nil
+		for i := range apps {
+			d.apps = append(d.apps, widget.Bool{Value: apps[i].allowed})
+		}
+	}
+	if d.dismiss.Dismissed(gtx) {
+		d.show = false
+	}
+	if !d.show {
+		return
+	}
+	d.dismiss.Add(gtx, argb(0x66000000))
+	layout.Inset{
+		Top:    sysIns.Top + unit.Dp(16),
+		Right:  sysIns.Right + unit.Dp(16),
+		Bottom: sysIns.Bottom + unit.Dp(16),
+		Left:   sysIns.Left + unit.Dp(16),
+	}.Layout(gtx, func(gtx C) D {
+		return layout.Center.Layout(gtx, func(gtx C) D {
+			gtx.Constraints.Min.X = gtx.Dp(unit.Dp(300))
+			return layoutDialog(gtx, func(gtx C) D {
+				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+					layout.Rigid(func(gtx C) D {
+						// Header
+						return layout.Inset{
+							Top:    unit.Dp(16),
+							Right:  unit.Dp(20),
+							Left:   unit.Dp(20),
+							Bottom: unit.Dp(16),
+						}.Layout(gtx, func(gtx C) D {
+							l := material.Body1(ui.theme, "Allowed apps")
+							l.Font.Weight = text.Bold
+							return l.Layout(gtx)
+						})
+					}),
+					layout.Flexed(1, func(gtx C) D {
+						n := len(apps)
+						return d.list.Layout(gtx, n, func(gtx C, idx int) D {
+							return ui.layoutAppConfig(gtx, apps[idx], idx)
+						})
+					}),
+				)
+			})
+		})
+	})
+}
+
 // layoutExitNodeDialog lays out the exit node selection dialog.
 func (ui *UI) layoutExitNodeDialog(gtx layout.Context, sysIns system.Insets, exits []Peer) {
 	d := &ui.exitDialog
@@ -1321,6 +1430,7 @@ func (ui *UI) layoutMenu(gtx layout.Context, sysIns system.Insets, expiry time.T
 			}
 			items = append(items, menuItem{title: "Preferences", btn: &menu.preferences})
 			items = append(items,
+				menuItem{title: "Allowed apps", btn: &menu.allowedapps},
 				menuItem{title: "Bug report", btn: &menu.bug},
 				menuItem{title: "Reauthenticate", btn: &menu.reauth},
 				menuItem{title: "Log out", btn: &menu.logout},
