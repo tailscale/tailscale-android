@@ -215,8 +215,8 @@ var backendEvents = make(chan UIEvent)
 
 func main() {
 	a := &App{
-		jvm:           (*jni.JVM)(unsafe.Pointer(app.JavaVM())),
-		appCtx:        jni.Object(app.AppContext()),
+		jvm:           (*jni.JVM)(unsafe.Pointer(javaVM())),
+		appCtx:        jni.Object(appContext()),
 		netStates:     make(chan BackendState, 1),
 		browseURLs:    make(chan string, 1),
 		prefs:         make(chan *ipn.Prefs, 1),
@@ -251,8 +251,27 @@ func main() {
 	app.Main()
 }
 
+// appContext returns the global Application context as a JNI jobject.
+func appContext() uintptr {
+	android.mu.Lock()
+	defer android.mu.Unlock()
+	return uintptr(android.appCtx)
+}
+
+func javaVM() uintptr {
+	android.mu.Lock()
+	defer android.mu.Unlock()
+	jvm := android.jvm
+	return uintptr(unsafe.Pointer(jvm))
+}
+
+// dataDir returns a path to use for application-specific configuration data.
+func dataDir() (string, error) {
+	return os.UserConfigDir()
+}
+
 func (a *App) runBackend() error {
-	appDir, err := app.DataDir()
+	appDir, err := dataDir()
 	if err != nil {
 		fatalErr(err)
 	}
