@@ -1048,6 +1048,13 @@ func (a *App) updateState(act jni.Object, state *clientState) {
 	users := make(map[tailcfg.UserID]struct{})
 	var uiPeers []UIPeer
 	for _, p := range peers {
+		if p.Hostinfo.Valid() && p.Hostinfo.ShareeNode() {
+			// Don't show nodes that only exist in the netmap because they're
+			// owned by somebody the user shared a node with. We can't see their
+			// details (including their name) anyway, so there's nothing
+			// interesting to render.
+			continue
+		}
 		if q := state.query; q != "" {
 			// Filter peers according to search query.
 			host := strings.ToLower(p.Hostinfo.Hostname())
