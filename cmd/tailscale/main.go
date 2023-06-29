@@ -351,13 +351,14 @@ func (a *App) runBackend() error {
 		case n := <-notifications:
 			exitWasOnline := state.ExitStatus == ExitOnline
 			if p := n.Prefs; p != nil && n.Prefs.Valid() {
-				first := state.Prefs == nil
 				state.Prefs = p.AsStruct()
 				state.updateExitNodes()
-				if first {
-					state.Prefs.Hostname = a.hostname()
-					go b.backend.SetPrefs(state.Prefs)
-				}
+				a.setPrefs(state.Prefs)
+			}
+			first := state.Prefs == nil
+			if first {
+				state.Prefs = &ipn.Prefs{Hostname: a.hostname()}
+				go b.backend.SetPrefs(state.Prefs)
 				a.setPrefs(state.Prefs)
 			}
 			if s := n.State; s != nil {
