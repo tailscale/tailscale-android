@@ -4,14 +4,14 @@ buildscript {
 		jcenter()
 	}
 	dependencies {
-		classpath 'com.android.tools.build:gradle:4.2.0'
+		classpath 'com.android.tools.build:gradle:7.3.0'
 	}
 }
 
 allprojects {
 	repositories {
 		google()
-		jcenter()
+		mavenCentral()
 		flatDir {
 			dirs 'libs'
 		}
@@ -51,7 +51,7 @@ dependencies {
 	implementation "androidx.security:security-crypto:1.1.0-alpha03"
 	implementation "androidx.work:work-runtime:2.7.0"
 	implementation ':ipn@aar'
-	testCompile "junit:junit:4.12"
+	testImplementation "junit:junit:4.12"
 
 	// Non-free dependencies.
 	playImplementation 'com.google.android.gms:play-services-auth:18.0.0'
