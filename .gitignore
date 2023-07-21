@@ -10,6 +10,10 @@ android/libs
 # Output files from the Makefile:
 tailscale-debug.apk
 tailscale-release.aab
+tailscale-fdroid.apk
 
 # Signing key
 tailscale.jks
+
+# android sdk dir
+./android-sdk
