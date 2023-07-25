@@ -39,7 +39,7 @@ tag_release:
 
 bumposs: toolchain
 	GOPROXY=direct go get tailscale.com@main
-	go mod tidy -compat=1.20
+	go mod tidy -compat=1.21
 
 toolchain:
 ifneq ($(TOOLCHAINWANT),$(TOOLCHAINSUM))
