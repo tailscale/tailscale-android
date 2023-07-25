@@ -357,7 +357,8 @@ func (a *App) runBackend() error {
 			}
 			first := state.Prefs == nil
 			if first {
-				state.Prefs = &ipn.Prefs{Hostname: a.hostname()}
+				state.Prefs = ipn.NewPrefs()
+				state.Prefs.Hostname = a.hostname()
 				go b.backend.SetPrefs(state.Prefs)
 				a.setPrefs(state.Prefs)
 			}
