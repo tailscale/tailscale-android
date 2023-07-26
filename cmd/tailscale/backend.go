@@ -333,7 +333,7 @@ func (b *backend) SetupLogs(logDir string, logID logid.PrivateID) {
 	if err != nil {
 		log.Printf("netmon.New: %w", err)
 	}
-	transport := logpolicy.NewLogtailTransport(logtail.DefaultHost, netMon)
+	transport := logpolicy.NewLogtailTransport(logtail.DefaultHost, netMon, logf)
 
 	logcfg := logtail.Config{
 		Collection:          logtail.CollectionNode,
