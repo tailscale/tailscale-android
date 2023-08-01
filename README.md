@@ -17,32 +17,62 @@ This repository contains the open source Tailscale Android client.
      alt="Get it on Google Play"
      height="80">](https://play.google.com/store/apps/details?id=com.tailscale.ipn)
 
-## Building
 
-[Go](https://golang.org), the [Android
-SDK](https://developer.android.com/studio/releases/platform-tools), 
-the [Android NDK](https://developer.android.com/ndk) are required.
+## Preparing a build environment
+
+There are several options for setting up a build environment. The Android Studio
+path is the most useful path for longer term development.
+
+In all cases you will need:
+
+- Go runtime
+- Android SDK
+- Android SDK components (`make androidsdk` will install them)
+
+### Android Studio
+
+1. Install a Go runtime (https://go.dev/dl/).
+2. Install Android Studio (https://developer.android.com/studio).
+3. Start Android Studio, from the Welcome screen select "More Actions" and "SDK Manager".
+4. In the SDK manager, select the "SDK Tools" tab and install the "Android SDK Command-line Tools (latest)".
+3. Run `make androidsdk` to install the necessary SDK components.
+
+If you would prefer to avoid Android Studio, you can also install an Android
+SDK. The makefile detects common paths, so `sudo apt install android-sdk` is
+sufficient on Debian / Ubuntu systems. To use an Android SDK installed in a
+non-standard location, set the `ANDROID_SDK_ROOT` environment variable to the
+path to the SDK.
+
+If you installed Android Studio the tools may not be in your path. To get the
+correct tool path, run `make androidpath` and export the provided path in your
+shell.
+
+### Docker
+
+If you wish to avoid installing software on your host system, a Docker based development strategy is available, you can build and start a shell with:
 
 ```sh
-$ make tailscale-debug.apk
-$ adb install -r tailscale-debug.apk
+make dockershell
 ```
 
-The `dockershell` target builds a container with the necessary
-dependencies and runs a shell inside it.
-
-```sh
-$ make dockershell
-# make tailscale-debug.apk
-```
+### Nix
 
 If you have Nix 2.4 or later installed, a Nix development environment can
-be set up with
+be set up with:
 
 ```sh
-$ alias nix='nix --extra-experimental-features "nix-command flakes"'
-$ nix develop
+alias nix='nix --extra-experimental-features "nix-command flakes"'
+nix develop
 ```
+
+## Building
+
+```sh
+make apk
+make install
+```
+
+## Building a release
 
 Use `make tag_release` to bump the Android version code, update the version
 name, and tag the current commit.
@@ -51,6 +81,7 @@ We only guarantee to support the latest Go release and any Go beta or
 release candidate builds (currently Go 1.14) in module mode. It might
 work in earlier Go versions or in GOPATH mode, but we're making no
 effort to keep those working.
+
 
 ## Google Sign-In
 
@@ -96,20 +127,6 @@ adb install -r tailscale-fdroid.apk
 adb shell am start -n com.tailscale.ipn/com.tailscale.ipn.IPNActivity
 adb shell pm uninstall com.tailscale.ipn
 ```
-
-## Building on macOS
-
-To build from the CLI on macOS:
-
-1. Install Android Studio (when asked which SDKs to install, choose 31 or the current value of targetSdkVersion in `build.gradle`)
-2. In Android Studio's home screen: "More Actions" > "SDK Manager", install NDK.
-3. You can now close Android Studio, unless you want it to create virtual devices
-   ("More Actions" > "Virtual Device Manager").
-4. Then, from CLI:
-5. `export JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home'`
-6. `export ANDROID_SDK_ROOT=$HOME/Library/Android/sdk`
-7. `export PATH=$ANDROID_SDK_ROOT/platform-tools:$PATH` (to allow `adb` and the like to work)
-8. `make tailscale-fdroid.apk`, etc
 
 ## Bugs
 
