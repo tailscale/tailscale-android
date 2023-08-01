@@ -9,11 +9,33 @@
 
 set -euo pipefail
 
+# printversion prints the tailscale version in the standard tailscale format.
+printversion() {
+	if [[ ! -f ./build_dist.sh ]]; then
+		echo >&2 "printversion must be run from the tailscale repository root"
+		exit 1
+	fi
+	eval $(./build_dist.sh shellvars)
+	git_hash=$(git rev-parse HEAD)
+	short_hash=$(echo "$git_hash" | cut -c1-9)
+	echo ${VERSION_SHORT}-t${short_hash}
+}
+
 go_list=$(go list -m tailscale.com)
 # go list outputs `tailscale.com <version>`. Extract the version.
 mod_version=${go_list#tailscale.com}
 
 if [ -z "$mod_version" ]; then
+
+	# test for a workspace, if found, try to resolve the version from there
+	tailscale_path=$(go work edit -json | jq -r '.Use[] | select(.ModPath=="tailscale.com")|.DiskPath')
+	if [ -n "$tailscale_path" ]; then
+		(
+			cd "$tailscale_path"
+			printversion
+		) && exit 0
+	fi
+
 	echo >&2 "no version reported by go list -m tailscale.com: $go_list"
 	exit 1
 fi
@@ -35,9 +57,7 @@ git clean -d -x -f
 git fetch -q --all --tags
 git checkout -q "$mod_version"
 
-eval $(./build_dist.sh shellvars)
-git_hash=$(git rev-parse HEAD)
-short_hash=$(echo "$git_hash" | cut -c1-9)
-echo ${VERSION_SHORT}-t${short_hash}
+printversion
+
 cd /tmp
 rm -rf "$tailscale_clone"
