@@ -7,6 +7,10 @@ build
 # The destination for the Go Android archive.
 android/libs
 
+# Android Studio files
+android/.idea
+android/local.properties
+
 # Output files from the Makefile:
 tailscale-debug.apk
 tailscale-release.aab
