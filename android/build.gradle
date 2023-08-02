@@ -4,7 +4,7 @@ buildscript {
 		jcenter()
 	}
 	dependencies {
-		classpath 'com.android.tools.build:gradle:7.3.0'
+		classpath 'com.android.tools.build:gradle:7.4.2'
 	}
 }
 
@@ -43,6 +43,7 @@ android {
 			// The play flavor contains all features and is for the Play Store.
 		}
 	}
+    namespace 'com.tailscale.ipn'
 }
 
 dependencies {
