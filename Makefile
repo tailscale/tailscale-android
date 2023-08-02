@@ -66,6 +66,9 @@ TOOLCHAINDIR ?= ${HOME}/.cache/tailscale-android-go-$(shell go run tailscale.com
 export PATH := $(TOOLCHAINDIR)/bin:$(JAVA_HOME)/bin:$(ANDROID_HOME)/cmdline-tools/latest/bin:$(ANDROID_HOME)/platform-tools:$(PATH)
 export GOROOT := # Unset
 
+AVD_IMAGE='system-images;android-31;google_apis;$(shell uname -m)'
+AVD=tailscale-android
+
 all: $(DEBUG_APK) tailscale-fdroid.apk
 
 env:
@@ -143,6 +146,15 @@ $(DEBUG_APK): $(AAR)
 	mv android/build/outputs/apk/play/debug/android-play-debug.apk $@
 
 apk: $(DEBUG_APK)
+
+emulator:
+	if ! $(ANDROID_HOME)/cmdline-tools/latest/bin/sdkmanager --list_installed | grep -q $(AVD_IMAGE); then \
+		$(ANDROID_HOME)/cmdline-tools/latest/bin/sdkmanager $(AVD_IMAGE); \
+	fi
+	if ! $(ANDROID_HOME)/cmdline-tools/latest/bin/avdmanager list avd | grep -q $(AVD); then \
+		$(ANDROID_HOME)/cmdline-tools/latest/bin/avdmanager create avd -n tailscale-android -k $(AVD_IMAGE); \
+	fi
+	$(ANDROID_HOME)/emulator/emulator -avd $(AVD) -logcat-output /dev/stdout -netdelay none -netspeed full &
 
 run: install
 	adb shell am start -n com.tailscale.ipn/com.tailscale.ipn.IPNActivity
