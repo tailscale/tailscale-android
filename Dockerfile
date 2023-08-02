@@ -1,7 +1,7 @@
 # This is a Dockerfile for creating a build environment for
 # tailscale-android.
 
-FROM --platform=linux/amd64 eclipse-temurin:11-jdk
+FROM --platform=linux/amd64 eclipse-temurin:20-jdk
 
 # To enable running android tools such as aapt
 RUN apt-get update && apt-get -y upgrade
