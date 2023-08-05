@@ -22,6 +22,7 @@ public class IPNService extends VpnService {
 
 	@Override public int onStartCommand(Intent intent, int flags, int startId) {
 		if (intent != null && ACTION_DISCONNECT.equals(intent.getAction())) {
+			((App)getApplicationContext()).autoConnect = false;
 			close();
 			return START_NOT_STICKY;
 		}
