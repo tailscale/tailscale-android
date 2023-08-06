@@ -33,6 +33,9 @@ var (
 	// onConnectivityChange is notified every time the network
 	// conditions change.
 	onConnectivityChange = make(chan bool, 1)
+	// onSetAuthKeyForNextConnect gets an authkey for use in the next connect
+	// when IPNReceiver receives one.
+	onSetAuthKeyForNextConnect = make(chan string, 1)
 
 	// onGoogleToken receives google ID tokens.
 	onGoogleToken = make(chan string)
@@ -109,12 +112,12 @@ func Java_com_tailscale_ipn_IPNService_disconnect(env *C.JNIEnv, this C.jobject)
 
 //export Java_com_tailscale_ipn_StartVPNWorker_connect
 func Java_com_tailscale_ipn_StartVPNWorker_connect(env *C.JNIEnv, this C.jobject) {
-    requestBackend(ConnectEvent{Enable: true})
+	requestBackend(ConnectEvent{Enable: true})
 }
 
 //export Java_com_tailscale_ipn_StopVPNWorker_disconnect
 func Java_com_tailscale_ipn_StopVPNWorker_disconnect(env *C.JNIEnv, this C.jobject) {
-    requestBackend(ConnectEvent{Enable: false})
+	requestBackend(ConnectEvent{Enable: false})
 }
 
 //export Java_com_tailscale_ipn_App_onConnectivityChanged
@@ -199,4 +202,14 @@ func Java_com_tailscale_ipn_App_onShareIntent(env *C.JNIEnv, cls C.jclass, nfile
 	default:
 	}
 	onFileShare <- files
+}
+
+//export Java_com_tailscale_ipn_IPNService_setAuthKeyForNextConnect
+func Java_com_tailscale_ipn_IPNService_setAuthKeyForNextConnect(env *C.JNIEnv, this C.jobject, authKeyJStr C.jobject) {
+	jenv := (*jni.Env)(unsafe.Pointer(env))
+	authKey := jni.GoString(jenv, jni.String(authKeyJStr))
+	select {
+	case onSetAuthKeyForNextConnect <- authKey:
+	default:
+	}
 }

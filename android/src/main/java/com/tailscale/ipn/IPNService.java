@@ -119,6 +119,8 @@ public class IPNService extends VpnService {
 		startForeground(App.STATUS_NOTIFICATION_ID, builder.build());
 	}
 
+	public static native void setAuthKeyForNextConnect(String authKey);
+
 	private native void connect();
 	private native void disconnect();
 
