@@ -53,7 +53,7 @@ export ANDROID_HOME ?= $(ANDROID_SDK_ROOT)
 ANDROID_STUDIO_ROOT ?= $(shell find ~/android-studio /usr/local/android-studio /opt/android-studio /Applications/Android\ Studio.app $(PROGRAMFILES)/Android/Android\ Studio -type d -maxdepth 1 2>/dev/null | head -n 1)
 
 # Set JAVA_HOME to the Android Studio bundled JDK.
-export JAVA_HOME ?= $(shell find $(ANDROID_STUDIO_ROOT)/jre $(ANDROID_STUDIO_ROOT)/jbr $(ANDROID_STUDIO_ROOT)/Contents/jre/Contents/Home -maxdepth 1 -type d 2>/dev/null | head -n 1)
+export JAVA_HOME ?= $(shell find "$(ANDROID_STUDIO_ROOT)/jbr" "$(ANDROID_STUDIO_ROOT)/jre" "$(ANDROID_STUDIO_ROOT)/Contents/jbr/Contents/Home" "$(ANDROID_STUDIO_ROOT)/Contents/jre/Contents/Home" -maxdepth 1 -type d 2>/dev/null | head -n 1)
 
 # Go toolchain path, by default pulled from Tailscale prebuilts pinned to the
 # version in tailscale.com/cmd/printdep.
@@ -68,6 +68,7 @@ env:
 	@echo PATH=$(PATH)
 	@echo ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT)
 	@echo ANDROID_HOME=$(ANDROID_HOME)
+	@echo ANDROID_STUDIO_ROOT=$(ANDROID_STUDIO_ROOT)
 	@echo JAVA_HOME=$(JAVA_HOME)
 	@echo TOOLCHAINDIR=$(TOOLCHAINDIR)
 
