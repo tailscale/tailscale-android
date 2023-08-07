@@ -168,4 +168,13 @@ clean:
 	-rm -rf android/build $(DEBUG_APK) $(RELEASE_AAB) $(AAR) tailscale-fdroid.apk
 	-pkill -f gradle
 
-.PHONY: all clean install android/lib $(DEBUG_APK) $(RELEASE_AAB) $(AAR) release bump_version dockershell
+# destructivepurge removes all downloaded Android SDK packages, gradle caches,
+# build artifacts and other bits that might influence build behavior, ~everything
+# except Android Studio.
+destructivepurge: clean
+	-git clean -fdx
+	-if [ -d $(ANDROID_HOME) ]; then rm -rf $(ANDROID_HOME); fi
+	-if [ -d $(HOME)/.gradle ]; then rm -rf $(HOME)/.gradle; fi
+	-rm -rf $(HOME)/.cache/tailscale-android*
+
+.PHONY: all clean destructivepurge install android/lib $(DEBUG_APK) $(RELEASE_AAB) $(AAR) release bump_version dockershell
