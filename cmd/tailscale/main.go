@@ -498,6 +498,17 @@ func (a *App) runBackend() error {
 						return nil // even on error. see big TODO above.
 					})
 				})
+				log.Printf("onConnect: rebind required")
+				// TODO(catzkorn): When we start the android application
+				// we bind sockets before we have access to the VpnService.protect()
+				// function which is needed to avoid routing loops. When we activate
+				// the service we get access to the protect, but do not retrospectively
+				// protect the sockets already opened, which breaks connectivity.
+				// As a temporary fix, we rebind and protect the magicsock.Conn on connect
+				// which restores connectivity.
+				// See https://github.com/tailscale/corp/issues/13814
+				b.backend.DebugRebind()
+
 				service = s
 				return nil
 			})
