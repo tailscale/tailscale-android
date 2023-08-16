@@ -11,7 +11,7 @@ set -euo pipefail
 
 go_list=$(go list -m tailscale.com)
 # go list outputs `tailscale.com <version>`. Extract the version.
-mod_version=${go_list#tailscale.com}
+mod_version=${go_list#tailscale.com }
 
 if [ -z "$mod_version" ]; then
 	echo >&2 "no version reported by go list -m tailscale.com: $go_list"
