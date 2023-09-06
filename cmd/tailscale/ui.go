@@ -363,7 +363,7 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 		exitID               tailcfg.StableNodeID
 	)
 	if netmap != nil {
-		userID = netmap.User
+		userID = netmap.User()
 		expiry = netmap.Expiry
 		localName = netmap.SelfNode.DisplayName(false)
 		if addrs := netmap.Addresses; len(addrs) > 0 {
