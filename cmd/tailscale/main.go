@@ -454,7 +454,11 @@ func (a *App) runBackend() error {
 					}
 				}()
 			case LogoutEvent:
-				go b.backend.Logout()
+				go func() {
+					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+					defer cancel()
+					b.backend.Logout(ctx)
+				}()
 			case ConnectEvent:
 				state.Prefs.WantRunning = e.Enable
 				go b.backend.SetPrefs(state.Prefs)
@@ -655,24 +659,25 @@ func (s *BackendState) updateExitNodes() {
 	}
 	hasMyExit := exitID == ""
 	s.Exits = nil
-	var peers []*tailcfg.Node
+	var peers []tailcfg.NodeView
 	if s.NetworkMap != nil {
 		peers = s.NetworkMap.Peers
 	}
 	for _, p := range peers {
 		canRoute := false
-		for _, r := range p.AllowedIPs {
+		for i := range p.AllowedIPs().LenIter() {
+			r := p.AllowedIPs().At(i)
 			if r == netip.MustParsePrefix("0.0.0.0/0") || r == netip.MustParsePrefix("::/0") {
 				canRoute = true
 				break
 			}
 		}
-		myExit := p.StableID == exitID
+		myExit := p.StableID() == exitID
 		hasMyExit = hasMyExit || myExit
 		exit := Peer{
 			Label:  p.DisplayName(true),
 			Online: canRoute,
-			ID:     p.StableID,
+			ID:     p.StableID(),
 		}
 		if myExit {
 			s.Exit = exit
@@ -1050,18 +1055,18 @@ func (a *App) updateState(act jni.Object, state *clientState) {
 
 	netmap := state.backend.NetworkMap
 	var (
-		peers []*tailcfg.Node
+		peers []tailcfg.NodeView
 		myID  tailcfg.UserID
 	)
 	if netmap != nil {
 		peers = netmap.Peers
-		myID = netmap.User
+		myID = netmap.User()
 	}
 	// Split into sections.
 	users := make(map[tailcfg.UserID]struct{})
 	var uiPeers []UIPeer
 	for _, p := range peers {
-		if p.Hostinfo.Valid() && p.Hostinfo.ShareeNode() {
+		if p.Hostinfo().Valid() && p.Hostinfo().ShareeNode() {
 			// Don't show nodes that only exist in the netmap because they're
 			// owned by somebody the user shared a node with. We can't see their
 			// details (including their name) anyway, so there's nothing
@@ -1070,20 +1075,20 @@ func (a *App) updateState(act jni.Object, state *clientState) {
 		}
 		if q := state.query; q != "" {
 			// Filter peers according to search query.
-			host := strings.ToLower(p.Hostinfo.Hostname())
-			name := strings.ToLower(p.Name)
+			host := strings.ToLower(p.Hostinfo().Hostname())
+			name := strings.ToLower(p.Name())
 			var addr string
-			if len(p.Addresses) > 0 {
-				addr = p.Addresses[0].Addr().String()
+			if p.Addresses().Len() > 0 {
+				addr = p.Addresses().At(0).Addr().String()
 			}
 			if !strings.Contains(host, q) && !strings.Contains(name, q) && !strings.Contains(addr, q) {
 				continue
 			}
 		}
-		users[p.User] = struct{}{}
+		users[p.User()] = struct{}{}
 		uiPeers = append(uiPeers, UIPeer{
-			Owner: p.User,
-			Peer:  p,
+			Owner: p.User(),
+			Peer:  p.AsStruct(),
 		})
 	}
 	// Add section (user) headers.
