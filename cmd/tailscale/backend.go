@@ -46,6 +46,7 @@ type backend struct {
 	settings   settingsFunc
 	lastCfg    *router.Config
 	lastDNSCfg *dns.OSConfig
+	netMon     *netmon.Monitor
 
 	logIDPublic string
 	logger      *logtail.Logger
@@ -124,7 +125,13 @@ func newBackend(dataDir string, jvm *jni.JVM, appCtx jni.Object, store *stateSto
 	} else {
 		logID.UnmarshalText([]byte(storedLogID))
 	}
-	b.SetupLogs(dataDir, logID)
+
+	netMon, err := netmon.New(logf)
+	if err != nil {
+		log.Printf("netmon.New: %w", err)
+	}
+	b.netMon = netMon
+	b.SetupLogs(dataDir, logID, logf)
 	dialer := new(tsdial.Dialer)
 	cb := &router.CallbackRouter{
 		SetBoth:           b.setCfg,
@@ -137,6 +144,7 @@ func newBackend(dataDir string, jvm *jni.JVM, appCtx jni.Object, store *stateSto
 		DNS:          cb,
 		Dialer:       dialer,
 		SetSubsystem: sys.Set,
+		NetMon:       b.netMon,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("runBackend: NewUserspaceEngine: %v", err)
@@ -330,15 +338,11 @@ func (b *backend) CloseTUNs() {
 }
 
 // SetupLogs sets up remote logging.
-func (b *backend) SetupLogs(logDir string, logID logid.PrivateID) {
-	logf := logger.RusagePrefixLog(log.Printf)
-	netMon, err := netmon.New(func(format string, args ...any) {
-		logf(format, args...)
-	})
-	if err != nil {
-		log.Printf("netmon.New: %w", err)
+func (b *backend) SetupLogs(logDir string, logID logid.PrivateID, logf logger.Logf) {
+	if b.netMon == nil {
+		panic("netMon must be created prior to SetupLogs")
 	}
-	transport := logpolicy.NewLogtailTransport(logtail.DefaultHost, netMon, log.Printf)
+	transport := logpolicy.NewLogtailTransport(logtail.DefaultHost, b.netMon, log.Printf)
 
 	logcfg := logtail.Config{
 		Collection:          logtail.CollectionNode,
