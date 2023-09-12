@@ -41,6 +41,7 @@ import (
 type backend struct {
 	engine     wgengine.Engine
 	backend    *ipnlocal.LocalBackend
+	sys        *tsd.System
 	devices    *multiTUN
 	settings   settingsFunc
 	lastCfg    *router.Config
@@ -146,6 +147,7 @@ func newBackend(dataDir string, jvm *jni.JVM, appCtx jni.Object, store *stateSto
 	if err != nil {
 		return nil, fmt.Errorf("netstack.Create: %w", err)
 	}
+	sys.Set(ns)
 	ns.ProcessLocalIPs = false // let Android kernel handle it; VpnBuilder sets this up
 	ns.ProcessSubnets = true   // for Android-being-an-exit-node support
 	sys.NetstackRouter.Set(true)
@@ -162,6 +164,7 @@ func newBackend(dataDir string, jvm *jni.JVM, appCtx jni.Object, store *stateSto
 	}
 	b.engine = engine
 	b.backend = lb
+	b.sys = sys
 	return b, nil
 }
 
@@ -171,8 +174,10 @@ func (b *backend) Start(notify func(n ipn.Notify)) error {
 }
 
 func (b *backend) LinkChange() {
-	if b.engine != nil {
-		b.engine.LinkChange(false)
+	if b.sys != nil {
+		if nm, ok := b.sys.NetMon.GetOK(); ok {
+			nm.InjectEvent()
+		}
 	}
 }
 
