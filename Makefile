@@ -54,6 +54,10 @@ ANDROID_STUDIO_ROOT ?= $(shell find ~/android-studio /usr/local/android-studio /
 
 # Set JAVA_HOME to the Android Studio bundled JDK.
 export JAVA_HOME ?= $(shell find "$(ANDROID_STUDIO_ROOT)/jbr" "$(ANDROID_STUDIO_ROOT)/jre" "$(ANDROID_STUDIO_ROOT)/Contents/jbr/Contents/Home" "$(ANDROID_STUDIO_ROOT)/Contents/jre/Contents/Home" -maxdepth 1 -type d 2>/dev/null | head -n 1)
+# If JAVA_HOME is still unset, remove it, because SDK tools go into a CPU spin if it is set and empty.
+ifeq ($(JAVA_HOME),)
+	unexport JAVA_HOME
+endif
 
 # Go toolchain path, by default pulled from Tailscale prebuilts pinned to the
 # version in tailscale.com/cmd/printdep.
