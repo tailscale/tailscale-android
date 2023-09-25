@@ -1085,9 +1085,10 @@ func (a *App) updateState(act jni.Object, state *clientState) {
 				continue
 			}
 		}
-		users[p.User()] = struct{}{}
+		uid := p.SharerOrUser()
+		users[uid] = struct{}{}
 		uiPeers = append(uiPeers, UIPeer{
-			Owner: p.User(),
+			Owner: uid,
 			Peer:  p.AsStruct(),
 		})
 	}
