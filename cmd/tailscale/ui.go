@@ -366,8 +366,8 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 		userID = netmap.User()
 		expiry = netmap.Expiry
 		localName = netmap.SelfNode.DisplayName(false)
-		if addrs := netmap.Addresses; len(addrs) > 0 {
-			localAddr = addrs[0].Addr().String()
+		if addrs := netmap.GetAddresses(); addrs.Len() > 0 {
+			localAddr = addrs.At(0).Addr().String()
 		}
 	}
 	if p := state.backend.Prefs; p != nil {
