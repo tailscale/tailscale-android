@@ -159,6 +159,9 @@ func newBackend(dataDir string, jvm *jni.JVM, appCtx jni.Object, store *stateSto
 	ns.ProcessLocalIPs = false // let Android kernel handle it; VpnBuilder sets this up
 	ns.ProcessSubnets = true   // for Android-being-an-exit-node support
 	sys.NetstackRouter.Set(true)
+	if w, ok := sys.Tun.GetOK(); ok {
+		w.Start()
+	}
 	lb, err := ipnlocal.NewLocalBackend(logf, logID.Public(), sys, 0)
 	if err != nil {
 		engine.Close()
