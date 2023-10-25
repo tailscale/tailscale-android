@@ -719,5 +719,5 @@ sigs.k8s.io/yaml v1.1.0/go.mod h1:UJmg0vDUVViEyp3mgSv9WPwZCDxu4rQW1olrI1uml+o=
 software.sslmate.com/src/go-pkcs12 v0.2.1 h1:tbT1jjaeFOF230tzOIRJ6U5S1jNqpsSyNjzDd58H3J8=
 software.sslmate.com/src/go-pkcs12 v0.2.1/go.mod h1:Qiz0EyvDRJjjxGyUQa2cCNZn/wMyzrRJ/qcDXOQazLI=
 sourcegraph.com/sourcegraph/appdash v0.0.0-20190731080439-ebfcffb1b5c0/go.mod h1:hI742Nqp5OhwiqlzhgfbWU4mW4yO10fP+LoT9WOswdU=
-tailscale.com v1.1.1-0.20231023202421-35d7b3aa2736 h1:nqeWRd7rhZ92Koc2rIEPn5QIQxAOfe0tGqR0yWGK7sc=
-tailscale.com v1.1.1-0.20231023202421-35d7b3aa2736/go.mod h1:B1CfgVLLWj6jVqp/qwI/t7NhqBocEcveloP1zLvUjP0=
+tailscale.com v1.1.1-0.20231025031627-143bda87a3f2 h1:rpZynyJsbd7REfbgt1x/tLwp7Ebc+9zRUzr6yh7nw9g=
+tailscale.com v1.1.1-0.20231025031627-143bda87a3f2/go.mod h1:B1CfgVLLWj6jVqp/qwI/t7NhqBocEcveloP1zLvUjP0=

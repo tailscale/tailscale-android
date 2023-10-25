@@ -11,7 +11,7 @@ require (
 	golang.org/x/exp/shiny v0.0.0-20220827204233-334a2380cb91
 	golang.org/x/sys v0.13.0
 	inet.af/netaddr v0.0.0-20220617031823-097006376321
-	tailscale.com v1.1.1-0.20231023202421-35d7b3aa2736
+	tailscale.com v1.1.1-0.20231025031627-143bda87a3f2
 )
 
 require (
