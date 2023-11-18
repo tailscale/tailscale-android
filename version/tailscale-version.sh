@@ -33,7 +33,7 @@ cd $tailscale_clone
 git reset --hard -q
 git clean -d -x -f
 git fetch -q --all --tags
-git checkout -q "$mod_version"
+git checkout -q ${mod_version}
 
 eval $(./build_dist.sh shellvars)
 git_hash=$(git rev-parse HEAD)
