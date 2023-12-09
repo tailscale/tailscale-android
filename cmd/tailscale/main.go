@@ -160,6 +160,10 @@ type RouteAllEvent struct {
 	ID tailcfg.StableNodeID
 }
 
+type RouteAllToLabelEvent struct {
+	Label string
+}
+
 type ConnectEvent struct {
 	Enable bool
 }
@@ -186,17 +190,20 @@ type SetLoginServerEvent struct {
 	URL string
 }
 
+type ExitAllowLANEvent struct {
+	Allow bool
+}
+
 // UIEvent types.
 type (
-	ToggleEvent       struct{}
-	ReauthEvent       struct{}
-	BugEvent          struct{}
-	WebAuthEvent      struct{}
-	GoogleAuthEvent   struct{}
-	LogoutEvent       struct{}
-	OSSLicensesEvent  struct{}
-	BeExitNodeEvent   bool
-	ExitAllowLANEvent bool
+	ToggleEvent      struct{}
+	ReauthEvent      struct{}
+	BugEvent         struct{}
+	WebAuthEvent     struct{}
+	GoogleAuthEvent  struct{}
+	LogoutEvent      struct{}
+	OSSLicensesEvent struct{}
+	BeExitNodeEvent  bool
 )
 
 // serverOAuthID is the OAuth ID of the tailscale-android server, used
@@ -434,7 +441,7 @@ func (a *App) runBackend() error {
 				state.Prefs.SetAdvertiseExitNode(bool(e))
 				go b.backend.SetPrefs(state.Prefs)
 			case ExitAllowLANEvent:
-				state.Prefs.ExitNodeAllowLANAccess = bool(e)
+				state.Prefs.ExitNodeAllowLANAccess = e.Allow
 				go b.backend.SetPrefs(state.Prefs)
 			case WebAuthEvent:
 				if !signingIn {
@@ -469,6 +476,22 @@ func (a *App) runBackend() error {
 				a.notify(state)
 				if service != 0 {
 					a.updateNotification(service, state.State, state.ExitStatus, state.Exit)
+				}
+			case RouteAllToLabelEvent:
+				if e.Label == "" {
+					go func() {
+						backendEvents <- RouteAllEvent{""}
+					}()
+					break
+				}
+
+				for _, p := range state.Exits {
+					if p.Label == e.Label {
+						go func() {
+							backendEvents <- RouteAllEvent{p.ID}
+						}()
+						break
+					}
 				}
 			}
 		case s := <-onConnect:
