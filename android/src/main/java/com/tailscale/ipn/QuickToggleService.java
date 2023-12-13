@@ -5,14 +5,9 @@
 package com.tailscale.ipn;
 
 import android.content.Context;
-import android.content.ComponentName;
 import android.content.Intent;
-import android.os.Build;
 import android.service.quicksettings.Tile;
 import android.service.quicksettings.TileService;
-
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class QuickToggleService extends TileService {
 	// lock protects the static fields below it.
