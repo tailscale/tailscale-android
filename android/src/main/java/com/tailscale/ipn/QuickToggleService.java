@@ -7,6 +7,7 @@ package com.tailscale.ipn;
 import android.content.Context;
 import android.content.ComponentName;
 import android.content.Intent;
+import android.os.Build;
 import android.service.quicksettings.Tile;
 import android.service.quicksettings.TileService;
 
@@ -79,5 +80,14 @@ public class QuickToggleService extends TileService {
 		updateTile();
 	}
 
-	private static native void onTileClick();
+	private void onTileClick() {
+		boolean act;
+		synchronized (lock) {
+			act = active && ready;
+		}
+		Intent i = new Intent(act ? IPNReceiver.INTENT_DISCONNECT_VPN : IPNReceiver.INTENT_CONNECT_VPN);
+		i.setPackage(getPackageName());
+		i.setClass(getApplicationContext(), com.tailscale.ipn.IPNReceiver.class);
+		sendBroadcast(i);
+	}
 }
