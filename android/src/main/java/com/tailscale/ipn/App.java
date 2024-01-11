@@ -87,11 +87,17 @@ public class App extends Application {
 	public DnsConfig dns = new DnsConfig(this);
 	public DnsConfig getDnsConfigObj() { return this.dns; }
 
+	private ConnectivityManager connectivityManager;
+	private ConnectivityManager.NetworkCallback dnsCallback;
+	private ConnectivityManager.NetworkCallback connectivityCallback;
+
 	@Override public void onCreate() {
 		super.onCreate();
 		// Load and initialize the Go library.
 		Gio.init(this);
-		registerNetworkCallback();
+
+		this.connectivityManager = (ConnectivityManager) this.getSystemService(Context.CONNECTIVITY_SERVICE);
+		setAndRegisterNetworkCallbacks();
 
 		createNotificationChannel(NOTIFY_CHANNEL_ID, "Notifications", NotificationManagerCompat.IMPORTANCE_DEFAULT);
 		createNotificationChannel(STATUS_CHANNEL_ID, "VPN Status", NotificationManagerCompat.IMPORTANCE_LOW);
@@ -99,28 +105,10 @@ public class App extends Application {
 
 	}
 
-	private void registerNetworkCallback() {
-		ConnectivityManager cMgr = (ConnectivityManager) this.getSystemService(Context.CONNECTIVITY_SERVICE);
-		cMgr.registerNetworkCallback(new NetworkRequest.Builder().build(), new ConnectivityManager.NetworkCallback() {
-			private void reportConnectivityChange() {
-				NetworkInfo active = cMgr.getActiveNetworkInfo();
-				// https://developer.android.com/training/monitoring-device-state/connectivity-status-type
-				boolean isConnected = active != null && active.isConnectedOrConnecting();
-				onConnectivityChanged(isConnected);
-			}
 
-			@Override
-			public void onLost(Network network) {
-				super.onLost(network);
-				this.reportConnectivityChange();
-			}
-
-			@Override
-			public void onLinkPropertiesChanged(Network network, LinkProperties linkProperties) {
-				super.onLinkPropertiesChanged(network, linkProperties);
-				this.reportConnectivityChange();
-			}
-		});
+	private void setAndRegisterNetworkCallbacks() {
+		dnsCallback = dns.getDnsConfigCallback(connectivityManager);
+		connectivityManager.requestNetwork(dns.getDNSConfigNetworkRequest(), dnsCallback);
 	}
 
 	public void startVPN() {

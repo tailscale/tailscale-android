@@ -11,6 +11,7 @@ import android.net.LinkProperties;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkInfo;
+import android.net.NetworkRequest;
 import android.net.wifi.WifiManager;
 
 import java.lang.reflect.Method;
@@ -20,6 +21,8 @@ import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 // Tailscale DNS Config retrieval
 //
@@ -35,31 +38,13 @@ import java.util.Locale;
 //
 // --------------------- Android 7 and later -----------------------------------------
 //
-// ## getDnsConfigFromLinkProperties
-// Android provides a getAllNetworks interface in the ConnectivityManager. We walk through
-// each interface to pick the most appropriate one.
-// - If there is an Ethernet interface active we use that.
-// - If Wi-Fi is active we use that.
-// - If LTE is active we use that.
-// - We never use a VPN's DNS servers. That VPN is likely us. Even if not us, Android
-// only allows one VPN at a time so a different VPN's DNS servers won't be available
-// once Tailscale comes up.
-//
-// getAllNetworks() is used as the sole mechanism for retrieving the DNS config with
-// Android 7 and later.
+// ## getDnsConfigs
+// Android provides a requestNetwork interface in the ConnectivityManager. This returns the best
+// network that should be able to reach the Internet.
 //
 // --------------------- Releases older than Android 7 -------------------------------
 //
-// We support Tailscale back to Android 5. Android versions 5 and 6 supply a getAllNetworks()
-// implementation but it always returns an empty list.
-//
-// ## getDnsConfigFromLinkProperties with getActiveNetwork
-// ConnectivityManager also supports a getActiveNetwork() routine, which Android 5 and 6 do
-// return a value for. If Tailscale isn't up yet and we can get the Wi-Fi/LTE/etc DNS
-// config using getActiveNetwork(), we use that.
-//
-// Once Tailscale is up, getActiveNetwork() returns tailscale0 with DNS server 100.100.100.100
-// and that isn't useful. So we try two other mechanisms:
+// We support Tailscale back to Android 5. 
 //
 // ## getDnsServersFromSystemProperties
 // Android versions prior to 8 let us retrieve the actual system DNS servers from properties.
@@ -87,6 +72,8 @@ import java.util.Locale;
 
 public class DnsConfig {
 	private Context ctx;
+	private String dnsConfigs;
+	private final Lock lock = new ReentrantLock();
 
 	public DnsConfig(Context ctx) {
 		this.ctx = ctx;
@@ -102,7 +89,7 @@ public class DnsConfig {
 	//
 	// an empty string means the current DNS configuration could not be retrieved.
 	String getDnsConfigAsString() {
-		String s = getDnsConfigFromLinkProperties();
+		String s = getDnsConfigs();
 		if (!s.trim().isEmpty()) {
 			return s;
 		}
@@ -120,80 +107,47 @@ public class DnsConfig {
 		return getDnsServersFromNetworkInfo();
 	}
 
-	// getDnsConfigFromLinkProperties finds the DNS servers for each Network interface
-	// returned by ConnectivityManager getAllNetworks().LinkProperties, and return the
-	// one that (heuristically) would be the primary DNS servers.
-	//
-	// on a Nexus 4  with Android  5.1 on wifi: 2602:248:7b4a:ff60::1 10.1.10.1
-	// on a Nexus 7  with Android  6.0 on wifi: 2602:248:7b4a:ff60::1 10.1.10.1
-	// on a Pixel 3a with Android 12.0 on wifi: 2602:248:7b4a:ff60::1 10.1.10.1\nlocaldomain
-	// on a Pixel 3a with Android 12.0 on LTE:  fd00:976a::9 fd00:976a::10
-	//
-	// One odd behavior noted on Pixel3a with Android 12:
-	// With Wi-Fi already connected, starting Tailscale returned DNS servers 2602:248:7b4a:ff60::1 10.1.10.1
-	// Turning off Wi-Fi and connecting LTE returned DNS servers fd00:976a::9 fd00:976a::10.
-	// Turning Wi-Fi back on return DNS servers: 10.1.10.1. The IPv6 DNS server is gone.
-	// This appears to be the ConnectivityManager behavior, not something we are doing.
-	//
-	// This implementation can work through Android 12 (SDK 30). In SDK 31 the
-	// getAllNetworks() method is deprecated and we'll need to implement a
-	// android.net.ConnectivityManager.NetworkCallback instead to monitor
-	// link changes and track which DNS server to use.
-	String getDnsConfigFromLinkProperties() {
-		ConnectivityManager cMgr = (ConnectivityManager) ctx.getSystemService(Context.CONNECTIVITY_SERVICE);
-		if (cMgr == null) {
-			return "";
-		}
+	public String getDnsConfigs(){
+		lock.lock(); // Acquire the lock
+        try {
+            return this.dnsConfigs;
+        } finally {
+            lock.unlock(); // Release the lock
+        }
+	}
 
-		Network[] networks = cMgr.getAllNetworks();
-		if (networks == null) {
-			// Android 6 and before often returns an empty list, but we
-			// can try again with just the active network.
-			//
-			// Once Tailscale is connected, the active network will be Tailscale
-			// which will have 100.100.100.100 for its DNS server. We reject
-			// TYPE_VPN in getPreferabilityForNetwork, so it won't be returned.
-			Network active = cMgr.getActiveNetwork();
-			if (active == null) {
-				return "";
-			}
-			networks = new Network[]{active};
-		}
-
-		// getPreferabilityForNetwork returns an index into dnsConfigs from 0-3.
-		String[] dnsConfigs = new String[]{"", "", "", ""};
-		for (Network network : networks) {
-			int idx = getPreferabilityForNetwork(cMgr, network);
-			if ((idx < 0) || (idx > 3)) {
-				continue;
+	// Callback which, upon finding network that meets the requirements, gets its IP addresses and caches them. 
+	ConnectivityManager.NetworkCallback getDnsConfigCallback(ConnectivityManager connectivityManager){
+		return new ConnectivityManager.NetworkCallback(){			
+			@Override
+			public void onAvailable(Network network){
+				super.onAvailable(network);
+				StringBuilder sb = new StringBuilder("");
+				LinkProperties linkProperties = connectivityManager.getLinkProperties(network);
+				List<InetAddress> dnsList = linkProperties.getDnsServers();
+				for (InetAddress ip : dnsList) {
+					sb.append(ip.getHostAddress()).append(" ");
+				}
+				lock.lock(); // Acquire the lock
+				try {
+					DnsConfig.this.dnsConfigs = sb.toString();
+				} finally {
+					lock.unlock(); // Release the lock
+				}
+				onDnsConfigChanged();
 			}
 
-			LinkProperties linkProp = cMgr.getLinkProperties(network);
-			NetworkCapabilities nc = cMgr.getNetworkCapabilities(network);
-			List<InetAddress> dnsList = linkProp.getDnsServers();
-			StringBuilder sb = new StringBuilder("");
-			for (InetAddress ip : dnsList) {
-				sb.append(ip.getHostAddress() + " ");
+			@Override
+			public void onLost(Network network) {
+				super.onLost(network);
+				onDnsConfigChanged();
 			}
+		};
+	}
 
-			String d = linkProp.getDomains();
-			if (d != null) {
-				sb.append("\n");
-				sb.append(d);
-			}
-
-			dnsConfigs[idx] = sb.toString();
-		}
-
-		// return the lowest index DNS config which exists. If an Ethernet config
-		// was found, return it. Otherwise if Wi-fi was found, return it. Etc.
-		for (String s : dnsConfigs) {
-			if (!s.trim().isEmpty()) {
-				return s;
-			}
-		}
-
-		return "";
+	NetworkRequest getDNSConfigNetworkRequest(){
+		// Request networks that are able to reach the Internet.
+		return new NetworkRequest.Builder().addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET).build();
 	}
 
 	// getDnsServersFromSystemProperties returns DNS servers found in system properties.
@@ -358,4 +312,6 @@ public class DnsConfig {
 			return 3;
 		}
 	}
+
+	private static native void onDnsConfigChanged();
 }
