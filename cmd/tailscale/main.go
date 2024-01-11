@@ -526,11 +526,6 @@ func (a *App) runBackend() error {
 					notifyVPNClosed()
 				}
 			}
-		case <-onConnectivityChange:
-			if b != nil {
-				go b.LinkChange()
-			}
-			a.notify(state)
 		case s := <-onDisconnect:
 			b.CloseTUNs()
 			jni.Do(a.jvm, func(env *jni.Env) error {
@@ -545,6 +540,11 @@ func (a *App) runBackend() error {
 			if state.State >= ipn.Starting {
 				notifyVPNClosed()
 			}
+		case <-onDNSConfigChanged:
+			if b != nil {
+				go b.NetworkChanged()
+			}
+			a.notify(state)
 		}
 	}
 }
