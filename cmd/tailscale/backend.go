@@ -184,7 +184,7 @@ func (b *backend) Start(notify func(n ipn.Notify)) error {
 	return b.backend.Start(ipn.Options{})
 }
 
-func (b *backend) LinkChange() {
+func (b *backend) NetworkChanged() {
 	if b.sys != nil {
 		if nm, ok := b.sys.NetMon.GetOK(); ok {
 			nm.InjectEvent()

@@ -30,9 +30,6 @@ var (
 	// onDisconnect receives global IPNService references when
 	// disconnecting.
 	onDisconnect = make(chan jni.Object)
-	// onConnectivityChange is notified every time the network
-	// conditions change.
-	onConnectivityChange = make(chan bool, 1)
 
 	// onGoogleToken receives google ID tokens.
 	onGoogleToken = make(chan string)
@@ -42,6 +39,15 @@ var (
 
 	// onWriteStorageGranted is notified when we are granted WRITE_STORAGE_PERMISSION.
 	onWriteStorageGranted = make(chan struct{}, 1)
+
+	// onDNSConfigChanged is notified when the network changes and the DNS config needs to be updated.
+	onDNSConfigChanged = make(chan struct{}, 1)
+<<<<<<< HEAD
+
+	// onDNSConfigChanged is notified when the network changes and the DNS config needs to be updated.
+	onDNSConfigChanged = make(chan struct{}, 1)
+=======
+>>>>>>> 69e3c3e (use network callback to update DNS config when network changes)
 )
 
 const (
@@ -109,21 +115,12 @@ func Java_com_tailscale_ipn_IPNService_disconnect(env *C.JNIEnv, this C.jobject)
 
 //export Java_com_tailscale_ipn_StartVPNWorker_connect
 func Java_com_tailscale_ipn_StartVPNWorker_connect(env *C.JNIEnv, this C.jobject) {
-    requestBackend(ConnectEvent{Enable: true})
+	requestBackend(ConnectEvent{Enable: true})
 }
 
 //export Java_com_tailscale_ipn_StopVPNWorker_disconnect
 func Java_com_tailscale_ipn_StopVPNWorker_disconnect(env *C.JNIEnv, this C.jobject) {
-    requestBackend(ConnectEvent{Enable: false})
-}
-
-//export Java_com_tailscale_ipn_App_onConnectivityChanged
-func Java_com_tailscale_ipn_App_onConnectivityChanged(env *C.JNIEnv, cls C.jclass, connected C.jboolean) {
-	select {
-	case <-onConnectivityChange:
-	default:
-	}
-	onConnectivityChange <- connected == C.JNI_TRUE
+	requestBackend(ConnectEvent{Enable: false})
 }
 
 //export Java_com_tailscale_ipn_QuickToggleService_onTileClick
@@ -199,4 +196,17 @@ func Java_com_tailscale_ipn_App_onShareIntent(env *C.JNIEnv, cls C.jclass, nfile
 	default:
 	}
 	onFileShare <- files
+}
+
+<<<<<<< HEAD
+//export Java_com_tailscale_ipn_App_onDnsConfigChanged
+func Java_com_tailscale_ipn_App_onDnsConfigChanged(env *C.JNIEnv, cls C.jclass) {
+=======
+//export Java_com_tailscale_ipn_DnsConfig_onDnsConfigChanged
+func Java_com_tailscale_ipn_DnsConfig_onDnsConfigChanged(env *C.JNIEnv, cls C.jclass) {
+>>>>>>> 69e3c3e (use network callback to update DNS config when network changes)
+	select {
+	case onDNSConfigChanged <- struct{}{}:
+	default:
+	}
 }
