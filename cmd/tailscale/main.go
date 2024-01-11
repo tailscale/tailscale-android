@@ -164,6 +164,9 @@ type ConnectEvent struct {
 	Enable bool
 }
 
+type SetAuthKeyEvent struct {
+	AuthKey string
+}
 type CopyEvent struct {
 	Text string
 }
@@ -440,6 +443,27 @@ func (a *App) runBackend() error {
 				if !signingIn {
 					go b.backend.StartLoginInteractive()
 					signingIn = true
+				}
+			case SetAuthKeyEvent:
+				authKey := e.AuthKey
+				if b.backend.State() <= ipn.Stopped {
+					log.Printf("using authkey; state=%v", b.backend.State())
+					go func() {
+						prefs := ipn.NewPrefs()
+						prefs.WantRunning = true
+						err := b.backend.Start(ipn.Options{
+							AuthKey:     authKey,
+							UpdatePrefs: prefs,
+						})
+						log.Printf("authkey: Start error = %v", err)
+						if err != nil {
+							fatalErr(err)
+						} else {
+							b.backend.StartLoginInteractive()
+						}
+					}()
+				} else {
+					log.Printf("ignoring authkey in state=%v", b.backend.State())
 				}
 			case SetLoginServerEvent:
 				state.Prefs.ControlURL = e.URL
@@ -911,6 +935,9 @@ func (a *App) runUI() error {
 					w.Invalidate()
 				}
 			}
+		case authKey := <-onSetAuthKeyForNextConnect:
+			ui.ShowMessage("got authkey")
+			requestBackend(SetAuthKeyEvent{AuthKey: authKey})
 		case p := <-a.prefs:
 			ui.enabled.Value = p.WantRunning
 			ui.runningExit = p.AdvertisesExitNode()

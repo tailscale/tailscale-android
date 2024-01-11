@@ -60,6 +60,7 @@
 			<intent-filter>
 				<action android:name="com.tailscale.ipn.CONNECT_VPN" />
 				<action android:name="com.tailscale.ipn.DISCONNECT_VPN" />
+				<action android:name="com.tailscale.ipn.INIT_WITH_AUTHKEY" />
 			</intent-filter>
 		</receiver>
 		<service android:name=".IPNService"

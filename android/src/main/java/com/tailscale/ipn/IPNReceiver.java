@@ -9,6 +9,7 @@ import android.content.Context;
 import android.content.Intent;
 import androidx.work.WorkManager;
 import androidx.work.OneTimeWorkRequest;
+import android.util.Log;
 
 public class IPNReceiver extends BroadcastReceiver {
 
@@ -21,6 +22,9 @@ public class IPNReceiver extends BroadcastReceiver {
             workManager.enqueue(new OneTimeWorkRequest.Builder(StartVPNWorker.class).build());
         } else if (intent.getAction() == "com.tailscale.ipn.DISCONNECT_VPN") {
             workManager.enqueue(new OneTimeWorkRequest.Builder(StopVPNWorker.class).build());
+        } else if (intent.getAction() == "com.tailscale.ipn.INIT_WITH_AUTHKEY") {
+            String key = intent.getStringExtra("authkey");
+            IPNService.setAuthKeyForNextConnect(key);
         }
     }
 }
