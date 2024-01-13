@@ -438,6 +438,7 @@ func (b *backend) getPlatformDNSConfig() string {
 		log.Printf("getPlatformDNSConfig JNI: %v", err)
 		return ""
 	}
+	log.Printf("Testing 10107: %s", baseConfig)
 	return baseConfig
 }
 

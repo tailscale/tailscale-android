@@ -14,6 +14,8 @@ import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 // Tailscale DNS Config retrieval
 //
@@ -44,23 +46,18 @@ public class DnsConfig {
 		if (!s.trim().isEmpty()) {
 			return s;
 		}
-		return "";
+		return getDnsServersFromNetworkInfo();
 	}
 
-	public String getDnsConfigs(){
+	private String getDnsConfigs(){
 		synchronized(this) {
 			return this.dnsConfigs;
 		}
 	}
 
-	public void updateDNSFromNetwork(String dnsConfigs) {
+	private void updateDNSFromNetwork(String dnsConfigs){
 		synchronized(this) {
 			this.dnsConfigs = dnsConfigs;
 		}
-	}
-
-	NetworkRequest getDNSConfigNetworkRequest(){
-		// Request networks that are able to reach the Internet.
-		return new NetworkRequest.Builder().addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET).build();
 	}
 }

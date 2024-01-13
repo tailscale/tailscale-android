@@ -88,13 +88,16 @@ public class App extends Application {
 	public DnsConfig getDnsConfigObj() { return this.dns; }
 
 	private ConnectivityManager connectivityManager;
-	private ConnectivityManager.NetworkCallback dnsCallback;
-	private ConnectivityManager.NetworkCallback connectivityCallback;
+
+	private ConnectivityManager connectivityManager;
 
 	@Override public void onCreate() {
 		super.onCreate();
 		// Load and initialize the Go library.
 		Gio.init(this);
+
+		this.connectivityManager = (ConnectivityManager) this.getSystemService(Context.CONNECTIVITY_SERVICE);
+		setAndRegisterNetworkCallbacks();
 
 		this.connectivityManager = (ConnectivityManager) this.getSystemService(Context.CONNECTIVITY_SERVICE);
 		setAndRegisterNetworkCallbacks();
