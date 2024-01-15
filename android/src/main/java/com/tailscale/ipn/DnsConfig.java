@@ -53,11 +53,9 @@ public class DnsConfig {
 		}
 	}
 
-	private void updateDNSFromNetwork(String dnsConfigs){
+	void updateDNSFromNetwork(String dnsConfigs){
 		synchronized(this) {
 			this.dnsConfigs = dnsConfigs;
 		}
 	}
-
-	private static native void onDnsConfigChanged();
 }
