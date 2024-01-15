@@ -14,8 +14,6 @@ import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 // Tailscale DNS Config retrieval
 //
@@ -46,7 +44,7 @@ public class DnsConfig {
 		if (!s.trim().isEmpty()) {
 			return s;
 		}
-		return getDnsServersFromNetworkInfo();
+		return "";
 	}
 
 	private String getDnsConfigs(){
@@ -60,4 +58,6 @@ public class DnsConfig {
 			this.dnsConfigs = dnsConfigs;
 		}
 	}
+
+	private static native void onDnsConfigChanged();
 }

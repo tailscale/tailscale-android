@@ -42,9 +42,6 @@ var (
 
 	// onDNSConfigChanged is notified when the network changes and the DNS config needs to be updated.
 	onDNSConfigChanged = make(chan struct{}, 1)
-
-	// onDNSConfigChanged is notified when the network changes and the DNS config needs to be updated.
-	onDNSConfigChanged = make(chan struct{}, 1)
 )
 
 const (
