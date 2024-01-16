@@ -87,15 +87,6 @@ public class App extends Application {
 	public DnsConfig dns = new DnsConfig();
 	public DnsConfig getDnsConfigObj() { return this.dns; }
 
-	private ConnectivityManager connectivityManager;
-<<<<<<< HEAD
-
-	private ConnectivityManager connectivityManager;
-=======
-	private ConnectivityManager.NetworkCallback dnsCallback;
-	private ConnectivityManager.NetworkCallback connectivityCallback;
->>>>>>> 69e3c3e (use network callback to update DNS config when network changes)
-
 	@Override public void onCreate() {
 		super.onCreate();
 		// Load and initialize the Go library.
@@ -103,12 +94,6 @@ public class App extends Application {
 
 		this.connectivityManager = (ConnectivityManager) this.getSystemService(Context.CONNECTIVITY_SERVICE);
 		setAndRegisterNetworkCallbacks();
-<<<<<<< HEAD
-
-		this.connectivityManager = (ConnectivityManager) this.getSystemService(Context.CONNECTIVITY_SERVICE);
-		setAndRegisterNetworkCallbacks();
-=======
->>>>>>> 69e3c3e (use network callback to update DNS config when network changes)
 
 		createNotificationChannel(NOTIFY_CHANNEL_ID, "Notifications", NotificationManagerCompat.IMPORTANCE_DEFAULT);
 		createNotificationChannel(STATUS_CHANNEL_ID, "VPN Status", NotificationManagerCompat.IMPORTANCE_LOW);
@@ -116,7 +101,6 @@ public class App extends Application {
 
 	}
 
-<<<<<<< HEAD
 	// requestNetwork attempts to find the best network that matches the passed NetworkRequest. It is possible that
 	// this might return an unusuable network, eg a captive portal.
 	private void setAndRegisterNetworkCallbacks() {
@@ -140,12 +124,6 @@ public class App extends Application {
 				onDnsConfigChanged();
 			}
 		});
-=======
-
-	private void setAndRegisterNetworkCallbacks() {
-		dnsCallback = dns.getDnsConfigCallback(connectivityManager);
-		connectivityManager.requestNetwork(dns.getDNSConfigNetworkRequest(), dnsCallback);
->>>>>>> 69e3c3e (use network callback to update DNS config when network changes)
 	}
 
 	public void startVPN() {

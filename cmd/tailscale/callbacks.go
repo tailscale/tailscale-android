@@ -42,12 +42,6 @@ var (
 
 	// onDNSConfigChanged is notified when the network changes and the DNS config needs to be updated.
 	onDNSConfigChanged = make(chan struct{}, 1)
-<<<<<<< HEAD
-
-	// onDNSConfigChanged is notified when the network changes and the DNS config needs to be updated.
-	onDNSConfigChanged = make(chan struct{}, 1)
-=======
->>>>>>> 69e3c3e (use network callback to update DNS config when network changes)
 )
 
 const (
@@ -198,13 +192,8 @@ func Java_com_tailscale_ipn_App_onShareIntent(env *C.JNIEnv, cls C.jclass, nfile
 	onFileShare <- files
 }
 
-<<<<<<< HEAD
 //export Java_com_tailscale_ipn_App_onDnsConfigChanged
 func Java_com_tailscale_ipn_App_onDnsConfigChanged(env *C.JNIEnv, cls C.jclass) {
-=======
-//export Java_com_tailscale_ipn_DnsConfig_onDnsConfigChanged
-func Java_com_tailscale_ipn_DnsConfig_onDnsConfigChanged(env *C.JNIEnv, cls C.jclass) {
->>>>>>> 69e3c3e (use network callback to update DNS config when network changes)
 	select {
 	case onDNSConfigChanged <- struct{}{}:
 	default:
