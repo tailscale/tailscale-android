@@ -24,3 +24,6 @@ tailscale.jks
 
 # Java profiling output
 *.hprof
+
+#IDE
+.vscode
