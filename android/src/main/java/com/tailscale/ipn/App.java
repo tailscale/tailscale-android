@@ -84,6 +84,7 @@ public class App extends Application {
 
 	private static final Handler mainHandler = new Handler(Looper.getMainLooper());
 
+	private ConnectivityManager connectivityManager;
 	public DnsConfig dns = new DnsConfig();
 	public DnsConfig getDnsConfigObj() { return this.dns; }
 

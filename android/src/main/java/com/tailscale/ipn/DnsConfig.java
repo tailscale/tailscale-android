@@ -60,4 +60,9 @@ public class DnsConfig {
 			this.dnsConfigs = dnsConfigs;
 		}
 	}
+
+	NetworkRequest getDNSConfigNetworkRequest(){
+		// Request networks that are able to reach the Internet.
+		return new NetworkRequest.Builder().addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET).build();
+	}
 }
