@@ -45,7 +45,7 @@ public class DnsConfig {
 		return getDnsConfigs().trim();
 	}
 
-	private String getDnsConfig(){
+	private String getDnsConfigs(){
 		synchronized(this) {
 			return this.dnsConfigs;
 		}
