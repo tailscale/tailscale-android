@@ -71,7 +71,7 @@ import androidx.browser.customtabs.CustomTabsIntent;
 import org.gioui.Gio;
 
 public class App extends Application {
-	private final static String PEER_TAG = "peer";
+	private static final String PEER_TAG = "peer";
 
 	static final String STATUS_CHANNEL_ID = "tailscale-status";
 	static final int STATUS_NOTIFICATION_ID = 1;
@@ -82,16 +82,19 @@ public class App extends Application {
 	private static final String FILE_CHANNEL_ID = "tailscale-files";
 	private static final int FILE_NOTIFICATION_ID = 3;
 
-	private final static Handler mainHandler = new Handler(Looper.getMainLooper());
+	private static final Handler mainHandler = new Handler(Looper.getMainLooper());
 
-	public DnsConfig dns = new DnsConfig(this);
+	private ConnectivityManager connectivityManager;
+	public DnsConfig dns = new DnsConfig();
 	public DnsConfig getDnsConfigObj() { return this.dns; }
 
 	@Override public void onCreate() {
 		super.onCreate();
 		// Load and initialize the Go library.
 		Gio.init(this);
-		registerNetworkCallback();
+
+		this.connectivityManager = (ConnectivityManager) this.getSystemService(Context.CONNECTIVITY_SERVICE);
+		setAndRegisterNetworkCallbacks();
 
 		createNotificationChannel(NOTIFY_CHANNEL_ID, "Notifications", NotificationManagerCompat.IMPORTANCE_DEFAULT);
 		createNotificationChannel(STATUS_CHANNEL_ID, "VPN Status", NotificationManagerCompat.IMPORTANCE_LOW);
@@ -99,26 +102,27 @@ public class App extends Application {
 
 	}
 
-	private void registerNetworkCallback() {
-		ConnectivityManager cMgr = (ConnectivityManager) this.getSystemService(Context.CONNECTIVITY_SERVICE);
-		cMgr.registerNetworkCallback(new NetworkRequest.Builder().build(), new ConnectivityManager.NetworkCallback() {
-			private void reportConnectivityChange() {
-				NetworkInfo active = cMgr.getActiveNetworkInfo();
-				// https://developer.android.com/training/monitoring-device-state/connectivity-status-type
-				boolean isConnected = active != null && active.isConnectedOrConnecting();
-				onConnectivityChanged(isConnected);
+	// requestNetwork attempts to find the best network that matches the passed NetworkRequest. It is possible that
+	// this might return an unusuable network, eg a captive portal.
+	private void setAndRegisterNetworkCallbacks() {
+		connectivityManager.requestNetwork(dns.getDNSConfigNetworkRequest(), new ConnectivityManager.NetworkCallback(){			
+			@Override
+			public void onAvailable(Network network){
+				super.onAvailable(network);
+				StringBuilder sb = new StringBuilder("");
+				LinkProperties linkProperties = connectivityManager.getLinkProperties(network);
+				List<InetAddress> dnsList = linkProperties.getDnsServers();
+				for (InetAddress ip : dnsList) {
+					sb.append(ip.getHostAddress()).append(" ");
+				}
+				dns.updateDNSFromNetwork(sb.toString());
+				onDnsConfigChanged();
 			}
 
 			@Override
 			public void onLost(Network network) {
 				super.onLost(network);
-				this.reportConnectivityChange();
-			}
-
-			@Override
-			public void onLinkPropertiesChanged(Network network, LinkProperties linkProperties) {
-				super.onLinkPropertiesChanged(network, linkProperties);
-				this.reportConnectivityChange();
+				onDnsConfigChanged();
 			}
 		});
 	}
@@ -347,7 +351,7 @@ public class App extends Application {
 	}
 
 	static native void onVPNPrepared();
-	private static native void onConnectivityChanged(boolean connected);
+	private static native void onDnsConfigChanged();
 	static native void onShareIntent(int nfiles, int[] types, String[] mimes, String[] items, String[] names, long[] sizes);
 	static native void onWriteStorageGranted();
 
