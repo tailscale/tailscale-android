@@ -386,39 +386,6 @@ func (b *backend) SetupLogs(logDir string, logID logid.PrivateID, logf logger.Lo
 	}
 }
 
-// We log the result of each of the DNS configuration discovery mechanisms, as we're
-// expecting a long tail of obscure Android devices with interesting behavior.
-func (b *backend) logDNSConfigMechanisms() {
-	err := jni.Do(b.jvm, func(env *jni.Env) error {
-		cls := jni.GetObjectClass(env, b.appCtx)
-		m := jni.GetMethodID(env, cls, "getDnsConfigObj", "()Lcom/tailscale/ipn/DnsConfig;")
-		dns, err := jni.CallObjectMethod(env, b.appCtx, m)
-		if err != nil {
-			return fmt.Errorf("getDnsConfigObj JNI: %v", err)
-		}
-		dnsCls := jni.GetObjectClass(env, dns)
-
-		for _, impl := range []string{"getDnsConfigFromLinkProperties",
-			"getDnsServersFromSystemProperties",
-			"getDnsServersFromNetworkInfo"} {
-
-			m = jni.GetMethodID(env, dnsCls, impl, "()Ljava/lang/String;")
-			n, err := jni.CallObjectMethod(env, dns, m)
-			baseConfig := jni.GoString(env, jni.String(n))
-			if err != nil {
-				log.Printf("%s JNI: %v", impl, err)
-			} else {
-				oneLine := strings.Replace(baseConfig, "\n", ";", -1)
-				log.Printf("%s: %s", impl, oneLine)
-			}
-		}
-		return nil
-	})
-	if err != nil {
-		log.Printf("logDNSConfigMechanisms: %v", err)
-	}
-}
-
 func (b *backend) getPlatformDNSConfig() string {
 	var baseConfig string
 	err := jni.Do(b.jvm, func(env *jni.Env) error {
@@ -454,7 +421,6 @@ func (b *backend) getDNSBaseConfig() (ret dns.OSConfig, _ error) {
 			ret.Nameservers = append(ret.Nameservers, googleDNSServers...)
 		}
 	}()
-	b.logDNSConfigMechanisms()
 	baseConfig := b.getPlatformDNSConfig()
 	lines := strings.Split(baseConfig, "\n")
 	if len(lines) == 0 {
