@@ -451,6 +451,7 @@ github.com/tailscale/netlink v1.1.1-0.20211101221916-cabfb018fe85 h1:zrsUcqrG2uQ
 github.com/tailscale/netlink v1.1.1-0.20211101221916-cabfb018fe85/go.mod h1:NzVQi3Mleb+qzq8VmcWpSkcSYxXIg0DkI6XDzpVkhJ0=
 github.com/tailscale/web-client-prebuilt v0.0.0-20240109232428-26bf65339dda h1:S+2mKvqj3K84d7qCX7MEjMsCiNXbEzXQ+ZvGdHsvAyc=
 github.com/tailscale/web-client-prebuilt v0.0.0-20240109232428-26bf65339dda/go.mod h1:agQPE6y6ldqCOui2gkIh7ZMztTkIQKH049tv8siLuNQ=
+github.com/tailscale/web-client-prebuilt v0.0.0-20240111230031-5ca22df9e6e7/go.mod h1:agQPE6y6ldqCOui2gkIh7ZMztTkIQKH049tv8siLuNQ=
 github.com/tailscale/wireguard-go v0.0.0-20231121184858-cc193a0b3272 h1:zwsem4CaamMdC3tFoTpzrsUSMDPV0K6rhnQdF7kXekQ=
 github.com/tailscale/wireguard-go v0.0.0-20231121184858-cc193a0b3272/go.mod h1:BOm5fXUBFM+m9woLNBoxI9TaBXXhGNP50LX/TGIvGb4=
 github.com/tcnksm/go-httpstat v0.2.0 h1:rP7T5e5U2HfmOBmZzGgGZjBQ5/GluWUylujl0tJ04I0=
@@ -732,3 +733,5 @@ software.sslmate.com/src/go-pkcs12 v0.2.1/go.mod h1:Qiz0EyvDRJjjxGyUQa2cCNZn/wMy
 sourcegraph.com/sourcegraph/appdash v0.0.0-20190731080439-ebfcffb1b5c0/go.mod h1:hI742Nqp5OhwiqlzhgfbWU4mW4yO10fP+LoT9WOswdU=
 tailscale.com v1.1.1-0.20240110191920-ca48db0d606d h1:kB3Yfxxj8JrXmu2fOfwsnnz0WQNWEyTxS3i9lOwyQns=
 tailscale.com v1.1.1-0.20240110191920-ca48db0d606d/go.mod h1:NHP8nTEoz3rLkz0/7YDTmZvoQPq5Jay02onLt4tU2UM=
+tailscale.com v1.1.1-0.20240118202658-8250582fe675 h1:GNiVbKAvDA4Ube6UDP+dQxT/rZ76LhHgy+PJGMJ1/oA=
+tailscale.com v1.1.1-0.20240118202658-8250582fe675/go.mod h1:faWR8XaXemnSKCDjHC7SAQzaagkUjA5x4jlLWiwxtuk=
