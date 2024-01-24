@@ -1332,7 +1332,7 @@ func (ui *UI) layoutPeer(gtx layout.Context, sysIns system.Insets, p *UIPeer, us
 						isOnline := p.Peer.Online != nil && *p.Peer.Online
 						lastSeen := p.Peer.LastSeen
 						if isOnline {
-							l := material.Body2(ui.theme, "Last seen: Online")
+							l := material.Body2(ui.theme, "Connected")
 							l.Color = rgb(0x434343)
 							return l.Layout(gtx)
 						}
