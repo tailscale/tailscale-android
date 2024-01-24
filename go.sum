@@ -734,3 +734,5 @@ tailscale.com v1.1.1-0.20240118202658-8250582fe675 h1:GNiVbKAvDA4Ube6UDP+dQxT/rZ
 tailscale.com v1.1.1-0.20240118202658-8250582fe675/go.mod h1:faWR8XaXemnSKCDjHC7SAQzaagkUjA5x4jlLWiwxtuk=
 tailscale.com v1.58.0 h1:iLGQBaGlweNEo8kBqQHF3gcLKRR87ECfkksvFQCy2/M=
 tailscale.com v1.58.0/go.mod h1:faWR8XaXemnSKCDjHC7SAQzaagkUjA5x4jlLWiwxtuk=
+tailscale.com v1.58.2 h1:5trkhh/fpUn7f6TUcGUQYJ0GokdNNfNrjh9ONJhoc5A=
+tailscale.com v1.58.2/go.mod h1:faWR8XaXemnSKCDjHC7SAQzaagkUjA5x4jlLWiwxtuk=
