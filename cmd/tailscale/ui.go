@@ -1327,6 +1327,23 @@ func (ui *UI) layoutPeer(gtx layout.Context, sysIns system.Insets, p *UIPeer, us
 					l.Color = rgb(0x434343)
 					return l.Layout(gtx)
 				}),
+				layout.Rigid(func(gtx C) D {
+					return layout.Inset{Right: unit.Dp(4)}.Layout(gtx, func(gtx C) D {
+						isOnline := p.Peer.Online != nil && *p.Peer.Online
+						lastSeen := p.Peer.LastSeen
+						if isOnline {
+							l := material.Body2(ui.theme, "Last seen: Online")
+							l.Color = rgb(0x434343)
+							return l.Layout(gtx)
+						}
+						if lastSeen.IsZero() {
+							return D{}
+						}
+						l := material.Body2(ui.theme, lastSeen.Format("Last seen: Jan 2, 2006 15:04"))
+						l.Color = rgb(0x434343)
+						return l.Layout(gtx)
+					})
+				}),
 			)
 		})
 	})
