@@ -7,8 +7,6 @@ import (
 	"net"
 	"net/http"
 	"sync"
-
-	"tailscale.com/ipn/localapi"
 )
 
 // Response represents the result of processing an http.Request.
@@ -53,10 +51,10 @@ func (r *Response) Flush() {
 }
 
 type LocalAPIClient struct {
-	h *localapi.Handler
+	h http.Handler
 }
 
-func New(h *localapi.Handler) *LocalAPIClient {
+func New(h http.Handler) *LocalAPIClient {
 	return &LocalAPIClient{h: h}
 }
 
