@@ -33,16 +33,19 @@ import (
 	"gioui.org/op"
 	"inet.af/netaddr"
 
+	"github.com/tailscale/tailscale-android/cmd/localapiclient"
 	"github.com/tailscale/tailscale-android/jni"
 	"tailscale.com/client/tailscale/apitype"
 	"tailscale.com/hostinfo"
 	"tailscale.com/ipn"
 	"tailscale.com/ipn/ipnlocal"
+	"tailscale.com/ipn/localapi"
 	"tailscale.com/net/dns"
 	"tailscale.com/net/interfaces"
 	"tailscale.com/net/netns"
 	"tailscale.com/paths"
 	"tailscale.com/tailcfg"
+	"tailscale.com/types/logid"
 	"tailscale.com/types/netmap"
 	"tailscale.com/wgengine/router"
 )
@@ -53,7 +56,7 @@ type App struct {
 	appCtx jni.Object
 
 	store             *stateStore
-	logIDPublicAtomic atomic.Value // of string
+	logIDPublicAtomic atomic.Pointer[logid.PublicID]
 
 	// netStates receives the most recent network state.
 	netStates chan BackendState
@@ -65,6 +68,8 @@ type App struct {
 	targetsLoaded chan FileTargets
 	// invalidates receives whenever the window should be refreshed.
 	invalidates chan struct{}
+	// bugReport receives the bug report from the backend's localapi call
+	bugReport chan string
 }
 
 var (
@@ -219,6 +224,7 @@ func main() {
 		prefs:         make(chan *ipn.Prefs, 1),
 		targetsLoaded: make(chan FileTargets, 1),
 		invalidates:   make(chan struct{}, 1),
+		bugReport:     make(chan string, 1),
 	}
 	err := jni.Do(a.jvm, func(env *jni.Env) error {
 		loader := jni.ClassLoaderFor(env, a.appCtx)
@@ -280,8 +286,12 @@ func (a *App) runBackend() error {
 	if err != nil {
 		return err
 	}
-	a.logIDPublicAtomic.Store(b.logIDPublic)
+	a.logIDPublicAtomic.Store(&b.logIDPublic)
 	defer b.CloseTUNs()
+
+	h := localapi.NewHandler(b.backend, log.Printf, b.sys.NetMon.Get(), *a.logIDPublicAtomic.Load())
+	h.PermitRead = true
+	h.PermitWrite = true
 
 	// Contrary to the documentation for VpnService.Builder.addDnsServer,
 	// ChromeOS doesn't fall back to the underlying network nameservers if
@@ -425,6 +435,10 @@ func (a *App) runBackend() error {
 			}
 		case e := <-backendEvents:
 			switch e := e.(type) {
+			case BugEvent:
+				backendLogIDStr := a.logIDPublicAtomic.Load().String()
+				fallbackLog := fmt.Sprintf("BUG-%v-%v-%v", backendLogIDStr, time.Now().UTC().Format("20060102150405Z"), randHex(8))
+				getBugReportID(h, a.bugReport, fallbackLog)
 			case OAuth2Event:
 				go b.backend.Login(e.Token)
 			case ToggleEvent:
@@ -546,6 +560,15 @@ func (a *App) runBackend() error {
 			}
 			a.notify(state)
 		}
+	}
+}
+
+func getBugReportID(h *localapi.Handler, bugReportChan chan<- string, fallbackLog string) {
+	w, err := localapiclient.CallLocalApi(h, "POST", "bugreport")
+	if w == nil || err != nil {
+		bugReportChan <- fallbackLog
+	} else {
+		bugReportChan <- string(w.Body())
 	}
 }
 
@@ -1148,10 +1171,24 @@ func (a *App) processUIEvents(w *app.Window, events []UIEvent, act jni.Object, s
 				requestBackend(WebAuthEvent{})
 			}
 		case BugEvent:
-			backendLogID, _ := a.logIDPublicAtomic.Load().(string)
-			logMarker := fmt.Sprintf("BUG-%v-%v-%v", backendLogID, time.Now().UTC().Format("20060102150405Z"), randHex(8))
-			log.Printf("user bugreport: %s", logMarker)
-			w.WriteClipboard(logMarker)
+			// clear the channel in case there's an old bug report hanging out there
+			select {
+			case oldReport := <-a.bugReport:
+				log.Printf("clearing old bug report in channel: %s", oldReport)
+			default:
+				break
+			}
+			requestBackend(e)
+			select {
+			case bug := <-a.bugReport:
+				w.WriteClipboard(bug)
+			case <-time.After(2 * time.Second):
+				// if we don't get a bug through the channel, fall back and create bug report here
+				backendLogID := a.logIDPublicAtomic.Load()
+				logMarker := fmt.Sprintf("BUG-%v-%v-%v", backendLogID, time.Now().UTC().Format("20060102150405Z"), randHex(8))
+				log.Printf("bug report fallback because timed out. fallback report: %s", logMarker)
+				w.WriteClipboard(logMarker)
+			}
 		case BeExitNodeEvent:
 			requestBackend(e)
 		case ExitAllowLANEvent:
