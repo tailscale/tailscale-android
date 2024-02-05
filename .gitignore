@@ -21,3 +21,9 @@ tailscale.jks
 
 # android sdk dir
 ./android-sdk
+
+# Java profiling output
+*.hprof
+
+#IDE
+.vscode
