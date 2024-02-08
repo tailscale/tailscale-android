@@ -1054,7 +1054,7 @@ func (ui *UI) layoutExitNodeDialog(gtx layout.Context, sysIns system.Insets, exi
 									Bottom: unit.Dp(16),
 								}.Layout(gtx, btn.Layout)
 							}
-							node := Peer{Label: "None", Online: true}
+							node := Peer{Label: "None", Online: true, Location: nil}
 							if idx >= 2 {
 								node = exits[idx-2]
 							}

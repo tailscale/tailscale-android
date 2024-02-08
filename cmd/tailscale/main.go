@@ -5,6 +5,7 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"crypto/rand"
 	"crypto/sha1"
@@ -31,6 +32,7 @@ import (
 	"gioui.org/io/system"
 	"gioui.org/layout"
 	"gioui.org/op"
+	"golang.org/x/exp/maps"
 	"inet.af/netaddr"
 
 	"github.com/tailscale/tailscale-android/jni"
@@ -135,9 +137,11 @@ const (
 )
 
 type Peer struct {
-	Label  string
-	Online bool
-	ID     tailcfg.StableNodeID
+	Label             string
+	Online            bool
+	ID                tailcfg.StableNodeID
+	Location          *tailcfg.Location
+	PreferredExitNode bool
 }
 
 type BackendState struct {
@@ -675,10 +679,19 @@ func (s *BackendState) updateExitNodes() {
 		myExit := p.StableID() == exitID
 		hasMyExit = hasMyExit || myExit
 		exit := Peer{
-			Label:  p.DisplayName(true),
-			Online: canRoute,
-			ID:     p.StableID(),
+			Label:    p.DisplayName(true),
+			Online:   canRoute,
+			ID:       p.StableID(),
+			Location: p.Hostinfo().Location(),
 		}
+
+		if exit.Location != nil {
+			// We want to shorten what the users sees here,
+			// so override the display name with the computed
+			// name.
+			exit.Label = p.ComputedName()
+		}
+
 		if myExit {
 			s.Exit = exit
 			if canRoute {
@@ -689,9 +702,80 @@ func (s *BackendState) updateExitNodes() {
 			s.Exits = append(s.Exits, exit)
 		}
 	}
+
+	locationBasedExitPeersMap := make(map[string]Peer)
+	var nonLocationBasedExitPeers []Peer
+	var allLocationBasedExitPeers []Peer
+	for _, peer := range s.Exits {
+		if peer.Location != nil {
+			countryCityLocation, ok := locationBasedExitPeersMap[fmt.Sprintf("%s (%s)", peer.Location.Country, peer.Location.City)]
+			if !ok {
+				// If we have not seen the country/city combination, add it to the
+				// map.
+				locationBasedExitPeersMap[fmt.Sprintf("%s (%s)", peer.Location.Country, peer.Location.City)] = peer
+				continue
+			}
+
+			if countryCityLocation.Location.Priority < peer.Location.Priority {
+				// If the priority for the location based exit node is higher than
+				// the current option, replace it.
+				locationBasedExitPeersMap[fmt.Sprintf("%s (%s)", peer.Location.Country, peer.Location.City)] = peer
+			}
+
+			allLocationBasedExitPeers = append(allLocationBasedExitPeers, peer)
+			continue
+		}
+		nonLocationBasedExitPeers = append(nonLocationBasedExitPeers, peer)
+	}
+
+	// We want to order the exit nodes to be display to the user in
+	// the order of non location based exit nodes, the best exit
+	// node per location, and then all of the location based exit nodes.
+
+	// Non location based exit nodes.
+	s.Exits = nonLocationBasedExitPeers
 	sort.Slice(s.Exits, func(i, j int) bool {
 		return s.Exits[i].Label < s.Exits[j].Label
 	})
+
+	// Best location based exit nodes
+	locationBasedExitPeersMapValues := maps.Values(locationBasedExitPeersMap)
+	if len(locationBasedExitPeersMapValues) > 0 {
+		var preferredLocationBasedExitPeers []Peer
+		for _, peer := range locationBasedExitPeersMapValues {
+			peerCopy := peer
+			peerCopy.PreferredExitNode = true
+			peerCopy.Label = fmt.Sprintf("%s - %s (%s)", peerCopy.Location.Country, peerCopy.Location.City, peerCopy.Label)
+
+			preferredLocationBasedExitPeers = append(preferredLocationBasedExitPeers, peerCopy)
+		}
+
+		sort.Slice(preferredLocationBasedExitPeers, func(i, j int) bool {
+			// Sort the order by country, and cities.
+			res := cmp.Compare(preferredLocationBasedExitPeers[i].Location.Country, preferredLocationBasedExitPeers[j].Location.Country)
+
+			switch res {
+			case -1:
+				return true
+			case 1:
+				return false
+			default:
+				// If the two peers have the same country, sort by city.
+				return preferredLocationBasedExitPeers[i].Location.City < preferredLocationBasedExitPeers[j].Location.City
+			}
+		})
+		s.Exits = append(s.Exits, preferredLocationBasedExitPeers...)
+	}
+
+	if len(allLocationBasedExitPeers) > 0 {
+		// All location based exit nodes at the end.
+		sort.Slice(allLocationBasedExitPeers, func(i, j int) bool {
+			// Sort the order by label
+			return allLocationBasedExitPeers[i].Label < allLocationBasedExitPeers[j].Label
+		})
+		s.Exits = append(s.Exits, allLocationBasedExitPeers...)
+	}
+
 	if !hasMyExit {
 		// Insert node missing from netmap.
 		s.Exit = Peer{Label: "Unknown device", ID: exitID}
