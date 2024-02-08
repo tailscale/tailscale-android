@@ -58,6 +58,8 @@ type App struct {
 	store             *stateStore
 	logIDPublicAtomic atomic.Pointer[logid.PublicID]
 
+	localAPIClient *localapiclient.LocalAPIClient
+
 	// netStates receives the most recent network state.
 	netStates chan BackendState
 	// prefs receives new preferences from the backend.
@@ -292,6 +294,7 @@ func (a *App) runBackend() error {
 	h := localapi.NewHandler(b.backend, log.Printf, b.sys.NetMon.Get(), *a.logIDPublicAtomic.Load())
 	h.PermitRead = true
 	h.PermitWrite = true
+	a.localAPIClient = localapiclient.New(h)
 
 	// Contrary to the documentation for VpnService.Builder.addDnsServer,
 	// ChromeOS doesn't fall back to the underlying network nameservers if
@@ -438,7 +441,7 @@ func (a *App) runBackend() error {
 			case BugEvent:
 				backendLogIDStr := a.logIDPublicAtomic.Load().String()
 				fallbackLog := fmt.Sprintf("BUG-%v-%v-%v", backendLogIDStr, time.Now().UTC().Format("20060102150405Z"), randHex(8))
-				getBugReportID(h, a.bugReport, fallbackLog)
+				a.getBugReportID(a.bugReport, fallbackLog)
 			case OAuth2Event:
 				go b.backend.Login(e.Token)
 			case ToggleEvent:
@@ -563,13 +566,22 @@ func (a *App) runBackend() error {
 	}
 }
 
-func getBugReportID(h *localapi.Handler, bugReportChan chan<- string, fallbackLog string) {
-	w, err := localapiclient.CallLocalApi(h, "POST", "bugreport")
-	if w == nil || err != nil {
+func (a *App) getBugReportID(bugReportChan chan<- string, fallbackLog string) {
+	r, err := a.localAPIClient.Call(a.appCtx, "POST", "bugreport", nil)
+	defer r.Body().Close()
+
+	if err != nil {
+		log.Printf("get bug report: %s", err)
 		bugReportChan <- fallbackLog
-	} else {
-		bugReportChan <- string(w.Body())
+		return
 	}
+	logBytes, err := io.ReadAll(r.Body())
+	if err != nil {
+		log.Printf("read bug report: %s", err)
+		bugReportChan <- fallbackLog
+		return
+	}
+	bugReportChan <- string(logBytes)
 }
 
 func (a *App) processWaitingFiles(b *ipnlocal.LocalBackend) error {
