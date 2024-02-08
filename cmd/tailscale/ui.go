@@ -560,6 +560,12 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 							ui.showCopied(gtx, a)
 						}
 					}
+
+					if p.Peer.Hostinfo.Location() != nil && p.Peer.IsWireGuardOnly {
+						// If the peer has location information set and is a wireguard
+						// only peer then it should not be displayed in the main list.
+						return D{}
+					}
 					return ui.layoutPeer(gtx, sysIns, p, userID, clk)
 				}
 			}
