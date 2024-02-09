@@ -18,6 +18,9 @@ jobs:
 
     - name: Check out code
       uses: actions/checkout@v3
+    - uses: actions/setup-go@v5
+      with: 
+        go-version-file: 'go.mod'
     - name: Switch to Java 17 # Note: 17 is pre-installed on ubuntu-latest
       uses: actions/setup-java@v3
       with:
