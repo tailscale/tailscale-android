@@ -2,8 +2,6 @@ module github.com/tailscale/tailscale-android
 
 go 1.22
 
-toolchain go1.22.0
-
 require (
 	eliasnaur.com/font v0.0.0-20220124212145-832bb8fc08c3
 	gioui.org v0.0.0-20230206180804-32c6a9b10d0b
@@ -30,6 +28,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.2.10 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.5.10 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.7.2 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.10.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.10.10 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.44.7 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.18.7 // indirect
