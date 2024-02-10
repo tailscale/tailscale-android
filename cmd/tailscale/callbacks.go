@@ -117,6 +117,14 @@ func Java_com_tailscale_ipn_StopVPNWorker_disconnect(env *C.JNIEnv, this C.jobje
 	requestBackend(ConnectEvent{Enable: false})
 }
 
+//export Java_com_tailscale_ipn_UseExitNodeWorker_useExitNode
+func Java_com_tailscale_ipn_UseExitNodeWorker_useExitNode(env *C.JNIEnv, this C.jobject, exitNode C.jstring, allowLanAccess C.jboolean) {
+	jenv := (*jni.Env)(unsafe.Pointer(env))
+	exitNodeLabel := jni.GoString(jenv, jni.String(exitNode))
+	requestBackend(RouteAllToLabelEvent{exitNodeLabel})
+	requestBackend(ExitAllowLANEvent{Allow: allowLanAccess == C.JNI_TRUE})
+}
+
 //export Java_com_tailscale_ipn_QuickToggleService_onTileClick
 func Java_com_tailscale_ipn_QuickToggleService_onTileClick(env *C.JNIEnv, cls C.jclass) {
 	requestBackend(ToggleEvent{})

@@ -382,7 +382,7 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 		d.exits.Value = string(exitID)
 	}
 	if ui.exitLAN.Changed() {
-		events = append(events, ExitAllowLANEvent(ui.exitLAN.Value))
+		events = append(events, ExitAllowLANEvent{ui.exitLAN.Value})
 	}
 
 	if ui.googleSignin.Clicked() {
@@ -1049,7 +1049,7 @@ func (ui *UI) layoutExitNodeDialog(gtx layout.Context, sysIns system.Insets, exi
 					}),
 					layout.Flexed(1, func(gtx C) D {
 						gtx.Constraints.Min.Y = 0
-						// Add "none" exit node, then "Allow LAN" checkbox, then the exit nodes.
+						// Add "Allow LAN" checkbox, then "None" exit node, then the real exit nodes.
 						n := len(exits) + 2
 						return d.list.Layout(gtx, n, func(gtx C, idx int) D {
 							if idx == 0 {

@@ -7,6 +7,7 @@ package com.tailscale.ipn;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import androidx.work.Data;
 import androidx.work.WorkManager;
 import androidx.work.OneTimeWorkRequest;
 
@@ -21,6 +22,17 @@ public class IPNReceiver extends BroadcastReceiver {
             workManager.enqueue(new OneTimeWorkRequest.Builder(StartVPNWorker.class).build());
         } else if (intent.getAction() == "com.tailscale.ipn.DISCONNECT_VPN") {
             workManager.enqueue(new OneTimeWorkRequest.Builder(StopVPNWorker.class).build());
+        }
+        else if (intent.getAction() == "com.tailscale.ipn.USE_EXIT_NODE") {
+            String exitNode = intent.getStringExtra("exitNode");
+            boolean allowLanAccess = intent.getBooleanExtra("allowLanAccess", false);
+            if (exitNode == null) {
+                exitNode = "";
+            }
+            Data.Builder workData = new Data.Builder();
+            workData.putString(UseExitNodeWorker.EXIT_NODE, exitNode);
+            workData.putBoolean(UseExitNodeWorker.ALLOW_LAN_ACCESS, allowLanAccess);
+            workManager.enqueue(new OneTimeWorkRequest.Builder(UseExitNodeWorker.class).setInputData(workData.build()).build());
         }
     }
 }
