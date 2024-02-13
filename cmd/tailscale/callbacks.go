@@ -117,11 +117,6 @@ func Java_com_tailscale_ipn_StopVPNWorker_disconnect(env *C.JNIEnv, this C.jobje
 	requestBackend(ConnectEvent{Enable: false})
 }
 
-//export Java_com_tailscale_ipn_QuickToggleService_onTileClick
-func Java_com_tailscale_ipn_QuickToggleService_onTileClick(env *C.JNIEnv, cls C.jclass) {
-	requestBackend(ToggleEvent{})
-}
-
 //export Java_com_tailscale_ipn_Peer_onActivityResult0
 func Java_com_tailscale_ipn_Peer_onActivityResult0(env *C.JNIEnv, cls C.jclass, act C.jobject, reqCode, resCode C.jint) {
 	switch reqCode {
