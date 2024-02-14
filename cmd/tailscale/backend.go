@@ -48,7 +48,7 @@ type backend struct {
 	lastDNSCfg *dns.OSConfig
 	netMon     *netmon.Monitor
 
-	logIDPublic string
+	logIDPublic logid.PublicID
 	logger      *logtail.Logger
 
 	// avoidEmptyDNS controls whether to use fallback nameservers
@@ -150,7 +150,7 @@ func newBackend(dataDir string, jvm *jni.JVM, appCtx jni.Object, store *stateSto
 		return nil, fmt.Errorf("runBackend: NewUserspaceEngine: %v", err)
 	}
 	sys.Set(engine)
-	b.logIDPublic = logID.Public().String()
+	b.logIDPublic = logID.Public()
 	ns, err := netstack.Create(logf, sys.Tun.Get(), engine, sys.MagicSock.Get(), dialer, sys.DNSManager.Get(), sys.ProxyMapper())
 	if err != nil {
 		return nil, fmt.Errorf("netstack.Create: %w", err)
