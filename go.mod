@@ -1,6 +1,6 @@
 module github.com/tailscale/tailscale-android
 
-go 1.22
+go 1.22.0
 
 require (
 	eliasnaur.com/font v0.0.0-20220124212145-832bb8fc08c3
@@ -12,7 +12,7 @@ require (
 	golang.org/x/exp/shiny v0.0.0-20220827204233-334a2380cb91
 	golang.org/x/sys v0.16.0
 	inet.af/netaddr v0.0.0-20220617031823-097006376321
-	tailscale.com v1.1.1-0.20240208222901-0f042b9814a9
+	tailscale.com v1.60.0
 )
 
 require (
