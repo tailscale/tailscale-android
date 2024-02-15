@@ -197,12 +197,16 @@ type SetLoginServerEvent struct {
 	URL string
 }
 
+// Web login event. If there is a URL, set the login server first.
+type WebAuthAndMaybeSetServerEvent struct {
+	URL string
+}
+
 // UIEvent types.
 type (
 	ToggleEvent       struct{}
 	ReauthEvent       struct{}
 	BugEvent          struct{}
-	WebAuthEvent      struct{}
 	GoogleAuthEvent   struct{}
 	LogoutEvent       struct{}
 	OSSLicensesEvent  struct{}
@@ -458,8 +462,22 @@ func (a *App) runBackend(ctx context.Context) error {
 			case ExitAllowLANEvent:
 				state.Prefs.ExitNodeAllowLANAccess = bool(e)
 				go b.backend.SetPrefs(state.Prefs)
-			case WebAuthEvent:
-				if !signingIn {
+			case WebAuthAndMaybeSetServerEvent:
+				if e.URL != "" && !signingIn {
+					state.Prefs.ControlURL = e.URL
+					b.backend.SetPrefs(state.Prefs)
+					signingIn = true
+					// Need to restart to force the login URL to be regenerated
+					// with the new control URL. Start from a goroutine to avoid
+					// deadlock.
+					go func() {
+						err := b.backend.Start(ipn.Options{})
+						if err != nil {
+							fatalErr(err)
+						}
+						b.backend.StartLoginInteractive()
+					}()
+				} else if !signingIn {
 					go b.backend.StartLoginInteractive()
 					signingIn = true
 				}
@@ -1267,7 +1285,7 @@ func (a *App) processUIEvents(w *app.Window, events []UIEvent, act jni.Object, s
 			case loginMethodGoogle:
 				a.googleSignIn(act)
 			default:
-				requestBackend(WebAuthEvent{})
+				requestBackend(WebAuthAndMaybeSetServerEvent{})
 			}
 		case BugEvent:
 			// clear the channel in case there's an old bug report hanging out there
@@ -1292,7 +1310,10 @@ func (a *App) processUIEvents(w *app.Window, events []UIEvent, act jni.Object, s
 			requestBackend(e)
 		case ExitAllowLANEvent:
 			requestBackend(e)
-		case WebAuthEvent:
+		case WebAuthAndMaybeSetServerEvent:
+			if srv, _ := a.store.ReadString(customLoginServerPrefKey, ""); srv != state.backend.Prefs.ControlURL {
+				e.URL = srv
+			}
 			a.store.WriteString(loginMethodPrefKey, loginMethodWeb)
 			requestBackend(e)
 		case SetLoginServerEvent:

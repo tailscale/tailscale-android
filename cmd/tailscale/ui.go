@@ -392,7 +392,7 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 
 	if ui.webSignin.Clicked() {
 		ui.signinType = webSignin
-		events = append(events, WebAuthEvent{})
+		events = append(events, WebAuthAndMaybeSetServerEvent{})
 	}
 
 	if ui.loginServerSave.Clicked() {
