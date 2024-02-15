@@ -1302,6 +1302,11 @@ func (a *App) processUIEvents(w *app.Window, events []UIEvent, act jni.Object, s
 			a.signOut()
 			requestBackend(e)
 		case ConnectEvent:
+			if srv, _ := a.store.ReadString(customLoginServerPrefKey, ""); srv != state.backend.Prefs.ControlURL {
+				requestBackend(SetLoginServerEvent{URL: srv})
+				// wait a moment for the backend to restart
+				<-time.After(200 * time.Millisecond)
+			}
 			requestBackend(e)
 		case RouteAllEvent:
 			requestBackend(e)
