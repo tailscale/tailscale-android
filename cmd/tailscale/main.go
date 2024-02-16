@@ -482,6 +482,12 @@ func (a *App) runBackend(ctx context.Context) error {
 					b.backend.Logout(ctx)
 				}()
 			case ConnectEvent:
+				first := state.Prefs == nil
+				// A ConnectEvent might be sent before the first notification
+				// arrives, such as in the case of Always-on VPN.
+				if first {
+					state.Prefs = ipn.NewPrefs()
+				}
 				state.Prefs.WantRunning = e.Enable
 				go b.backend.SetPrefs(state.Prefs)
 			case RouteAllEvent:
@@ -493,7 +499,7 @@ func (a *App) runBackend(ctx context.Context) error {
 					a.updateNotification(service, state.State, state.ExitStatus, state.Exit)
 				}
 			}
-		case s := <-onConnect:
+		case s := <-onVPNRequested:
 			jni.Do(a.jvm, func(env *jni.Env) error {
 				if jni.IsSameObject(env, s, service) {
 					// We already have a reference.
@@ -524,7 +530,7 @@ func (a *App) runBackend(ctx context.Context) error {
 						return nil // even on error. see big TODO above.
 					})
 				})
-				log.Printf("onConnect: rebind required")
+				log.Printf("onVPNRequested: rebind required")
 				// TODO(catzkorn): When we start the android application
 				// we bind sockets before we have access to the VpnService.protect()
 				// function which is needed to avoid routing loops. When we activate

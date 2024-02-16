@@ -10,6 +10,8 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.VpnService;
 import android.system.OsConstants;
+import androidx.work.WorkManager;
+import androidx.work.OneTimeWorkRequest;
 
 import org.gioui.GioActivity;
 
@@ -17,19 +19,29 @@ import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
 public class IPNService extends VpnService {
-	public static final String ACTION_CONNECT = "com.tailscale.ipn.CONNECT";
-	public static final String ACTION_DISCONNECT = "com.tailscale.ipn.DISCONNECT";
+	public static final String ACTION_REQUEST_VPN = "com.tailscale.ipn.REQUEST_VPN";
+	public static final String ACTION_STOP_VPN = "com.tailscale.ipn.STOP_VPN";
 
 	@Override public int onStartCommand(Intent intent, int flags, int startId) {
-		if (intent != null && ACTION_DISCONNECT.equals(intent.getAction())) {
+		if (intent != null && ACTION_STOP_VPN.equals(intent.getAction())) {
 			((App)getApplicationContext()).autoConnect = false;
 			close();
 			return START_NOT_STICKY;
+		} 
+		if (intent != null && "android.net.VpnService".equals(intent.getAction())) {
+			// Start VPN and connect to it due to Always-on VPN
+			Intent i = new Intent(IPNReceiver.INTENT_CONNECT_VPN);
+			i.setPackage(getPackageName());
+			i.setClass(getApplicationContext(), com.tailscale.ipn.IPNReceiver.class);
+			sendBroadcast(i);
+			requestVPN();
+			connect();
+			return START_STICKY;
 		}
-		connect();
+		requestVPN();
 		App app = ((App)getApplicationContext());
 		if (app.vpnReady && app.autoConnect) {
-			directConnect();
+			connect();
 		}
 		return START_STICKY;
 	}
@@ -119,8 +131,8 @@ public class IPNService extends VpnService {
 		startForeground(App.STATUS_NOTIFICATION_ID, builder.build());
 	}
 
-	private native void connect();
-	private native void disconnect();
+	private native void requestVPN();
 
-	public native void directConnect();
+	private native void disconnect();
+	private native void connect();
 }

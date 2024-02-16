@@ -135,13 +135,13 @@ public class App extends Application {
 
 	public void startVPN() {
 		Intent intent = new Intent(this, IPNService.class);
-		intent.setAction(IPNService.ACTION_CONNECT);
+		intent.setAction(IPNService.ACTION_REQUEST_VPN);
 		startService(intent);
 	}
 
 	public void stopVPN() {
 		Intent intent = new Intent(this, IPNService.class);
-		intent.setAction(IPNService.ACTION_DISCONNECT);
+		intent.setAction(IPNService.ACTION_STOP_VPN);
 		startService(intent);
 	}
 
