@@ -548,7 +548,7 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 				if p.Peer == nil {
 					name := p.Name
 					if p.Owner == userID {
-						name = "MY DEVICES"
+						name = "MACHINE"
 					}
 					return ui.layoutSection(gtx, sysIns, name)
 				} else {
@@ -1317,10 +1317,25 @@ func (ui *UI) layoutPeer(gtx layout.Context, sysIns system.Insets, p *UIPeer, us
 			gtx.Constraints.Min.X = gtx.Constraints.Max.X
 			return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 				layout.Rigid(func(gtx C) D {
-					return layout.Inset{Bottom: unit.Dp(4)}.Layout(gtx, func(gtx C) D {
-						name := p.Peer.DisplayName(p.Peer.User == user)
-						return material.H6(ui.theme, name).Layout(gtx)
-					})
+					return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
+						layout.Rigid(func(gtx C) D {
+							return layout.Inset{Left: unit.Dp(4)}.Layout(gtx, func(gtx C) D {
+								statusbullet := material.H3(ui.theme, "•")
+								if p.Peer.Online != nil && *p.Peer.Online {
+									statusbullet.Color = rgb(0x009966)
+								} else {
+									statusbullet.Color = rgb(0xcccccc)
+								}
+								return statusbullet.Layout(gtx)
+							})
+						}),
+						layout.Rigid(func(gtx C) D {
+							return layout.Inset{Left: unit.Dp(4)}.Layout(gtx, func(gtx C) D {
+								name := p.Peer.DisplayName(p.Peer.User == user)
+								return material.H6(ui.theme, name).Layout(gtx)
+							})
+						}),
+					)
 				}),
 				layout.Rigid(func(gtx C) D {
 					var bestIP netip.Addr // IP to show; first IPv4, or first IPv6 if no IPv4
@@ -1338,7 +1353,7 @@ func (ui *UI) layoutPeer(gtx layout.Context, sysIns system.Insets, p *UIPeer, us
 	})
 }
 
-// layoutSection lays out a section title (e.g. "My devices").
+// layoutSection lays out a section title (e.g. "Machine").
 func (ui *UI) layoutSection(gtx layout.Context, sysIns system.Insets, title string) layout.Dimensions {
 	return Background{Color: rgb(0xe1e0e9)}.Layout(gtx, func(gtx C) D {
 		return layout.Inset{
