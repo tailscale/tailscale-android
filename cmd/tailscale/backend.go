@@ -68,6 +68,8 @@ const (
 	logPrefKey               = "privatelogid"
 	loginMethodPrefKey       = "loginmethod"
 	customLoginServerPrefKey = "customloginserver"
+	exitNodePrefKey          = "exitnode"
+	exitAllowLANPrefKey      = "exitallowlan"
 )
 
 const (
