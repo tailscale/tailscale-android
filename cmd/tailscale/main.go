@@ -5,11 +5,13 @@
 package main
 
 import (
+	"bytes"
 	"cmp"
 	"context"
 	"crypto/rand"
 	"crypto/sha1"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -66,15 +68,17 @@ type App struct {
 	// netStates receives the most recent network state.
 	netStates chan BackendState
 	// prefs receives new preferences from the backend.
-	prefs chan *ipn.Prefs
+	prefs chan ipn.PrefsView
 	// browseURLs receives URLs when the backend wants to browse.
 	browseURLs chan string
 	// targetsLoaded receives lists of file targets.
 	targetsLoaded chan FileTargets
 	// invalidates receives whenever the window should be refreshed.
 	invalidates chan struct{}
-	// bugReport receives the bug report from the backend's localapi call
+	// bugReport receives the bug report from the backend's localapi call.
 	bugReport chan string
+	// editFns receives instructions for which preferences to edit and enforces the ordering of these edits.
+	editFns chan func(currPrefs ipn.PrefsView, updatedPrefs *ipn.MaskedPrefs)
 }
 
 var (
@@ -153,7 +157,7 @@ type Peer struct {
 }
 
 type BackendState struct {
-	Prefs        *ipn.Prefs
+	Prefs        ipn.PrefsView
 	State        ipn.State
 	NetworkMap   *netmap.NetworkMap
 	LostInternet bool
@@ -227,10 +231,11 @@ func main() {
 		appCtx:        jni.Object(app.AppContext()),
 		netStates:     make(chan BackendState, 1),
 		browseURLs:    make(chan string, 1),
-		prefs:         make(chan *ipn.Prefs, 1),
+		prefs:         make(chan ipn.PrefsView, 1),
 		targetsLoaded: make(chan FileTargets, 1),
 		invalidates:   make(chan struct{}, 1),
 		bugReport:     make(chan string, 1),
+		editFns:       make(chan func(currPrefs ipn.PrefsView, updatedPrefs *ipn.MaskedPrefs), 1),
 	}
 	err := jni.Do(a.jvm, func(env *jni.Env) error {
 		loader := jni.ClassLoaderFor(env, a.appCtx)
@@ -370,16 +375,19 @@ func (a *App) runBackend(ctx context.Context) error {
 		case n := <-notifications:
 			exitWasOnline := state.ExitStatus == ExitOnline
 			if p := n.Prefs; p != nil && n.Prefs.Valid() {
-				state.Prefs = p.AsStruct()
+				// make a copy of prefs and use the readonly view
+				state.Prefs = p.AsStruct().View()
 				state.updateExitNodes()
-				a.setPrefs(state.Prefs)
+				a.prefs <- state.Prefs
 			}
-			first := state.Prefs == nil
+			first := !state.Prefs.Valid()
 			if first {
-				state.Prefs = ipn.NewPrefs()
-				state.Prefs.Hostname = a.hostname()
-				go b.backend.SetPrefs(state.Prefs)
-				a.setPrefs(state.Prefs)
+				newPrefs := ipn.NewPrefs()
+				newPrefs.Hostname = a.hostname()
+				go b.backend.SetPrefs(newPrefs)
+				state.Prefs = newPrefs.View()
+
+				go a.editPrefs(ctx, state.Prefs)
 			}
 			if s := n.State; s != nil {
 				oldState := state.State
@@ -451,11 +459,21 @@ func (a *App) runBackend(ctx context.Context) error {
 			case OAuth2Event:
 				go b.backend.Login(e.Token)
 			case BeExitNodeEvent:
-				state.Prefs.SetAdvertiseExitNode(bool(e))
-				go b.backend.SetPrefs(state.Prefs)
+				a.editFns <- func(currPrefs ipn.PrefsView, updatedPrefs *ipn.MaskedPrefs) {
+					routes := currPrefs.AdvertiseRoutes()
+					routes.AppendTo([]netip.Prefix{
+						netip.MustParsePrefix("0.0.0.0/0"),
+						netip.MustParsePrefix("::/0"),
+					})
+					updatedPrefs.AdvertiseRoutes = routes.AsSlice()
+					updatedPrefs.SetAdvertiseExitNode(bool(e))
+					updatedPrefs.AdvertiseRoutesSet = true
+				}
 			case ExitAllowLANEvent:
-				state.Prefs.ExitNodeAllowLANAccess = bool(e)
-				go b.backend.SetPrefs(state.Prefs)
+				a.editFns <- func(currPrefs ipn.PrefsView, updatedPrefs *ipn.MaskedPrefs) {
+					updatedPrefs.ExitNodeAllowLANAccess = bool(e)
+					updatedPrefs.ExitNodeAllowLANAccessSet = true
+				}
 			case WebAuthEvent:
 				log.Printf("KARI WEBAUTHEVENT")
 				if !signingIn {
@@ -463,17 +481,10 @@ func (a *App) runBackend(ctx context.Context) error {
 					signingIn = true
 				}
 			case SetLoginServerEvent:
-				state.Prefs.ControlURL = e.URL
-				b.backend.SetPrefs(state.Prefs)
-				// Need to restart to force the login URL to be regenerated
-				// with the new control URL. Start from a goroutine to avoid
-				// deadlock.
-				go func() {
-					err := b.backend.Start(ipn.Options{})
-					if err != nil {
-						fatalErr(err)
-					}
-				}()
+				a.editFns <- func(currPrefs ipn.PrefsView, updatedPrefs *ipn.MaskedPrefs) {
+					updatedPrefs.ControlURL = e.URL
+					updatedPrefs.ControlURLSet = true
+				}
 			case LogoutEvent:
 				go func() {
 					ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
@@ -481,11 +492,15 @@ func (a *App) runBackend(ctx context.Context) error {
 					b.backend.Logout(ctx)
 				}()
 			case ConnectEvent:
-				state.Prefs.WantRunning = e.Enable
-				go b.backend.SetPrefs(state.Prefs)
+				a.editFns <- func(currPrefs ipn.PrefsView, updatedPrefs *ipn.MaskedPrefs) {
+					updatedPrefs.WantRunning = e.Enable
+					updatedPrefs.WantRunningSet = true
+				}
 			case RouteAllEvent:
-				state.Prefs.ExitNodeID = e.ID
-				go b.backend.SetPrefs(state.Prefs)
+				a.editFns <- func(currPrefs ipn.PrefsView, updatedPrefs *ipn.MaskedPrefs) {
+					updatedPrefs.ExitNodeID = e.ID
+					updatedPrefs.ExitNodeIDSet = true
+				}
 				state.updateExitNodes()
 				a.notify(state)
 				if service != 0 {
@@ -566,6 +581,46 @@ func (a *App) runBackend(ctx context.Context) error {
 				go b.NetworkChanged()
 			}
 			a.notify(state)
+		}
+	}
+}
+
+// editPrefs is called when prefs is created for the first time. It pulls
+// from the edit function channel, and makes calls to localapi to edit the
+//
+//	preferences. This ensures that edits will be made in the correct order.
+func (a *App) editPrefs(ctx context.Context, prefs ipn.PrefsView) {
+	for {
+		select {
+		case fn := <-a.editFns:
+			mp := new(ipn.MaskedPrefs)
+			fn(prefs, mp)
+
+			jsonData, err := json.Marshal(mp)
+			if err != nil {
+				log.Printf("error marshaling MaskedPrefs %v", err)
+				continue
+			}
+
+			body := bytes.NewReader(jsonData)
+			r, err := a.localAPIClient.Call(ctx, "PATCH", "prefs", body)
+			if err != nil {
+				log.Printf("localapiclient error %v", err)
+				continue
+			}
+
+			data, err := io.ReadAll(r.Body())
+			r.Body().Close()
+			if err != nil {
+				log.Printf("error reading localapi response %v", err)
+			}
+			var newPrefs ipn.PrefsView
+			err = json.Unmarshal(data, &newPrefs)
+			if err != nil {
+				log.Printf("error unmarshaling localapi response %v", err)
+			}
+			prefs = newPrefs
+		default:
 		}
 	}
 }
@@ -704,8 +759,8 @@ func (a *App) isChromeOS() bool {
 func (s *BackendState) updateExitNodes() {
 	s.ExitStatus = ExitNone
 	var exitID tailcfg.StableNodeID
-	if p := s.Prefs; p != nil {
-		exitID = p.ExitNodeID
+	if p := s.Prefs; p.Valid() {
+		exitID = p.ExitNodeID()
 		if exitID != "" {
 			s.ExitStatus = ExitOffline
 		}
@@ -978,18 +1033,6 @@ func (a *App) notify(state BackendState) {
 	}
 }
 
-func (a *App) setPrefs(prefs *ipn.Prefs) {
-	wantRunning := jni.Bool(prefs.WantRunning)
-	if err := a.callVoidMethod(a.appCtx, "setTileStatus", "(Z)V", jni.Value(wantRunning)); err != nil {
-		fatalErr(err)
-	}
-	select {
-	case <-a.prefs:
-	default:
-	}
-	a.prefs <- prefs
-}
-
 func (a *App) setURL(url string) {
 	select {
 	case <-a.browseURLs:
@@ -1045,9 +1088,10 @@ func (a *App) runUI() error {
 				}
 			}
 		case p := <-a.prefs:
-			ui.enabled.Value = p.WantRunning
+			ui.enabled.Value = p.WantRunning()
 			ui.runningExit = p.AdvertisesExitNode()
-			ui.exitLAN.Value = p.ExitNodeAllowLANAccess
+			ui.exitID = p.ExitNodeID()
+			ui.exitLAN.Value = p.ExitNodeAllowLANAccess()
 			w.Invalidate()
 		case url := <-a.browseURLs:
 			ui.signinType = noSignin
@@ -1313,7 +1357,7 @@ func (a *App) processUIEvents(w *app.Window, events []UIEvent, act jni.Object, s
 			a.signOut()
 			requestBackend(e)
 		case ConnectEvent:
-			if srv, _ := a.store.ReadString(customLoginServerPrefKey, ""); srv != state.backend.Prefs.ControlURL {
+			if srv, _ := a.store.ReadString(customLoginServerPrefKey, ""); srv != state.backend.Prefs.ControlURL() {
 				requestBackend(SetLoginServerEvent{URL: srv})
 				// wait a moment for the backend to restart
 				<-time.After(200 * time.Millisecond)
