@@ -200,7 +200,6 @@ type SetLoginServerEvent struct {
 
 // UIEvent types.
 type (
-	ToggleEvent       struct{}
 	ReauthEvent       struct{}
 	BugEvent          struct{}
 	WebAuthEvent      struct{}
@@ -451,9 +450,6 @@ func (a *App) runBackend(ctx context.Context) error {
 				a.getBugReportID(ctx, a.bugReport, fallbackLog)
 			case OAuth2Event:
 				go b.backend.Login(e.Token)
-			case ToggleEvent:
-				state.Prefs.WantRunning = !state.Prefs.WantRunning
-				go b.backend.SetPrefs(state.Prefs)
 			case BeExitNodeEvent:
 				state.Prefs.SetAdvertiseExitNode(bool(e))
 				go b.backend.SetPrefs(state.Prefs)
