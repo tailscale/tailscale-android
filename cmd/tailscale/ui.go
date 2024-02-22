@@ -371,7 +371,7 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 		}
 	}
 	if p := state.backend.Prefs; p != nil {
-		exitID = p.ExitNodeID
+		exitID = p.ExitNodeID()
 	}
 	if d := &ui.exitDialog; d.show {
 		if newID := tailcfg.StableNodeID(d.exits.Value); newID != exitID {

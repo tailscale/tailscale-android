@@ -1,6 +1,6 @@
 module github.com/tailscale/tailscale-android
 
-go 1.22
+go 1.22.0
 
 require (
 	eliasnaur.com/font v0.0.0-20220124212145-832bb8fc08c3

@@ -5,11 +5,13 @@
 package main
 
 import (
+	"bytes"
 	"cmp"
 	"context"
 	"crypto/rand"
 	"crypto/sha1"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -23,6 +25,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 	"unsafe"
@@ -57,6 +60,8 @@ type App struct {
 	// appCtx is a global reference to the com.tailscale.ipn.App instance.
 	appCtx jni.Object
 
+	mu sync.Mutex
+
 	store             *stateStore
 	logIDPublicAtomic atomic.Pointer[logid.PublicID]
 
@@ -66,7 +71,7 @@ type App struct {
 	// netStates receives the most recent network state.
 	netStates chan BackendState
 	// prefs receives new preferences from the backend.
-	prefs chan *ipn.Prefs
+	prefs chan *ipn.PrefsView
 	// browseURLs receives URLs when the backend wants to browse.
 	browseURLs chan string
 	// targetsLoaded receives lists of file targets.
@@ -153,7 +158,7 @@ type Peer struct {
 }
 
 type BackendState struct {
-	Prefs        *ipn.Prefs
+	Prefs        *ipn.PrefsView
 	State        ipn.State
 	NetworkMap   *netmap.NetworkMap
 	LostInternet bool
@@ -227,7 +232,7 @@ func main() {
 		appCtx:        jni.Object(app.AppContext()),
 		netStates:     make(chan BackendState, 1),
 		browseURLs:    make(chan string, 1),
-		prefs:         make(chan *ipn.Prefs, 1),
+		prefs:         make(chan *ipn.PrefsView, 1),
 		targetsLoaded: make(chan FileTargets, 1),
 		invalidates:   make(chan struct{}, 1),
 		bugReport:     make(chan string, 1),
@@ -370,15 +375,32 @@ func (a *App) runBackend(ctx context.Context) error {
 		case n := <-notifications:
 			exitWasOnline := state.ExitStatus == ExitOnline
 			if p := n.Prefs; p != nil && n.Prefs.Valid() {
-				state.Prefs = p.AsStruct()
+				state.Prefs = p
 				state.updateExitNodes()
 				a.setPrefs(state.Prefs)
 			}
 			first := state.Prefs == nil
 			if first {
-				state.Prefs = ipn.NewPrefs()
-				state.Prefs.Hostname = a.hostname()
-				go b.backend.SetPrefs(state.Prefs)
+				prefsView := ipn.NewPrefs().View()
+				state.Prefs = &prefsView
+
+				go func() {
+					prefs, err := a.editPrefs(ctx, state, func(currPrefs ipn.PrefsView, updatedPrefs *ipn.MaskedPrefs) {
+						updatedPrefs.Hostname = a.hostname()
+						updatedPrefs.HostnameSet = true
+					})
+					a.mu.Lock()
+					prefsView := prefs.View()
+					state.Prefs = &prefsView
+					a.mu.Unlock()
+					if prefs.Hostname != a.hostname() {
+						log.Printf("localapi failed to edit prefs for first notification")
+					}
+					if err != nil {
+						log.Printf("localapi failed to edit prefs for first notification: %v", err)
+					}
+				}()
+
 				a.setPrefs(state.Prefs)
 			}
 			if s := n.State; s != nil {
@@ -451,11 +473,43 @@ func (a *App) runBackend(ctx context.Context) error {
 			case OAuth2Event:
 				go b.backend.Login(e.Token)
 			case BeExitNodeEvent:
-				state.Prefs.SetAdvertiseExitNode(bool(e))
-				go b.backend.SetPrefs(state.Prefs)
+				go func() {
+					prefs, err := a.editPrefs(ctx, state, func(currPrefs ipn.PrefsView, updatedPrefs *ipn.MaskedPrefs) {
+						updatedPrefs.AdvertiseRoutes = currPrefs.AdvertiseRoutes().AsSlice()
+						updatedPrefs.SetAdvertiseExitNode(bool(e))
+						updatedPrefs.AdvertiseRoutesSet = true
+					})
+
+					a.mu.Lock()
+					prefsView := prefs.View()
+					state.Prefs = &prefsView
+					a.mu.Unlock()
+					if prefs.AdvertisesExitNode() != bool(e) {
+						log.Printf("localapi failed to edit prefs for BeExitNodeEvent")
+					}
+					if err != nil {
+						log.Printf("localapi failed to edit prefs for BeExitNodeEvent: %v", err)
+					}
+				}()
+
 			case ExitAllowLANEvent:
-				state.Prefs.ExitNodeAllowLANAccess = bool(e)
-				go b.backend.SetPrefs(state.Prefs)
+				go func() {
+					prefs, err := a.editPrefs(ctx, state, func(currPrefs ipn.PrefsView, updatedPrefs *ipn.MaskedPrefs) {
+						updatedPrefs.ExitNodeAllowLANAccess = bool(e)
+						updatedPrefs.ExitNodeAllowLANAccessSet = true
+					})
+
+					a.mu.Lock()
+					prefsView := prefs.View()
+					state.Prefs = &prefsView
+					a.mu.Unlock()
+					if prefs.ExitNodeAllowLANAccess != bool(e) {
+						log.Printf("localapi failed to edit prefs for ExitAllowLANEvent")
+					}
+					if err != nil {
+						log.Printf("localapi failed to edit prefs for ExitAllowLANEvent: %v", err)
+					}
+				}()
 			case WebAuthEvent:
 				log.Printf("KARI WEBAUTHEVENT")
 				if !signingIn {
@@ -463,14 +517,25 @@ func (a *App) runBackend(ctx context.Context) error {
 					signingIn = true
 				}
 			case SetLoginServerEvent:
-				state.Prefs.ControlURL = e.URL
-				b.backend.SetPrefs(state.Prefs)
-				// Need to restart to force the login URL to be regenerated
-				// with the new control URL. Start from a goroutine to avoid
-				// deadlock.
+
 				go func() {
-					err := b.backend.Start(ipn.Options{})
+					prefs, err := a.editPrefs(ctx, state, func(currPrefs ipn.PrefsView, updatedPrefs *ipn.MaskedPrefs) {
+						updatedPrefs.ControlURL = e.URL
+						updatedPrefs.ControlURLSet = true
+					})
+
+					a.mu.Lock()
+					prefsView := prefs.View()
+					state.Prefs = &prefsView
+					a.mu.Unlock()
+					if prefs.ControlURL != e.URL {
+						log.Printf("localapi failed to edit prefs for SetLoginServerEvent")
+					}
 					if err != nil {
+						log.Printf("localapi failed to edit prefs for SetLoginServerEvent: %v", err)
+					}
+					startErr := b.backend.Start(ipn.Options{})
+					if startErr != nil {
 						fatalErr(err)
 					}
 				}()
@@ -481,11 +546,40 @@ func (a *App) runBackend(ctx context.Context) error {
 					b.backend.Logout(ctx)
 				}()
 			case ConnectEvent:
-				state.Prefs.WantRunning = e.Enable
-				go b.backend.SetPrefs(state.Prefs)
+				go func() {
+					prefs, err := a.editPrefs(ctx, state, func(currPrefs ipn.PrefsView, updatedPrefs *ipn.MaskedPrefs) {
+						updatedPrefs.WantRunning = e.Enable
+						updatedPrefs.WantRunningSet = true
+					})
+					a.mu.Lock()
+					prefsView := prefs.View()
+					state.Prefs = &prefsView
+					a.mu.Unlock()
+					if prefs.WantRunning != e.Enable {
+						log.Printf("localapi failed to edit prefs for ConnectEvent")
+					}
+					if err != nil {
+						log.Printf("localapi failed to edit prefs for ConnectEvent: %v", err)
+					}
+				}()
 			case RouteAllEvent:
-				state.Prefs.ExitNodeID = e.ID
-				go b.backend.SetPrefs(state.Prefs)
+				go func() {
+					prefs, err := a.editPrefs(ctx, state, func(currPrefs ipn.PrefsView, updatedPrefs *ipn.MaskedPrefs) {
+						updatedPrefs.ExitNodeID = e.ID
+						updatedPrefs.ExitNodeIDSet = true
+					})
+					a.mu.Lock()
+					prefsView := prefs.View()
+					state.Prefs = &prefsView
+					a.mu.Unlock()
+					if prefs.ExitNodeID != e.ID {
+						log.Printf("localapi failed to edit prefs for RouteAllEvent")
+					}
+					if err != nil {
+						log.Printf("localapi failed to edit prefs for RouteAllEvent: %v", err)
+					}
+				}()
+
 				state.updateExitNodes()
 				a.notify(state)
 				if service != 0 {
@@ -568,6 +662,37 @@ func (a *App) runBackend(ctx context.Context) error {
 			a.notify(state)
 		}
 	}
+}
+
+func (a *App) editPrefs(ctx context.Context, state BackendState, editFn func(currPrefs ipn.PrefsView, updatedPrefs *ipn.MaskedPrefs)) (*ipn.Prefs, error) {
+	a.mu.Lock()
+	pc := *state.Prefs
+	mp := new(ipn.MaskedPrefs)
+	editFn(pc, mp)
+	a.mu.Unlock()
+
+	jsonData, err := json.Marshal(mp)
+	if err != nil {
+		return nil, err
+	}
+	body := bytes.NewReader(jsonData)
+	r, err := a.localAPIClient.Call(ctx, "PATCH", "prefs", body)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Body().Close()
+
+	data, err := io.ReadAll(r.Body())
+	if err != nil {
+		return nil, err
+	}
+
+	var prefs ipn.Prefs
+	err = json.Unmarshal(data, &prefs)
+	if err != nil {
+		return nil, err
+	}
+	return &prefs, nil
 }
 
 func (a *App) getBugReportID(ctx context.Context, bugReportChan chan<- string, fallbackLog string) {
@@ -705,7 +830,7 @@ func (s *BackendState) updateExitNodes() {
 	s.ExitStatus = ExitNone
 	var exitID tailcfg.StableNodeID
 	if p := s.Prefs; p != nil {
-		exitID = p.ExitNodeID
+		exitID = p.ExitNodeID()
 		if exitID != "" {
 			s.ExitStatus = ExitOffline
 		}
@@ -978,8 +1103,8 @@ func (a *App) notify(state BackendState) {
 	}
 }
 
-func (a *App) setPrefs(prefs *ipn.Prefs) {
-	wantRunning := jni.Bool(prefs.WantRunning)
+func (a *App) setPrefs(prefs *ipn.PrefsView) {
+	wantRunning := jni.Bool(prefs.WantRunning())
 	if err := a.callVoidMethod(a.appCtx, "setTileStatus", "(Z)V", jni.Value(wantRunning)); err != nil {
 		fatalErr(err)
 	}
@@ -1045,9 +1170,9 @@ func (a *App) runUI() error {
 				}
 			}
 		case p := <-a.prefs:
-			ui.enabled.Value = p.WantRunning
+			ui.enabled.Value = p.WantRunning()
 			ui.runningExit = p.AdvertisesExitNode()
-			ui.exitLAN.Value = p.ExitNodeAllowLANAccess
+			ui.exitLAN.Value = p.ExitNodeAllowLANAccess()
 			w.Invalidate()
 		case url := <-a.browseURLs:
 			ui.signinType = noSignin
@@ -1313,7 +1438,7 @@ func (a *App) processUIEvents(w *app.Window, events []UIEvent, act jni.Object, s
 			a.signOut()
 			requestBackend(e)
 		case ConnectEvent:
-			if srv, _ := a.store.ReadString(customLoginServerPrefKey, ""); srv != state.backend.Prefs.ControlURL {
+			if srv, _ := a.store.ReadString(customLoginServerPrefKey, ""); srv != state.backend.Prefs.ControlURL() {
 				requestBackend(SetLoginServerEvent{URL: srv})
 				// wait a moment for the backend to restart
 				<-time.After(200 * time.Millisecond)
