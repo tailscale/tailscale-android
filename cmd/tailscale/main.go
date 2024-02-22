@@ -61,6 +61,7 @@ type App struct {
 	logIDPublicAtomic atomic.Pointer[logid.PublicID]
 
 	localAPIClient *localapiclient.LocalAPIClient
+	backend        *ipnlocal.LocalBackend
 
 	// netStates receives the most recent network state.
 	netStates chan BackendState
@@ -294,6 +295,7 @@ func (a *App) runBackend(ctx context.Context) error {
 		return err
 	}
 	a.logIDPublicAtomic.Store(&b.logIDPublic)
+	a.backend = b.backend
 	defer b.CloseTUNs()
 
 	h := localapi.NewHandler(b.backend, log.Printf, b.sys.NetMon.Get(), *a.logIDPublicAtomic.Load())
@@ -459,8 +461,9 @@ func (a *App) runBackend(ctx context.Context) error {
 				state.Prefs.ExitNodeAllowLANAccess = bool(e)
 				go b.backend.SetPrefs(state.Prefs)
 			case WebAuthEvent:
+				log.Printf("KARI WEBAUTHEVENT")
 				if !signingIn {
-					go b.backend.StartLoginInteractive()
+					go a.login(ctx)
 					signingIn = true
 				}
 			case SetLoginServerEvent:
@@ -589,6 +592,18 @@ func (a *App) getBugReportID(ctx context.Context, bugReportChan chan<- string, f
 		return
 	}
 	bugReportChan <- string(logBytes)
+}
+
+func (a *App) login(ctx context.Context) {
+	ctx, cancel := context.WithDeadline(ctx, time.Now().Add(2*time.Second))
+	defer cancel()
+	r, err := a.localAPIClient.Call(ctx, "POST", "login-interactive", nil)
+	defer r.Body().Close()
+
+	if err != nil {
+		log.Printf("login: %s", err)
+		a.backend.StartLoginInteractive()
+	}
 }
 
 func (a *App) processWaitingFiles(b *ipnlocal.LocalBackend) error {
