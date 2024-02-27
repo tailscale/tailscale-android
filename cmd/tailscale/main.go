@@ -457,7 +457,6 @@ func (a *App) runBackend(ctx context.Context) error {
 				state.Prefs.ExitNodeAllowLANAccess = bool(e)
 				go b.backend.SetPrefs(state.Prefs)
 			case WebAuthEvent:
-				log.Printf("KARI WEBAUTHEVENT")
 				if !signingIn {
 					go a.login(ctx)
 					signingIn = true
