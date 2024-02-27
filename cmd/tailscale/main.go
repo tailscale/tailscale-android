@@ -730,7 +730,7 @@ func (s *BackendState) updateExitNodes() {
 	}
 	for _, p := range peers {
 		canRoute := false
-		for i := range p.AllowedIPs().LenIter() {
+		for i := range p.AllowedIPs().Len() {
 			r := p.AllowedIPs().At(i)
 			if r == netip.MustParsePrefix("0.0.0.0/0") || r == netip.MustParsePrefix("::/0") {
 				canRoute = true
