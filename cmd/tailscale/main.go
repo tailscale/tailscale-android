@@ -61,6 +61,7 @@ type App struct {
 	logIDPublicAtomic atomic.Pointer[logid.PublicID]
 
 	localAPIClient *localapiclient.LocalAPIClient
+	backend        *ipnlocal.LocalBackend
 
 	// netStates receives the most recent network state.
 	netStates chan BackendState
@@ -199,7 +200,6 @@ type SetLoginServerEvent struct {
 
 // UIEvent types.
 type (
-	ToggleEvent       struct{}
 	ReauthEvent       struct{}
 	BugEvent          struct{}
 	WebAuthEvent      struct{}
@@ -294,6 +294,7 @@ func (a *App) runBackend(ctx context.Context) error {
 		return err
 	}
 	a.logIDPublicAtomic.Store(&b.logIDPublic)
+	a.backend = b.backend
 	defer b.CloseTUNs()
 
 	h := localapi.NewHandler(b.backend, log.Printf, b.sys.NetMon.Get(), *a.logIDPublicAtomic.Load())
@@ -449,9 +450,6 @@ func (a *App) runBackend(ctx context.Context) error {
 				a.getBugReportID(ctx, a.bugReport, fallbackLog)
 			case OAuth2Event:
 				go b.backend.Login(e.Token)
-			case ToggleEvent:
-				state.Prefs.WantRunning = !state.Prefs.WantRunning
-				go b.backend.SetPrefs(state.Prefs)
 			case BeExitNodeEvent:
 				state.Prefs.SetAdvertiseExitNode(bool(e))
 				go b.backend.SetPrefs(state.Prefs)
@@ -460,7 +458,7 @@ func (a *App) runBackend(ctx context.Context) error {
 				go b.backend.SetPrefs(state.Prefs)
 			case WebAuthEvent:
 				if !signingIn {
-					go b.backend.StartLoginInteractive()
+					go a.login(ctx)
 					signingIn = true
 				}
 			case SetLoginServerEvent:
@@ -476,11 +474,7 @@ func (a *App) runBackend(ctx context.Context) error {
 					}
 				}()
 			case LogoutEvent:
-				go func() {
-					ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
-					defer cancel()
-					b.backend.Logout(ctx)
-				}()
+				go a.logout(ctx)
 			case ConnectEvent:
 				state.Prefs.WantRunning = e.Enable
 				go b.backend.SetPrefs(state.Prefs)
@@ -572,7 +566,7 @@ func (a *App) runBackend(ctx context.Context) error {
 }
 
 func (a *App) getBugReportID(ctx context.Context, bugReportChan chan<- string, fallbackLog string) {
-	ctx, cancel := context.WithDeadline(ctx, time.Now().Add(2*time.Second))
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 	r, err := a.localAPIClient.Call(ctx, "POST", "bugreport", nil)
 	defer r.Body().Close()
@@ -589,6 +583,34 @@ func (a *App) getBugReportID(ctx context.Context, bugReportChan chan<- string, f
 		return
 	}
 	bugReportChan <- string(logBytes)
+}
+
+func (a *App) login(ctx context.Context) {
+	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+	r, err := a.localAPIClient.Call(ctx, "POST", "login-interactive", nil)
+	defer r.Body().Close()
+
+	if err != nil {
+		log.Printf("login: %s", err)
+		a.backend.StartLoginInteractive()
+	}
+}
+
+func (a *App) logout(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+	r, err := a.localAPIClient.Call(ctx, "POST", "logout", nil)
+	defer r.Body().Close()
+
+	if err != nil {
+		log.Printf("logout: %s", err)
+		logoutctx, logoutcancel := context.WithTimeout(ctx, 5*time.Minute)
+		defer logoutcancel()
+		a.backend.Logout(logoutctx)
+	}
+
+	return err
 }
 
 func (a *App) processWaitingFiles(b *ipnlocal.LocalBackend) error {

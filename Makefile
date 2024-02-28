@@ -84,7 +84,7 @@ tag_release:
 
 bumposs: toolchain
 	GOPROXY=direct go get tailscale.com@main
-	go mod tidy -compat=1.21
+	go mod tidy -compat=1.22
 
 $(TOOLCHAINDIR)/bin/go:
 	@if ! echo $(TOOLCHAINDIR) | grep -q 'tailscale-android-go'; then \
