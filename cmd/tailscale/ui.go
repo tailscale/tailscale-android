@@ -361,6 +361,7 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 		expiry               time.Time
 		userID               tailcfg.UserID
 		exitID               tailcfg.StableNodeID
+		advertisesExitNode   bool
 	)
 	if netmap != nil {
 		userID = netmap.User()
@@ -372,6 +373,7 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 	}
 	if p := state.backend.Prefs; p != nil {
 		exitID = p.ExitNodeID()
+		advertisesExitNode = p.AdvertisesExitNode()
 	}
 	if d := &ui.exitDialog; d.show {
 		if newID := tailcfg.StableNodeID(d.exits.Value); newID != exitID {
@@ -583,7 +585,7 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 
 	// 3-dots menu.
 	if ui.menu.show {
-		ui.layoutMenu(gtx, sysIns, expiry, exitID != "" || len(state.backend.Exits) > 0, needsLogin)
+		ui.layoutMenu(gtx, sysIns, expiry, exitID != "" || len(state.backend.Exits) > 0 && !advertisesExitNode, exitID != "", needsLogin)
 	}
 
 	if ui.qr.show {
@@ -1195,7 +1197,7 @@ func layoutDialog(gtx layout.Context, w layout.Widget) layout.Dimensions {
 }
 
 // layoutMenu lays out the menu activated by the 3 dots button.
-func (ui *UI) layoutMenu(gtx layout.Context, sysIns system.Insets, expiry time.Time, showExits bool, needsLogin bool) {
+func (ui *UI) layoutMenu(gtx layout.Context, sysIns system.Insets, expiry time.Time, showExits bool, isUsingExitNode bool, needsLogin bool) {
 	ui.menu.dismiss.Add(gtx, color.NRGBA{})
 	if ui.menu.dismiss.Dismissed(gtx) {
 		ui.setMenuShown(false)
@@ -1233,13 +1235,15 @@ func (ui *UI) layoutMenu(gtx layout.Context, sysIns system.Insets, expiry time.T
 				menuItem{title: "Log out", btn: &menu.logout},
 			)
 
-			var title string
-			if ui.runningExit {
-				title = "Stop running exit node"
-			} else {
-				title = "Run exit node"
+			if !isUsingExitNode {
+				var title string
+				if ui.runningExit {
+					title = "Stop running exit node"
+				} else {
+					title = "Run exit node"
+				}
+				items = append(items, menuItem{title: title, btn: &menu.beExit})
 			}
-			items = append(items, menuItem{title: title, btn: &menu.beExit})
 
 			items = append(items, menuItem{title: "About", btn: &menu.about})
 
