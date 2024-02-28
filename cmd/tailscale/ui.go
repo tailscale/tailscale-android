@@ -548,7 +548,7 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 				if p.Peer == nil {
 					name := p.Name
 					if p.Owner == userID {
-						name = "MACHINE"
+						name = "MY DEVICES"
 					}
 					return ui.layoutSection(gtx, sysIns, name)
 				} else {
@@ -1317,25 +1317,30 @@ func (ui *UI) layoutPeer(gtx layout.Context, sysIns system.Insets, p *UIPeer, us
 			gtx.Constraints.Min.X = gtx.Constraints.Max.X
 			return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 				layout.Rigid(func(gtx C) D {
-					return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
-						layout.Rigid(func(gtx C) D {
-							return layout.Inset{Left: unit.Dp(4)}.Layout(gtx, func(gtx C) D {
-								statusbullet := material.H3(ui.theme, "•")
-								if p.Peer.Online != nil && *p.Peer.Online {
-									statusbullet.Color = rgb(0x009966)
-								} else {
-									statusbullet.Color = rgb(0xcccccc)
-								}
-								return statusbullet.Layout(gtx)
-							})
-						}),
-						layout.Rigid(func(gtx C) D {
-							return layout.Inset{Left: unit.Dp(4)}.Layout(gtx, func(gtx C) D {
-								name := p.Peer.DisplayName(p.Peer.User == user)
-								return material.H6(ui.theme, name).Layout(gtx)
-							})
+					return layout.Stack{}.Layout(gtx,
+						layout.Expanded(func(gtx C) D {
+							return layout.Stack{Alignment: layout.W}.Layout(gtx,
+								layout.Stacked(func(gtx C) D {
+									return layout.Inset{}.Layout(gtx, func(gtx C) D {
+										statusbullet := material.H4(ui.theme, "•")
+										if p.Peer.Online != nil && *p.Peer.Online {
+											statusbullet.Color = rgb(0x009966)
+										} else {
+											statusbullet.Color = rgb(0xcccccc)
+										}
+										return statusbullet.Layout(gtx)
+									})
+								}),
+								layout.Stacked(func(gtx C) D {
+									return layout.Inset{Left: unit.Dp(16), Bottom: unit.Dp(4)}.Layout(gtx, func(gtx C) D {
+										name := p.Peer.DisplayName(p.Peer.User == user)
+										return material.H6(ui.theme, name).Layout(gtx)
+									})
+								}),
+							)
 						}),
 					)
+
 				}),
 				layout.Rigid(func(gtx C) D {
 					var bestIP netip.Addr // IP to show; first IPv4, or first IPv6 if no IPv4
@@ -1353,7 +1358,7 @@ func (ui *UI) layoutPeer(gtx layout.Context, sysIns system.Insets, p *UIPeer, us
 	})
 }
 
-// layoutSection lays out a section title (e.g. "Machine").
+// layoutSection lays out a section title (e.g. "My devices").
 func (ui *UI) layoutSection(gtx layout.Context, sysIns system.Insets, title string) layout.Dimensions {
 	return Background{Color: rgb(0xe1e0e9)}.Layout(gtx, func(gtx C) D {
 		return layout.Inset{
@@ -1487,7 +1492,7 @@ func (ui *UI) layoutSearchbar(gtx layout.Context, sysIns system.Insets) layout.D
 							return ui.icons.search.Layout(gtx, col)
 						}),
 						layout.Flexed(1,
-							material.Editor(ui.theme, &ui.search, "Search by machine name...").Layout,
+							material.Editor(ui.theme, &ui.search, "Search by device name...").Layout,
 						),
 					)
 				})
