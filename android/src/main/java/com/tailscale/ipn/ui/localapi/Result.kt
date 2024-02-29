@@ -10,7 +10,7 @@ class Result<T> {
     val success: T?
     val error: Error?
     
-    constructor(success: T?, error: Error?) {
+    private constructor(success: T?, error: Error?) {
         if (success != null && error != null) {
             throw IllegalArgumentException("Result cannot have both a success and an error")
         }
