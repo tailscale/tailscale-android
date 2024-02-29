@@ -4,7 +4,7 @@
 
 package com.tailscale.ipn.ui.model
 
-import kotlinx.serialization.*
+import kotlinx.serialization.Serializable
 
 class Tailcfg {
     @Serializable
