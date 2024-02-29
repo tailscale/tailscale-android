@@ -82,6 +82,8 @@ type UI struct {
 
 	runningExit bool // are we an exit node now?
 
+	exitID tailcfg.StableNodeID
+
 	qr struct {
 		show bool
 		op   paint.ImageOp
@@ -360,7 +362,6 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 		localName, localAddr string
 		expiry               time.Time
 		userID               tailcfg.UserID
-		exitID               tailcfg.StableNodeID
 	)
 	if netmap != nil {
 		userID = netmap.User()
@@ -370,16 +371,13 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 			localAddr = addrs.At(0).Addr().String()
 		}
 	}
-	if p := state.backend.Prefs; p != nil {
-		exitID = p.ExitNodeID
-	}
 	if d := &ui.exitDialog; d.show {
-		if newID := tailcfg.StableNodeID(d.exits.Value); newID != exitID {
+		if newID := tailcfg.StableNodeID(d.exits.Value); newID != ui.exitID {
 			d.show = false
 			events = append(events, RouteAllEvent{newID})
 		}
 	} else {
-		d.exits.Value = string(exitID)
+		d.exits.Value = string(ui.exitID)
 	}
 	if ui.exitLAN.Changed() {
 		events = append(events, ExitAllowLANEvent(ui.exitLAN.Value))
@@ -583,7 +581,7 @@ func (ui *UI) layout(gtx layout.Context, sysIns system.Insets, state *clientStat
 
 	// 3-dots menu.
 	if ui.menu.show {
-		ui.layoutMenu(gtx, sysIns, expiry, exitID != "" || len(state.backend.Exits) > 0, needsLogin)
+		ui.layoutMenu(gtx, sysIns, expiry, ui.exitID != "" || len(state.backend.Exits) > 0, needsLogin)
 	}
 
 	if ui.qr.show {
