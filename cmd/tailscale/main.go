@@ -740,7 +740,7 @@ func (s *BackendState) updateExitNodes() {
 		hasMyExit = hasMyExit || myExit
 		exit := Peer{
 			Label:    p.DisplayName(true),
-			Online:   canRoute,
+			Online:   *p.Online(),
 			ID:       p.StableID(),
 			Location: p.Hostinfo().Location(),
 		}
@@ -754,7 +754,7 @@ func (s *BackendState) updateExitNodes() {
 
 		if myExit {
 			s.Exit = exit
-			if canRoute {
+			if canRoute && *p.Online() {
 				s.ExitStatus = ExitOnline
 			}
 		}

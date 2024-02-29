@@ -1064,20 +1064,24 @@ func (ui *UI) layoutExitNodeDialog(gtx layout.Context, sysIns system.Insets, exi
 							if idx >= 2 {
 								node = exits[idx-2]
 							}
-							lbl := node.Label
-							if !node.Online {
-								lbl = lbl + " (offline)"
-							}
-							btn := material.RadioButton(ui.theme, &d.exits, string(node.ID), lbl)
-							if !node.Online {
+							if node.Online {
+								btn := material.RadioButton(ui.theme, &d.exits, string(node.ID), node.Label)
+								return layout.Inset{
+									Right:  unit.Dp(16),
+									Left:   unit.Dp(16),
+									Bottom: unit.Dp(16),
+								}.Layout(gtx, btn.Layout)
+							} else {
+								node.Label = node.Label + " (offline)"
+								btn := material.RadioButton(ui.theme, &d.exits, string(node.ID), node.Label)
 								btn.Color = rgb(0xbbbbbb)
 								btn.IconColor = btn.Color
+								return layout.Inset{
+									Right:  unit.Dp(16),
+									Left:   unit.Dp(16),
+									Bottom: unit.Dp(16),
+								}.Layout(gtx, btn.Layout)
 							}
-							return layout.Inset{
-								Right:  unit.Dp(16),
-								Left:   unit.Dp(16),
-								Bottom: unit.Dp(16),
-							}.Layout(gtx, btn.Layout)
 						})
 					}),
 				)
