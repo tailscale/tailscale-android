@@ -19,7 +19,7 @@ enum class LocalAPIEndpoint(val rawValue: String) {
     LoginInteractive("login-interactive"),
     ResetAuth("reset-auth"),
     Logout("logout"),
-    Profiles("profiles"),
+    Profiles("profiles/"),
     ProfilesCurrent("profiles/current"),
     Status("status"),
     TKAStatus("tka/status"),
@@ -93,6 +93,20 @@ class LocalAPIRequest<T>(
             val path = LocalAPIEndpoint.Prefs.path()
             return LocalAPIRequest<Ipn.Prefs>(path, "GET", null, responseHandler) { resp ->
                 responseHandler(decode<Ipn.Prefs>(resp))
+            }
+        }
+
+        fun profiles(responseHandler: (Result<List<IpnLocal.LoginProfile>>) -> Unit): LocalAPIRequest<List<IpnLocal.LoginProfile>> {
+            val path = LocalAPIEndpoint.Profiles.path()
+            return LocalAPIRequest<List<IpnLocal.LoginProfile>>(path, "GET", null, responseHandler) { resp ->
+                responseHandler(decode<List<IpnLocal.LoginProfile>>(resp))
+            }
+        }
+
+        fun currentProfile(responseHandler: (Result<IpnLocal.LoginProfile>) -> Unit): LocalAPIRequest<IpnLocal.LoginProfile> {
+            val path = LocalAPIEndpoint.ProfilesCurrent.path()
+            return LocalAPIRequest<IpnLocal.LoginProfile>(path, "GET", null, responseHandler) { resp ->
+                responseHandler(decode<IpnLocal.LoginProfile>(resp))
             }
         }
 
