@@ -4,7 +4,7 @@
 
 package com.tailscale.ipn.ui.model
 
-import kotlinx.serialization.*
+import kotlinx.serialization.Serializable
 
 class Ipn {
 
@@ -16,20 +16,14 @@ class Ipn {
                 NeedsMachineAuth(3),
                 Stopped(4),
                 Starting(5),
-                Running(6),
-        }
+                Running(6);
 
-        // NotifyWatchOpt is a bitmask of options supplied to the notifier to specify which
-        // what we want to see on the Noitfy bus
-        enum class NotifyWatchOpt(val value: Int) {
-                engineUpdates(0),
-                initialState(1 shl 1),
-                prefs(1 shl 2),
-                netmap(1 shl 3),
-                noPrivateKeys(1 shl 4),
-                initialTailFSShares(1 shl 5)
+                companion object {
+                        fun fromInt(value: Int): State? {
+                                return State.values().first { s -> s.value == value }
+                        }
+                    }
         }
-
         // A nofitication message recieved on the Notify bus.  Fields will be populated based
         // on which NotifyWatchOpts were set when the Notifier was created.
         @Serializable
@@ -38,7 +32,7 @@ class Ipn {
                         val ErrMessage: String? = null,
                         val LoginFinished: Empty.Message? = null,
                         val FilesWaiting: Empty.Message? = null,
-                        val State: State? = null,
+                        val State: Int? = null,
                         var Prefs: Prefs? = null,
                         var NetMap: Netmap.NetworkMap? = null,
                         var Engine: EngineStatus? = null,
