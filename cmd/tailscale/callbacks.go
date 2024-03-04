@@ -9,7 +9,7 @@ package main
 import (
 	"unsafe"
 
-	"github.com/tailscale/tailscale-android/jni"
+	"github.com/tailscale/tailscale-android/cmd/jni"
 )
 
 // #include <jni.h>
