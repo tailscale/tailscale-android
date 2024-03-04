@@ -5,32 +5,32 @@
 package com.tailscale.ipn.ui.localapi
 
 import android.util.Log
-import com.tailscale.ipn.ui.model.*
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.first
+import com.tailscale.ipn.ui.model.BugReportID
+import com.tailscale.ipn.ui.model.Ipn
+import com.tailscale.ipn.ui.model.IpnLocal
+import com.tailscale.ipn.ui.model.IpnState
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 
 typealias StatusResponseHandler = (Result<IpnState.Status>) -> Unit
 typealias BugReportIdHandler = (Result<BugReportID>) -> Unit
 typealias PrefsHandler = (Result<Ipn.Prefs>) -> Unit
 
 class LocalApiClient {
-    constructor() {
+    init {
         Log.d("LocalApiClient", "LocalApiClient created")
     }
 
     companion object {
-        private val _isReady = MutableStateFlow(false)
-        val isReady: StateFlow<Boolean> = _isReady
+        val isReady = CompletableDeferred<Boolean>()
 
         // Called by the backend when the localAPI is ready to accept requests.
         @JvmStatic
         fun onReady() {
-            _isReady.value = true
+            isReady.complete(true)
             Log.d("LocalApiClient", "LocalApiClient is ready")
         }
     }
@@ -48,11 +48,12 @@ class LocalApiClient {
     //         the corresponding request.  Cookies must be unique for each request.
     external fun doRequest(request: String, method: String, body: String, cookie: String)
 
+    // (jonathan) TODO: We should be using a lifecycle aware scope here
     protected val scope = CoroutineScope(Dispatchers.IO + Job())
 
     fun <T> executeRequest(request: LocalAPIRequest<T>) {
         scope.launch {
-            isReady.first { it == true }
+            isReady.await()
             Log.d("LocalApiClient", "Executing request:${request.method}:${request.path}")
             addRequest(request)
             // The jni handler will treat the empty string in the body as null.
@@ -113,6 +114,14 @@ class LocalApiClient {
     fun getCurrentProfile(responseHandler: (Result<IpnLocal.LoginProfile>) -> Unit) {
         val req = LocalAPIRequest.currentProfile(responseHandler)
         executeRequest<IpnLocal.LoginProfile>(req)
+    }
+
+    fun startLoginInteractive() {
+        val req = LocalAPIRequest.startLoginInteractive { result ->
+            result.success?.let { Log.d("LocalApiClient", "Login started: $it") }
+                    ?: run { Log.e("LocalApiClient", "Error starting login: ${result.error}") }
+        }
+        executeRequest<String>(req)
     }
 
     // (jonathan) TODO: A (likely) exhaustive list of localapi endpoints required for

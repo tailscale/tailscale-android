@@ -1,25 +1,24 @@
-
 buildscript {
-	ext.kotlin_version = "1.9.22"
-	ext.kotlin_compose_version = "1.5.10"
+    ext.kotlin_version = "1.9.22"
+    ext.kotlin_compose_version = "1.5.10"
 
-	repositories {
-		google()
-		mavenCentral()
-	}
-	dependencies {
-		classpath "com.android.tools.build:gradle:8.1.0"
-		classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-		classpath "org.jetbrains.kotlin:kotlin-serialization:$kotlin_version"
-	}
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath "com.android.tools.build:gradle:8.1.4"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath "org.jetbrains.kotlin:kotlin-serialization:$kotlin_version"
+    }
 }
 
 repositories {
-	google()
-	mavenCentral()
-	flatDir {
-		dirs 'libs'
-	}
+    google()
+    mavenCentral()
+    flatDir {
+        dirs 'libs'
+    }
 }
 
 apply plugin: 'kotlin-android'
@@ -27,69 +26,82 @@ apply plugin: 'com.android.application'
 apply plugin: 'org.jetbrains.kotlin.plugin.serialization'
 
 android {
-	ndkVersion "23.1.7779620"
-	compileSdkVersion 33
-	defaultConfig {
-		minSdkVersion 22
-		targetSdkVersion 33
-		versionCode 198
-		versionName "1.59.53-t0f042b981-g1017015de26"
-	}
-	compileOptions {
-		sourceCompatibility JavaVersion.VERSION_17
-		targetCompatibility JavaVersion.VERSION_17
-	}
-	buildFeatures {
-		compose true
-	}
-	composeOptions {
+    ndkVersion "23.1.7779620"
+    compileSdkVersion 34
+    defaultConfig {
+        minSdkVersion 22
+        targetSdkVersion 34
+        versionCode 198
+        versionName "1.59.53-t0f042b981-g1017015de26"
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    buildFeatures {
+        compose true
+    }
+    composeOptions {
         kotlinCompilerExtensionVersion = "$kotlin_compose_version"
     }
-	flavorDimensions "version"
-	productFlavors {
-		fdroid {
-			// The fdroid flavor contains only free dependencies and is suitable
-			// for the F-Droid app store.
-		}
-		play {
-			// The play flavor contains all features and is for the Play Store.
-		}
-	}
+    flavorDimensions "version"
+    productFlavors {
+        fdroid {
+            // The fdroid flavor contains only free dependencies and is suitable
+            // for the F-Droid app store.
+        }
+        play {
+            // The play flavor contains all features and is for the Play Store.
+        }
+    }
     namespace 'com.tailscale.ipn'
 }
 
 dependencies {
-	// Android dependencies.
-	implementation "androidx.core:core:1.9.0"
-    implementation 'androidx.core:core-ktx:1.9.0'
-	implementation "androidx.browser:browser:1.5.0"
-	implementation "androidx.security:security-crypto:1.1.0-alpha06"
-	implementation "androidx.work:work-runtime:2.8.1"
+    // Android dependencies.
+    implementation "androidx.core:core:1.12.0"
+    implementation 'androidx.core:core-ktx:1.12.0'
+    implementation "androidx.browser:browser:1.8.0"
+    implementation "androidx.security:security-crypto:1.1.0-alpha06"
+    implementation "androidx.work:work-runtime:2.9.0"
 
-	// Kotlin dependencies.
-	implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3"
-	implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0"
-	implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0"
-    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version" 
+    // Kotlin dependencies.
+    implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
 
-	// Compose dependencies.
-	def composeBom = platform('androidx.compose:compose-bom:2023.06.01')
+    // Compose dependencies.
+    def composeBom = platform('androidx.compose:compose-bom:2023.06.01')
     implementation composeBom
     androidTestImplementation composeBom
-    implementation 'androidx.compose.material3:material3:1.0.0'
-	implementation "androidx.compose.ui:ui:1.4.3"
-	implementation "androidx.compose.ui:ui-tooling:1.4.3"
-	implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.3.1'
-	implementation 'androidx.activity:activity-compose:1.7.2'
+    implementation 'androidx.compose.material3:material3:1.2.1'
+    implementation 'androidx.compose.material:material-icons-core:1.6.3'
+    implementation "androidx.compose.ui:ui:1.6.3"
+    implementation "androidx.compose.ui:ui-tooling:1.6.3"
+    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0'
+    implementation 'androidx.activity:activity-compose:1.8.2'
 
-	// Tailscale dependencies.
-	implementation ':ipn@aar'
+    // Navigation dependencies.
+    def nav_version = "2.7.7"
+    implementation "androidx.navigation:navigation-fragment:$nav_version"
+    implementation "androidx.navigation:navigation-ui:$nav_version"
+    implementation "androidx.navigation:navigation-fragment-ktx:$nav_version"
+    implementation "androidx.navigation:navigation-ui-ktx:$nav_version"
+    implementation "androidx.navigation:navigation-dynamic-features-fragment:$nav_version"
+    implementation "androidx.navigation:navigation-compose:$nav_version"
 
-	// Tests
-	testImplementation "junit:junit:4.12"
 
-	// Non-free dependencies.
-	playImplementation 'com.google.android.gms:play-services-auth:20.7.0'
+    // Tailscale dependencies.
+    implementation ':ipn@aar'
+
+    // Tests
+    testImplementation "junit:junit:4.12"
+    androidTestImplementation "androidx.navigation:navigation-testing:$nav_version"
+
+    // Non-free dependencies.
+    playImplementation 'com.google.android.gms:play-services-auth:20.7.0'
 }
 
 

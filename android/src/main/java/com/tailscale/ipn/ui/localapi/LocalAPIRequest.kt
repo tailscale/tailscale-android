@@ -4,8 +4,11 @@
 
 package com.tailscale.ipn.ui.localapi
 
-import com.tailscale.ipn.ui.model.*
-import kotlinx.serialization.decodeFromString
+import com.tailscale.ipn.ui.model.BugReportID
+import com.tailscale.ipn.ui.model.Errors
+import com.tailscale.ipn.ui.model.Ipn
+import com.tailscale.ipn.ui.model.IpnLocal
+import com.tailscale.ipn.ui.model.IpnState
 import kotlinx.serialization.json.Json
 
 private object Endpoint {
@@ -121,6 +124,12 @@ class LocalAPIRequest<T>(
         fun currentProfile(responseHandler: (Result<IpnLocal.LoginProfile>) -> Unit): LocalAPIRequest<IpnLocal.LoginProfile> {
             return get(Endpoint.PROFILES_CURRENT) { resp ->
                 responseHandler(decode<IpnLocal.LoginProfile>(resp))
+            }
+        }
+
+        fun startLoginInteractive(responseHandler: (Result<String>) -> Unit): LocalAPIRequest<String> {
+            return post(Endpoint.LOGIN_INTERACTIVE) { resp ->
+                responseHandler(parseString(resp))
             }
         }
 
