@@ -1,4 +1,3 @@
-
 buildscript {
 	ext.kotlin_version = "1.9.22"
 
@@ -29,6 +28,7 @@ android {
 	ndkVersion "23.1.7779620"
 	compileSdkVersion 33
 	defaultConfig {
+		applicationId "com.tailscale.ipn"
 		minSdkVersion 22
 		targetSdkVersion 33
 		versionCode 198
@@ -47,8 +47,37 @@ android {
 		play {
 			// The play flavor contains all features and is for the Play Store.
 		}
+		newapp {
+			// In progress! 
+		}
 	}
     namespace 'com.tailscale.ipn'
+	sourceSets {
+		main {
+            res.srcDirs = ['src/main/res']
+			java.srcDirs = ['src/main/java']
+            manifest.srcFile 'src/main/AndroidManifest.xml'
+        }
+		fdroid {
+            manifest.srcFile 'src/app/AndroidManifest.xml'
+			java{
+				srcDir 'src/app'
+			}
+		}
+		play {
+            manifest.srcFile 'src/app/AndroidManifest.xml'
+			java{
+				srcDir 'src/app'
+			}
+		}
+		newapp{
+			java{
+				srcDir 'src/newapp/java'
+			}
+			jniLibs.srcDirs = ['src/main/jniLibs']
+            manifest.srcFile 'src/newapp/AndroidManifest.xml'
+		}
+    }
 }
 
 dependencies {
