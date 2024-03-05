@@ -1321,14 +1321,15 @@ func (ui *UI) layoutPeer(gtx layout.Context, sysIns system.Insets, p *UIPeer, us
 						layout.Expanded(func(gtx C) D {
 							return layout.Stack{Alignment: layout.W}.Layout(gtx,
 								layout.Stacked(func(gtx C) D {
-									return layout.Inset{}.Layout(gtx, func(gtx C) D {
-										statusbullet := material.H4(ui.theme, "•")
-										if p.Peer.Online != nil && *p.Peer.Online {
-											statusbullet.Color = rgb(0x009966)
-										} else {
-											statusbullet.Color = rgb(0xcccccc)
-										}
-										return statusbullet.Layout(gtx)
+									return layout.Inset{Bottom: unit.Dp(8)}.Layout(gtx, func(gtx C) D {
+										return layout.N.Layout(gtx, func(gtx C) D {
+											if p.Peer.Online != nil && *p.Peer.Online {
+												drawDisc(gtx.Ops, 24, rgb(0x009966))
+											} else {
+												drawDisc(gtx.Ops, 24, rgb(0xcccccc))
+											}
+											return layout.Dimensions{Size: image.Pt(0, 0)}
+										})
 									})
 								}),
 								layout.Stacked(func(gtx C) D {
