@@ -1,4 +1,4 @@
-package localapiclient
+package localapiservice
 
 import (
 	"context"

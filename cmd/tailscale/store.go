@@ -9,7 +9,7 @@ import (
 
 	"tailscale.com/ipn"
 
-	"github.com/tailscale/tailscale-android/jni"
+	"github.com/tailscale/tailscale-android/cmd/jni"
 )
 
 // stateStore is the Go interface for a persistent storage
