@@ -51,6 +51,14 @@ android {
 			// In progress! 
 		}
 	}
+
+	// This attaches the custom task to the preBuild task of newapp
+    applicationVariants.all { variant ->
+        if (variant.flavorName == 'newapp') {
+            variant.preBuild.dependsOn buildAllGoLibs
+        }
+    }
+
     namespace 'com.tailscale.ipn'
 	sourceSets {
 		main {
@@ -96,4 +104,37 @@ dependencies {
 	playImplementation 'com.google.android.gms:play-services-auth:20.7.0'
 }
 
+def ndkPath = project.hasProperty('ndkPath') ? project.property('ndkPath') : System.getenv('ANDROID_SDK_ROOT')
+
+task checkNDK {
+    doFirst {
+        if (ndkPath == null) {
+            throw new GradleException('NDK path not found. Please define ndkPath in local.properties or ANDROID_SDK_HOME environment variable.')
+        }
+    }
+}
+
+task buildGoLibArm64(type: Exec) {
+    environment "CC", "$ndkPath/ndk-bundle/toolchains/llvm/prebuilt/darwin-x86_64/bin/aarch64-linux-android30-clang"
+    commandLine 'sh', '-c', "GOOS=android GOARCH=arm64 CGO_ENABLED=1 go build -buildmode=c-shared -ldflags=-w -o src/main/jniLibs/arm64-v8a/repository.so ../cmd/tailscale"
+}
+
+task buildGoLibArmeabi(type: Exec) {
+    environment "CC", "$ndkPath/ndk-bundle/toolchains/llvm/prebuilt/darwin-x86_64/bin/armv7a-linux-androideabi30-clang"
+    commandLine 'sh', '-c', "GOOS=android GOARCH=arm CGO_ENABLED=1 go build -buildmode=c-shared -ldflags=-w -o src/main/jniLibs/armeabi-v7a/repository.so ../cmd/tailscale"
+}
+
+task buildGoLibX86(type: Exec) {
+    environment "CC", "$ndkPath/ndk-bundle/toolchains/llvm/prebuilt/darwin-x86_64/bin/i686-linux-android30-clang"
+    commandLine 'sh', '-c', "GOOS=android GOARCH=386 CGO_ENABLED=1 go build -buildmode=c-shared -ldflags=-w -o src/main/jniLibs/x86/repository.so ../cmd/tailscale"
+}
+
+task buildGoLibX86_64(type: Exec) {
+    environment "CC", "$ndkPath/ndk-bundle/toolchains/llvm/prebuilt/darwin-x86_64/bin/x86_64-linux-android30-clang"
+    commandLine 'sh', '-c', "GOOS=android GOARCH=amd64 CGO_ENABLED=1 go build -buildmode=c-shared -ldflags=-w -o src/main/jniLibs/x86_64/repository.so ../cmd/tailscale"
+}
+
+task buildAllGoLibs {
+    dependsOn checkNDK, buildGoLibArm64, buildGoLibArmeabi, buildGoLibX86, buildGoLibX86_64
+}
 

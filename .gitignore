@@ -15,6 +15,7 @@ android/local.properties
 tailscale-debug.apk
 tailscale-release.aab
 tailscale-fdroid.apk
+tailscale-newapp.apk
 
 # Signing key
 tailscale.jks

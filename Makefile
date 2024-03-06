@@ -154,6 +154,10 @@ tailscale-fdroid.apk: $(AAR)
 	(cd android && ./gradlew test assembleFdroidDebug)
 	mv android/build/outputs/apk/fdroid/debug/android-fdroid-debug.apk $@
 
+tailscale-new.apk: 
+	(cd android && ./gradlew assembleNewAppDebug)
+	mv ./android/build/outputs/apk/newapp/debug/android-newapp-debug.apk $@
+
 $(RELEASE_AAB): $(AAR)
 	(cd android && ./gradlew test bundlePlayRelease)
 	mv ./android/build/outputs/bundle/playRelease/android-play-release.aab $@
