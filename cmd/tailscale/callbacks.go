@@ -24,9 +24,9 @@ var (
 	// onVPNRevoked is notified whenever the VPN service is revoked.
 	onVPNRevoked = make(chan struct{}, 1)
 
-	// onConnect receives global IPNService references when
+	// onVPNRequested receives global IPNService references when
 	// a VPN connection is requested.
-	onConnect = make(chan jni.Object)
+	onVPNRequested = make(chan jni.Object)
 	// onDisconnect receives global IPNService references when
 	// disconnecting.
 	onDisconnect = make(chan jni.Object)
@@ -90,14 +90,14 @@ func notifyVPNClosed() {
 	}
 }
 
-//export Java_com_tailscale_ipn_IPNService_connect
-func Java_com_tailscale_ipn_IPNService_connect(env *C.JNIEnv, this C.jobject) {
+//export Java_com_tailscale_ipn_IPNService_requestVPN
+func Java_com_tailscale_ipn_IPNService_requestVPN(env *C.JNIEnv, this C.jobject) {
 	jenv := (*jni.Env)(unsafe.Pointer(env))
-	onConnect <- jni.NewGlobalRef(jenv, jni.Object(this))
+	onVPNRequested <- jni.NewGlobalRef(jenv, jni.Object(this))
 }
 
-//export Java_com_tailscale_ipn_IPNService_directConnect
-func Java_com_tailscale_ipn_IPNService_directConnect(env *C.JNIEnv, this C.jobject) {
+//export Java_com_tailscale_ipn_IPNService_connect
+func Java_com_tailscale_ipn_IPNService_connect(env *C.JNIEnv, this C.jobject) {
 	requestBackend(ConnectEvent{Enable: true})
 }
 
