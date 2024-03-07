@@ -12,17 +12,18 @@ buildscript {
 	}
 }
 
+
 repositories {
 	google()
 	mavenCentral()
-	flatDir {
-		dirs 'libs'
-	}
 }
 
 apply plugin: 'kotlin-android'
 apply plugin: 'com.android.application'
 apply plugin: 'org.jetbrains.kotlin.plugin.serialization'
+
+def ndkLevel = 30
+def targets = [ "aarch64-linux-android", "armv7a-linux-androideabi", "i686-linux-android", "x86_64-linux-android" ]
 
 android {
 	ndkVersion "23.1.7779620"
@@ -37,6 +38,9 @@ android {
 	compileOptions {
 		sourceCompatibility JavaVersion.VERSION_17
 		targetCompatibility JavaVersion.VERSION_17
+	}
+	kotlinOptions {
+		jvmTarget = "17"
 	}
 	flavorDimensions "version"
 	productFlavors {
@@ -55,7 +59,7 @@ android {
 	// This attaches the custom task to the preBuild task of newapp
     applicationVariants.all { variant ->
         if (variant.flavorName == 'newapp') {
-            variant.preBuild.dependsOn buildAllGoLibs
+			targets.each { target -> variant.preBuild.dependsOn tasks["jniLib-$target"] }
         }
     }
 
@@ -97,44 +101,48 @@ dependencies {
 	implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3"
 	implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0"
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version" 
-	implementation ':ipn@aar'
 	testImplementation "junit:junit:4.12"
+	// implementation ':ipn@aar'
 
 	// Non-free dependencies.
 	playImplementation 'com.google.android.gms:play-services-auth:20.7.0'
 }
 
-def ndkPath = project.hasProperty('ndkPath') ? project.property('ndkPath') : System.getenv('ANDROID_SDK_ROOT')
+import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
+OperatingSystem os = DefaultNativePlatform.currentOperatingSystem
 
-task checkNDK {
-    doFirst {
-        if (ndkPath == null) {
-            throw new GradleException('NDK path not found. Please define ndkPath in local.properties or ANDROID_SDK_HOME environment variable.')
-        }
-    }
+def hostTag
+if (os.isLinux()) {
+	// No aarch64 prebuilts.
+	hostTag = "linux-x86_64"
+} else if (os.isMacOsX()) {
+	// Darwin binaries are fat binaries, so this runs on aarch64 too.
+	hostTag = "darwin-x86_64"
+} else if (os.isWindows()) {
+	// No aarch64 prebuilts.
+	hostTag = "windows-x86_64"
+} else {
+	throw new GradleException("Unsupported host OS: $os")
 }
+def toolchainDir = "${android.ndkDirectory}/toolchains/llvm/prebuilt/${hostTag}"
 
-task buildGoLibArm64(type: Exec) {
-    environment "CC", "$ndkPath/ndk-bundle/toolchains/llvm/prebuilt/darwin-x86_64/bin/aarch64-linux-android30-clang"
-    commandLine 'sh', '-c', "GOOS=android GOARCH=arm64 CGO_ENABLED=1 go build -buildmode=c-shared -ldflags=-w -o src/main/jniLibs/arm64-v8a/repository.so ../cmd/tailscale"
+def targetToGoArch = [
+	"aarch64-linux-android": "arm64",
+	"armv7a-linux-androideabi": "arm",
+	"i686-linux-android": "386",
+	"x86_64-linux-android": "amd64"
+]
+
+def targetToAbi = [
+	"aarch64-linux-android": "arm64-v8a",
+	"armv7a-linux-androideabi": "armeabi-v7a",
+	"i686-linux-android": "x86",
+	"x86_64-linux-android": "x86_64"
+]
+
+targets.each { target ->
+	tasks.create("jniLib-$target", Exec) {
+		environment "CC", "${toolchainDir}/bin/$target$ndkLevel-clang"
+		commandLine 'sh', '-c', "GOOS=android GOARM=7 GOARCH=${targetToGoArch[target]} CGO_ENABLED=1 go build -buildmode=c-shared -ldflags=\"-w -s\" -o src/main/jniLibs/${targetToAbi[target]}/repository.so ../cmd/tailscale"
+	}
 }
-
-task buildGoLibArmeabi(type: Exec) {
-    environment "CC", "$ndkPath/ndk-bundle/toolchains/llvm/prebuilt/darwin-x86_64/bin/armv7a-linux-androideabi30-clang"
-    commandLine 'sh', '-c', "GOOS=android GOARCH=arm CGO_ENABLED=1 go build -buildmode=c-shared -ldflags=-w -o src/main/jniLibs/armeabi-v7a/repository.so ../cmd/tailscale"
-}
-
-task buildGoLibX86(type: Exec) {
-    environment "CC", "$ndkPath/ndk-bundle/toolchains/llvm/prebuilt/darwin-x86_64/bin/i686-linux-android30-clang"
-    commandLine 'sh', '-c', "GOOS=android GOARCH=386 CGO_ENABLED=1 go build -buildmode=c-shared -ldflags=-w -o src/main/jniLibs/x86/repository.so ../cmd/tailscale"
-}
-
-task buildGoLibX86_64(type: Exec) {
-    environment "CC", "$ndkPath/ndk-bundle/toolchains/llvm/prebuilt/darwin-x86_64/bin/x86_64-linux-android30-clang"
-    commandLine 'sh', '-c', "GOOS=android GOARCH=amd64 CGO_ENABLED=1 go build -buildmode=c-shared -ldflags=-w -o src/main/jniLibs/x86_64/repository.so ../cmd/tailscale"
-}
-
-task buildAllGoLibs {
-    dependsOn checkNDK, buildGoLibArm64, buildGoLibArmeabi, buildGoLibX86, buildGoLibX86_64
-}
-

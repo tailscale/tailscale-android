@@ -152,15 +152,15 @@ run: install
 # This is useful for testing on e.g. Amazon Fire Stick devices.
 tailscale-fdroid.apk: $(AAR)
 	(cd android && ./gradlew test assembleFdroidDebug)
-	mv android/build/outputs/apk/fdroid/debug/android-fdroid-debug.apk $@
+	install -C android/build/outputs/apk/fdroid/debug/android-fdroid-debug.apk $@
 
 tailscale-new.apk: 
 	(cd android && ./gradlew assembleNewAppDebug)
-	mv ./android/build/outputs/apk/newapp/debug/android-newapp-debug.apk $@
+	install -C ./android/build/outputs/apk/newapp/debug/android-newapp-debug.apk $@
 
 $(RELEASE_AAB): $(AAR)
 	(cd android && ./gradlew test bundlePlayRelease)
-	mv ./android/build/outputs/bundle/playRelease/android-play-release.aab $@
+	install -C ./android/build/outputs/bundle/playRelease/android-play-release.aab $@
 
 release: $(RELEASE_AAB)
 	jarsigner -sigalg SHA256withRSA -digestalg SHA-256 -keystore $(KEYSTORE) $(RELEASE_AAB) $(KEYSTORE_ALIAS)

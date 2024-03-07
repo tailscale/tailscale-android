@@ -7,6 +7,9 @@ build
 # The destination for the Go Android archive.
 android/libs
 
+# Split SO file outputs.
+android/src/main/jniLibs
+
 # Android Studio files
 android/.idea
 android/local.properties
