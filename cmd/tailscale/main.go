@@ -175,6 +175,7 @@ type RouteAllEvent struct {
 
 type ConnectEvent struct {
 	Enable bool
+	SettingsRestoreEvent
 }
 
 type CopyEvent struct {
@@ -199,17 +200,56 @@ type SetLoginServerEvent struct {
 	URL string
 }
 
+type WebAuthEvent struct {
+	SettingsRestoreEvent
+}
+
 // UIEvent types.
 type (
 	ReauthEvent       struct{}
 	BugEvent          struct{}
-	WebAuthEvent      struct{}
 	GoogleAuthEvent   struct{}
 	LogoutEvent       struct{}
 	OSSLicensesEvent  struct{}
 	BeExitNodeEvent   bool
 	ExitAllowLANEvent bool
 )
+
+// RestoreEvent represents an event that might restore user settings persisted across sessions.
+type RestoreEvent interface {
+	SetURL(url string)
+	GetURL() string
+	SetExitNodeID(exitNodeID tailcfg.StableNodeID)
+	GetExitNodeID() tailcfg.StableNodeID
+	SetExitAllowLAN(allowLAN bool)
+	GetExitAllowLAN() bool
+}
+
+type SettingsRestoreEvent struct {
+	// Custom server login URL
+	URL          string
+	ExitNodeID   tailcfg.StableNodeID
+	ExitAllowLAN bool
+}
+
+func (e *SettingsRestoreEvent) SetURL(url string) {
+	e.URL = url
+}
+func (e *SettingsRestoreEvent) GetURL() string {
+	return e.URL
+}
+func (e *SettingsRestoreEvent) SetExitNodeID(exitNodeID tailcfg.StableNodeID) {
+	e.ExitNodeID = exitNodeID
+}
+func (e *SettingsRestoreEvent) GetExitNodeID() tailcfg.StableNodeID {
+	return e.ExitNodeID
+}
+func (e *SettingsRestoreEvent) SetExitAllowLAN(allowLAN bool) {
+	e.ExitAllowLAN = allowLAN
+}
+func (e *SettingsRestoreEvent) GetExitAllowLAN() bool {
+	return e.ExitAllowLAN
+}
 
 // serverOAuthID is the OAuth ID of the tailscale-android server, used
 // by GoogleSignInOptions.Builder.requestIdToken.
@@ -472,14 +512,31 @@ func (a *App) runBackend(ctx context.Context) error {
 				go b.backend.SetPrefs(state.Prefs)
 			case ExitAllowLANEvent:
 				state.Prefs.ExitNodeAllowLANAccess = bool(e)
+				a.store.WriteBool(exitAllowLANPrefKey, true)
 				go b.backend.SetPrefs(state.Prefs)
 			case WebAuthEvent:
 				if !signingIn {
-					go a.localAPI.Login(ctx, a.backend)
+					setCustomServer, setExitNode, setAllowLANAccess := a.restoreSettings(&e, state, service)
 					signingIn = true
+					go func() {
+						if setCustomServer || setExitNode || setAllowLANAccess {
+							b.backend.SetPrefs(state.Prefs)
+						}
+						if setCustomServer {
+							// Need to restart to force the login URL to be regenerated
+							// with the new control URL. Start from a goroutine to avoid
+							// deadlock.
+							err := b.backend.Start(ipn.Options{})
+							if err != nil {
+								fatalErr(err)
+							}
+						}
+						b.backend.StartLoginInteractive()
+					}()
 				}
 			case SetLoginServerEvent:
 				state.Prefs.ControlURL = e.URL
+				a.store.WriteString(customLoginServerPrefKey, e.URL)
 				b.backend.SetPrefs(state.Prefs)
 				// Need to restart to force the login URL to be regenerated
 				// with the new control URL. Start from a goroutine to avoid
@@ -500,10 +557,23 @@ func (a *App) runBackend(ctx context.Context) error {
 					state.Prefs = ipn.NewPrefs()
 				}
 				state.Prefs.WantRunning = e.Enable
-				go b.backend.SetPrefs(state.Prefs)
+				setCustomServer, _, _ := a.restoreSettings(&e, state, service)
+				go func() {
+					b.backend.SetPrefs(state.Prefs)
+					if setCustomServer {
+						// Need to restart to force the login URL to be regenerated
+						// with the new control URL. Start from a goroutine to avoid
+						// deadlock.
+						err := b.backend.Start(ipn.Options{})
+						if err != nil {
+							fatalErr(err)
+						}
+					}
+				}()
 			case RouteAllEvent:
 				state.Prefs.ExitNodeID = e.ID
 				go b.backend.SetPrefs(state.Prefs)
+				a.store.WriteString(exitNodePrefKey, string(e.ID))
 				state.updateExitNodes()
 				a.notify(state)
 				if service != 0 {
@@ -586,6 +656,29 @@ func (a *App) runBackend(ctx context.Context) error {
 			a.notify(state)
 		}
 	}
+}
+
+func (a *App) restoreSettings(e RestoreEvent, state BackendState, service jni.Object) (bool, bool, bool) {
+	var setCustomServer bool
+	var setExitNode bool
+	var setAllowLANAccess bool
+	if URL := e.GetURL(); URL != "" {
+		state.Prefs.ControlURL = URL
+		setCustomServer = true
+	}
+	if nodeID := e.GetExitNodeID(); nodeID != "" {
+		state.Prefs.ExitNodeID = nodeID
+		state.updateExitNodes()
+		a.notify(state)
+		if service != 0 {
+			a.updateNotification(service, state.State, state.ExitStatus, state.Exit)
+		}
+		setExitNode = true
+	}
+	if e.GetExitAllowLAN() {
+		state.Prefs.ExitNodeAllowLANAccess = true
+	}
+	return setCustomServer, setExitNode, setAllowLANAccess
 }
 
 func (a *App) processWaitingFiles(b *ipnlocal.LocalBackend) error {
@@ -1290,6 +1383,7 @@ func (a *App) processUIEvents(w *app.Window, events []UIEvent, act jni.Object, s
 		case ExitAllowLANEvent:
 			requestBackend(e)
 		case WebAuthEvent:
+			a.decorateEventWithStoredSettings(&e, state)
 			a.store.WriteString(loginMethodPrefKey, loginMethodWeb)
 			requestBackend(e)
 		case SetLoginServerEvent:
@@ -1299,11 +1393,7 @@ func (a *App) processUIEvents(w *app.Window, events []UIEvent, act jni.Object, s
 			a.signOut()
 			requestBackend(e)
 		case ConnectEvent:
-			if srv, _ := a.store.ReadString(customLoginServerPrefKey, ""); srv != state.backend.Prefs.ControlURL {
-				requestBackend(SetLoginServerEvent{URL: srv})
-				// wait a moment for the backend to restart
-				<-time.After(200 * time.Millisecond)
-			}
+			a.decorateEventWithStoredSettings(&e, state)
 			requestBackend(e)
 		case RouteAllEvent:
 			requestBackend(e)
@@ -1320,6 +1410,24 @@ func (a *App) processUIEvents(w *app.Window, events []UIEvent, act jni.Object, s
 		case OSSLicensesEvent:
 			a.setURL("https://tailscale.com/licenses/android")
 		}
+	}
+}
+
+func (a *App) decorateEventWithStoredSettings(e RestoreEvent, state *clientState) {
+	srv, _ := a.store.ReadString(customLoginServerPrefKey, "")
+	if srv != "" && srv != state.backend.Prefs.ControlURL {
+		e.SetURL(srv)
+	}
+
+	exitstr, _ := a.store.ReadString(exitNodePrefKey, "")
+	exitNodeID := tailcfg.StableNodeID(exitstr)
+	if exitNodeID != "" && exitNodeID != state.backend.Prefs.ExitNodeID {
+		e.SetExitNodeID(exitNodeID)
+	}
+
+	allowlan, _ := a.store.ReadBool(exitAllowLANPrefKey, false)
+	if allowlan {
+		e.SetExitAllowLAN(allowlan)
 	}
 }
 
