@@ -1317,10 +1317,31 @@ func (ui *UI) layoutPeer(gtx layout.Context, sysIns system.Insets, p *UIPeer, us
 			gtx.Constraints.Min.X = gtx.Constraints.Max.X
 			return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 				layout.Rigid(func(gtx C) D {
-					return layout.Inset{Bottom: unit.Dp(4)}.Layout(gtx, func(gtx C) D {
-						name := p.Peer.DisplayName(p.Peer.User == user)
-						return material.H6(ui.theme, name).Layout(gtx)
-					})
+					return layout.Stack{}.Layout(gtx,
+						layout.Expanded(func(gtx C) D {
+							return layout.Stack{Alignment: layout.W}.Layout(gtx,
+								layout.Stacked(func(gtx C) D {
+									return layout.Inset{Bottom: unit.Dp(8)}.Layout(gtx, func(gtx C) D {
+										return layout.N.Layout(gtx, func(gtx C) D {
+											if p.Peer.Online != nil && *p.Peer.Online {
+												drawDisc(gtx.Ops, 24, rgb(0x009966))
+											} else {
+												drawDisc(gtx.Ops, 24, rgb(0xcccccc))
+											}
+											return layout.Dimensions{Size: image.Pt(0, 0)}
+										})
+									})
+								}),
+								layout.Stacked(func(gtx C) D {
+									return layout.Inset{Left: unit.Dp(16), Bottom: unit.Dp(4)}.Layout(gtx, func(gtx C) D {
+										name := p.Peer.DisplayName(p.Peer.User == user)
+										return material.H6(ui.theme, name).Layout(gtx)
+									})
+								}),
+							)
+						}),
+					)
+
 				}),
 				layout.Rigid(func(gtx C) D {
 					var bestIP netip.Addr // IP to show; first IPv4, or first IPv6 if no IPv4
@@ -1472,7 +1493,7 @@ func (ui *UI) layoutSearchbar(gtx layout.Context, sysIns system.Insets) layout.D
 							return ui.icons.search.Layout(gtx, col)
 						}),
 						layout.Flexed(1,
-							material.Editor(ui.theme, &ui.search, "Search by machine name...").Layout,
+							material.Editor(ui.theme, &ui.search, "Search by device name...").Layout,
 						),
 					)
 				})
