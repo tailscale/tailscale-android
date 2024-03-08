@@ -164,7 +164,7 @@ public class App extends Application {
 		return getEncryptedPrefs().getString(prefKey, null);
 	}
 
-	private SharedPreferences getEncryptedPrefs() throws IOException, GeneralSecurityException {
+	public SharedPreferences getEncryptedPrefs() throws IOException, GeneralSecurityException {
 		MasterKey key = new MasterKey.Builder(this)
 			.setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
 			.build();

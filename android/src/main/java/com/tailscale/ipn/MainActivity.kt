@@ -1,12 +1,12 @@
 // Copyright (c) Tailscale Inc & AUTHORS
 // SPDX-License-Identifier: BSD-3-Clause
 
-
 package com.tailscale.ipn
-
 
 import android.content.Intent
 import android.net.Uri
+import android.content.Context
+import android.content.RestrictionsManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -16,6 +16,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.service.IpnManager
 import com.tailscale.ipn.ui.theme.AppTheme
 import com.tailscale.ipn.ui.view.AboutView
@@ -101,6 +102,13 @@ class MainActivity : ComponentActivity() {
         // unblock in dev for the time being though.
         val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
         startActivity(browserIntent)
+    }
+
+
+    override fun onResume() {
+        super.onResume()
+        val restrictionsManager = this.getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
+        manager.mdmSettings = MDMSettings(restrictionsManager)
     }
 }
 
