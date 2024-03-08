@@ -22,10 +22,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
+import com.tailscale.ipn.ui.util.settingsRowModifier
 import com.tailscale.ipn.ui.viewModel.PeerDetailsViewModel
 
 
@@ -51,10 +51,7 @@ fun PeerDetails(viewModel: PeerDetailsViewModel) {
 
         Text(text = "TAILSCALE ADDRESSES", style = MaterialTheme.typography.titleMedium)
 
-        Column(modifier = Modifier
-                .clip(shape = RoundedCornerShape(8.dp))
-                .background(color = MaterialTheme.colorScheme.secondaryContainer)
-                .fillMaxWidth()) {
+        Column(modifier = settingsRowModifier()) {
             viewModel.addresses.forEach {
                 AddressRow(address = it.address, type = it.typeString)
             }
@@ -62,10 +59,7 @@ fun PeerDetails(viewModel: PeerDetailsViewModel) {
 
         Spacer(modifier = Modifier.size(16.dp))
 
-        Column(modifier = Modifier
-                .clip(shape = RoundedCornerShape(8.dp))
-                .background(color = MaterialTheme.colorScheme.secondaryContainer)
-                .fillMaxWidth()) {
+        Column(modifier = settingsRowModifier()) {
             viewModel.info.forEach {
                 ValueRow(title = it.title, value = it.value)
             }
@@ -78,7 +72,6 @@ fun AddressRow(address: String, type: String) {
     val localClipboardManager = LocalClipboardManager.current
 
     Row(modifier = Modifier
-            .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 4.dp)
             .clickable(onClick = { localClipboardManager.setText(AnnotatedString(address)) })) {
         Column {
@@ -102,3 +95,5 @@ fun ValueRow(title: String, value: String) {
         }
     }
 }
+
+

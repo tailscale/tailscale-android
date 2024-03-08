@@ -118,6 +118,13 @@ class LocalAPIRequest<T>(
             }
         }
 
+        fun logout(responseHandler: (Result<String>) -> Unit): LocalAPIRequest<String> {
+            val path = LocalAPIEndpoint.Logout.path()
+            return LocalAPIRequest<String>(path, "POST", null, null) { resp ->
+                responseHandler(parseString(resp))
+            }
+        }
+
         // Check if the response was a generic error
         @OptIn(ExperimentalSerializationApi::class)
         fun parseError(respData: ByteArray): Error {

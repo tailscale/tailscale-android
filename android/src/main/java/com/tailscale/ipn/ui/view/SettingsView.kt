@@ -4,15 +4,94 @@
 
 package com.tailscale.ipn.ui.view
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.ClickableText
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.unit.dp
+import com.tailscale.ipn.ui.model.IpnLocal
+import com.tailscale.ipn.ui.util.defaultPaddingModifier
+import com.tailscale.ipn.ui.util.settingsRowModifier
 import com.tailscale.ipn.ui.viewModel.SettingsViewModel
 
 
+data class SettingsNav(
+        val onNavigateToBugReport: () -> Unit,
+        val onNavigateToAbout: () -> Unit
+)
+
 @Composable
 fun Settings(viewModel: SettingsViewModel) {
-    Column {
-        Text(text = "Future Home of Settings")
+    Column(modifier = defaultPaddingModifier()) {
+        viewModel.user?.let { user ->
+            UserView(profile = user, viewModel.isAdmin, viewModel.adminText(), onClick = { viewModel.ipnActions.openAdminConsole() })
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(onClick = { viewModel.ipnActions.logout() }) {
+                Text(text = "Log Out")
+            }
+        } ?: run {
+            Button(onClick = { viewModel.ipnActions.login() }) {
+                Text(text = "Sign In")
+            }
+        }
     }
+
+    Spacer(modifier = Modifier.height(8.dp))
+
+    // (jonathan) TODO: Add the settings from viewModel.settings
+}
+
+@Composable
+fun UserView(profile: IpnLocal.LoginProfile?, isAdmin: Boolean, adminText: AnnotatedString, onClick: () -> Unit) {
+    Column(modifier = defaultPaddingModifier()) {
+        Column(modifier = settingsRowModifier().padding(8.dp)) {
+            Text(text = profile?.UserProfile?.DisplayName
+                    ?: "", style = MaterialTheme.typography.titleMedium)
+            Text(text = profile?.Name ?: "", style = MaterialTheme.typography.bodyMedium)
+        }
+
+        if (isAdmin) {
+            Column(modifier = Modifier.padding(horizontal = 12.dp)) {
+                ClickableText(text = adminText, style = MaterialTheme.typography.bodySmall, onClick = {
+                    onClick()
+                })
+            }
+        }
+
+    }
+}
+
+@Composable
+fun SettingsNavRow(title: String, value: String = "", onClick: () -> Unit) {
+    Row(modifier = Modifier.clickable { onClick() }) {
+        Text(text = title)
+        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
+            Text(text = value, style = MaterialTheme.typography.bodyMedium)
+        }
+        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
+    }
+}
+
+@Composable
+fun BugReportView() {
+    Text(text = "Future Home of Bug Reporting")
+}
+
+@Composable
+fun AboutView() {
+    Text(text = "Future Home of About")
 }
