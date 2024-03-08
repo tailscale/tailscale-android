@@ -124,6 +124,14 @@ class LocalApiClient {
         executeRequest<String>(req)
     }
 
+    fun logout() {
+        val req = LocalAPIRequest.logout { result ->
+            result.success?.let { Log.d("LocalApiClient", "Logout started: $it") }
+                    ?: run { Log.e("LocalApiClient", "Error starting logout: ${result.error}") }
+        }
+        executeRequest<String>(req)
+    }
+
     // (jonathan) TODO: A (likely) exhaustive list of localapi endpoints required for
     // a fully functioning client.  This is a work in progress and will be updated
     // See: corp/xcode/Shared/LocalAPIClient.swift for the various verbs, parameters,
