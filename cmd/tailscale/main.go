@@ -35,8 +35,9 @@ import (
 	"golang.org/x/exp/maps"
 	"inet.af/netaddr"
 
-	"github.com/tailscale/tailscale-android/cmd/localapiclient"
-	"github.com/tailscale/tailscale-android/jni"
+	"github.com/tailscale/tailscale-android/cmd/jni"
+	"github.com/tailscale/tailscale-android/cmd/localapiservice"
+
 	"tailscale.com/client/tailscale/apitype"
 	"tailscale.com/hostinfo"
 	"tailscale.com/ipn"
@@ -60,8 +61,8 @@ type App struct {
 	store             *stateStore
 	logIDPublicAtomic atomic.Pointer[logid.PublicID]
 
-	localAPIClient *localapiclient.LocalAPIClient
-	backend        *ipnlocal.LocalBackend
+	localAPI *localapiservice.LocalAPIService
+	backend  *ipnlocal.LocalBackend
 
 	// netStates receives the most recent network state.
 	netStates chan BackendState
@@ -232,19 +233,17 @@ func main() {
 		invalidates:   make(chan struct{}, 1),
 		bugReport:     make(chan string, 1),
 	}
-	err := jni.Do(a.jvm, func(env *jni.Env) error {
-		loader := jni.ClassLoaderFor(env, a.appCtx)
-		cl, err := jni.LoadClass(env, loader, "com.tailscale.ipn.Google")
-		if err != nil {
-			// Ignore load errors; the Google class is not included in F-Droid builds.
-			return nil
-		}
-		googleClass = jni.Class(jni.NewGlobalRef(env, jni.Object(cl)))
-		return nil
-	})
+
+	err := a.loadJNIGlobalClassRefs()
 	if err != nil {
 		fatalErr(err)
 	}
+
+	err = localapiservice.ConfigureLocalApiJNIHandler(a.jvm, a.appCtx)
+	if err != nil {
+		fatalErr(err)
+	}
+
 	a.store = newStateStore(a.jvm, a.appCtx)
 	interfaces.RegisterInterfaceGetter(a.getInterfaces)
 	go func() {
@@ -259,6 +258,21 @@ func main() {
 		}
 	}()
 	app.Main()
+}
+
+// Loads the global JNI class references.  Failures here are fatal if the
+// class ref is required for the app to function.
+func (a *App) loadJNIGlobalClassRefs() error {
+	return jni.Do(a.jvm, func(env *jni.Env) error {
+		loader := jni.ClassLoaderFor(env, a.appCtx)
+		cl, err := jni.LoadClass(env, loader, "com.tailscale.ipn.Google")
+		if err != nil {
+			// Ignore load errors; the Google class is not included in F-Droid builds.
+			return nil
+		}
+		googleClass = jni.Class(jni.NewGlobalRef(env, jni.Object(cl)))
+		return nil
+	})
 }
 
 func (a *App) runBackend(ctx context.Context) error {
@@ -300,7 +314,10 @@ func (a *App) runBackend(ctx context.Context) error {
 	h := localapi.NewHandler(b.backend, log.Printf, b.sys.NetMon.Get(), *a.logIDPublicAtomic.Load())
 	h.PermitRead = true
 	h.PermitWrite = true
-	a.localAPIClient = localapiclient.New(h)
+	a.localAPI = localapiservice.New(h)
+
+	// Share the localAPI with the JNI shim
+	localapiservice.SetLocalAPIService(a.localAPI)
 
 	// Contrary to the documentation for VpnService.Builder.addDnsServer,
 	// ChromeOS doesn't fall back to the underlying network nameservers if
@@ -447,7 +464,7 @@ func (a *App) runBackend(ctx context.Context) error {
 			case BugEvent:
 				backendLogIDStr := a.logIDPublicAtomic.Load().String()
 				fallbackLog := fmt.Sprintf("BUG-%v-%v-%v", backendLogIDStr, time.Now().UTC().Format("20060102150405Z"), randHex(8))
-				a.getBugReportID(ctx, a.bugReport, fallbackLog)
+				a.localAPI.GetBugReportID(ctx, a.bugReport, fallbackLog)
 			case OAuth2Event:
 				go b.backend.Login(e.Token)
 			case BeExitNodeEvent:
@@ -458,7 +475,7 @@ func (a *App) runBackend(ctx context.Context) error {
 				go b.backend.SetPrefs(state.Prefs)
 			case WebAuthEvent:
 				if !signingIn {
-					go a.login(ctx)
+					go a.localAPI.Login(ctx, a.backend)
 					signingIn = true
 				}
 			case SetLoginServerEvent:
@@ -474,8 +491,14 @@ func (a *App) runBackend(ctx context.Context) error {
 					}
 				}()
 			case LogoutEvent:
-				go a.logout(ctx)
+				go a.localAPI.Logout(ctx, a.backend)
 			case ConnectEvent:
+				first := state.Prefs == nil
+				// A ConnectEvent might be sent before the first notification
+				// arrives, such as in the case of Always-on VPN.
+				if first {
+					state.Prefs = ipn.NewPrefs()
+				}
 				state.Prefs.WantRunning = e.Enable
 				go b.backend.SetPrefs(state.Prefs)
 			case RouteAllEvent:
@@ -487,7 +510,7 @@ func (a *App) runBackend(ctx context.Context) error {
 					a.updateNotification(service, state.State, state.ExitStatus, state.Exit)
 				}
 			}
-		case s := <-onConnect:
+		case s := <-onVPNRequested:
 			jni.Do(a.jvm, func(env *jni.Env) error {
 				if jni.IsSameObject(env, s, service) {
 					// We already have a reference.
@@ -518,7 +541,7 @@ func (a *App) runBackend(ctx context.Context) error {
 						return nil // even on error. see big TODO above.
 					})
 				})
-				log.Printf("onConnect: rebind required")
+				log.Printf("onVPNRequested: rebind required")
 				// TODO(catzkorn): When we start the android application
 				// we bind sockets before we have access to the VpnService.protect()
 				// function which is needed to avoid routing loops. When we activate
@@ -563,54 +586,6 @@ func (a *App) runBackend(ctx context.Context) error {
 			a.notify(state)
 		}
 	}
-}
-
-func (a *App) getBugReportID(ctx context.Context, bugReportChan chan<- string, fallbackLog string) {
-	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
-	defer cancel()
-	r, err := a.localAPIClient.Call(ctx, "POST", "bugreport", nil)
-	defer r.Body().Close()
-
-	if err != nil {
-		log.Printf("get bug report: %s", err)
-		bugReportChan <- fallbackLog
-		return
-	}
-	logBytes, err := io.ReadAll(r.Body())
-	if err != nil {
-		log.Printf("read bug report: %s", err)
-		bugReportChan <- fallbackLog
-		return
-	}
-	bugReportChan <- string(logBytes)
-}
-
-func (a *App) login(ctx context.Context) {
-	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
-	defer cancel()
-	r, err := a.localAPIClient.Call(ctx, "POST", "login-interactive", nil)
-	defer r.Body().Close()
-
-	if err != nil {
-		log.Printf("login: %s", err)
-		a.backend.StartLoginInteractive()
-	}
-}
-
-func (a *App) logout(ctx context.Context) error {
-	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
-	defer cancel()
-	r, err := a.localAPIClient.Call(ctx, "POST", "logout", nil)
-	defer r.Body().Close()
-
-	if err != nil {
-		log.Printf("logout: %s", err)
-		logoutctx, logoutcancel := context.WithTimeout(ctx, 5*time.Minute)
-		defer logoutcancel()
-		a.backend.Logout(logoutctx)
-	}
-
-	return err
 }
 
 func (a *App) processWaitingFiles(b *ipnlocal.LocalBackend) error {

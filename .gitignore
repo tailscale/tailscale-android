@@ -8,6 +8,8 @@ build
 android/libs
 
 # Android Studio files
+android_legacy/.idea
+android_legacy/local.properties
 android/.idea
 android/local.properties
 
@@ -15,6 +17,8 @@ android/local.properties
 tailscale-debug.apk
 tailscale-release.aab
 tailscale-fdroid.apk
+tailscale-new-fdroid.apk
+tailscale-new-debug.apk
 
 # Signing key
 tailscale.jks
