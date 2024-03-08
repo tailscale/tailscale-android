@@ -16,17 +16,11 @@ import android.content.pm.PackageManager;
 import java.util.List;
 import java.util.ArrayList;
 
-import org.gioui.GioView;
-
 public final class IPNActivity extends Activity {
 	final static int WRITE_STORAGE_RESULT = 1000;
 
-	private GioView view;
-
 	@Override public void onCreate(Bundle state) {
 		super.onCreate(state);
-		view = new GioView(this);
-		setContentView(view);
 		handleIntent();
 	}
 
@@ -101,32 +95,26 @@ public final class IPNActivity extends Activity {
 	}
 
 	@Override public void onDestroy() {
-		view.destroy();
 		super.onDestroy();
 	}
 
 	@Override public void onStart() {
 		super.onStart();
-		view.start();
 	}
 
 	@Override public void onStop() {
-		view.stop();
 		super.onStop();
 	}
 
 	@Override public void onConfigurationChanged(Configuration c) {
 		super.onConfigurationChanged(c);
-		view.configurationChanged();
 	}
 
 	@Override public void onLowMemory() {
 		super.onLowMemory();
-		view.onLowMemory();
 	}
 
 	@Override public void onBackPressed() {
-		if (!view.backPressed())
-			super.onBackPressed();
+		super.onBackPressed();
 	}
 }

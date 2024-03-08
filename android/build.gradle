@@ -106,4 +106,61 @@ dependencies {
     playImplementation 'com.google.android.gms:play-services-auth:20.7.0'
 }
 
+def ndkPath = project.hasProperty('ndkPath') ? project.property('ndkPath') : System.getenv('ANDROID_SDK_ROOT')
 
+task checkNDK {	
+    doFirst {
+		if (ndkPath == null) {
+			throw new GradleException('NDK path not found. Please define ndkPath in local.properties or ANDROID_SDK_HOME environment variable.')
+		}
+	}
+}
+
+task buildGoLibArm64(type: Exec) {
+	inputs.dir '../pkg/tailscale'
+	outputs.file 'src/main/jniLibs/arm64-v8a/librepository.so'
+    environment "CC", "$ndkPath/ndk-bundle/toolchains/llvm/prebuilt/darwin-x86_64/bin/aarch64-linux-android30-clang"
+    commandLine 'sh', '-c', "GOOS=android GOARCH=arm64 CGO_ENABLED=1 go build -buildmode=c-shared -ldflags=-w -o src/main/jniLibs/arm64-v8a/librepository.so ../pkg/tailscale"
+}
+
+task buildGoLibArmeabi(type: Exec) {
+	inputs.dir '../pkg/tailscale'
+	outputs.file 'src/main/jniLibs/armeabi-v7a/librepository.so'
+    environment "CC", "$ndkPath/ndk-bundle/toolchains/llvm/prebuilt/darwin-x86_64/bin/armv7a-linux-androideabi30-clang"
+    commandLine 'sh', '-c', "GOOS=android GOARCH=arm CGO_ENABLED=1 go build -buildmode=c-shared -ldflags=-w -o src/main/jniLibs/armeabi-v7a/librepository.so ../pkg/tailscale"
+}
+
+task buildGoLibX86(type: Exec) {
+	inputs.dir '../pkg/tailscale'
+	outputs.file 'src/main/jniLibs/x86/librepository.so'
+    environment "CC", "$ndkPath/ndk-bundle/toolchains/llvm/prebuilt/darwin-x86_64/bin/i686-linux-android30-clang"
+    commandLine 'sh', '-c', "GOOS=android GOARCH=386 CGO_ENABLED=1 go build -buildmode=c-shared -ldflags=-w -o src/main/jniLibs/x86/librepository.so ../pkg/tailscale"
+}
+
+task buildGoLibX86_64(type: Exec) {
+	inputs.dir '../pkg/tailscale'
+	outputs.file 'src/main/jniLibs/x86_64/librepository.so'
+    environment "CC", "$ndkPath/ndk-bundle/toolchains/llvm/prebuilt/darwin-x86_64/bin/x86_64-linux-android30-clang"
+    commandLine 'sh', '-c', "GOOS=android GOARCH=amd64 CGO_ENABLED=1 go build -buildmode=c-shared -ldflags=-w -o src/main/jniLibs/x86_64/librepository.so ../pkg/tailscale"
+}
+
+task buildAllGoLibs {
+    dependsOn checkNDK, buildGoLibArm64, buildGoLibArmeabi, buildGoLibX86, buildGoLibX86_64
+}
+
+assemble.dependsOn buildAllGoLibs
+
+task cleanGoLibs(type: Delete) {
+    delete 'src/main/jniLibs/arm64-v8a/librepository.so',
+           'src/main/jniLibs/armeabi-v7a/librepository.so',
+           'src/main/jniLibs/x86/librepository.so',
+           'src/main/jniLibs/x86_64/librepository.so'
+}
+
+clean.dependsOn cleanGoLibs
+
+tasks.whenTaskAdded { task ->
+    if (task.name.startsWith('merge') && task.name.endsWith('JniLibFolders')) {
+        task.mustRunAfter buildAllGoLibs
+    }
+}

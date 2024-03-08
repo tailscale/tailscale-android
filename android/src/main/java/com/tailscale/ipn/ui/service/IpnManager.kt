@@ -3,8 +3,8 @@
 
 package com.tailscale.ipn.ui.service
 
-
 import android.content.Intent
+import android.util.Log
 import com.tailscale.ipn.App
 import com.tailscale.ipn.IPNReceiver
 import com.tailscale.ipn.mdm.MDMSettings
@@ -20,6 +20,7 @@ typealias PrefChangeCallback = (Result<Boolean>) -> Unit
 interface IpnActions {
     fun startVPN()
     fun stopVPN()
+    fun connect()
     fun login()
     fun logout()
     fun updatePrefs(prefs: Ipn.MaskedPrefs, callback: PrefChangeCallback)
@@ -44,6 +45,20 @@ class IpnManager(scope: CoroutineScope) : IpnActions {
         val intent = Intent(context, IPNReceiver::class.java)
         intent.action = IPNReceiver.INTENT_DISCONNECT_VPN
         context.sendBroadcast(intent)
+    }
+
+    override fun connect() {
+        val context = App.getApplication().applicationContext
+        val callback: (com.tailscale.ipn.ui.localapi.Result<Ipn.Prefs>) -> Unit = { result ->
+            if (result.successful) {
+                val prefs = result.success
+                Log.d("Connect: preferences updated successfully: $prefs")
+            } else if (result.failed) {
+                val error = result.error
+                Log.d("Connect: failed to update preferences: ${error?.message}")
+            }
+        }
+        model.setWantRunning(true, callback)
     }
 
     override fun login() {
