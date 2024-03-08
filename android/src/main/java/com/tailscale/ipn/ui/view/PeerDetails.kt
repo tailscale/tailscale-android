@@ -7,11 +7,12 @@ package com.tailscale.ipn.ui.view
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import com.tailscale.ipn.ui.viewModel.PeerDetailsViewModel
 
 
 @Composable
-fun PeerDetails(nodeId: String?) {
+fun PeerDetails(viewModel: PeerDetailsViewModel) {
     Column {
-        Text(text = "Future Home Of Peer Details for node id $nodeId")
+        Text(text = "Future Home Of Peer Details for node id ${viewModel.nodeId}")
     }
 }

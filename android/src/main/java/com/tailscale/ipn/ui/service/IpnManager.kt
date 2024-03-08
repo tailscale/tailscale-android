@@ -8,28 +8,32 @@ import android.content.Intent
 import com.tailscale.ipn.App
 import com.tailscale.ipn.IPNReceiver
 import com.tailscale.ipn.ui.localapi.LocalApiClient
+import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.notifier.Notifier
+
+typealias PrefChangeCallback = (Result<Boolean>) -> Unit
+
+// Abstracts the actions that can be taken by the UI so that the concept of an IPNManager
+// itself is hidden from the viewModel implementations.
+data class IpnActions(
+    val startVPN: () -> Unit,
+    val stopVPN: () -> Unit,
+    val login: () -> Unit,
+    val updatePrefs: (Ipn.MaskedPrefs, PrefChangeCallback) -> Unit
+)
 
 class IpnManager {
     var notifier = Notifier()
     var apiClient = LocalApiClient()
-    val model: IpnModel
+    val model: IpnModel = IpnModel(notifier, apiClient)
 
-    constructor() {
-        model = IpnModel(notifier, apiClient)
-    }
+    val actions = IpnActions(
+            startVPN = { startVPN() },
+            stopVPN = { stopVPN() },
+            login = { login() },
+            updatePrefs = { prefs, callback -> updatePrefs(prefs, callback) }
+    )
 
-    // We share a single instance of the IPNManager across the entire application.
-    companion object {
-        @Volatile
-        private var instance: IpnManager? = null
-
-        @JvmStatic
-        fun getInstance() =
-                instance ?: synchronized(this) {
-                    instance ?: IpnManager().also { instance = it }
-                }
-    }
 
     fun startVPN() {
         val context = App.getApplication().applicationContext
@@ -48,5 +52,10 @@ class IpnManager {
 
     fun login() {
         apiClient.startLoginInteractive()
+    }
+
+    fun updatePrefs(prefs: Ipn.MaskedPrefs, callback: PrefChangeCallback) {
+        // (jonathan) TODO: Implement this in localAPI
+        //apiClient.updatePrefs(prefs)
     }
 }

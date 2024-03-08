@@ -10,31 +10,40 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.ArrowDropDown
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SearchBar
+import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.Tailcfg
+import com.tailscale.ipn.ui.util.PeerSet
 import com.tailscale.ipn.ui.viewModel.MainViewModel
 import kotlinx.coroutines.flow.StateFlow
 
@@ -75,7 +84,12 @@ fun MainView(viewModel: MainViewModel, navigation: MainViewNavigation) {
             }
 
             when (state.value) {
-                Ipn.State.Running -> PeerList(peers = viewModel.peers, onNavigateToPeerDetails = navigation.onNavigateToPeerDetails)
+                Ipn.State.Running -> PeerList(
+                        searchTerm = viewModel.searchTerm,
+                        peers = viewModel.peers,
+                        onNavigateToPeerDetails = navigation.onNavigateToPeerDetails,
+                        onSearch = { viewModel.searchPeers(it) })
+
                 Ipn.State.Starting -> StartingView()
                 else ->
                     ConnectView(
@@ -170,31 +184,63 @@ fun ConnectView(user: IpnLocal.LoginProfile?, connectAction: () -> Unit, loginAc
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PeerList(peers: StateFlow<List<Tailcfg.Node>>, onNavigateToPeerDetails: (Tailcfg.Node) -> Unit) {
-    val peerList = peers.collectAsState(initial = emptyList<Tailcfg.Node>())
+fun PeerList(searchTerm: StateFlow<String>,  peers: StateFlow<List<PeerSet>>, onNavigateToPeerDetails: (Tailcfg.Node) -> Unit, onSearch: (String) -> Unit) {
+    val peerList = peers.collectAsState(initial = emptyList<PeerSet>())
+    var searching = false
+    val searchTermStr by searchTerm.collectAsState(initial = "")
 
-    Column(
-            modifier =
-            Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.secondaryContainer),
-    ) {
-        peerList.value.forEach { peer ->
-            ListItem(
-                    modifier = Modifier.clickable {
-                        onNavigateToPeerDetails(peer)
-                    },
-                    headlineContent = {
-                        Text(text = peer.ComputedName, style = MaterialTheme.typography.titleMedium)
-                    },
-                    supportingContent = {
-                        Text(
-                                text = peer.Addresses?.first() ?: "",
-                                style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-            )
+    SearchBar(
+            query = searchTermStr,
+            onQueryChange = onSearch,
+            onSearch = onSearch,
+            active = true,
+            onActiveChange = { searching = it },
+            shape = RoundedCornerShape(10.dp),
+            leadingIcon = { Icon(Icons.Outlined.Search, null) },
+            tonalElevation = 2.dp,
+            shadowElevation = 2.dp,
+            colors = SearchBarDefaults.colors(),
+            modifier = Modifier.fillMaxWidth()) {
+
+        Column(
+                modifier =
+                Modifier
+                        .fillMaxSize()
+                        .padding(2.dp)
+                        .background(MaterialTheme.colorScheme.secondaryContainer),
+        ) {
+            peerList.value.forEach { peerSet ->
+                ListItem(headlineContent = {
+                    Text(text = peerSet.user?.DisplayName
+                            ?: "Unknown User", style = MaterialTheme.typography.titleLarge)
+                })
+                peerSet.peers.forEach { peer ->
+                    ListItem(
+                            modifier = Modifier.clickable {
+                                onNavigateToPeerDetails(peer)
+                            },
+                            headlineContent = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    val color: Color = if (peer.Online ?: false) { Color.Green } else { Color.Gray }
+                                    Box(modifier = Modifier.size(8.dp).background(color = color, shape = RoundedCornerShape(percent = 50)))  {}
+                                    Spacer(modifier = Modifier.size(8.dp))
+                                    Text(text = peer.ComputedName, style = MaterialTheme.typography.titleMedium)
+                                }
+                            },
+                            supportingContent = {
+                                Text(
+                                        text = peer.Addresses?.first()?.split("/")?.first() ?: "",
+                                        style = MaterialTheme.typography.bodyMedium
+                                )
+                            },
+                            trailingContent = {
+                                 Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
+                            }
+                    )
+                }
+            }
         }
     }
 }

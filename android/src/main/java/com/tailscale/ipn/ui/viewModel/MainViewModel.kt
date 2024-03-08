@@ -1,21 +1,26 @@
+// Copyright (c) 2024 Tailscale Inc & AUTHORS All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 package com.tailscale.ipn.ui.viewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tailscale.ipn.ui.model.Ipn.State
-import com.tailscale.ipn.ui.model.Tailcfg.Node
-import com.tailscale.ipn.ui.service.IpnManager
+import com.tailscale.ipn.ui.service.IpnActions
 import com.tailscale.ipn.ui.service.IpnModel
+import com.tailscale.ipn.ui.util.PeerCategorizer
+import com.tailscale.ipn.ui.util.PeerSet
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class MainViewModel(val model: IpnModel) : ViewModel() {
+class MainViewModel(val model: IpnModel, val actions: IpnActions) : ViewModel() {
 
     private val _stateStr = MutableStateFlow<String>("")
     private val _tailnetName = MutableStateFlow<String>("")
     private val _vpnToggleState = MutableStateFlow<Boolean>(false)
-    private val _peers = MutableStateFlow<List<Node>>(emptyList<Node>())
+    private val _peers = MutableStateFlow<List<PeerSet>>(emptyList<PeerSet>())
 
     // The user readable state of the system
     val stateStr = _stateStr.asStateFlow()
@@ -35,6 +40,10 @@ class MainViewModel(val model: IpnModel) : ViewModel() {
     // The logged in user
     val loggedInUser = model.loggedInUser
 
+    // The active search term for filtering peers
+    val searchTerm = MutableStateFlow<String>("")
+
+
     init {
         viewModelScope.launch {
             model.state.collect { state ->
@@ -46,8 +55,15 @@ class MainViewModel(val model: IpnModel) : ViewModel() {
         viewModelScope.launch {
             model.netmap.collect { netmap ->
                 _tailnetName.value = netmap?.Domain ?: ""
-                _peers.value = netmap?.Peers ?: emptyList<Node>()
+                _peers.value = PeerCategorizer(model).groupedAndFilteredPeers(searchTerm.value)
             }
+        }
+    }
+
+    fun searchPeers(searchTerm: String) {
+        this.searchTerm.value = searchTerm
+        viewModelScope.launch {
+            _peers.value = PeerCategorizer(model).groupedAndFilteredPeers(searchTerm)
         }
     }
 
@@ -58,14 +74,15 @@ class MainViewModel(val model: IpnModel) : ViewModel() {
 
     fun toggleVpn() {
         when (model.state.value) {
-            State.Running -> IpnManager.getInstance().stopVPN()
-            else -> IpnManager.getInstance().startVPN()
+            State.Running -> actions.stopVPN()
+            else -> actions.startVPN()
         }
     }
 
     fun login() {
-        IpnManager.getInstance().login()
+        actions.login()
     }
+
 }
 
 private fun State?.userString(): String {
