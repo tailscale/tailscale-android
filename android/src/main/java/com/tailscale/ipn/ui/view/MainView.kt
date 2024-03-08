@@ -1,6 +1,6 @@
-// Copyright (c) 2024 Tailscale Inc & AUTHORS All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
+// Copyright (c) Tailscale Inc & AUTHORS
+// SPDX-License-Identifier: BSD-3-Clause
+
 
 package com.tailscale.ipn.ui.view
 
@@ -15,7 +15,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.ArrowDropDown
@@ -66,8 +68,8 @@ fun MainView(viewModel: MainViewModel, navigation: MainViewNavigation) {
             val user = viewModel.loggedInUser.collectAsState(initial = null)
 
             Row(modifier = Modifier
-                    .padding(6.dp)
-                    .fillMaxWidth(),
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp),
                     verticalAlignment = Alignment.CenterVertically) {
                 val isOn = viewModel.vpnToggleState.collectAsState(initial = false)
 
@@ -106,7 +108,7 @@ fun MainView(viewModel: MainViewModel, navigation: MainViewNavigation) {
 fun ExitNodeStatus(navAction: () -> Unit, exitNode: String = "None") {
     Box(modifier = Modifier
             .clickable { navAction() }
-            .padding(12.dp)
+            .padding(horizontal = 8.dp)
             .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
             .background(MaterialTheme.colorScheme.secondaryContainer)
             .fillMaxWidth()) {
@@ -186,7 +188,7 @@ fun ConnectView(user: IpnLocal.LoginProfile?, connectAction: () -> Unit, loginAc
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PeerList(searchTerm: StateFlow<String>,  peers: StateFlow<List<PeerSet>>, onNavigateToPeerDetails: (Tailcfg.Node) -> Unit, onSearch: (String) -> Unit) {
+fun PeerList(searchTerm: StateFlow<String>, peers: StateFlow<List<PeerSet>>, onNavigateToPeerDetails: (Tailcfg.Node) -> Unit, onSearch: (String) -> Unit) {
     val peerList = peers.collectAsState(initial = emptyList<PeerSet>())
     var searching = false
     val searchTermStr by searchTerm.collectAsState(initial = "")
@@ -208,7 +210,7 @@ fun PeerList(searchTerm: StateFlow<String>,  peers: StateFlow<List<PeerSet>>, on
                 modifier =
                 Modifier
                         .fillMaxSize()
-                        .padding(2.dp)
+                        .verticalScroll(rememberScrollState())
                         .background(MaterialTheme.colorScheme.secondaryContainer),
         ) {
             peerList.value.forEach { peerSet ->
@@ -223,8 +225,14 @@ fun PeerList(searchTerm: StateFlow<String>,  peers: StateFlow<List<PeerSet>>, on
                             },
                             headlineContent = {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    val color: Color = if (peer.Online ?: false) { Color.Green } else { Color.Gray }
-                                    Box(modifier = Modifier.size(8.dp).background(color = color, shape = RoundedCornerShape(percent = 50)))  {}
+                                    val color: Color = if (peer.Online ?: false) {
+                                        Color.Green
+                                    } else {
+                                        Color.Gray
+                                    }
+                                    Box(modifier = Modifier
+                                            .size(8.dp)
+                                            .background(color = color, shape = RoundedCornerShape(percent = 50))) {}
                                     Spacer(modifier = Modifier.size(8.dp))
                                     Text(text = peer.ComputedName, style = MaterialTheme.typography.titleMedium)
                                 }
@@ -236,7 +244,7 @@ fun PeerList(searchTerm: StateFlow<String>,  peers: StateFlow<List<PeerSet>>, on
                                 )
                             },
                             trailingContent = {
-                                 Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
+                                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
                             }
                     )
                 }

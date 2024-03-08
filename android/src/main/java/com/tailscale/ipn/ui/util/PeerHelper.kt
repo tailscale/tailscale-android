@@ -1,3 +1,7 @@
+// Copyright (c) Tailscale Inc & AUTHORS
+// SPDX-License-Identifier: BSD-3-Clause
+
+
 package com.tailscale.ipn.ui.util
 
 import com.tailscale.ipn.ui.model.Netmap
@@ -15,7 +19,7 @@ class PeerCategorizer(val model: IpnModel) {
         val selfNode = netmap.SelfNode
 
         val grouped = mutableMapOf<UserID, MutableList<Tailcfg.Node>>()
-        for(peer in (peers + selfNode) ) {
+        for (peer in (peers + selfNode)) {
             // (jonathan) TODO: MDM -> There are a number of MDM settings to hide devices from the user
             // (jonathan) TODO: MDM -> currentUser, otherUsers, taggedDevices
 
