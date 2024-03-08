@@ -1064,20 +1064,24 @@ func (ui *UI) layoutExitNodeDialog(gtx layout.Context, sysIns system.Insets, exi
 							if idx >= 2 {
 								node = exits[idx-2]
 							}
-							lbl := node.Label
-							if !node.Online {
-								lbl = lbl + " (offline)"
-							}
-							btn := material.RadioButton(ui.theme, &d.exits, string(node.ID), lbl)
-							if !node.Online {
+							if node.Online {
+								btn := material.RadioButton(ui.theme, &d.exits, string(node.ID), node.Label)
+								return layout.Inset{
+									Right:  unit.Dp(16),
+									Left:   unit.Dp(16),
+									Bottom: unit.Dp(16),
+								}.Layout(gtx, btn.Layout)
+							} else {
+								node.Label = node.Label + " (offline)"
+								btn := material.RadioButton(ui.theme, &d.exits, string(node.ID), node.Label)
 								btn.Color = rgb(0xbbbbbb)
 								btn.IconColor = btn.Color
+								return layout.Inset{
+									Right:  unit.Dp(16),
+									Left:   unit.Dp(16),
+									Bottom: unit.Dp(16),
+								}.Layout(gtx, btn.Layout)
 							}
-							return layout.Inset{
-								Right:  unit.Dp(16),
-								Left:   unit.Dp(16),
-								Bottom: unit.Dp(16),
-							}.Layout(gtx, btn.Layout)
 						})
 					}),
 				)
@@ -1317,10 +1321,30 @@ func (ui *UI) layoutPeer(gtx layout.Context, sysIns system.Insets, p *UIPeer, us
 			gtx.Constraints.Min.X = gtx.Constraints.Max.X
 			return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 				layout.Rigid(func(gtx C) D {
-					return layout.Inset{Bottom: unit.Dp(4)}.Layout(gtx, func(gtx C) D {
-						name := p.Peer.DisplayName(p.Peer.User == user)
-						return material.H6(ui.theme, name).Layout(gtx)
-					})
+					return layout.Stack{}.Layout(gtx,
+						layout.Expanded(func(gtx C) D {
+							return layout.Stack{Alignment: layout.W}.Layout(gtx,
+								layout.Stacked(func(gtx C) D {
+									return layout.Inset{}.Layout(gtx, func(gtx C) D {
+										statusbullet := material.H4(ui.theme, "•")
+										if p.Peer.Online != nil && *p.Peer.Online {
+											statusbullet.Color = rgb(0x009966)
+										} else {
+											statusbullet.Color = rgb(0xcccccc)
+										}
+										return statusbullet.Layout(gtx)
+									})
+								}),
+								layout.Stacked(func(gtx C) D {
+									return layout.Inset{Left: unit.Dp(16), Bottom: unit.Dp(4)}.Layout(gtx, func(gtx C) D {
+										name := p.Peer.DisplayName(p.Peer.User == user)
+										return material.H6(ui.theme, name).Layout(gtx)
+									})
+								}),
+							)
+						}),
+					)
+
 				}),
 				layout.Rigid(func(gtx C) D {
 					var bestIP netip.Addr // IP to show; first IPv4, or first IPv6 if no IPv4
@@ -1472,7 +1496,7 @@ func (ui *UI) layoutSearchbar(gtx layout.Context, sysIns system.Insets) layout.D
 							return ui.icons.search.Layout(gtx, col)
 						}),
 						layout.Flexed(1,
-							material.Editor(ui.theme, &ui.search, "Search by machine name...").Layout,
+							material.Editor(ui.theme, &ui.search, "Search by device name...").Layout,
 						),
 					)
 				})
