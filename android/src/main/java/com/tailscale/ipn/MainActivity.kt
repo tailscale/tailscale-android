@@ -14,11 +14,14 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.tailscale.ipn.ui.service.IpnManager
 import com.tailscale.ipn.ui.theme.AppTheme
+import com.tailscale.ipn.ui.view.AboutView
+import com.tailscale.ipn.ui.view.BugReportView
 import com.tailscale.ipn.ui.view.ExitNodePicker
 import com.tailscale.ipn.ui.view.MainView
 import com.tailscale.ipn.ui.view.MainViewNavigation
 import com.tailscale.ipn.ui.view.PeerDetails
 import com.tailscale.ipn.ui.view.Settings
+import com.tailscale.ipn.ui.view.SettingsNav
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerViewModel
 import com.tailscale.ipn.ui.viewModel.MainViewModel
 import com.tailscale.ipn.ui.viewModel.PeerDetailsViewModel
@@ -43,11 +46,16 @@ class MainActivity : ComponentActivity() {
                             onNavigateToExitNodes = { navController.navigate("exitNodes") }
                     )
 
+                    val settingsNav = SettingsNav(
+                            onNavigateToBugReport = { navController.navigate("bugReport") },
+                            onNavigateToAbout = { navController.navigate("about") }
+                    )
+
                     composable("main") {
                         MainView(viewModel = MainViewModel(manager.model, manager.actions), navigation = mainViewNav)
                     }
                     composable("settings") {
-                        Settings(SettingsViewModel(manager.model))
+                        Settings(SettingsViewModel(manager.model, manager.actions, settingsNav))
                     }
                     composable("exitNodes") {
                         ExitNodePicker(ExitNodePickerViewModel(manager.model))
@@ -55,6 +63,12 @@ class MainActivity : ComponentActivity() {
                     composable("peerDetails/{nodeId}", arguments = listOf(navArgument("nodeId") { type = NavType.StringType })) {
                         PeerDetails(PeerDetailsViewModel(manager.model, nodeId = it.arguments?.getString("nodeId")
                                 ?: ""))
+                    }
+                    composable("bugReport") {
+                        BugReportView()
+                    }
+                    composable("about") {
+                        AboutView()
                     }
                 }
             }
