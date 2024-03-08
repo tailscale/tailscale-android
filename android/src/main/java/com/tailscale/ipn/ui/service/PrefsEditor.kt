@@ -6,6 +6,7 @@ package com.tailscale.ipn.ui.service
 import com.tailscale.ipn.ui.localapi.APIErrorVals
 import com.tailscale.ipn.ui.localapi.Result
 import com.tailscale.ipn.ui.model.Ipn
+import android.util.Log
 
 
 // Handles all types of preference modifications typically invoked by the UI.
@@ -27,8 +28,9 @@ import com.tailscale.ipn.ui.model.Ipn
 // the callback will be called with a NO_PREFS error
 
 fun IpnModel.setWantRunning(wantRunning: Boolean, callback: (Result<Ipn.Prefs>) -> Unit) {
-    Ipn.MaskedPrefs().WantRunning = wantRunning
-    apiClient.editPrefs(Ipn.MaskedPrefs(), callback)
+    val prefs = Ipn.MaskedPrefs()
+    prefs.WantRunning = wantRunning
+    apiClient.editPrefs(prefs, callback)
 }
 
 fun IpnModel.toggleCorpDNS(callback: (Result<Ipn.Prefs>) -> Unit) {

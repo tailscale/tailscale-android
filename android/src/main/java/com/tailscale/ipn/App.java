@@ -76,7 +76,7 @@ import com.tailscale.ipn.mdm.ShowHideSetting;
 import com.tailscale.ipn.mdm.StringSetting;
 import com.tailscale.ipn.ui.service.IpnManager;
 
-import org.gioui.Gio;
+import com.tailscale.ipn.ui.localapi.LocalApiClient;
 
 public class App extends Application {
 	private static final String PEER_TAG = "peer";
@@ -102,10 +102,19 @@ public class App extends Application {
 		return _application;
 	}
 
-	@Override public void onCreate() {
+	@Override public void onCreate()  {
 		super.onCreate();
-		// Load and initialize the Go library.
-		Gio.init(this);
+
+		System.loadLibrary("tailscale");
+
+		String dataDir = this.getFilesDir().getAbsolutePath();
+		byte[] dataDirUTF8;
+		try {
+			dataDirUTF8 = dataDir.getBytes("UTF-8");
+			initBackend(dataDirUTF8, this);
+		} catch (Exception e) {
+			android.util.Log.d("tailscale","Error getting directory");
+		}
 
 		this.connectivityManager = (ConnectivityManager) this.getSystemService(Context.CONNECTIVITY_SERVICE);
 		setAndRegisterNetworkCallbacks();
@@ -371,6 +380,7 @@ public class App extends Application {
 		nm.createNotificationChannel(channel);
 	}
 
+	static native void initBackend(byte[] dataDir, Context context);
 	static native void onVPNPrepared();
 	private static native void onDnsConfigChanged();
 	static native void onShareIntent(int nfiles, int[] types, String[] mimes, String[] items, String[] names, long[] sizes);
