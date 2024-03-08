@@ -15,7 +15,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.ArrowDropDown
@@ -65,9 +67,7 @@ fun MainView(viewModel: MainViewModel, navigation: MainViewNavigation) {
             val state = viewModel.ipnState.collectAsState(initial = Ipn.State.NoState)
             val user = viewModel.loggedInUser.collectAsState(initial = null)
 
-            Row(modifier = Modifier
-                    .padding(6.dp)
-                    .fillMaxWidth(),
+            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
                     verticalAlignment = Alignment.CenterVertically) {
                 val isOn = viewModel.vpnToggleState.collectAsState(initial = false)
 
@@ -106,7 +106,7 @@ fun MainView(viewModel: MainViewModel, navigation: MainViewNavigation) {
 fun ExitNodeStatus(navAction: () -> Unit, exitNode: String = "None") {
     Box(modifier = Modifier
             .clickable { navAction() }
-            .padding(12.dp)
+            .padding(horizontal = 8.dp)
             .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
             .background(MaterialTheme.colorScheme.secondaryContainer)
             .fillMaxWidth()) {
@@ -208,7 +208,7 @@ fun PeerList(searchTerm: StateFlow<String>,  peers: StateFlow<List<PeerSet>>, on
                 modifier =
                 Modifier
                         .fillMaxSize()
-                        .padding(2.dp)
+                        .verticalScroll(rememberScrollState())
                         .background(MaterialTheme.colorScheme.secondaryContainer),
         ) {
             peerList.value.forEach { peerSet ->
