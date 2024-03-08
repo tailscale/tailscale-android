@@ -8,6 +8,7 @@ package com.tailscale.ipn.ui.service
 import android.content.Intent
 import com.tailscale.ipn.App
 import com.tailscale.ipn.IPNReceiver
+import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.localapi.LocalApiClient
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.notifier.Notifier
@@ -33,6 +34,7 @@ class IpnManager {
     private var scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     var apiClient = LocalApiClient(scope)
+    var mdmSettings = MDMSettings()
     val model = IpnModel(notifier, apiClient, scope)
 
     val actions = IpnActions(
