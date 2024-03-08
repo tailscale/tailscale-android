@@ -12,15 +12,17 @@ import android.net.VpnService;
 import android.system.OsConstants;
 import androidx.work.WorkManager;
 import androidx.work.OneTimeWorkRequest;
-
-import org.gioui.GioActivity;
-
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
 public class IPNService extends VpnService {
 	public static final String ACTION_REQUEST_VPN = "com.tailscale.ipn.REQUEST_VPN";
 	public static final String ACTION_STOP_VPN = "com.tailscale.ipn.STOP_VPN";
+
+	@Override 
+	public void onCreate(){
+		super.onCreate();
+	}
 
 	@Override public int onStartCommand(Intent intent, int flags, int startId) {
 		if (intent != null && ACTION_STOP_VPN.equals(intent.getAction())) {
