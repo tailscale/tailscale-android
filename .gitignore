@@ -6,6 +6,7 @@ build
 
 # The destination for the Go Android archive.
 android/libs
+android_legacy/libs
 
 # Android Studio files
 android_legacy/.idea
