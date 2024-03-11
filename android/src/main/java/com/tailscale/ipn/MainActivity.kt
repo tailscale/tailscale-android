@@ -5,7 +5,9 @@
 package com.tailscale.ipn
 
 import android.content.Context
+import android.content.Intent
 import android.content.RestrictionsManager
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -15,8 +17,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.tailscale.ipn.mdm.MDMSettings
-import com.tailscale.ipn.mdm.ShowHideSetting
-import com.tailscale.ipn.mdm.ShowHideValue
 import com.tailscale.ipn.ui.service.IpnManager
 import com.tailscale.ipn.ui.theme.AppTheme
 import com.tailscale.ipn.ui.view.AboutView
@@ -31,6 +31,10 @@ import com.tailscale.ipn.ui.viewModel.ExitNodePickerViewModel
 import com.tailscale.ipn.ui.viewModel.MainViewModel
 import com.tailscale.ipn.ui.viewModel.PeerDetailsViewModel
 import com.tailscale.ipn.ui.viewModel.SettingsViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 
 
 class MainActivity : ComponentActivity() {
@@ -78,6 +82,30 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    protected val scope = CoroutineScope(Dispatchers.IO + Job())
+
+    init {
+        // Watch the model's browseToURL and launch the browser when it changes
+        // This will trigger the login flow
+        scope.launch {
+            manager.model.browseToURL.collect { url ->
+                url?.let {
+                    Dispatchers.Main.run {
+                        login(it)
+                    }
+                }
+            }
+        }
+    }
+
+    fun login(url: String) {
+        // (jonathan) TODO: This is functional, but the navigation doesn't quite work
+        // as expected.  There's probably a better built in way to do this.  This will
+        // unblock in dev for the time being though.
+        val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+        startActivity(browserIntent)
     }
 
     override fun onResume() {

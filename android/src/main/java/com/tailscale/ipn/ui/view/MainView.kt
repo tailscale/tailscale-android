@@ -171,7 +171,7 @@ fun ConnectView(user: IpnLocal.LoginProfile?, connectAction: () -> Unit, loginAc
             horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(text = "Not Connected", style = MaterialTheme.typography.titleMedium)
-        if (user != null) {
+        if (user != null && !user.isEmpty()) {
             val tailnetName = user.NetworkProfile?.DomainName ?: ""
             Text(
                     "Connect to your ${tailnetName} tailnet",
