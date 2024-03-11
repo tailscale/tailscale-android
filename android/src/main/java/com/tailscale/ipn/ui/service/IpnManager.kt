@@ -12,6 +12,7 @@ import com.tailscale.ipn.ui.localapi.LocalApiClient
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.notifier.Notifier
 
+
 typealias PrefChangeCallback = (Result<Boolean>) -> Unit
 
 // Abstracts the actions that can be taken by the UI so that the concept of an IPNManager
@@ -39,7 +40,6 @@ class IpnManager {
             openAdminConsole = { /* TODO */ },
             updatePrefs = { prefs, callback -> updatePrefs(prefs, callback) }
     )
-
 
     fun startVPN() {
         val context = App.getApplication().applicationContext

@@ -81,6 +81,12 @@ class IpnModel {
 
     private fun onNotifyChange(notify: Ipn.Notify) {
         notify.State?.let { state ->
+            // Refresh the user profiles if we're transitioning out of the
+            // NeedsLogin state.
+            if (_state.value == Ipn.State.NeedsLogin) {
+                scope.launch { loadUserProfiles() }
+            }
+
             Log.d("IpnModel", "State changed: $state")
             _state.value = Ipn.State.fromInt(state)
         }
