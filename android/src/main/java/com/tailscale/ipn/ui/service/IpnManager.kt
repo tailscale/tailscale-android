@@ -16,6 +16,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 
+
 typealias PrefChangeCallback = (Result<Boolean>) -> Unit
 
 // Abstracts the actions that can be taken by the UI so that the concept of an IPNManager
@@ -45,7 +46,6 @@ class IpnManager {
             openAdminConsole = { /* TODO */ },
             updatePrefs = { prefs, callback -> updatePrefs(prefs, callback) }
     )
-
 
     fun startVPN() {
         val context = App.getApplication().applicationContext
