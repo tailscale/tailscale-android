@@ -106,6 +106,11 @@ class LocalApiClient {
         executeRequest<Ipn.Prefs>(req)
     }
 
+    fun editPrefs(prefs: Ipn.MaskedPrefs, responseHandler: (Result<Ipn.Prefs>) -> Unit) {
+        val req = LocalAPIRequest.editPrefs(prefs, responseHandler)
+        executeRequest<Ipn.Prefs>(req)
+    }
+
     fun getProfiles(responseHandler: (Result<List<IpnLocal.LoginProfile>>) -> Unit) {
         val req = LocalAPIRequest.profiles(responseHandler)
         executeRequest<List<IpnLocal.LoginProfile>>(req)
@@ -148,8 +153,6 @@ class LocalApiClient {
     // start
     // startLoginInteractive
     // logout
-    // profiles
-    // currentProfile
     // addProfile
     // switchProfile
     // deleteProfile

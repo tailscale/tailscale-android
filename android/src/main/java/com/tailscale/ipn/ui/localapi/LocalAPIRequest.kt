@@ -9,6 +9,7 @@ import com.tailscale.ipn.ui.model.Errors
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.IpnState
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 private object Endpoint {
@@ -46,7 +47,8 @@ private object Endpoint {
 // it up if possible.
 enum class APIErrorVals(val rawValue: String) {
     UNPARSEABLE_RESPONSE("Unparseable localAPI response"),
-    NOT_READY("Not Ready");
+    NOT_READY("Not Ready"),
+    NO_PREFS("Current prefs not available");
 
     fun toError(): Error {
         return Error(rawValue)
@@ -62,33 +64,41 @@ class LocalAPIRequest<T>(
     val path = "/localapi/v0/$path"
 
     companion object {
-        val cookieLock = Any()
-        var cookieCounter: Int = 0
+        private val cookieLock = Any()
+        private var cookieCounter: Int = 0
         val decoder = Json { ignoreUnknownKeys = true }
 
         fun <T> get(path: String, body: String? = null, parser: (String) -> Unit) =
-            LocalAPIRequest<T>(
-                method = "GET",
-                path = path,
-                body = body,
-                parser = parser
-            )
+                LocalAPIRequest<T>(
+                        method = "GET",
+                        path = path,
+                        body = body,
+                        parser = parser
+                )
 
         fun <T> put(path: String, body: String? = null, parser: (String) -> Unit) =
-            LocalAPIRequest<T>(
-                method = "PUT",
-                path = path,
-                body = body,
-                parser = parser
-            )
+                LocalAPIRequest<T>(
+                        method = "PUT",
+                        path = path,
+                        body = body,
+                        parser = parser
+                )
 
         fun <T> post(path: String, body: String? = null, parser: (String) -> Unit) =
-            LocalAPIRequest<T>(
-                method = "POST",
-                path = path,
-                body = body,
-                parser = parser
-            )
+                LocalAPIRequest<T>(
+                        method = "POST",
+                        path = path,
+                        body = body,
+                        parser = parser
+                )
+
+        fun <T> patch(path: String, body: String? = null, parser: (String) -> Unit) =
+                LocalAPIRequest<T>(
+                        method = "PATCH",
+                        path = path,
+                        body = body,
+                        parser = parser
+                )
 
         fun getCookie(): String {
             synchronized(cookieLock) {
@@ -96,6 +106,7 @@ class LocalAPIRequest<T>(
                 return cookieCounter.toString()
             }
         }
+
 
         fun status(responseHandler: StatusResponseHandler): LocalAPIRequest<IpnState.Status> {
             return get(Endpoint.STATUS) { resp ->
@@ -114,6 +125,14 @@ class LocalAPIRequest<T>(
                 responseHandler(decode<Ipn.Prefs>(resp))
             }
         }
+
+        fun editPrefs(prefs: Ipn.MaskedPrefs, responseHandler: (Result<Ipn.Prefs>) -> Unit): LocalAPIRequest<Ipn.Prefs> {
+            val body = Json.encodeToString(prefs)
+            return patch(Endpoint.PREFS, body) { resp ->
+                responseHandler(decode<Ipn.Prefs>(resp))
+            }
+        }
+
 
         fun profiles(responseHandler: (Result<List<IpnLocal.LoginProfile>>) -> Unit): LocalAPIRequest<List<IpnLocal.LoginProfile>> {
             return get(Endpoint.PROFILES) { resp ->
@@ -134,19 +153,18 @@ class LocalAPIRequest<T>(
         }
 
         fun logout(responseHandler: (Result<String>) -> Unit): LocalAPIRequest<String> {
-            val path = LocalAPIEndpoint.Logout.path()
-            return LocalAPIRequest<String>(path, "POST", null, null) { resp ->
+            return post(Endpoint.LOGOUT) { resp ->
                 responseHandler(parseString(resp))
             }
         }
 
         // Check if the response was a generic error
         fun parseError(respData: String): Error {
-            try {
+            return try {
                 val err = Json.decodeFromString<Errors.GenericError>(respData)
-                return Error(err.error)
+                Error(err.error)
             } catch (e: Exception) {
-                return Error(APIErrorVals.UNPARSEABLE_RESPONSE.toError())
+                Error(APIErrorVals.UNPARSEABLE_RESPONSE.toError())
             }
         }
 
@@ -160,11 +178,11 @@ class LocalAPIRequest<T>(
         // Attempt to decode the response into the expected type.  If that fails, then try
         // parsing as an error.
         inline fun <reified T> decode(respData: String): Result<T> {
-            try {
+            return try {
                 val message = decoder.decodeFromString<T>(respData)
-                return Result(message)
+                Result(message)
             } catch (e: Exception) {
-                return Result(parseError(respData))
+                Result(parseError(respData))
             }
         }
     }

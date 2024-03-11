@@ -35,7 +35,7 @@ class IpnModel {
 
     private val _state: MutableStateFlow<Ipn.State> = MutableStateFlow(Ipn.State.NoState)
     private val _netmap: MutableStateFlow<Netmap.NetworkMap?> = MutableStateFlow(null)
-    private val _prefs: MutableStateFlow<Ipn.Prefs?> = MutableStateFlow(null)
+    protected val _prefs: MutableStateFlow<Ipn.Prefs?> = MutableStateFlow(null)
     private val _engineStatus: MutableStateFlow<Ipn.EngineStatus?> = MutableStateFlow(null)
     private val _tailFSShares: MutableStateFlow<Map<String, String>?> = MutableStateFlow(null)
     private val _browseToURL: MutableStateFlow<String?> = MutableStateFlow(null)
@@ -62,7 +62,6 @@ class IpnModel {
         get() {
             return prefs.value != null
         }
-
 
     // Backend Observation
 
