@@ -8,33 +8,27 @@ import com.tailscale.ipn.ui.model.*
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 
-enum class LocalAPIEndpoint(val rawValue: String) {
-    Debug("debug"),
-    Debug_Log("debug-log"),
-    BugReport("bugreport"),
-    Prefs("prefs"),
-    FileTargets("file-targets"),
-    UploadMetrics("upload-client-metrics"),
-    Start("start"),
-    LoginInteractive("login-interactive"),
-    ResetAuth("reset-auth"),
-    Logout("logout"),
-    Profiles("profiles/"),
-    ProfilesCurrent("profiles/current"),
-    Status("status"),
-    TKAStatus("tka/status"),
-    TKASitng("tka/sign"),
-    TKAVerifyDeeplink("tka/verify-deeplink"),
-    Ping("ping"),
-    Files("files"),
-    FilePut("file-put"),
-    TailFSServerAddress("tailfs/fileserver-address");
-
-    val prefix = "/localapi/v0/"
-
-    fun path(): String {
-        return prefix + rawValue
-    }
+private object Endpoint {
+    const val DEBUG = "debug"
+    const val DEBUG_LOG = "debug-log"
+    const val BUG_REPORT = "bugreport"
+    const val PREFS = "prefs"
+    const val FILE_TARGETS = "file-targets"
+    const val UPLOAD_METRICS = "upload-client-metrics"
+    const val START = "start"
+    const val LOGIN_INTERACTIVE = "login-interactive"
+    const val RESET_AUTH = "reset-auth"
+    const val LOGOUT = "logout"
+    const val PROFILES = "profiles/"
+    const val PROFILES_CURRENT = "profiles/current"
+    const val STATUS = "status"
+    const val TKA_STATUS = "tka/status"
+    const val TKA_SIGN = "tka/sign"
+    const val TKA_VERIFY_DEEP_LINK = "tka/verify-deeplink"
+    const val PING = "ping"
+    const val FILES = "files"
+    const val FILE_PUT = "file-put"
+    const val TAILFS_SERVER_ADDRESS = "tailfs/fileserver-address"
 }
 
 // Potential local and upstream errors.   Error handling in localapi in the go layer
@@ -57,16 +51,41 @@ enum class APIErrorVals(val rawValue: String) {
 }
 
 class LocalAPIRequest<T>(
-        val path: String,
+        path: String,
         val method: String,
         val body: String? = null,
-        val responseHandler: (Result<T>) -> Unit,
         val parser: (String) -> Unit,
 ) {
+    val path = "/localapi/v0/$path"
+
     companion object {
         val cookieLock = Any()
         var cookieCounter: Int = 0
         val decoder = Json { ignoreUnknownKeys = true }
+
+        fun <T> get(path: String, body: String? = null, parser: (String) -> Unit) =
+            LocalAPIRequest<T>(
+                method = "GET",
+                path = path,
+                body = body,
+                parser = parser
+            )
+
+        fun <T> put(path: String, body: String? = null, parser: (String) -> Unit) =
+            LocalAPIRequest<T>(
+                method = "PUT",
+                path = path,
+                body = body,
+                parser = parser
+            )
+
+        fun <T> post(path: String, body: String? = null, parser: (String) -> Unit) =
+            LocalAPIRequest<T>(
+                method = "POST",
+                path = path,
+                body = body,
+                parser = parser
+            )
 
         fun getCookie(): String {
             synchronized(cookieLock) {
@@ -76,36 +95,31 @@ class LocalAPIRequest<T>(
         }
 
         fun status(responseHandler: StatusResponseHandler): LocalAPIRequest<IpnState.Status> {
-            val path = LocalAPIEndpoint.Status.path()
-            return LocalAPIRequest<IpnState.Status>(path, "GET", null, responseHandler) { resp ->
+            return get(Endpoint.STATUS) { resp ->
                 responseHandler(decode<IpnState.Status>(resp))
             }
         }
 
         fun bugReportId(responseHandler: BugReportIdHandler): LocalAPIRequest<BugReportID> {
-            val path = LocalAPIEndpoint.BugReport.path()
-            return LocalAPIRequest<BugReportID>(path, "POST", null, responseHandler) { resp ->
+            return post(Endpoint.BUG_REPORT) { resp ->
                 responseHandler(parseString(resp))
             }
         }
 
         fun prefs(responseHandler: PrefsHandler): LocalAPIRequest<Ipn.Prefs> {
-            val path = LocalAPIEndpoint.Prefs.path()
-            return LocalAPIRequest<Ipn.Prefs>(path, "GET", null, responseHandler) { resp ->
+            return get(Endpoint.PREFS) { resp ->
                 responseHandler(decode<Ipn.Prefs>(resp))
             }
         }
 
         fun profiles(responseHandler: (Result<List<IpnLocal.LoginProfile>>) -> Unit): LocalAPIRequest<List<IpnLocal.LoginProfile>> {
-            val path = LocalAPIEndpoint.Profiles.path()
-            return LocalAPIRequest<List<IpnLocal.LoginProfile>>(path, "GET", null, responseHandler) { resp ->
+            return get(Endpoint.PROFILES) { resp ->
                 responseHandler(decode<List<IpnLocal.LoginProfile>>(resp))
             }
         }
 
         fun currentProfile(responseHandler: (Result<IpnLocal.LoginProfile>) -> Unit): LocalAPIRequest<IpnLocal.LoginProfile> {
-            val path = LocalAPIEndpoint.ProfilesCurrent.path()
-            return LocalAPIRequest<IpnLocal.LoginProfile>(path, "GET", null, responseHandler) { resp ->
+            return get(Endpoint.PROFILES_CURRENT) { resp ->
                 responseHandler(decode<IpnLocal.LoginProfile>(resp))
             }
         }

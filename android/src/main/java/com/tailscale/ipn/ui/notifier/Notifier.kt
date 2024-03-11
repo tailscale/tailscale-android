@@ -25,7 +25,7 @@ class Watcher(
     val callback: NotifierCallback
 )
 
-// Notifier is a wrapper around the IPN Bus notifier.  It provides a way to watch the
+// Notifier is a wrapper around the IPN Bus notifier.  It provides a way to watch
 // for changes in various parts of the Tailscale engine.  You will typically only use
 // a single Notifier per instance of your application which lasts for the lifetime of
 // the process.
@@ -33,12 +33,9 @@ class Watcher(
 // The primary entry point here is watchIPNBus which will start a watcher on the IPN bus
 // and return you the session Id.  When you are done with your watcher, you must call
 // unwatchIPNBus with the sessionId.
-class Notifier {
-    constructor() {
-        Log.d("Notifier", "Notifier created")
-    }
+class Notifier() {
 
-    protected val scope = CoroutineScope(Dispatchers.IO + Job())
+    private val scope = CoroutineScope(Dispatchers.IO + Job())
 
     // NotifyWatchOpt is a bitmask of options supplied to the notifier to specify which
     // what we want to see on the Noitfy bus
@@ -74,7 +71,7 @@ class Notifier {
     }
 
     // Starts an IPN Bus watcher.  **This is blocking** and will not return until
-    // the watcher is stopped and must be excuted in a suitable coroutine scope such
+    // the watcher is stopped and must be executed in a suitable coroutine scope such
     // as Dispatchers.IO 
     private external fun startIPNBusWatcher(sessionId: String, mask: Int)
 
@@ -149,6 +146,10 @@ class Notifier {
                 NotifyWatchOpt.initialState.value,
                 callback
         )
+    }
+
+    init {
+        Log.d("Notifier", "Notifier created")
     }
 }
 
