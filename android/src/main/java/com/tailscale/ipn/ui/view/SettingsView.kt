@@ -17,8 +17,10 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.AnnotatedString
@@ -26,6 +28,8 @@ import androidx.compose.ui.unit.dp
 import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.util.defaultPaddingModifier
 import com.tailscale.ipn.ui.util.settingsRowModifier
+import com.tailscale.ipn.ui.viewModel.Setting
+import com.tailscale.ipn.ui.viewModel.SettingType
 import com.tailscale.ipn.ui.viewModel.SettingsViewModel
 
 
@@ -48,11 +52,34 @@ fun Settings(viewModel: SettingsViewModel) {
                 Text(text = "Sign In")
             }
         }
+
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        viewModel.settings.forEach { settingBundle ->
+            Column(modifier = settingsRowModifier()) {
+                settingBundle.title?.let {
+                    Text(text = it, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(8.dp))
+                }
+                settingBundle.settings.forEach { setting ->
+                    when (setting.type) {
+                        SettingType.NAV -> {
+                            SettingsNavRow(setting)
+                        }
+
+                        SettingType.SWITCH -> {
+                            SettingsSwitchRow(setting)
+                        }
+
+                        SettingType.NAV_WITH_TEXT -> {
+                            SettingsNavRow(setting)
+                        }
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+        }
     }
-
-    Spacer(modifier = Modifier.height(8.dp))
-
-    // (jonathan) TODO: Add the settings from viewModel.settings
 }
 
 @Composable
@@ -76,13 +103,29 @@ fun UserView(profile: IpnLocal.LoginProfile?, isAdmin: Boolean, adminText: Annot
 }
 
 @Composable
-fun SettingsNavRow(title: String, value: String = "", onClick: () -> Unit) {
-    Row(modifier = Modifier.clickable { onClick() }) {
-        Text(text = title)
+fun SettingsNavRow(setting: Setting) {
+    val txtVal = setting.value?.collectAsState()?.value ?: ""
+    val enabled = setting.enabled.collectAsState().value
+
+    Row(modifier = defaultPaddingModifier().clickable { if (enabled) setting.onClick() }) {
+        Text(text = setting.title)
         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
-            Text(text = value, style = MaterialTheme.typography.bodyMedium)
+            Text(text = txtVal, style = MaterialTheme.typography.bodyMedium)
         }
         Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
+    }
+}
+
+@Composable
+fun SettingsSwitchRow(setting: Setting) {
+    val swVal = setting.isOn?.collectAsState()?.value ?: false
+    val enabled = setting.enabled.collectAsState().value
+
+    Row(modifier = defaultPaddingModifier().clickable { if (enabled) setting.onClick() }, verticalAlignment = Alignment.CenterVertically) {
+        Text(text = setting.title)
+        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
+            Switch(checked = swVal, onCheckedChange = setting.onToggle, enabled = enabled)
+        }
     }
 }
 
