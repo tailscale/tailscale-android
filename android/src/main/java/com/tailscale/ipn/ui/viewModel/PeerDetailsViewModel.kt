@@ -6,13 +6,14 @@ package com.tailscale.ipn.ui.viewModel
 
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
+import com.tailscale.ipn.ui.model.StableNodeID
 import com.tailscale.ipn.ui.service.IpnModel
 import com.tailscale.ipn.ui.util.DisplayAddress
 import com.tailscale.ipn.ui.util.TimeUtil
 
 data class PeerSettingInfo(val title:String, val value: String)
 
-class PeerDetailsViewModel(val model: IpnModel, val nodeId: String): ViewModel() {
+class PeerDetailsViewModel(val model: IpnModel, val nodeId: StableNodeID): ViewModel() {
 
     var addresses: List<DisplayAddress>  = emptyList()
     var info: List<PeerSettingInfo> = emptyList()
@@ -22,7 +23,7 @@ class PeerDetailsViewModel(val model: IpnModel, val nodeId: String): ViewModel()
     val connectedColor: Color
 
     init {
-        val peer = model.netmap.value?.Peers?.find { it.StableID == nodeId }
+        val peer = model.netmap.value?.getPeer(nodeId)
         peer?.Addresses?.let {
             addresses = it.map { addr ->
                 DisplayAddress(addr)}
