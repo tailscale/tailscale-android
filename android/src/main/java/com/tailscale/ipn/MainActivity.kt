@@ -22,6 +22,7 @@ import com.tailscale.ipn.ui.theme.AppTheme
 import com.tailscale.ipn.ui.view.AboutView
 import com.tailscale.ipn.ui.view.BugReportView
 import com.tailscale.ipn.ui.view.ExitNodePicker
+import com.tailscale.ipn.ui.view.MDMSettingsDebugView
 import com.tailscale.ipn.ui.view.MainView
 import com.tailscale.ipn.ui.view.MainViewNavigation
 import com.tailscale.ipn.ui.view.PeerDetails
@@ -58,7 +59,8 @@ class MainActivity : ComponentActivity() {
 
                     val settingsNav = SettingsNav(
                             onNavigateToBugReport = { navController.navigate("bugReport") },
-                            onNavigateToAbout = { navController.navigate("about") }
+                            onNavigateToAbout = { navController.navigate("about") },
+                            onNavigateToMDMSettings = { navController.navigate("mdmSettings") }
                     )
 
                     composable("main") {
@@ -79,6 +81,9 @@ class MainActivity : ComponentActivity() {
                     }
                     composable("about") {
                         AboutView()
+                    }
+                    composable("mdmSettings") {
+                        MDMSettingsDebugView(manager.mdmSettings)
                     }
                 }
             }

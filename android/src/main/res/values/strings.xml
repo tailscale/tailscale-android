@@ -45,5 +45,9 @@
     <string name="os">OS</string>
     <string name="key_expiry">Key Expiry</string>
 
+    <!-- Strings for MDM settings -->
+    <string name="current_mdm_settings">Current MDM Settings</string>
+    <string name="mdm_settings">MDM Settings</string>
+
 
 </resources>

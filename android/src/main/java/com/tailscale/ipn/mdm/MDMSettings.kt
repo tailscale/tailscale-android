@@ -4,31 +4,63 @@ import android.content.RestrictionsManager
 import com.tailscale.ipn.App
 
 class MDMSettings(private val restrictionsManager: RestrictionsManager? = null) {
-    // TODO(angott): implement a typed enum string array type
-    val hiddenNetworkDevices: List<NetworkDevices> = emptyList()
-
     fun get(setting: BooleanSetting): Boolean {
-        restrictionsManager?.let  { restrictionsManager ->
-            restrictionsManager.applicationRestrictions.containsKey(setting.key)
-            return restrictionsManager.applicationRestrictions.getBoolean(setting.key)
-        } ?: run {
-            return App.getApplication().encryptedPrefs.getBoolean(setting.key, false)
+        restrictionsManager?.let {
+            if (it.applicationRestrictions.containsKey(setting.key)) {
+                return it.applicationRestrictions.getBoolean(setting.key)
+            }
         }
+        return App.getApplication().encryptedPrefs.getBoolean(setting.key, false)
     }
 
     fun get(setting: StringSetting): String? {
-        return App.getApplication().encryptedPrefs.getString(setting.key, null)
+        return restrictionsManager?.applicationRestrictions?.getString(setting.key)
+            ?: App.getApplication().encryptedPrefs.getString(setting.key, null)
     }
 
     fun get(setting: AlwaysNeverUserDecidesSetting): AlwaysNeverUserDecidesValue {
-        val storedString = App.getApplication().encryptedPrefs.getString(setting.key, "user-decides")
+        val storedString: String =
+            restrictionsManager?.applicationRestrictions?.getString(setting.key)
+                ?: App.getApplication().encryptedPrefs.getString(setting.key, null)
                 ?: "user-decides"
-        return AlwaysNeverUserDecidesValue.valueOf(storedString)
+        return when (storedString) {
+            "always" -> {
+                AlwaysNeverUserDecidesValue.Always
+            }
+
+            "never" -> {
+                AlwaysNeverUserDecidesValue.Never
+            }
+
+            else -> {
+                AlwaysNeverUserDecidesValue.UserDecides
+            }
+        }
     }
 
     fun get(setting: ShowHideSetting): ShowHideValue {
-        val storedString = App.getApplication().encryptedPrefs.getString(setting.key, "show")
+        val storedString: String =
+            restrictionsManager?.applicationRestrictions?.getString(setting.key)
+                ?: App.getApplication().encryptedPrefs.getString(setting.key, null)
                 ?: "show"
-        return ShowHideValue.valueOf(storedString)
+        return when (storedString) {
+            "hide" -> {
+                ShowHideValue.Hide
+            }
+
+            else -> {
+                ShowHideValue.Show
+            }
+        }
+    }
+
+    fun get(setting: StringArraySetting): Array<String>? {
+        restrictionsManager?.let {
+            if (it.applicationRestrictions.containsKey(setting.key)) {
+                return it.applicationRestrictions.getStringArray(setting.key)
+            }
+        }
+        return App.getApplication().encryptedPrefs.getStringSet(setting.key, HashSet<String>())
+            ?.toTypedArray()?.sortedArray()
     }
 }

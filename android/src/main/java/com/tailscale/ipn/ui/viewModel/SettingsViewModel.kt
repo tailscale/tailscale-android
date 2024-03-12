@@ -73,7 +73,8 @@ class SettingsViewModel(val model: IpnModel, val ipnActions: IpnActions, val nav
             // General settings, always enabled
             SettingBundle(settings = listOf(
                 Setting(R.string.about, SettingType.NAV, onClick = { navigation.onNavigateToAbout()}, enabled = MutableStateFlow(true)),
-                Setting(R.string.bug_report, SettingType.NAV, onClick = {  navigation.onNavigateToBugReport()}, enabled = MutableStateFlow(true))
+                Setting(R.string.bug_report, SettingType.NAV, onClick = {  navigation.onNavigateToBugReport()}, enabled = MutableStateFlow(true)),
+                Setting(R.string.mdm_settings, SettingType.NAV, onClick = {  navigation.onNavigateToMDMSettings()}, enabled = MutableStateFlow(true))
             ))
     )
 
