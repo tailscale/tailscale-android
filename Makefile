@@ -159,13 +159,18 @@ tailscale-fdroid.apk: $(AAR)
 	(cd android_legacy && ./gradlew test assembleFdroidDebug)
 	mv android_legacy/build/outputs/apk/fdroid/debug/android_legacy-fdroid-debug.apk $@
 
-tailscale-new-fdroid.apk: $(AAR)
+tailscale-new-fdroid.apk: $(AAR_NEXTGEN)
 	(cd android && ./gradlew test assembleFdroidDebug)
 	mv android/build/outputs/apk/fdroid/debug/android-fdroid-debug.apk $@
 
-tailscale-new-debug: $(AAR)
+tailscale-new-debug.apk: $(AAR_NEXTGEN)
 	(cd android && ./gradlew test assemblePlayDebug)
 	mv android/build/outputs/apk/play/debug/android-play-debug.apk $@
+
+tailscale-new-debug: tailscale-new-debug.apk
+
+test: $(AAR_NEXTGEN)
+	(cd android && ./gradlew test)
 
 $(RELEASE_AAB): $(AAR)
 	(cd android_legacy && ./gradlew test bundlePlayRelease)
