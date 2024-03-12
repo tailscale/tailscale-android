@@ -24,9 +24,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.Links
 import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.util.defaultPaddingModifier
@@ -49,16 +55,16 @@ fun Settings(viewModel: SettingsViewModel) {
 
         Column(modifier = defaultPaddingModifier()) {
             viewModel.user?.let { user ->
-                UserView(profile = user, viewModel.isAdmin, viewModel.adminText(), onClick = {
+                UserView(profile = user, viewModel.isAdmin, adminText(), onClick = {
                     handler.openUri(Links.ADMIN_URL)
                 })
                 Spacer(modifier = Modifier.height(8.dp))
                 Button(onClick = { viewModel.ipnActions.logout() }) {
-                    Text(text = "Log Out")
+                    Text(text = stringResource(id = R.string.log_out))
                 }
             } ?: run {
                 Button(onClick = { viewModel.ipnActions.login() }) {
-                    Text(text = "Sign In")
+                    Text(text = stringResource(id = R.string.log_in))
                 }
             }
 
@@ -118,7 +124,7 @@ fun SettingsNavRow(setting: Setting) {
     val enabled = setting.enabled.collectAsState().value
 
     Row(modifier = defaultPaddingModifier().clickable { if (enabled) setting.onClick() }) {
-        Text(text = setting.title)
+        Text(text = stringResource(id = setting.titleRes))
         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
             Text(text = txtVal, style = MaterialTheme.typography.bodyMedium)
         }
@@ -132,10 +138,23 @@ fun SettingsSwitchRow(setting: Setting) {
     val enabled = setting.enabled.collectAsState().value
 
     Row(modifier = defaultPaddingModifier().clickable { if (enabled) setting.onClick() }, verticalAlignment = Alignment.CenterVertically) {
-        Text(text = setting.title)
+        Text(text = stringResource(id = setting.titleRes))
         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
             Switch(checked = swVal, onCheckedChange = setting.onToggle, enabled = enabled)
         }
     }
 }
 
+@Composable
+fun adminText(): AnnotatedString {
+    val annotatedString = buildAnnotatedString {
+        append(stringResource(id = R.string.settings_admin_prefix))
+
+        pushStringAnnotation(tag = "link", annotation = Links.ADMIN_URL)
+        withStyle(style = SpanStyle(color = Color.Blue)) {
+            append(stringResource(id = R.string.settings_admin_link))
+        }
+        pop()
+    }
+    return annotatedString
+}
