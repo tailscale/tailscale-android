@@ -1,4 +1,4 @@
-name: Build Debug APK
+name: Build Legacy Debug APK
 
 on:
   push:
@@ -27,5 +27,5 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
-    - name: Build APK
+    - name: Build Legacy APK
       run: make tailscale-debug.apk
