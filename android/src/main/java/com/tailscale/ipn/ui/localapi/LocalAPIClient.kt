@@ -23,7 +23,6 @@ class LocalApiClient(private val scope: CoroutineScope) {
         Log.d("LocalApiClient", "LocalApiClient created")
     }
 
-
     companion object {
         val isReady = CompletableDeferred<Boolean>()
 

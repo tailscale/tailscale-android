@@ -22,7 +22,6 @@ class IpnModel(
 ) {
     private var notifierSessions: MutableList<String> = mutableListOf()
 
-
     private val _state: MutableStateFlow<Ipn.State> = MutableStateFlow(Ipn.State.NoState)
     private val _netmap: MutableStateFlow<Netmap.NetworkMap?> = MutableStateFlow(null)
     protected val _prefs: MutableStateFlow<Ipn.Prefs?> = MutableStateFlow(null)
@@ -65,7 +64,7 @@ class IpnModel(
 
         apiClient.getCurrentProfile { result ->
             result.success?.let { user -> _loggedInUser.value = user }
-                ?: run { Log.e("IpnManager", "Error loading profiles: ${result.error}") }
+                ?: run { Log.e("IpnManager", "Error loading current profile: ${result.error}") }
         }
     }
 

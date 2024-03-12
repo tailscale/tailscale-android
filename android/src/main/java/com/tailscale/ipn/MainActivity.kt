@@ -11,6 +11,7 @@ import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -33,14 +34,12 @@ import com.tailscale.ipn.ui.viewModel.ExitNodePickerViewModel
 import com.tailscale.ipn.ui.viewModel.MainViewModel
 import com.tailscale.ipn.ui.viewModel.PeerDetailsViewModel
 import com.tailscale.ipn.ui.viewModel.SettingsViewModel
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 
 class MainActivity : ComponentActivity() {
-    private val manager = IpnManager()
+    private val manager = IpnManager(lifecycleScope)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,31 +49,41 @@ class MainActivity : ComponentActivity() {
                 val navController = rememberNavController()
                 NavHost(navController = navController, startDestination = "main") {
                     val mainViewNav = MainViewNavigation(
-                            onNavigateToSettings = { navController.navigate("settings") },
-                            onNavigateToPeerDetails = {
-                                navController.navigate("peerDetails/${it.StableID}")
-                            },
-                            onNavigateToExitNodes = { navController.navigate("exitNodes") }
+                        onNavigateToSettings = { navController.navigate("settings") },
+                        onNavigateToPeerDetails = {
+                            navController.navigate("peerDetails/${it.StableID}")
+                        },
+                        onNavigateToExitNodes = { navController.navigate("exitNodes") }
                     )
 
                     val settingsNav = SettingsNav(
-                            onNavigateToBugReport = { navController.navigate("bugReport") },
-                            onNavigateToAbout = { navController.navigate("about") },
-                            onNavigateToMDMSettings = { navController.navigate("mdmSettings") }
+                        onNavigateToBugReport = { navController.navigate("bugReport") },
+                        onNavigateToAbout = { navController.navigate("about") },
+                        onNavigateToMDMSettings = { navController.navigate("mdmSettings") }
                     )
 
                     composable("main") {
-                        MainView(viewModel = MainViewModel(manager.model, manager.actions), navigation = mainViewNav)
+                        MainView(
+                            viewModel = MainViewModel(manager.model, manager),
+                            navigation = mainViewNav
+                        )
                     }
                     composable("settings") {
-                        Settings(SettingsViewModel(manager.model, manager.actions, settingsNav))
+                        Settings(SettingsViewModel(manager.model, manager, settingsNav))
                     }
                     composable("exitNodes") {
                         ExitNodePicker(ExitNodePickerViewModel(manager.model))
                     }
-                    composable("peerDetails/{nodeId}", arguments = listOf(navArgument("nodeId") { type = NavType.StringType })) {
-                        PeerDetails(PeerDetailsViewModel(manager.model, nodeId = it.arguments?.getString("nodeId")
-                                ?: ""))
+                    composable(
+                        "peerDetails/{nodeId}",
+                        arguments = listOf(navArgument("nodeId") { type = NavType.StringType })
+                    ) {
+                        PeerDetails(
+                            PeerDetailsViewModel(
+                                manager.model, nodeId = it.arguments?.getString("nodeId")
+                                    ?: ""
+                            )
+                        )
                     }
                     composable("bugReport") {
                         BugReportView(BugReportViewModel(manager.apiClient))
@@ -90,12 +99,10 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    protected val scope = CoroutineScope(Dispatchers.IO + Job())
-
     init {
         // Watch the model's browseToURL and launch the browser when it changes
         // This will trigger the login flow
-        scope.launch {
+        lifecycleScope.launch {
             manager.model.browseToURL.collect { url ->
                 url?.let {
                     Dispatchers.Main.run {
@@ -106,7 +113,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    fun login(url: String) {
+    private fun login(url: String) {
         // (jonathan) TODO: This is functional, but the navigation doesn't quite work
         // as expected.  There's probably a better built in way to do this.  This will
         // unblock in dev for the time being though.
@@ -116,7 +123,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        val restrictionsManager = this.getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
+        val restrictionsManager =
+            this.getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
         manager.mdmSettings = MDMSettings(restrictionsManager)
     }
 }
