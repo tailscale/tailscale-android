@@ -66,17 +66,17 @@ func Java_com_tailscale_ipn_ui_localapi_LocalApiClient_doRequest(
 
 	resp := doLocalAPIRequest(pathStr, methodStr, bodyArray)
 
-	jrespBody := jni.JavaString(jenv, resp)
+	jrespBody := jni.NewByteArray(jenv, resp)
 	respBody := jni.Value(jrespBody)
 	cookie := jni.Value(jcookie)
-	onResponse := jni.GetMethodID(jenv, shim.clientClass, "onResponse", "(Ljava/lang/String;Ljava/lang/String;)V")
+	onResponse := jni.GetMethodID(jenv, shim.clientClass, "onResponse", "([BLjava/lang/String;)V")
 
 	jni.CallVoidMethod(jenv, jni.Object(cls), onResponse, respBody, cookie)
 }
 
-func doLocalAPIRequest(path string, method string, body []byte) string {
+func doLocalAPIRequest(path string, method string, body []byte) []byte {
 	if shim.service == nil {
-		return "{\"error\":\"Not Ready\"}"
+		return []byte("{\"error\":\"Not Ready\"}")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -90,13 +90,13 @@ func doLocalAPIRequest(path string, method string, body []byte) string {
 	defer r.Body().Close()
 
 	if err != nil {
-		return "{\"error\":\"" + err.Error() + "\"}"
+		return []byte("{\"error\":\"" + err.Error() + "\"}")
 	}
 	respBytes, err := io.ReadAll(r.Body())
 	if err != nil {
-		return "{\"error\":\"" + err.Error() + "\"}"
+		return []byte("{\"error\":\"" + err.Error() + "\"}")
 	}
-	return string(respBytes)
+	return respBytes
 }
 
 // Assign a localAPIService to our shim for handling incoming localapi requests from the Kotlin side.
