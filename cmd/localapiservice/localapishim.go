@@ -69,7 +69,7 @@ func Java_com_tailscale_ipn_ui_localapi_LocalApiClient_doRequest(
 	jrespBody := jni.JavaString(jenv, resp)
 	respBody := jni.Value(jrespBody)
 	cookie := jni.Value(jcookie)
-	onResponse := jni.GetMethodID(jenv, shim.clientClass, "onResponse", "(Lbyte[];Ljava/lang/String;)V")
+	onResponse := jni.GetMethodID(jenv, shim.clientClass, "onResponse", "(Ljava/lang/String;Ljava/lang/String;)V")
 
 	jni.CallVoidMethod(jenv, jni.Object(cls), onResponse, respBody, cookie)
 }

@@ -8,7 +8,7 @@ package com.tailscale.ipn.ui.localapi
 class Result<T> {
     val success: T?
     val error: Error?
-    
+
     private constructor(success: T?, error: Error?) {
         if (success != null && error != null) {
             throw IllegalArgumentException("Result cannot have both a success and an error")
@@ -20,13 +20,13 @@ class Result<T> {
         this.success = success
         this.error = error
     }
-    
-    constructor(success: T) : this(success, null) {}
-    constructor(error: Error) : this(null, error) {}
+
+    constructor(success: T) : this(success, null)
+    constructor(error: Error) : this(null, error)
 
     var successful: Boolean = false
         get() = success != null
-        
+
     var failed: Boolean = false
         get() = error != null
 }

@@ -17,14 +17,14 @@ typealias BugReportID = String
 
 // Represents and empty message with a single 'property' field.
 class Empty {
-    @Serializable 
+    @Serializable
     data class Message(val property: String)
 }
 
 // Parsable errors returned by localApiService
 class Errors {
     @Serializable
-    data class GenericError(val error: String) 
+    data class GenericError(val error: String)
 }
 
 // Returned on successful operations with no explicit response body

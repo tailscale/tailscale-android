@@ -74,7 +74,7 @@ class Tailcfg {
     )
 
     @Serializable
-    data class Service(var Proto: String, var Port: Int, var Description: String? = null) 
+    data class Service(var Proto: String, var Port: Int, var Description: String? = null)
 
     @Serializable
     data class NetworkProfile(var MagicDNSName: String? = null, var DomainName: String? = null)

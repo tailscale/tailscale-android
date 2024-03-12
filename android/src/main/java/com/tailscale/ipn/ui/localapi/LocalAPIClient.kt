@@ -8,10 +8,8 @@ import com.tailscale.ipn.ui.model.BugReportID
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.IpnState
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
 
@@ -20,16 +18,19 @@ typealias BugReportIdHandler = (Result<BugReportID>) -> Unit
 typealias PrefsHandler = (Result<Ipn.Prefs>) -> Unit
 
 class LocalApiClient(private val scope: CoroutineScope) {
+    init {
+        Log.d("LocalApiClient", "LocalApiClient created")
+    }
+
 
     companion object {
-        private val _isReady = MutableStateFlow(false)
-        val isReady: StateFlow<Boolean> = _isReady
+        val isReady = CompletableDeferred<Boolean>()
 
         // Called by the backend when the localAPI is ready to accept requests.
         @JvmStatic
         @Suppress("unused")
         fun onReady() {
-            _isReady.value = true
+            isReady.complete(true)
             Log.d("LocalApiClient", "LocalApiClient is ready")
         }
     }
@@ -47,9 +48,9 @@ class LocalApiClient(private val scope: CoroutineScope) {
     //         the corresponding request.  Cookies must be unique for each request.
     private external fun doRequest(request: String, method: String, body: ByteArray?, cookie: String)
 
-    private fun <T> executeRequest(request: LocalAPIRequest<T>) {
+    fun <T> executeRequest(request: LocalAPIRequest<T>) {
         scope.launch {
-            isReady.first { it }
+            isReady.await()
             Log.d("LocalApiClient", "Executing request:${request.method}:${request.path}")
             requests[request.cookie] = request
             doRequest(request.path, request.method, request.body, request.cookie)
@@ -59,11 +60,11 @@ class LocalApiClient(private val scope: CoroutineScope) {
     // This is called from the JNI layer to publish localAPIResponses.  This should execute on the
     // same thread that called doRequest.
     @Suppress("unused")
-    fun onResponse(response: ByteArray, cookie: String) {
+    fun onResponse(response: String, cookie: String) {
         requests.remove(cookie)?.let { request ->
-            Log.d("LocalApiClient", "Reponse for request:${request.path} cookie:${request.cookie}")
+            Log.d("LocalApiClient", "Response for request:${request.path} cookie:${request.cookie}")
             // The response handler will invoked internally by the request parser
-            request.parser(response)
+            request.parser(response.encodeToByteArray())
         } ?: { Log.e("LocalApiClient", "Received response for unknown request: $cookie") }
     }
 
@@ -96,6 +97,14 @@ class LocalApiClient(private val scope: CoroutineScope) {
     fun getCurrentProfile(responseHandler: (Result<IpnLocal.LoginProfile>) -> Unit) {
         val req = LocalAPIRequest.currentProfile(responseHandler)
         executeRequest(req)
+    }
+
+    fun startLoginInteractive() {
+        val req = LocalAPIRequest.startLoginInteractive { result ->
+            result.success?.let { Log.d("LocalApiClient", "Login started: $it") }
+                    ?: run { Log.e("LocalApiClient", "Error starting login: ${result.error}") }
+        }
+        executeRequest<String>(req)
     }
 
     // (jonathan) TODO: A (likely) exhaustive list of localapi endpoints required for

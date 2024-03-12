@@ -10,6 +10,8 @@ import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.Netmap
 import com.tailscale.ipn.ui.notifier.Notifier
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
@@ -22,7 +24,8 @@ class IpnModel(
 ) {
     private var notifierSessions: MutableList<String> = mutableListOf()
 
-    private val _state: MutableStateFlow<Ipn.State?> = MutableStateFlow(null)
+
+    private val _state: MutableStateFlow<Ipn.State> = MutableStateFlow(Ipn.State.NoState)
     private val _netmap: MutableStateFlow<Netmap.NetworkMap?> = MutableStateFlow(null)
     private val _prefs: MutableStateFlow<Ipn.Prefs?> = MutableStateFlow(null)
     private val _engineStatus: MutableStateFlow<Ipn.EngineStatus?> = MutableStateFlow(null)
@@ -36,7 +39,7 @@ class IpnModel(
         MutableStateFlow(null)
 
 
-    val state: StateFlow<Ipn.State?> = _state
+    val state: StateFlow<Ipn.State> = _state
     val netmap: StateFlow<Netmap.NetworkMap?> = _netmap
     val prefs: StateFlow<Ipn.Prefs?> = _prefs
     val engineStatus: StateFlow<Ipn.EngineStatus?> = _engineStatus
@@ -56,7 +59,7 @@ class IpnModel(
     // Backend Observation
 
     private suspend fun loadUserProfiles() {
-        LocalApiClient.isReady.first { it }
+        LocalApiClient.isReady.await()
 
         apiClient.getProfiles { result ->
             result.success?.let { users -> _loginProfiles.value = users }
@@ -70,8 +73,10 @@ class IpnModel(
     }
 
     private fun onNotifyChange(notify: Ipn.Notify) {
-
-        notify.State?.let { state -> _state.value = Ipn.State.fromInt(state) }
+        notify.State?.let { state ->
+            Log.d("IpnModel", "State changed: $state")
+            _state.value = Ipn.State.fromInt(state)
+        }
 
         notify.NetMap?.let { netmap -> _netmap.value = netmap }
 

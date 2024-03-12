@@ -66,6 +66,7 @@ import androidx.security.crypto.EncryptedSharedPreferences;
 import androidx.security.crypto.MasterKey;
 
 import androidx.browser.customtabs.CustomTabsIntent;
+import com.tailscale.ipn.ui.service.IpnManager;
 
 import org.gioui.Gio;
 
@@ -87,6 +88,12 @@ public class App extends Application {
 	public DnsConfig dns = new DnsConfig();
 	public DnsConfig getDnsConfigObj() { return this.dns; }
 
+
+	static App _application;
+	public static App getApplication() {
+		return _application;
+	}
+
 	@Override public void onCreate() {
 		super.onCreate();
 		// Load and initialize the Go library.
@@ -98,6 +105,8 @@ public class App extends Application {
 		createNotificationChannel(NOTIFY_CHANNEL_ID, "Notifications", NotificationManagerCompat.IMPORTANCE_DEFAULT);
 		createNotificationChannel(STATUS_CHANNEL_ID, "VPN Status", NotificationManagerCompat.IMPORTANCE_LOW);
 		createNotificationChannel(FILE_CHANNEL_ID, "File transfers", NotificationManagerCompat.IMPORTANCE_DEFAULT);	
+	
+		_application = this;
 	}
 
 	// requestNetwork attempts to find the best network that matches the passed NetworkRequest. It is possible that
