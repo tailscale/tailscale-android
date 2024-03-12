@@ -1,0 +1,19 @@
+on:
+  push:
+    branches:
+      - "main"
+      - "release-branch/*"
+  pull_request:
+    # all PRs on all branches
+  merge_group:
+    branches:
+      - "main"
+
+jobs:
+  license_headers:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: check license headers
+        run: ./scripts/check_license_headers.sh .
