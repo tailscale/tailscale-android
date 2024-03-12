@@ -2,8 +2,8 @@
 <resources>
 
     <!-- Generic Strings -->
-    <string name="log_in">Log Out</string>
-    <string name="log_out">Log In</string>
+    <string name="log_in">Log In</string>
+    <string name="log_out">Log Out</string>
     <string name="none">None</string>
     <string name="connect">Connect</string>
     <string name="unknown_user">Unknown User</string>
