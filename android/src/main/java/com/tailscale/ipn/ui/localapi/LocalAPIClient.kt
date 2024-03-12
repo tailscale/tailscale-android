@@ -90,6 +90,11 @@ class LocalApiClient(private val scope: CoroutineScope) {
         executeRequest(req)
     }
 
+    fun editPrefs(prefs: Ipn.MaskedPrefs, responseHandler: (Result<Ipn.Prefs>) -> Unit) {
+        val req = LocalAPIRequest.editPrefs(prefs, responseHandler)
+        executeRequest<Ipn.Prefs>(req)
+    }
+
     fun getProfiles(responseHandler: (Result<List<IpnLocal.LoginProfile>>) -> Unit) {
         val req = LocalAPIRequest.profiles(responseHandler)
         executeRequest(req)
@@ -132,8 +137,6 @@ class LocalApiClient(private val scope: CoroutineScope) {
     // start
     // startLoginInteractive
     // logout
-    // profiles
-    // currentProfile
     // addProfile
     // switchProfile
     // deleteProfile

@@ -11,16 +11,13 @@ import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.Netmap
 import com.tailscale.ipn.ui.notifier.Notifier
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class IpnModel(
     notifier: Notifier,
-    private val apiClient: LocalApiClient,
+    val apiClient: LocalApiClient,
     scope: CoroutineScope
 ) {
     private var notifierSessions: MutableList<String> = mutableListOf()
@@ -28,7 +25,7 @@ class IpnModel(
 
     private val _state: MutableStateFlow<Ipn.State> = MutableStateFlow(Ipn.State.NoState)
     private val _netmap: MutableStateFlow<Netmap.NetworkMap?> = MutableStateFlow(null)
-    private val _prefs: MutableStateFlow<Ipn.Prefs?> = MutableStateFlow(null)
+    protected val _prefs: MutableStateFlow<Ipn.Prefs?> = MutableStateFlow(null)
     private val _engineStatus: MutableStateFlow<Ipn.EngineStatus?> = MutableStateFlow(null)
     private val _tailFSShares: MutableStateFlow<Map<String, String>?> = MutableStateFlow(null)
     private val _browseToURL: MutableStateFlow<String?> = MutableStateFlow(null)
@@ -55,7 +52,6 @@ class IpnModel(
         get() {
             return prefs.value != null
         }
-
 
     // Backend Observation
 
