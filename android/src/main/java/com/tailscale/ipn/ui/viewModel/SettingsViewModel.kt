@@ -3,13 +3,9 @@
 
 package com.tailscale.ipn.ui.viewModel
 
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.withStyle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.service.IpnActions
 import com.tailscale.ipn.ui.service.IpnModel
 import com.tailscale.ipn.ui.service.toggleCorpDNS
@@ -32,7 +28,7 @@ enum class SettingType { NAV, SWITCH, NAV_WITH_TEXT }
 // isOn and onToggle, while navigation settings should supply an onClick and an optional
 // value
 data class Setting(
-        val title: String,
+        val titleRes: Int,
         val type: SettingType,
         val enabled: MutableStateFlow<Boolean> = MutableStateFlow(false),
         val value: MutableStateFlow<String?>? = null,
@@ -52,7 +48,7 @@ class SettingsViewModel(val model: IpnModel, val ipnActions: IpnActions, val nav
     val isAdmin = model.netmap.value?.SelfNode?.isAdmin ?: false
 
     val useDNSSetting = Setting(
-            "Use Tailscale DNS",
+            R.string.use_ts_dns,
             SettingType.SWITCH,
             isOn = MutableStateFlow(model.prefs.value?.CorpDNS),
             onToggle = {
@@ -77,21 +73,8 @@ class SettingsViewModel(val model: IpnModel, val ipnActions: IpnActions, val nav
             )),
             // General settings, always enabled
             SettingBundle(settings = listOf(
-                    Setting("About", SettingType.NAV, onClick = { navigation.onNavigateToAbout() }, enabled = MutableStateFlow(true)),
-                    Setting("Bug Report", SettingType.NAV, onClick = { navigation.onNavigateToBugReport() }, enabled = MutableStateFlow(true))
+                    Setting(R.string.about, SettingType.NAV, onClick = { navigation.onNavigateToAbout() }, enabled = MutableStateFlow(true)),
+                    Setting(R.string.bug_report, SettingType.NAV, onClick = { navigation.onNavigateToBugReport() }, enabled = MutableStateFlow(true))
             ))
     )
-
-    fun adminText(): AnnotatedString {
-        val annotatedString = buildAnnotatedString {
-            append("You can manage your account from the admin console. ")
-
-            pushStringAnnotation(tag = "policy", annotation = "https://google.com/policy")
-            withStyle(style = SpanStyle(color = Color.Blue)) {
-                append("View admin console...")
-            }
-            pop()
-        }
-        return annotatedString
-    }
 }

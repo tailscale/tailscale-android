@@ -27,6 +27,7 @@ import com.tailscale.ipn.ui.view.MainViewNavigation
 import com.tailscale.ipn.ui.view.PeerDetails
 import com.tailscale.ipn.ui.view.Settings
 import com.tailscale.ipn.ui.view.SettingsNav
+import com.tailscale.ipn.ui.viewModel.BugReportViewModel
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerViewModel
 import com.tailscale.ipn.ui.viewModel.MainViewModel
 import com.tailscale.ipn.ui.viewModel.PeerDetailsViewModel
@@ -72,7 +73,7 @@ class MainActivity : ComponentActivity() {
                                 ?: ""))
                     }
                     composable("bugReport") {
-                        BugReportView()
+                        BugReportView(BugReportViewModel(manager.apiClient))
                     }
                     composable("about") {
                         AboutView()
