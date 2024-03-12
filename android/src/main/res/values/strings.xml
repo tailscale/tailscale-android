@@ -2,4 +2,10 @@
 <resources>
     <string name="app_name">Tailscale</string>
     <string name="tile_name">Tailscale</string>
+    <string name="about_view_title">Tailscale for Android</string>
+    <string name="acknowledgements">Acknowledgements</string>
+    <string name="privacy_policy">Privacy Policy</string>
+    <string name="terms_of_service">Terms of Service</string>
+    <string name="about_view_footnotes">WireGuard is a registered trademark of Jason A. Donenfeld.\n\n© 2024 Tailscale Inc. All rights reserved.\nTailscale is a registered trademark of Tailscale Inc.</string>
+    <string name="app_icon_content_description">The Tailscale App Icon</string>
 </resources>

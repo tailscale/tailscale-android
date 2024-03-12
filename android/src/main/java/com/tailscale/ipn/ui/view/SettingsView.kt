@@ -133,8 +133,3 @@ fun SettingsSwitchRow(setting: Setting) {
 fun BugReportView() {
     Text(text = "Future Home of Bug Reporting")
 }
-
-@Composable
-fun AboutView() {
-    Text(text = "Future Home of About")
-}
