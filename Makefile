@@ -174,7 +174,7 @@ test: $(AAR_NEXTGEN)
 
 $(RELEASE_AAB): $(AAR)
 	(cd android_legacy && ./gradlew test bundlePlayRelease)
-	mv ./android_legacy/build/outputs/bundle/playRelease/android-play-release.aab $@
+	mv ./android_legacy/build/outputs/bundle/playRelease/android_legacy-play-release.aab $@
 
 release: $(RELEASE_AAB)
 	jarsigner -sigalg SHA256withRSA -digestalg SHA-256 -keystore $(KEYSTORE) $(RELEASE_AAB) $(KEYSTORE_ALIAS)
