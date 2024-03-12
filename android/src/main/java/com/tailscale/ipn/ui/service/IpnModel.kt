@@ -18,7 +18,7 @@ import kotlinx.coroutines.launch
 class IpnModel(
     notifier: Notifier,
     val apiClient: LocalApiClient,
-    scope: CoroutineScope
+    val scope: CoroutineScope
 ) {
     private var notifierSessions: MutableList<String> = mutableListOf()
 
