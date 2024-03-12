@@ -10,9 +10,9 @@ require (
 	github.com/tailscale/wireguard-go v0.0.0-20231121184858-cc193a0b3272
 	golang.org/x/exp v0.0.0-20240119083558-1b970713d09a
 	golang.org/x/exp/shiny v0.0.0-20220827204233-334a2380cb91
-	golang.org/x/sys v0.16.0
+	golang.org/x/sys v0.17.0
 	inet.af/netaddr v0.0.0-20220617031823-097006376321
-	tailscale.com v1.1.1-0.20240227151953-95dcc1745b8c
+	tailscale.com v1.61.0-pre.0.20240311120500-7429e8912acb
 )
 
 require (
@@ -96,6 +96,6 @@ require (
 	golang.org/x/tools v0.17.0 // indirect
 	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect
 	golang.zx2c4.com/wireguard/windows v0.5.3 // indirect
-	gvisor.dev/gvisor v0.0.0-20240119233241-c9c1d4f9b186 // indirect
+	gvisor.dev/gvisor v0.0.0-20240306221502-ee1e1f6070e3 // indirect
 	nhooyr.io/websocket v1.8.10 // indirect
 )
