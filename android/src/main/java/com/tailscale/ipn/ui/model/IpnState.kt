@@ -37,13 +37,13 @@ class IpnState {
         fun computedName(status: Status): String {
             val name = DNSName
             val suffix = status.CurrentTailnet?.MagicDNSSuffix
-        
+
             suffix ?: return name
-        
+
             if (!(name.endsWith("." + suffix + "."))) {
                 return name
             }
-        
+
             return name.dropLast(suffix.count() + 2)
         }
     }
