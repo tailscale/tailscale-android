@@ -5,10 +5,13 @@
 package com.tailscale.ipn.ui.view
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.ClickableText
@@ -30,12 +33,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.Links
 import com.tailscale.ipn.ui.model.IpnLocal
+import com.tailscale.ipn.ui.util.Avatar
 import com.tailscale.ipn.ui.util.defaultPaddingModifier
 import com.tailscale.ipn.ui.util.settingsRowModifier
 import com.tailscale.ipn.ui.viewModel.Setting
@@ -55,7 +59,21 @@ fun Settings(viewModel: SettingsViewModel) {
 
     Surface(color = MaterialTheme.colorScheme.surface) {
 
-        Column(modifier = defaultPaddingModifier()) {
+        Column(modifier = defaultPaddingModifier().fillMaxHeight()) {
+
+            Text(text = stringResource(id = R.string.settings_title),
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.titleMedium)
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // The login/logout button here is probably in the wrong location, but we need something
+            // somewhere for the time being.  FUS should probably be implemented for V0 given that
+            // it's relatively simple to do so with localAPI.  On iOS, the UI for user switching is
+            // all in the FUS screen.
+
             viewModel.user?.let { user ->
                 UserView(profile = user, viewModel.isAdmin, adminText(), onClick = {
                     handler.openUri(Links.ADMIN_URL)
@@ -69,7 +87,6 @@ fun Settings(viewModel: SettingsViewModel) {
                     Text(text = stringResource(id = R.string.log_in))
                 }
             }
-
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -102,11 +119,18 @@ fun Settings(viewModel: SettingsViewModel) {
 
 @Composable
 fun UserView(profile: IpnLocal.LoginProfile?, isAdmin: Boolean, adminText: AnnotatedString, onClick: () -> Unit) {
-    Column(modifier = defaultPaddingModifier()) {
-        Column(modifier = settingsRowModifier().padding(8.dp)) {
-            Text(text = profile?.UserProfile?.DisplayName
-                    ?: "", style = MaterialTheme.typography.titleMedium)
-            Text(text = profile?.Name ?: "", style = MaterialTheme.typography.bodyMedium)
+    Column {
+        Row(modifier = settingsRowModifier().padding(8.dp)) {
+
+            Box(modifier = defaultPaddingModifier()) {
+                Avatar(profile = profile, size = 36)
+            }
+
+            Column(verticalArrangement = Arrangement.Center) {
+                Text(text = profile?.UserProfile?.DisplayName
+                        ?: "", style = MaterialTheme.typography.titleMedium)
+                Text(text = profile?.Name ?: "", style = MaterialTheme.typography.bodyMedium)
+            }
         }
 
         if (isAdmin) {
@@ -150,7 +174,9 @@ fun SettingsSwitchRow(setting: Setting) {
 @Composable
 fun adminText(): AnnotatedString {
     val annotatedString = buildAnnotatedString {
-        append(stringResource(id = R.string.settings_admin_prefix))
+        withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.primary)) {
+            append(stringResource(id = R.string.settings_admin_prefix))
+        }
 
         pushStringAnnotation(tag = "link", annotation = Links.ADMIN_URL)
         withStyle(style = SpanStyle(color = Color.Blue)) {

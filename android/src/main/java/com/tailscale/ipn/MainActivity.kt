@@ -74,6 +74,7 @@ class MainActivity : ComponentActivity() {
                         ExitNodePicker(ExitNodePickerViewModel(manager.model))
                     }
                     composable(
+
                             "peerDetails/{nodeId}",
                             arguments = listOf(navArgument("nodeId") { type = NavType.StringType })
                     ) {
@@ -119,7 +120,6 @@ class MainActivity : ComponentActivity() {
         val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
         startActivity(browserIntent)
     }
-
 
     override fun onResume() {
         super.onResume()

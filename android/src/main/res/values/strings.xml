@@ -37,7 +37,7 @@
 
     <!-- Strings for the main scren -->
     <string name="exit_node">Exit Node</string>
-    <string name="starting">Staring...</string>
+    <string name="starting">Starting...</string>
     <string name="connect_to_tailnet">"Connect to your %1$s tailnet"</string>
 
     <!-- Strings for peer details -->

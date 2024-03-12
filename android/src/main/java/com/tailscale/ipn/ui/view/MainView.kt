@@ -47,6 +47,7 @@ import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.Tailcfg
+import com.tailscale.ipn.ui.util.Avatar
 import com.tailscale.ipn.ui.util.PeerSet
 import com.tailscale.ipn.ui.viewModel.MainViewModel
 import kotlinx.coroutines.flow.StateFlow
@@ -77,8 +78,10 @@ fun MainView(viewModel: MainViewModel, navigation: MainViewNavigation) {
 
                 Switch(onCheckedChange = { viewModel.toggleVpn() }, checked = isOn.value)
                 StateDisplay(viewModel.stateStr, viewModel.userName)
-                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
-                    SettingsButton(user.value, navigation.onNavigateToSettings)
+                Box(modifier = Modifier
+                        .weight(1f)
+                        .clickable { navigation.onNavigateToSettings() }, contentAlignment = Alignment.CenterEnd) {
+                    Avatar(profile = user.value, size = 36)
                 }
             }
 
@@ -158,10 +161,15 @@ fun StartingView() {
             modifier =
             Modifier
                     .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.secondaryContainer),
+                    .background(MaterialTheme.colorScheme.background),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
-    ) { Text(text = stringResource(id = R.string.starting), style = MaterialTheme.typography.titleMedium) }
+    ) {
+        Text(text = stringResource(id = R.string.starting),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary
+        )
+    }
 }
 
 @Composable
@@ -170,15 +178,18 @@ fun ConnectView(user: IpnLocal.LoginProfile?, connectAction: () -> Unit, loginAc
             modifier =
             Modifier
                     .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.secondaryContainer),
+                    .background(MaterialTheme.colorScheme.background),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = stringResource(id = R.string.not_connected), style = MaterialTheme.typography.titleMedium)
+        Text(text = stringResource(id = R.string.not_connected),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary)
         if (user != null && !user.isEmpty()) {
             val tailnetName = user.NetworkProfile?.DomainName ?: ""
             Text(stringResource(id = R.string.connect_to_tailnet, tailnetName),
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary
             )
             Button(onClick = connectAction) { Text(text = stringResource(id = R.string.connect)) }
         } else {
