@@ -29,6 +29,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.tailscale.ipn.BuildConfig
 import com.tailscale.ipn.R
+import com.tailscale.ipn.ui.Links
 
 @Composable
 fun AboutView() {
@@ -77,13 +78,13 @@ fun AboutView() {
                 ), horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 OpenURLButton(
-                    stringResource(R.string.acknowledgements),"https://tailscale.com/licenses/android"
+                    stringResource(R.string.acknowledgements), Links.LICENSES_URL
                 )
                 OpenURLButton(
-                    stringResource(R.string.privacy_policy), "https://tailscale.com/privacy-policy/"
+                    stringResource(R.string.privacy_policy), Links.PRIVACY_POLICY_URL
                 )
                 OpenURLButton(
-                    stringResource(R.string.terms_of_service), "https://tailscale.com/terms"
+                    stringResource(R.string.terms_of_service), Links.TERMS_URL
                 )
             }
 

@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -31,37 +32,39 @@ import com.tailscale.ipn.ui.viewModel.PeerDetailsViewModel
 
 @Composable
 fun PeerDetails(viewModel: PeerDetailsViewModel) {
+    Surface(color = MaterialTheme.colorScheme.surface) {
 
-    Column(modifier = Modifier.padding(horizontal = 8.dp)) {
-        Column(modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = viewModel.nodeName, style = MaterialTheme.typography.titleMedium)
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(modifier = Modifier
-                        .size(8.dp)
-                        .background(color = viewModel.connectedColor, shape = RoundedCornerShape(percent = 50))) {}
-                Spacer(modifier = Modifier.size(8.dp))
-                Text(text = viewModel.connectedStr, style = MaterialTheme.typography.bodyMedium)
+        Column(modifier = Modifier.padding(horizontal = 8.dp)) {
+            Column(modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(text = viewModel.nodeName, style = MaterialTheme.typography.titleMedium)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(modifier = Modifier
+                            .size(8.dp)
+                            .background(color = viewModel.connectedColor, shape = RoundedCornerShape(percent = 50))) {}
+                    Spacer(modifier = Modifier.size(8.dp))
+                    Text(text = viewModel.connectedStr, style = MaterialTheme.typography.bodyMedium)
+                }
             }
-        }
 
-        Spacer(modifier = Modifier.size(8.dp))
+            Spacer(modifier = Modifier.size(8.dp))
 
-        Text(text = "TAILSCALE ADDRESSES", style = MaterialTheme.typography.titleMedium)
+            Text(text = "TAILSCALE ADDRESSES", style = MaterialTheme.typography.titleMedium)
 
-        Column(modifier = settingsRowModifier()) {
-            viewModel.addresses.forEach {
-                AddressRow(address = it.address, type = it.typeString)
+            Column(modifier = settingsRowModifier()) {
+                viewModel.addresses.forEach {
+                    AddressRow(address = it.address, type = it.typeString)
+                }
             }
-        }
 
-        Spacer(modifier = Modifier.size(16.dp))
+            Spacer(modifier = Modifier.size(16.dp))
 
-        Column(modifier = settingsRowModifier()) {
-            viewModel.info.forEach {
-                ValueRow(title = it.title, value = it.value)
+            Column(modifier = settingsRowModifier()) {
+                viewModel.info.forEach {
+                    ValueRow(title = it.title, value = it.value)
+                }
             }
         }
     }
