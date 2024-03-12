@@ -10,6 +10,7 @@ import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.IpnState
 import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
 import java.util.UUID
@@ -47,8 +48,11 @@ private object Endpoint {
 //
 // (jonathan) TODO: Audit local API for all of the possible error results and clean
 // it up if possible.
-enum class APIErrorVals(private val rawValue: String) {
-    UNPARSEABLE_RESPONSE("Unparseable localAPI response"), NOT_READY("Not Ready");
+
+enum class APIErrorVals(val rawValue: String) {
+    UNPARSEABLE_RESPONSE("Unparseable localAPI response"),
+    NOT_READY("Not Ready"),
+    NO_PREFS("Current prefs not available");
 
     fun toError(): Error {
         return Error(rawValue)
@@ -56,31 +60,59 @@ enum class APIErrorVals(private val rawValue: String) {
 }
 
 class LocalAPIRequest<T>(
-    path: String,
-    val method: String,
-    val body: ByteArray? = null,
-    val parser: (ByteArray) -> Unit,
+        path: String,
+        val method: String,
+        val body: ByteArray? = null,
+        val parser: (ByteArray) -> Unit,
 ) {
     val path = "/localapi/v0/$path"
     val cookie = UUID.randomUUID().toString()
 
     companion object {
+
+        private val cookieLock = Any()
+        private var cookieCounter: Int = 0
         val decoder = Json { ignoreUnknownKeys = true }
 
         fun <T> get(path: String, body: ByteArray? = null, parser: (ByteArray) -> Unit) =
-            LocalAPIRequest<T>(
-                method = "GET", path = path, body = body, parser = parser
-            )
+                LocalAPIRequest<T>(
+                        method = "GET",
+                        path = path,
+                        body = body,
+                        parser = parser
+                )
 
         fun <T> put(path: String, body: ByteArray? = null, parser: (ByteArray) -> Unit) =
-            LocalAPIRequest<T>(
-                method = "PUT", path = path, body = body, parser = parser
-            )
+                LocalAPIRequest<T>(
+                        method = "PUT",
+                        path = path,
+                        body = body,
+                        parser = parser
+                )
 
-        private fun <T> post(path: String, body: ByteArray? = null, parser: (ByteArray) -> Unit) =
-            LocalAPIRequest<T>(
-                method = "POST", path = path, body = body, parser = parser
-            )
+        fun <T> post(path: String, body: ByteArray? = null, parser: (ByteArray) -> Unit) =
+                LocalAPIRequest<T>(
+                        method = "POST",
+                        path = path,
+                        body = body,
+                        parser = parser
+                )
+
+        fun <T> patch(path: String, body: ByteArray? = null, parser: (ByteArray) -> Unit) =
+                LocalAPIRequest<T>(
+                        method = "PATCH",
+                        path = path,
+                        body = body,
+                        parser = parser
+                )
+
+        fun getCookie(): String {
+            synchronized(cookieLock) {
+                cookieCounter += 1
+                return cookieCounter.toString()
+            }
+        }
+
 
         fun status(responseHandler: StatusResponseHandler): LocalAPIRequest<IpnState.Status> {
             return get(Endpoint.STATUS) { resp ->
@@ -99,6 +131,14 @@ class LocalAPIRequest<T>(
                 responseHandler(decode<Ipn.Prefs>(resp))
             }
         }
+
+        fun editPrefs(prefs: Ipn.MaskedPrefs, responseHandler: (Result<Ipn.Prefs>) -> Unit): LocalAPIRequest<Ipn.Prefs> {
+            val body = Json.encodeToString(prefs).toByteArray()
+            return patch(Endpoint.PREFS, body) { resp ->
+                responseHandler(decode<Ipn.Prefs>(resp))
+            }
+        }
+
 
         fun profiles(responseHandler: (Result<List<IpnLocal.LoginProfile>>) -> Unit): LocalAPIRequest<List<IpnLocal.LoginProfile>> {
             return get(Endpoint.PROFILES) { resp ->
@@ -119,8 +159,7 @@ class LocalAPIRequest<T>(
         }
 
         fun logout(responseHandler: (Result<String>) -> Unit): LocalAPIRequest<String> {
-            val path = LocalAPIEndpoint.Logout.path()
-            return LocalAPIRequest<String>(path, "POST", null, null) { resp ->
+            return post(Endpoint.LOGOUT) { resp ->
                 responseHandler(parseString(resp))
             }
         }
