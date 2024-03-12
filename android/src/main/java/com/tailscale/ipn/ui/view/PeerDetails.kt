@@ -24,8 +24,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
+import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.util.settingsRowModifier
 import com.tailscale.ipn.ui.viewModel.PeerDetailsViewModel
 
@@ -45,13 +47,13 @@ fun PeerDetails(viewModel: PeerDetailsViewModel) {
                             .size(8.dp)
                             .background(color = viewModel.connectedColor, shape = RoundedCornerShape(percent = 50))) {}
                     Spacer(modifier = Modifier.size(8.dp))
-                    Text(text = viewModel.connectedStr, style = MaterialTheme.typography.bodyMedium)
+                    Text(text = stringResource(id = viewModel.connectedStrRes), style = MaterialTheme.typography.bodyMedium)
                 }
             }
 
             Spacer(modifier = Modifier.size(8.dp))
 
-            Text(text = "TAILSCALE ADDRESSES", style = MaterialTheme.typography.titleMedium)
+            Text(text = stringResource(id = R.string.addresses_section), style = MaterialTheme.typography.titleMedium)
 
             Column(modifier = settingsRowModifier()) {
                 viewModel.addresses.forEach {
@@ -63,7 +65,7 @@ fun PeerDetails(viewModel: PeerDetailsViewModel) {
 
             Column(modifier = settingsRowModifier()) {
                 viewModel.info.forEach {
-                    ValueRow(title = it.title, value = it.value)
+                    ValueRow(title = stringResource(id = it.titleRes), value = it.value)
                 }
             }
         }

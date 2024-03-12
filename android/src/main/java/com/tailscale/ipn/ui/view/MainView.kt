@@ -41,7 +41,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.Tailcfg
@@ -67,7 +69,9 @@ fun MainView(viewModel: MainViewModel, navigation: MainViewNavigation) {
             val state = viewModel.ipnState.collectAsState(initial = Ipn.State.NoState)
             val user = viewModel.loggedInUser.collectAsState(initial = null)
 
-            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+            Row(modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp),
                     verticalAlignment = Alignment.CenterVertically) {
                 val isOn = viewModel.vpnToggleState.collectAsState(initial = false)
 
@@ -80,7 +84,7 @@ fun MainView(viewModel: MainViewModel, navigation: MainViewNavigation) {
 
             // (jonathan) TODO: Show the selected exit node name here.
             if (state.value == Ipn.State.Running) {
-                ExitNodeStatus(navAction = navigation.onNavigateToExitNodes, "None")
+                ExitNodeStatus(navAction = navigation.onNavigateToExitNodes, stringResource(id = R.string.none))
             }
 
             when (state.value) {
@@ -103,7 +107,7 @@ fun MainView(viewModel: MainViewModel, navigation: MainViewNavigation) {
 }
 
 @Composable
-fun ExitNodeStatus(navAction: () -> Unit, exitNode: String = "None") {
+fun ExitNodeStatus(navAction: () -> Unit, exitNode: String = stringResource(id = R.string.none)) {
     Box(modifier = Modifier
             .clickable { navAction() }
             .padding(horizontal = 8.dp)
@@ -111,7 +115,7 @@ fun ExitNodeStatus(navAction: () -> Unit, exitNode: String = "None") {
             .background(MaterialTheme.colorScheme.secondaryContainer)
             .fillMaxWidth()) {
         Column(modifier = Modifier.padding(6.dp)) {
-            Text(text = "Exit Node", style = MaterialTheme.typography.titleMedium)
+            Text(text = stringResource(id = R.string.exit_node), style = MaterialTheme.typography.titleMedium)
             Row {
                 Text(text = exitNode, style = MaterialTheme.typography.bodyMedium)
                 Icon(
@@ -157,7 +161,7 @@ fun StartingView() {
                     .background(MaterialTheme.colorScheme.secondaryContainer),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
-    ) { Text(text = "Starting...", style = MaterialTheme.typography.titleMedium) }
+    ) { Text(text = stringResource(id = R.string.starting), style = MaterialTheme.typography.titleMedium) }
 }
 
 @Composable
@@ -170,16 +174,15 @@ fun ConnectView(user: IpnLocal.LoginProfile?, connectAction: () -> Unit, loginAc
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = "Not Connected", style = MaterialTheme.typography.titleMedium)
+        Text(text = stringResource(id = R.string.not_connected), style = MaterialTheme.typography.titleMedium)
         if (user != null && !user.isEmpty()) {
             val tailnetName = user.NetworkProfile?.DomainName ?: ""
-            Text(
-                    "Connect to your ${tailnetName} tailnet",
+            Text( stringResource(id = R.string.connect_to_tailnet, tailnetName),
                     style = MaterialTheme.typography.bodyMedium
             )
-            Button(onClick = connectAction) { Text(text = "Connect") }
+            Button(onClick = connectAction) { Text(text = stringResource(id = R.string.connect)) }
         } else {
-            Button(onClick = loginAction) { Text(text = "Log In") }
+            Button(onClick = loginAction) { Text(text = stringResource(id = R.string.log_in)) }
         }
     }
 }
@@ -214,7 +217,7 @@ fun PeerList(searchTerm: StateFlow<String>,  peers: StateFlow<List<PeerSet>>, on
             peerList.value.forEach { peerSet ->
                 ListItem(headlineContent = {
                     Text(text = peerSet.user?.DisplayName
-                            ?: "Unknown User", style = MaterialTheme.typography.titleLarge)
+                            ?: stringResource(id = R.string.unknown_user), style = MaterialTheme.typography.titleLarge)
                 })
                 peerSet.peers.forEach { peer ->
                     ListItem(
@@ -224,7 +227,9 @@ fun PeerList(searchTerm: StateFlow<String>,  peers: StateFlow<List<PeerSet>>, on
                             headlineContent = {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     val color: Color = if (peer.Online ?: false) { Color.Green } else { Color.Gray }
-                                    Box(modifier = Modifier.size(8.dp).background(color = color, shape = RoundedCornerShape(percent = 50)))  {}
+                                    Box(modifier = Modifier
+                                            .size(8.dp)
+                                            .background(color = color, shape = RoundedCornerShape(percent = 50)))  {}
                                     Spacer(modifier = Modifier.size(8.dp))
                                     Text(text = peer.ComputedName, style = MaterialTheme.typography.titleMedium)
                                 }
