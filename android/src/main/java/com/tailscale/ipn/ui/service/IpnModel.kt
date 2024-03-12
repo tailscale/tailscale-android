@@ -6,31 +6,22 @@ package com.tailscale.ipn.ui.service
 
 import android.util.Log
 import com.tailscale.ipn.ui.localapi.LocalApiClient
-import com.tailscale.ipn.ui.model.*
+import com.tailscale.ipn.ui.model.Ipn
+import com.tailscale.ipn.ui.model.IpnLocal
+import com.tailscale.ipn.ui.model.Netmap
 import com.tailscale.ipn.ui.notifier.Notifier
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
-class IpnModel {
-    protected val scope = CoroutineScope(Dispatchers.Default + Job())
-    var notifierSessions: MutableList<String> = mutableListOf()
-
-    val apiClient: LocalApiClient
-
-    constructor(notifier: Notifier, apiClient: LocalApiClient) {
-        Log.d("IpnModel", "IpnModel created")
-        this.apiClient = apiClient
-
-        val session = notifier.watchAll { n -> onNotifyChange(n) }
-        notifierSessions.add(session)
-
-        scope.launch { loadUserProfiles() }
-    }
+class IpnModel(
+    notifier: Notifier,
+    private val apiClient: LocalApiClient,
+    scope: CoroutineScope
+) {
+    private var notifierSessions: MutableList<String> = mutableListOf()
 
     private val _state: MutableStateFlow<Ipn.State?> = MutableStateFlow(null)
     private val _netmap: MutableStateFlow<Netmap.NetworkMap?> = MutableStateFlow(null)
@@ -43,7 +34,7 @@ class IpnModel {
 
     private val _loggedInUser: MutableStateFlow<IpnLocal.LoginProfile?> = MutableStateFlow(null)
     private val _loginProfiles: MutableStateFlow<List<IpnLocal.LoginProfile>?> =
-            MutableStateFlow(null)
+        MutableStateFlow(null)
 
 
     val state: StateFlow<Ipn.State?> = _state
@@ -57,7 +48,7 @@ class IpnModel {
     val loggedInUser: StateFlow<IpnLocal.LoginProfile?> = _loggedInUser
     val loginProfiles: StateFlow<List<IpnLocal.LoginProfile>?> = _loginProfiles
 
-    var isUsingExitNode: Boolean = false
+    val isUsingExitNode: Boolean
         get() {
             return prefs.value != null
         }
@@ -66,16 +57,16 @@ class IpnModel {
     // Backend Observation
 
     private suspend fun loadUserProfiles() {
-        LocalApiClient.isReady.first { it == true }
+        LocalApiClient.isReady.first { it }
 
         apiClient.getProfiles { result ->
             result.success?.let { users -> _loginProfiles.value = users }
-                    ?: run { Log.e("IpnManager", "Error loading profiles: ${result.error}") }
+                ?: run { Log.e("IpnManager", "Error loading profiles: ${result.error}") }
         }
 
         apiClient.getCurrentProfile { result ->
             result.success?.let { user -> _loggedInUser.value = user }
-                    ?: run { Log.e("IpnManager", "Error loading profiles: ${result.error}") }
+                ?: run { Log.e("IpnManager", "Error loading profiles: ${result.error}") }
         }
     }
 
@@ -96,5 +87,12 @@ class IpnModel {
         notify.LoginFinished?.let { message -> _loginFinished.value = message.property }
 
         notify.Version?.let { version -> _version.value = version }
+    }
+
+    init {
+        Log.d("IpnModel", "IpnModel created")
+        val session = notifier.watchAll { n -> onNotifyChange(n) }
+        notifierSessions.add(session)
+        scope.launch { loadUserProfiles() }
     }
 }

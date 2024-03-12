@@ -5,11 +5,11 @@
 package localapiservice
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"io"
 	"log"
-	"strings"
 	"time"
 	"unsafe"
 
@@ -45,7 +45,7 @@ func Java_com_tailscale_ipn_ui_localapi_LocalApiClient_doRequest(
 	cls C.jclass,
 	jpath C.jstring,
 	jmethod C.jstring,
-	jbody C.jstring,
+	jbody C.jbyteArray,
 	jcookie C.jstring) {
 
 	jenv := (*jni.Env)(unsafe.Pointer(env))
@@ -62,20 +62,20 @@ func Java_com_tailscale_ipn_ui_localapi_LocalApiClient_doRequest(
 
 	// The body string.  This is optional and may be empty.
 	bodyRef := jni.NewGlobalRef(jenv, jni.Object(jbody))
-	bodyStr := jni.GoString(jenv, jni.String(bodyRef))
+	bodyArray := jni.GetByteArrayElements(jenv, jni.ByteArray(bodyRef))
 	defer jni.DeleteGlobalRef(jenv, bodyRef)
 
-	resp := doLocalAPIRequest(pathStr, methodStr, bodyStr)
+	resp := doLocalAPIRequest(pathStr, methodStr, bodyArray)
 
 	jrespBody := jni.JavaString(jenv, resp)
 	respBody := jni.Value(jrespBody)
 	cookie := jni.Value(jcookie)
-	onResponse := jni.GetMethodID(jenv, shim.clientClass, "onResponse", "(Ljava/lang/String;Ljava/lang/String;)V")
+	onResponse := jni.GetMethodID(jenv, shim.clientClass, "onResponse", "(Lbyte[];Ljava/lang/String;)V")
 
 	jni.CallVoidMethod(jenv, jni.Object(cls), onResponse, respBody, cookie)
 }
 
-func doLocalAPIRequest(path string, method string, body string) string {
+func doLocalAPIRequest(path string, method string, body []byte) string {
 	if shim.service == nil {
 		return "{\"error\":\"Not Ready\"}"
 	}
@@ -84,7 +84,7 @@ func doLocalAPIRequest(path string, method string, body string) string {
 	defer cancel()
 	var reader io.Reader = nil
 	if len(body) > 0 {
-		reader = strings.NewReader(body)
+		reader = bytes.NewReader(body)
 	}
 
 	r, err := shim.service.Call(ctx, method, path, reader)
