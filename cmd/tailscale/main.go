@@ -50,6 +50,7 @@ import (
 	"tailscale.com/tailcfg"
 	"tailscale.com/types/logid"
 	"tailscale.com/types/netmap"
+	"tailscale.com/util/syspolicy"
 	"tailscale.com/wgengine/router"
 )
 
@@ -281,6 +282,7 @@ func main() {
 
 	a.store = newStateStore(a.jvm, a.appCtx)
 	interfaces.RegisterInterfaceGetter(a.getInterfaces)
+	syspolicy.RegisterHandler(androidHandler{a: a})
 	go func() {
 		ctx := context.Background()
 		if err := a.runBackend(ctx); err != nil {
