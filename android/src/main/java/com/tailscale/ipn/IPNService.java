@@ -4,6 +4,7 @@
 
 package com.tailscale.ipn;
 
+import android.util.Log;
 import android.os.Build;
 import android.app.PendingIntent;
 import android.content.Intent;

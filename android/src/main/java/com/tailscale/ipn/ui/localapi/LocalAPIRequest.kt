@@ -112,6 +112,12 @@ class LocalAPIRequest<T>(
             }
         }
 
+        fun startLoginInteractive(responseHandler: (Result<String>) -> Unit): LocalAPIRequest<String> {
+            return post(Endpoint.LOGIN_INTERACTIVE) { resp ->
+                responseHandler(parseString(resp))
+            }
+        }
+
         // Check if the response was a generic error
         @OptIn(ExperimentalSerializationApi::class)
         fun parseError(respData: ByteArray): Error {
