@@ -6,6 +6,7 @@ DEBUG_APK=tailscale-debug.apk
 RELEASE_AAB=tailscale-release.aab
 APPID=com.tailscale.ipn
 AAR=android_legacy/libs/ipn.aar
+AAR_NEXTGEN=android/libs/ipn.aar
 KEYSTORE=tailscale.jks
 KEYSTORE_ALIAS=tailscale
 TAILSCALE_VERSION=$(shell ./version/tailscale-version.sh 200)
@@ -129,13 +130,17 @@ androidpath:
 
 toolchain: $(TOOLCHAINDIR)/bin/go
 
-android/libs:
-	mkdir -p android_legacy/libs
-
-$(AAR): toolchain checkandroidsdk android/libs
+$(AAR): toolchain checkandroidsdk
+	@mkdir -p android_legacy/libs && \
 	go run gioui.org/cmd/gogio \
 		-ldflags "-X tailscale.com/version.longStamp=$(VERSIONNAME) -X tailscale.com/version.shortStamp=$(VERSIONNAME_SHORT) -X tailscale.com/version.gitCommitStamp=$(TAILSCALE_COMMIT) -X tailscale.com/version.extraGitCommitStamp=$(OUR_VERSION)" \
 		-buildmode archive -target android -appid $(APPID) -tags novulkan,tailscale_go -o $@ github.com/tailscale/tailscale-android/cmd/tailscale
+
+$(AAR_NEXTGEN): $(AAR)
+	@mkdir -p android/libs && \
+	cp $(AAR) $(AAR_NEXTGEN)
+
+lib: $(AAR_NEXTGEN)
 
 # tailscale-debug.apk builds a debuggable APK with the Google Play SDK.
 $(DEBUG_APK): $(AAR)
@@ -180,4 +185,4 @@ clean:
 	-rm -rf android_legacy/build $(DEBUG_APK) $(RELEASE_AAB) $(AAR) tailscale-fdroid.apk
 	-pkill -f gradle
 
-.PHONY: all clean install android_legacy/lib $(DEBUG_APK) $(RELEASE_AAB) $(AAR) release bump_version dockershell
+.PHONY: all clean install android_legacy/lib $(DEBUG_APK) $(RELEASE_AAB) $(AAR) release bump_version dockershell lib

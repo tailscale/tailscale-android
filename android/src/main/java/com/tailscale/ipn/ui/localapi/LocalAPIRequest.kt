@@ -4,9 +4,15 @@
 
 package com.tailscale.ipn.ui.localapi
 
-import com.tailscale.ipn.ui.model.*
-import kotlinx.serialization.decodeFromString
+import com.tailscale.ipn.ui.model.BugReportID
+import com.tailscale.ipn.ui.model.Errors
+import com.tailscale.ipn.ui.model.Ipn
+import com.tailscale.ipn.ui.model.IpnLocal
+import com.tailscale.ipn.ui.model.IpnState
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.decodeFromStream
+import java.util.UUID
 
 private object Endpoint {
     const val DEBUG = "debug"
@@ -41,9 +47,8 @@ private object Endpoint {
 //
 // (jonathan) TODO: Audit local API for all of the possible error results and clean
 // it up if possible.
-enum class APIErrorVals(val rawValue: String) {
-    UNPARSEABLE_RESPONSE("Unparseable localAPI response"),
-    NOT_READY("Not Ready");
+enum class APIErrorVals(private val rawValue: String) {
+    UNPARSEABLE_RESPONSE("Unparseable localAPI response"), NOT_READY("Not Ready");
 
     fun toError(): Error {
         return Error(rawValue)
@@ -51,48 +56,31 @@ enum class APIErrorVals(val rawValue: String) {
 }
 
 class LocalAPIRequest<T>(
-        path: String,
-        val method: String,
-        val body: String? = null,
-        val parser: (String) -> Unit,
+    path: String,
+    val method: String,
+    val body: ByteArray? = null,
+    val parser: (ByteArray) -> Unit,
 ) {
     val path = "/localapi/v0/$path"
+    val cookie = UUID.randomUUID().toString()
 
     companion object {
-        val cookieLock = Any()
-        var cookieCounter: Int = 0
         val decoder = Json { ignoreUnknownKeys = true }
 
-        fun <T> get(path: String, body: String? = null, parser: (String) -> Unit) =
+        fun <T> get(path: String, body: ByteArray? = null, parser: (ByteArray) -> Unit) =
             LocalAPIRequest<T>(
-                method = "GET",
-                path = path,
-                body = body,
-                parser = parser
+                method = "GET", path = path, body = body, parser = parser
             )
 
-        fun <T> put(path: String, body: String? = null, parser: (String) -> Unit) =
+        fun <T> put(path: String, body: ByteArray? = null, parser: (ByteArray) -> Unit) =
             LocalAPIRequest<T>(
-                method = "PUT",
-                path = path,
-                body = body,
-                parser = parser
+                method = "PUT", path = path, body = body, parser = parser
             )
 
-        fun <T> post(path: String, body: String? = null, parser: (String) -> Unit) =
+        private fun <T> post(path: String, body: ByteArray? = null, parser: (ByteArray) -> Unit) =
             LocalAPIRequest<T>(
-                method = "POST",
-                path = path,
-                body = body,
-                parser = parser
+                method = "POST", path = path, body = body, parser = parser
             )
-
-        fun getCookie(): String {
-            synchronized(cookieLock) {
-                cookieCounter += 1
-                return cookieCounter.toString()
-            }
-        }
 
         fun status(responseHandler: StatusResponseHandler): LocalAPIRequest<IpnState.Status> {
             return get(Endpoint.STATUS) { resp ->
@@ -125,33 +113,33 @@ class LocalAPIRequest<T>(
         }
 
         // Check if the response was a generic error
-        fun parseError(respData: String): Error {
-            try {
-                val err = Json.decodeFromString<Errors.GenericError>(respData)
-                return Error(err.error)
+        @OptIn(ExperimentalSerializationApi::class)
+        fun parseError(respData: ByteArray): Error {
+            return try {
+                val err = Json.decodeFromStream<Errors.GenericError>(respData.inputStream())
+                Error(err.error)
             } catch (e: Exception) {
-                return Error(APIErrorVals.UNPARSEABLE_RESPONSE.toError())
+                Error(APIErrorVals.UNPARSEABLE_RESPONSE.toError())
             }
         }
 
         // Handles responses that are raw strings.  Returns an error result if the string
         // is empty
-        fun parseString(respData: String): Result<String> {
-            return if (respData.length > 0) Result(respData)
+        private fun parseString(respData: ByteArray): Result<String> {
+            return if (respData.isNotEmpty()) Result(respData.decodeToString())
             else Result(APIErrorVals.UNPARSEABLE_RESPONSE.toError())
         }
 
         // Attempt to decode the response into the expected type.  If that fails, then try
         // parsing as an error.
-        inline fun <reified T> decode(respData: String): Result<T> {
-            try {
-                val message = decoder.decodeFromString<T>(respData)
-                return Result(message)
+        @OptIn(ExperimentalSerializationApi::class)
+        private inline fun <reified T> decode(respData: ByteArray): Result<T> {
+            return try {
+                val message = decoder.decodeFromStream<T>(respData.inputStream())
+                Result(message)
             } catch (e: Exception) {
-                return Result(parseError(respData))
+                Result(parseError(respData))
             }
         }
     }
-
-    val cookie: String = getCookie()
 }
