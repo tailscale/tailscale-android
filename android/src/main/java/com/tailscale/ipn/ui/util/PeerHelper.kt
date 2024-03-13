@@ -1,0 +1,48 @@
+// Copyright (c) Tailscale Inc & AUTHORS
+// SPDX-License-Identifier: BSD-3-Clause
+
+
+package com.tailscale.ipn.ui.util
+
+import com.tailscale.ipn.ui.model.Netmap
+import com.tailscale.ipn.ui.model.Tailcfg
+import com.tailscale.ipn.ui.model.UserID
+import com.tailscale.ipn.ui.service.IpnModel
+
+
+data class PeerSet(val user: Tailcfg.UserProfile?, val peers: List<Tailcfg.Node>)
+
+class PeerCategorizer(val model: IpnModel) {
+    fun groupedAndFilteredPeers(searchTerm: String = ""): List<PeerSet> {
+        val netmap: Netmap.NetworkMap = model.netmap.value ?: return emptyList()
+        val peers: List<Tailcfg.Node> = netmap.Peers ?: return emptyList()
+        val selfNode = netmap.SelfNode
+
+        val grouped = mutableMapOf<UserID, MutableList<Tailcfg.Node>>()
+        for (peer in (peers + selfNode)) {
+            // (jonathan) TODO: MDM -> There are a number of MDM settings to hide devices from the user
+            // (jonathan) TODO: MDM -> currentUser, otherUsers, taggedDevices
+
+            val userId = peer.User
+            if (searchTerm.isNotEmpty() && !peer.ComputedName.contains(searchTerm, ignoreCase = true)) {
+                continue
+            }
+            if (!grouped.containsKey(userId)) {
+                grouped[userId] = mutableListOf()
+            }
+            grouped[userId]?.add(peer)
+        }
+        val selfPeers = grouped[selfNode.User] ?: emptyList()
+        grouped.remove(selfNode.User)
+
+        var sorted = grouped.map { (userId, peers) ->
+            val profile = netmap.userProfile(userId)
+            PeerSet(profile, peers)
+        }.sortedBy {
+            it.user?.DisplayName ?: "Unknown User"
+        }
+
+        val me = netmap.currentUserProfile()
+        return listOf(PeerSet(me, selfPeers)) + sorted
+    }
+}

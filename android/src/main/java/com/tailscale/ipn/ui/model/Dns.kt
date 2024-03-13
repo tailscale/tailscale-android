@@ -6,7 +6,8 @@ package com.tailscale.ipn.ui.model
 import kotlinx.serialization.Serializable
 
 class Dns {
-    @Serializable data class HostEntry(val addr: Addr?, val hosts: List<String>?)
+    @Serializable
+    data class HostEntry(val addr: Addr?, val hosts: List<String>?)
 
     @Serializable
     data class OSConfig(

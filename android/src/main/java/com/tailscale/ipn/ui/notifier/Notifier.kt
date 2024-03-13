@@ -5,23 +5,20 @@ package com.tailscale.ipn.ui.notifier
 
 import android.util.Log
 import com.tailscale.ipn.ui.model.Ipn.Notify
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.serialization.decodeFromString
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 
 typealias NotifierCallback = (Notify) -> Unit
 
 
 class Watcher(
-    val sessionId: String,
-    val mask: Int,
-    val callback: NotifierCallback
+        val sessionId: String,
+        val mask: Int,
+        val callback: NotifierCallback
 )
 
 // Notifier is a wrapper around the IPN Bus notifier.  It provides a way to watch
@@ -34,30 +31,30 @@ class Watcher(
 // unwatchIPNBus with the sessionId.
 class Notifier() {
 
+    // (jonathan) TODO: We should be using a lifecycle aware scope here
     private val scope = CoroutineScope(Dispatchers.IO + Job())
 
     // NotifyWatchOpt is a bitmask of options supplied to the notifier to specify which
     // what we want to see on the Noitfy bus
     enum class NotifyWatchOpt(val value: Int) {
-        engineUpdates(1 shl 0),
-        initialState(1 shl 1),
-        prefs(1 shl 2),
-        netmap(1 shl 3),
-        noPrivateKeys(1 shl 4),
-        initialTailFSShares(1 shl 5)
+        engineUpdates(0),
+        initialState(1),
+        prefs(2),
+        netmap(4),
+        noPrivateKey(8),
+        initialTailFSShares(16)
     }
 
     companion object {
         private val sessionIdLock = Any()
         private var sessionId: Int = 0
         private val decoder = Json { ignoreUnknownKeys = true }
-        private val _isReady = MutableStateFlow(false)
-        val isReady: StateFlow<Boolean> = _isReady
+        private val isReady = CompletableDeferred<Boolean>()
 
         // Called by the backend when the localAPI is ready to accept requests.
         @JvmStatic
         fun onReady() {
-            _isReady.value = true
+            isReady.complete(true)
             Log.d("Notifier", "Notifier is ready")
         }
 
@@ -96,7 +93,7 @@ class Notifier() {
         watchers[sessionId] = watcher
         scope.launch {
             // Wait for the notifier to be ready
-            isReady.first { it == true }
+            isReady.await()
             Log.d("Notifier", "Starting IPN Bus watcher for sessionid: ${sessionId}")
             startIPNBusWatcher(sessionId, mask)
             watchers.remove(sessionId)
@@ -140,9 +137,8 @@ class Notifier() {
     fun watchAll(callback: NotifierCallback): String {
         return watchIPNBus(
                 NotifyWatchOpt.netmap.value or
-                NotifyWatchOpt.prefs.value or
-                NotifyWatchOpt.engineUpdates.value or
-                NotifyWatchOpt.initialState.value,
+                        NotifyWatchOpt.prefs.value or
+                        NotifyWatchOpt.initialState.value,
                 callback
         )
     }

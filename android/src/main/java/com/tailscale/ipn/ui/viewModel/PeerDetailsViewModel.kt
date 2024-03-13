@@ -1,0 +1,44 @@
+// Copyright (c) Tailscale Inc & AUTHORS
+// SPDX-License-Identifier: BSD-3-Clause
+
+
+package com.tailscale.ipn.ui.viewModel
+
+import androidx.compose.ui.graphics.Color
+import androidx.lifecycle.ViewModel
+import com.tailscale.ipn.ui.service.IpnModel
+import com.tailscale.ipn.ui.util.DisplayAddress
+import com.tailscale.ipn.ui.util.TimeUtil
+
+data class PeerSettingInfo(val title: String, val value: String)
+
+class PeerDetailsViewModel(val model: IpnModel, val nodeId: String) : ViewModel() {
+
+    var addresses: List<DisplayAddress> = emptyList()
+    var info: List<PeerSettingInfo> = emptyList()
+
+    val nodeName: String
+    val connectedStr: String
+    val connectedColor: Color
+
+    init {
+        val peer = model.netmap.value?.Peers?.find { it.StableID == nodeId }
+        peer?.Addresses?.let {
+            addresses = it.map { addr ->
+                DisplayAddress(addr)
+            }
+        }
+
+        peer?.let { p ->
+            info = listOf(
+                    PeerSettingInfo("OS", p.Hostinfo?.OS ?: ""),
+                    PeerSettingInfo("Key Expiry", TimeUtil().keyExpiryFromGoTime(p.KeyExpiry))
+            )
+        }
+
+
+        nodeName = peer?.ComputedName ?: ""
+        connectedStr = if (peer?.Online == true) "Connected" else "Not Connected"
+        connectedColor = if (peer?.Online == true) Color.Green else Color.Gray
+    }
+}
