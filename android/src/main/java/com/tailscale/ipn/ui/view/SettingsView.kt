@@ -32,6 +32,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.Links
 import com.tailscale.ipn.ui.model.IpnLocal
@@ -44,7 +45,8 @@ import com.tailscale.ipn.ui.viewModel.SettingsViewModel
 
 data class SettingsNav(
         val onNavigateToBugReport: () -> Unit,
-        val onNavigateToAbout: () -> Unit
+        val onNavigateToAbout: () -> Unit,
+        val onNavigateToMDMSettings: () -> Unit
 )
 
 @Composable

@@ -17,6 +17,10 @@ enum class StringSetting(val key: String, val localizedTitle: String) {
     Tailnet("Tailnet", "Recommended/Required Tailnet Name"),
 }
 
+enum class StringArraySetting(val key: String, val localizedTitle: String) {
+    HiddenNetworkDevices("HiddenNetworkDevices", "Hidden Network Device Categories")
+}
+
 // A setting representing a String value which is set to either `always`, `never` or `user-decides`.
 enum class AlwaysNeverUserDecidesSetting(val key: String, val localizedTitle: String) {
     AllowIncomingConnections("AllowIncomingConnections", "Allow Incoming Connections"),
