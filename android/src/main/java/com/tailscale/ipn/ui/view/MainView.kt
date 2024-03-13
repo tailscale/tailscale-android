@@ -47,7 +47,6 @@ import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.Tailcfg
-import com.tailscale.ipn.ui.util.Avatar
 import com.tailscale.ipn.ui.util.PeerSet
 import com.tailscale.ipn.ui.viewModel.MainViewModel
 import kotlinx.coroutines.flow.StateFlow

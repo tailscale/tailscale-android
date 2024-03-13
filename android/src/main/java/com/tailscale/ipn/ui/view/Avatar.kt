@@ -1,4 +1,7 @@
-package com.tailscale.ipn.ui.util
+// Copyright (c) Tailscale Inc & AUTHORS
+// SPDX-License-Identifier: BSD-3-Clause
+
+package com.tailscale.ipn.ui.view
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
