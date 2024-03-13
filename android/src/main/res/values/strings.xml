@@ -30,14 +30,14 @@
     <!-- Strings for the settings screen -->
     <string name="settings_title">Settings</string>
     <string name="settings_admin_prefix">You can manage your account from the admin console.&#160;</string>
-    <string name="settings_admin_link">View admin console...</string>
+    <string name="settings_admin_link">View admin console…</string>
     <string name="about">About</string>
     <string name="bug_report">Bug Report</string>
     <string name="use_ts_dns">Use Tailscale DNS</string>
 
     <!-- Strings for the main scren -->
     <string name="exit_node">Exit Node</string>
-    <string name="starting">Starting...</string>
+    <string name="starting">Starting…</string>
     <string name="connect_to_tailnet">"Connect to your %1$s tailnet"</string>
 
     <!-- Strings for peer details -->
@@ -49,5 +49,19 @@
     <string name="current_mdm_settings">Current MDM Settings</string>
     <string name="mdm_settings">MDM Settings</string>
 
+    <!-- State strings -->
+    <string name="waiting">Waiting…</string>
+    <string name="placeholder">--</string>
+    <string name="please_login">Please Login</string>
+    <string name="stopped">Stopped</string>
+
+    <!-- Time conversion templates -->
+    <string name="expired">expired</string>
+    <string name="under_a_minute">under a minute</string>
+    <string name="in_x_minutes">in %1$s minutes</string>
+    <string name="in_x_hours">in %1$s hours</string>
+    <string name="in_x_days">in %1$s days</string>
+    <string name="in_x_months">in %1$s months</string>
+    <string name="in_x_years">in %1$s years</string>
 
 </resources>

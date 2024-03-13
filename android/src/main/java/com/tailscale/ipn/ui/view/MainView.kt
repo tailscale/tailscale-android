@@ -77,7 +77,7 @@ fun MainView(viewModel: MainViewModel, navigation: MainViewNavigation) {
                 val isOn = viewModel.vpnToggleState.collectAsState(initial = false)
 
                 Switch(onCheckedChange = { viewModel.toggleVpn() }, checked = isOn.value)
-                StateDisplay(viewModel.stateStr, viewModel.userName)
+                StateDisplay(viewModel.stateRes, viewModel.userName)
                 Box(modifier = Modifier
                         .weight(1f)
                         .clickable { navigation.onNavigateToSettings() }, contentAlignment = Alignment.CenterEnd) {
@@ -131,12 +131,13 @@ fun ExitNodeStatus(navAction: () -> Unit, exitNode: String = stringResource(id =
 }
 
 @Composable
-fun StateDisplay(state: StateFlow<String>, tailnet: String) {
-    val stateStr = state.collectAsState(initial = "--")
+fun StateDisplay(state: StateFlow<Int>, tailnet: String) {
+    val stateVal = state.collectAsState(initial = R.string.placeholder)
+    val stateStr = stringResource(id = stateVal.value)
 
     Column(modifier = Modifier.padding(6.dp)) {
-        Text(text = "${tailnet}", style = MaterialTheme.typography.titleMedium)
-        Text(text = "${stateStr.value}", style = MaterialTheme.typography.bodyMedium)
+        Text(text = tailnet, style = MaterialTheme.typography.titleMedium)
+        Text(text = stateStr, style = MaterialTheme.typography.bodyMedium)
     }
 }
 
