@@ -71,7 +71,10 @@ class Tailcfg {
             var Capabilities: List<String>? = null,
             var ComputedName: String,
             var ComputedNameWithHost: String
-    )
+    ) {
+        val isAdmin: Boolean
+            get() = (Capabilities ?: emptyList()).contains("https://tailscale.com/cap/is-admin")
+    }
 
     @Serializable
     data class Service(var Proto: String, var Port: Int, var Description: String? = null)

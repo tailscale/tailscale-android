@@ -32,10 +32,16 @@ class PeerCategorizer(val model: IpnModel) {
             }
             grouped[userId]?.add(peer)
         }
-        val selfPeers = grouped[selfNode.User] ?: emptyList()
+        var selfPeers = (grouped[selfNode.User] ?: emptyList()).sortedBy { it.ComputedName }
         grouped.remove(selfNode.User)
 
-        var sorted = grouped.map { (userId, peers) ->
+        val currentNode = selfPeers.first { it.ID == selfNode.ID }
+        currentNode.let {
+            selfPeers = selfPeers.filter { it.ID != currentNode.ID }
+            selfPeers = listOf(currentNode) + selfPeers
+        }
+
+        val sorted = grouped.map { (userId, peers) ->
             val profile = netmap.userProfile(userId)
             PeerSet(profile, peers)
         }.sortedBy {

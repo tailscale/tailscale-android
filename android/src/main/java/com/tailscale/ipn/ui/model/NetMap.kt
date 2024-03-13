@@ -31,6 +31,13 @@ class Netmap {
             return UserProfiles[id.toString()]
         }
 
+        fun getPeer(id: StableNodeID): Tailcfg.Node? {
+            if(id == SelfNode.StableID) {
+                return SelfNode
+            }
+            return Peers?.find { it.StableID == id }
+        }
+
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
             if (other !is NetworkMap) return false

@@ -14,6 +14,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 
+
 typealias PrefChangeCallback = (Result<Boolean>) -> Unit
 
 // Abstracts the actions that can be taken by the UI so that the concept of an IPNManager
@@ -22,6 +23,8 @@ data class IpnActions(
     val startVPN: () -> Unit,
     val stopVPN: () -> Unit,
     val login: () -> Unit,
+    val logout: () -> Unit,
+    val openAdminConsole: () -> Unit,
     val updatePrefs: (Ipn.MaskedPrefs, PrefChangeCallback) -> Unit
 )
 
@@ -35,28 +38,25 @@ class IpnManager {
     val actions = IpnActions(
             startVPN = { startVPN() },
             stopVPN = { stopVPN() },
-            login = { login() },
+            login = { apiClient.startLoginInteractive() },
+            logout = { apiClient.logout() },
+            openAdminConsole = { /* TODO */ },
             updatePrefs = { prefs, callback -> updatePrefs(prefs, callback) }
     )
-
 
     fun startVPN() {
         val context = App.getApplication().applicationContext
         val intent = Intent(context, IPNReceiver::class.java)
-        intent.action = "com.tailscale.ipn.CONNECT_VPN"
+        intent.action = IPNReceiver.INTENT_CONNECT_VPN
         context.sendBroadcast(intent)
     }
 
     fun stopVPN() {
         val context = App.getApplication().applicationContext
         val intent = Intent(context, IPNReceiver::class.java)
-        intent.action = "com.tailscale.ipn.DISCONNECT_VPN"
+        intent.action = IPNReceiver.INTENT_DISCONNECT_VPN
         context.sendBroadcast(intent)
 
-    }
-
-    fun login() {
-        apiClient.startLoginInteractive()
     }
 
     fun updatePrefs(prefs: Ipn.MaskedPrefs, callback: PrefChangeCallback) {
