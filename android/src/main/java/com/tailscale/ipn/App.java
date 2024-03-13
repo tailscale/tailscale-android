@@ -17,6 +17,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.RestrictionsManager;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageInfo;
@@ -56,6 +57,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
@@ -66,6 +68,12 @@ import androidx.security.crypto.EncryptedSharedPreferences;
 import androidx.security.crypto.MasterKey;
 
 import androidx.browser.customtabs.CustomTabsIntent;
+
+import com.tailscale.ipn.mdm.AlwaysNeverUserDecidesSetting;
+import com.tailscale.ipn.mdm.BooleanSetting;
+import com.tailscale.ipn.mdm.MDMSettings;
+import com.tailscale.ipn.mdm.ShowHideSetting;
+import com.tailscale.ipn.mdm.StringSetting;
 import com.tailscale.ipn.ui.service.IpnManager;
 
 import org.gioui.Gio;
@@ -104,15 +112,15 @@ public class App extends Application {
 
 		createNotificationChannel(NOTIFY_CHANNEL_ID, "Notifications", NotificationManagerCompat.IMPORTANCE_DEFAULT);
 		createNotificationChannel(STATUS_CHANNEL_ID, "VPN Status", NotificationManagerCompat.IMPORTANCE_LOW);
-		createNotificationChannel(FILE_CHANNEL_ID, "File transfers", NotificationManagerCompat.IMPORTANCE_DEFAULT);	
-	
+		createNotificationChannel(FILE_CHANNEL_ID, "File transfers", NotificationManagerCompat.IMPORTANCE_DEFAULT);
+
 		_application = this;
 	}
 
 	// requestNetwork attempts to find the best network that matches the passed NetworkRequest. It is possible that
 	// this might return an unusuable network, eg a captive portal.
 	private void setAndRegisterNetworkCallbacks() {
-		connectivityManager.requestNetwork(dns.getDNSConfigNetworkRequest(), new ConnectivityManager.NetworkCallback(){			
+		connectivityManager.requestNetwork(dns.getDNSConfigNetworkRequest(), new ConnectivityManager.NetworkCallback(){
 			@Override
 			public void onAvailable(Network network){
 				super.onAvailable(network);
@@ -421,5 +429,43 @@ public class App extends Application {
 	boolean isTV() {
 		UiModeManager mm = (UiModeManager)getSystemService(UI_MODE_SERVICE);
 		return mm.getCurrentModeType() == Configuration.UI_MODE_TYPE_TELEVISION;
+	}
+
+	/*
+	The following methods are called by the syspolicy handler from Go via JNI.
+	 */
+
+	boolean getSyspolicyBooleanValue(String key) {
+		RestrictionsManager manager = (RestrictionsManager) this.getSystemService(Context.RESTRICTIONS_SERVICE);
+		MDMSettings mdmSettings = new MDMSettings(manager);
+		BooleanSetting setting = BooleanSetting.valueOf(key);
+		return mdmSettings.get(setting);
+	}
+
+	String getSyspolicyStringValue(String key) {
+		RestrictionsManager manager = (RestrictionsManager) this.getSystemService(Context.RESTRICTIONS_SERVICE);
+		MDMSettings mdmSettings = new MDMSettings(manager);
+
+        // Before looking for a StringSetting matching the given key, Go could also be
+        // asking us for either a AlwaysNeverUserDecidesSetting or a ShowHideSetting.
+        // Check the enum cases for these two before looking for a StringSetting.
+        try {
+            AlwaysNeverUserDecidesSetting anuSetting = AlwaysNeverUserDecidesSetting.valueOf(key);
+            return mdmSettings.get(anuSetting).getValue();
+        } catch (IllegalArgumentException eanu) { // AlwaysNeverUserDecidesSetting does not exist
+            try {
+                ShowHideSetting showHideSetting = ShowHideSetting.valueOf(key);
+                return mdmSettings.get(showHideSetting).getValue();
+            } catch (IllegalArgumentException esh) {
+                try {
+                    StringSetting stringSetting = StringSetting.valueOf(key);
+                    String value = mdmSettings.get(stringSetting);
+                    return Objects.requireNonNullElse(value, "");
+                } catch (IllegalArgumentException estr) {
+                    android.util.Log.d("MDM", key+" is not defined on Android. Returning empty.");
+                    return "";
+                }
+            }
+        }
 	}
 }
