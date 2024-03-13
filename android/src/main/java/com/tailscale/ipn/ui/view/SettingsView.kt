@@ -17,14 +17,23 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import com.tailscale.ipn.R
+import com.tailscale.ipn.ui.Links
 import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.util.defaultPaddingModifier
 import com.tailscale.ipn.ui.util.settingsRowModifier
@@ -40,44 +49,51 @@ data class SettingsNav(
 
 @Composable
 fun Settings(viewModel: SettingsViewModel) {
-    Column(modifier = defaultPaddingModifier()) {
-        viewModel.user?.let { user ->
-            UserView(profile = user, viewModel.isAdmin, viewModel.adminText(), onClick = { viewModel.ipnActions.openAdminConsole() })
-            Spacer(modifier = Modifier.height(8.dp))
-            Button(onClick = { viewModel.ipnActions.logout() }) {
-                Text(text = "Log Out")
-            }
-        } ?: run {
-            Button(onClick = { viewModel.ipnActions.login() }) {
-                Text(text = "Sign In")
-            }
-        }
+    val handler = LocalUriHandler.current
 
+    Surface(color = MaterialTheme.colorScheme.surface) {
 
-        Spacer(modifier = Modifier.height(8.dp))
-
-        viewModel.settings.forEach { settingBundle ->
-            Column(modifier = settingsRowModifier()) {
-                settingBundle.title?.let {
-                    Text(text = it, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(8.dp))
+        Column(modifier = defaultPaddingModifier()) {
+            viewModel.user?.let { user ->
+                UserView(profile = user, viewModel.isAdmin, adminText(), onClick = {
+                    handler.openUri(Links.ADMIN_URL)
+                })
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(onClick = { viewModel.ipnActions.logout() }) {
+                    Text(text = stringResource(id = R.string.log_out))
                 }
-                settingBundle.settings.forEach { setting ->
-                    when (setting.type) {
-                        SettingType.NAV -> {
-                            SettingsNavRow(setting)
-                        }
+            } ?: run {
+                Button(onClick = { viewModel.ipnActions.login() }) {
+                    Text(text = stringResource(id = R.string.log_in))
+                }
+            }
 
-                        SettingType.SWITCH -> {
-                            SettingsSwitchRow(setting)
-                        }
 
-                        SettingType.NAV_WITH_TEXT -> {
-                            SettingsNavRow(setting)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            viewModel.settings.forEach { settingBundle ->
+                Column(modifier = settingsRowModifier()) {
+                    settingBundle.title?.let {
+                        Text(text = it, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(8.dp))
+                    }
+                    settingBundle.settings.forEach { setting ->
+                        when (setting.type) {
+                            SettingType.NAV -> {
+                                SettingsNavRow(setting)
+                            }
+
+                            SettingType.SWITCH -> {
+                                SettingsSwitchRow(setting)
+                            }
+
+                            SettingType.NAV_WITH_TEXT -> {
+                                SettingsNavRow(setting)
+                            }
                         }
                     }
                 }
+                Spacer(modifier = Modifier.height(8.dp))
             }
-            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 }
@@ -108,7 +124,7 @@ fun SettingsNavRow(setting: Setting) {
     val enabled = setting.enabled.collectAsState().value
 
     Row(modifier = defaultPaddingModifier().clickable { if (enabled) setting.onClick() }) {
-        Text(text = setting.title)
+        Text(text = stringResource(id = setting.titleRes))
         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
             Text(text = txtVal, style = MaterialTheme.typography.bodyMedium)
         }
@@ -122,7 +138,7 @@ fun SettingsSwitchRow(setting: Setting) {
     val enabled = setting.enabled.collectAsState().value
 
     Row(modifier = defaultPaddingModifier().clickable { if (enabled) setting.onClick() }, verticalAlignment = Alignment.CenterVertically) {
-        Text(text = setting.title)
+        Text(text = stringResource(id = setting.titleRes))
         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
             Switch(checked = swVal, onCheckedChange = setting.onToggle, enabled = enabled)
         }
@@ -130,11 +146,15 @@ fun SettingsSwitchRow(setting: Setting) {
 }
 
 @Composable
-fun BugReportView() {
-    Text(text = "Future Home of Bug Reporting")
-}
+fun adminText(): AnnotatedString {
+    val annotatedString = buildAnnotatedString {
+        append(stringResource(id = R.string.settings_admin_prefix))
 
-@Composable
-fun AboutView() {
-    Text(text = "Future Home of About")
+        pushStringAnnotation(tag = "link", annotation = Links.ADMIN_URL)
+        withStyle(style = SpanStyle(color = Color.Blue)) {
+            append(stringResource(id = R.string.settings_admin_link))
+        }
+        pop()
+    }
+    return annotatedString
 }

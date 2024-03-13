@@ -1,17 +1,17 @@
 // Copyright (c) Tailscale Inc & AUTHORS
 // SPDX-License-Identifier: BSD-3-Clause
 
-
 package com.tailscale.ipn.ui.viewModel
 
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
+import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.model.StableNodeID
 import com.tailscale.ipn.ui.service.IpnModel
 import com.tailscale.ipn.ui.util.DisplayAddress
 import com.tailscale.ipn.ui.util.TimeUtil
 
-data class PeerSettingInfo(val title: String, val value: String)
+data class PeerSettingInfo(val titleRes: Int, val value: String)
 
 class PeerDetailsViewModel(val model: IpnModel, val nodeId: StableNodeID) : ViewModel() {
 
@@ -19,7 +19,7 @@ class PeerDetailsViewModel(val model: IpnModel, val nodeId: StableNodeID) : View
     var info: List<PeerSettingInfo> = emptyList()
 
     val nodeName: String
-    val connectedStr: String
+    val connectedStrRes: Int
     val connectedColor: Color
 
     init {
@@ -32,13 +32,14 @@ class PeerDetailsViewModel(val model: IpnModel, val nodeId: StableNodeID) : View
 
         peer?.let { p ->
             info = listOf(
-                    PeerSettingInfo("OS", p.Hostinfo?.OS ?: ""),
-                    PeerSettingInfo("Key Expiry", TimeUtil().keyExpiryFromGoTime(p.KeyExpiry))
+                    PeerSettingInfo(R.string.os, p.Hostinfo?.OS ?: ""),
+                    PeerSettingInfo(R.string.key_expiry, TimeUtil().keyExpiryFromGoTime(p.KeyExpiry))
             )
         }
 
+
         nodeName = peer?.ComputedName ?: ""
-        connectedStr = if (peer?.Online == true) "Connected" else "Not Connected"
+        connectedStrRes = if (peer?.Online == true) R.string.connected else R.string.not_connected
         connectedColor = if (peer?.Online == true) Color.Green else Color.Gray
     }
 }

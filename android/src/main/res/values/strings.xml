@@ -1,5 +1,49 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+
+    <!-- Generic Strings -->
+    <string name="log_in">Log In</string>
+    <string name="log_out">Log Out</string>
+    <string name="none">None</string>
+    <string name="connect">Connect</string>
+    <string name="unknown_user">Unknown User</string>
+    <string name="connected">Connected</string>
+    <string name="not_connected">Not Connected</string>
+
+    <!-- Strings for the about screen -->
     <string name="app_name">Tailscale</string>
     <string name="tile_name">Tailscale</string>
+    <string name="about_view_title">Tailscale for Android</string>
+    <string name="acknowledgements">Acknowledgements</string>
+    <string name="privacy_policy">Privacy Policy</string>
+    <string name="terms_of_service">Terms of Service</string>
+    <string name="about_view_footnotes">WireGuard is a registered trademark of Jason A. Donenfeld.\n\n© 2024 Tailscale Inc. All rights reserved.\nTailscale is a registered trademark of Tailscale Inc.</string>
+    <string name="app_icon_content_description">The Tailscale App Icon</string>
+
+    <!-- Strings for the bug reporting screen -->
+    <string name="bug_report_title">Report a Bug</string>
+    <string name="bug_report_instructions_prefix">To report a bug,&#160;</string>
+    <string name="bug_report_instructions_linktext">contact our support team&#160; </string>
+    <string name="bug_report_instructions_suffix">and include the ID below.</string>
+    <string name="bug_report_id_desc">This ID helps us find the event ino our diagnostic logs.  This process does not share any of your personally-identifiable information.</string>
+
+    <!-- Strings for the settings screen -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_admin_prefix">You can manage your account from the admin console.&#160;</string>
+    <string name="settings_admin_link">View admin console...</string>
+    <string name="about">About</string>
+    <string name="bug_report">Bug Report</string>
+    <string name="use_ts_dns">Use Tailscale DNS</string>
+
+    <!-- Strings for the main scren -->
+    <string name="exit_node">Exit Node</string>
+    <string name="starting">Staring...</string>
+    <string name="connect_to_tailnet">"Connect to your %1$s tailnet"</string>
+
+    <!-- Strings for peer details -->
+    <string name="addresses_section">TAILSCALE ADDRESSES</string>
+    <string name="os">OS</string>
+    <string name="key_expiry">Key Expiry</string>
+
+
 </resources>
