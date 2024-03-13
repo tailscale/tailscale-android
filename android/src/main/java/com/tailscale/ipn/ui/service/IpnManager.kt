@@ -12,53 +12,49 @@ import com.tailscale.ipn.ui.localapi.LocalApiClient
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.notifier.Notifier
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 
 typealias PrefChangeCallback = (Result<Boolean>) -> Unit
 
 // Abstracts the actions that can be taken by the UI so that the concept of an IPNManager
 // itself is hidden from the viewModel implementations.
-data class IpnActions(
-    val startVPN: () -> Unit,
-    val stopVPN: () -> Unit,
-    val login: () -> Unit,
-    val logout: () -> Unit,
-    val updatePrefs: (Ipn.MaskedPrefs, PrefChangeCallback) -> Unit
-)
+interface IpnActions {
+    fun startVPN()
+    fun stopVPN()
+    fun login()
+    fun logout()
+    fun updatePrefs(prefs: Ipn.MaskedPrefs, callback: PrefChangeCallback)
+}
 
-class IpnManager {
+class IpnManager(scope: CoroutineScope) : IpnActions {
     private var notifier = Notifier()
-    private var scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     var apiClient = LocalApiClient(scope)
     var mdmSettings = MDMSettings()
     val model = IpnModel(notifier, apiClient, scope)
 
-    val actions = IpnActions(
-            startVPN = { startVPN() },
-            stopVPN = { stopVPN() },
-            login = { apiClient.startLoginInteractive() },
-            logout = { apiClient.logout() },
-            updatePrefs = { prefs, callback -> updatePrefs(prefs, callback) }
-    )
-
-    fun startVPN() {
+    override fun startVPN() {
         val context = App.getApplication().applicationContext
         val intent = Intent(context, IPNReceiver::class.java)
         intent.action = IPNReceiver.INTENT_CONNECT_VPN
         context.sendBroadcast(intent)
     }
 
-    fun stopVPN() {
+    override fun stopVPN() {
         val context = App.getApplication().applicationContext
         val intent = Intent(context, IPNReceiver::class.java)
         intent.action = IPNReceiver.INTENT_DISCONNECT_VPN
         context.sendBroadcast(intent)
-
     }
 
-    fun updatePrefs(prefs: Ipn.MaskedPrefs, callback: PrefChangeCallback) {
+    override fun login() {
+        apiClient.startLoginInteractive()
+    }
+
+    override fun logout() {
+        apiClient.logout()
+    }
+
+    override fun updatePrefs(prefs: Ipn.MaskedPrefs, callback: PrefChangeCallback) {
         apiClient.editPrefs(prefs) { result ->
             result.success?.let {
                 callback(Result.success(true))

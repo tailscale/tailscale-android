@@ -59,11 +59,11 @@ class LocalApiClient(private val scope: CoroutineScope) {
     // This is called from the JNI layer to publish localAPIResponses.  This should execute on the
     // same thread that called doRequest.
     @Suppress("unused")
-    fun onResponse(response: String, cookie: String) {
+    fun onResponse(response: ByteArray, cookie: String) {
         requests.remove(cookie)?.let { request ->
             Log.d("LocalApiClient", "Response for request:${request.path} cookie:${request.cookie}")
             // The response handler will invoked internally by the request parser
-            request.parser(response.encodeToByteArray())
+            request.parser(response)
         } ?: { Log.e("LocalApiClient", "Received response for unknown request: $cookie") }
     }
 

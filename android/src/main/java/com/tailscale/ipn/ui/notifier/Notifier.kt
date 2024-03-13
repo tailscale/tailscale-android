@@ -68,7 +68,7 @@ class Notifier() {
 
     // Starts an IPN Bus watcher.  **This is blocking** and will not return until
     // the watcher is stopped and must be executed in a suitable coroutine scope such
-    // as Dispatchers.IO 
+    // as Dispatchers.IO
     private external fun startIPNBusWatcher(sessionId: String, mask: Int)
 
     // Stops an IPN Bus watcher
@@ -87,7 +87,7 @@ class Notifier() {
     // Watch the IPN bus for notifications
     // Notifications will be passed to the caller via the callback until
     // the caller calls unwatchIPNBus with the sessionId returned from this call.
-    fun watchIPNBus(mask: Int, callback: NotifierCallback): String {
+    private fun watchIPNBus(mask: Int, callback: NotifierCallback): String {
         val sessionId = generateSessionId()
         val watcher = Watcher(sessionId, mask, callback)
         watchers[sessionId] = watcher
@@ -104,7 +104,7 @@ class Notifier() {
 
     // Cancels the watcher with the given sessionId. No errors are thrown or
     // indicated for invalid sessionIds.
-    fun unwatchIPNBus(sessionId: String) {
+    private fun unwatchIPNBus(sessionId: String) {
         stopIPNBusWatcher(sessionId)
     }
 
@@ -147,4 +147,3 @@ class Notifier() {
         Log.d("Notifier", "Notifier created")
     }
 }
-
