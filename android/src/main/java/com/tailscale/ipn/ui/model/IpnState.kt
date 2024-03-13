@@ -112,5 +112,9 @@ class IpnLocal {
             val UserProfile: Tailcfg.UserProfile,
             val NetworkProfile: Tailcfg.NetworkProfile? = null,
             val LocalUserID: String,
-    )
+    ) {
+        fun isEmpty(): Boolean {
+            return ID.isEmpty()
+        }
+    }
 }

@@ -4,9 +4,13 @@
 
 package com.tailscale.ipn
 
+
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -14,15 +18,20 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.tailscale.ipn.ui.service.IpnManager
 import com.tailscale.ipn.ui.theme.AppTheme
+import com.tailscale.ipn.ui.view.AboutView
+import com.tailscale.ipn.ui.view.BugReportView
 import com.tailscale.ipn.ui.view.ExitNodePicker
 import com.tailscale.ipn.ui.view.MainView
 import com.tailscale.ipn.ui.view.MainViewNavigation
 import com.tailscale.ipn.ui.view.PeerDetails
 import com.tailscale.ipn.ui.view.Settings
+import com.tailscale.ipn.ui.view.SettingsNav
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerViewModel
 import com.tailscale.ipn.ui.viewModel.MainViewModel
 import com.tailscale.ipn.ui.viewModel.PeerDetailsViewModel
 import com.tailscale.ipn.ui.viewModel.SettingsViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 
 class MainActivity : ComponentActivity() {
@@ -43,11 +52,16 @@ class MainActivity : ComponentActivity() {
                             onNavigateToExitNodes = { navController.navigate("exitNodes") }
                     )
 
+                    val settingsNav = SettingsNav(
+                            onNavigateToBugReport = { navController.navigate("bugReport") },
+                            onNavigateToAbout = { navController.navigate("about") }
+                    )
+
                     composable("main") {
                         MainView(viewModel = MainViewModel(manager.model, manager.actions), navigation = mainViewNav)
                     }
                     composable("settings") {
-                        Settings(SettingsViewModel(manager.model))
+                        Settings(SettingsViewModel(manager.model, manager.actions, settingsNav))
                     }
                     composable("exitNodes") {
                         ExitNodePicker(ExitNodePickerViewModel(manager.model))
@@ -56,9 +70,37 @@ class MainActivity : ComponentActivity() {
                         PeerDetails(PeerDetailsViewModel(manager.model, nodeId = it.arguments?.getString("nodeId")
                                 ?: ""))
                     }
+                    composable("bugReport") {
+                        BugReportView()
+                    }
+                    composable("about") {
+                        AboutView()
+                    }
                 }
             }
         }
+    }
+
+    init {
+        // Watch the model's browseToURL and launch the browser when it changes
+        // This will trigger the login flow
+        lifecycleScope.launch {
+            manager.model.browseToURL.collect { url ->
+                url?.let {
+                    Dispatchers.Main.run {
+                        login(it)
+                    }
+                }
+            }
+        }
+    }
+
+    fun login(url: String) {
+        // (jonathan) TODO: This is functional, but the navigation doesn't quite work
+        // as expected.  There's probably a better built in way to do this.  This will
+        // unblock in dev for the time being though.
+        val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+        startActivity(browserIntent)
     }
 }
 

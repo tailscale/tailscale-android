@@ -37,12 +37,12 @@ class Notifier() {
     // NotifyWatchOpt is a bitmask of options supplied to the notifier to specify which
     // what we want to see on the Noitfy bus
     enum class NotifyWatchOpt(val value: Int) {
-        engineUpdates(0),
-        initialState(1),
-        prefs(2),
-        netmap(4),
-        noPrivateKey(8),
-        initialTailFSShares(16)
+        engineUpdates(1),
+        initialState(2),
+        prefs(4),
+        netmap(8),
+        noPrivateKey(16),
+        initialTailFSShares(32)
     }
 
     companion object {

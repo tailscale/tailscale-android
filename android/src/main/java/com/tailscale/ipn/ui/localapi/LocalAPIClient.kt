@@ -22,7 +22,6 @@ class LocalApiClient(private val scope: CoroutineScope) {
         Log.d("LocalApiClient", "LocalApiClient created")
     }
 
-
     companion object {
         val isReady = CompletableDeferred<Boolean>()
 
@@ -89,6 +88,11 @@ class LocalApiClient(private val scope: CoroutineScope) {
         executeRequest(req)
     }
 
+    fun editPrefs(prefs: Ipn.MaskedPrefs, responseHandler: (Result<Ipn.Prefs>) -> Unit) {
+        val req = LocalAPIRequest.editPrefs(prefs, responseHandler)
+        executeRequest<Ipn.Prefs>(req)
+    }
+
     fun getProfiles(responseHandler: (Result<List<IpnLocal.LoginProfile>>) -> Unit) {
         val req = LocalAPIRequest.profiles(responseHandler)
         executeRequest(req)
@@ -103,6 +107,14 @@ class LocalApiClient(private val scope: CoroutineScope) {
         val req = LocalAPIRequest.startLoginInteractive { result ->
             result.success?.let { Log.d("LocalApiClient", "Login started: $it") }
                     ?: run { Log.e("LocalApiClient", "Error starting login: ${result.error}") }
+        }
+        executeRequest<String>(req)
+    }
+
+    fun logout() {
+        val req = LocalAPIRequest.logout { result ->
+            result.success?.let { Log.d("LocalApiClient", "Logout started: $it") }
+                    ?: run { Log.e("LocalApiClient", "Error starting logout: ${result.error}") }
         }
         executeRequest<String>(req)
     }
@@ -123,8 +135,6 @@ class LocalApiClient(private val scope: CoroutineScope) {
     // start
     // startLoginInteractive
     // logout
-    // profiles
-    // currentProfile
     // addProfile
     // switchProfile
     // deleteProfile

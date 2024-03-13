@@ -10,24 +10,21 @@ import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.Netmap
 import com.tailscale.ipn.ui.notifier.Notifier
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class IpnModel(
-    notifier: Notifier,
-    private val apiClient: LocalApiClient,
-    scope: CoroutineScope
+        notifier: Notifier,
+        val apiClient: LocalApiClient,
+        val scope: CoroutineScope
 ) {
     private var notifierSessions: MutableList<String> = mutableListOf()
 
 
     private val _state: MutableStateFlow<Ipn.State> = MutableStateFlow(Ipn.State.NoState)
     private val _netmap: MutableStateFlow<Netmap.NetworkMap?> = MutableStateFlow(null)
-    private val _prefs: MutableStateFlow<Ipn.Prefs?> = MutableStateFlow(null)
+    protected val _prefs: MutableStateFlow<Ipn.Prefs?> = MutableStateFlow(null)
     private val _engineStatus: MutableStateFlow<Ipn.EngineStatus?> = MutableStateFlow(null)
     private val _tailFSShares: MutableStateFlow<Map<String, String>?> = MutableStateFlow(null)
     private val _browseToURL: MutableStateFlow<String?> = MutableStateFlow(null)
@@ -36,7 +33,7 @@ class IpnModel(
 
     private val _loggedInUser: MutableStateFlow<IpnLocal.LoginProfile?> = MutableStateFlow(null)
     private val _loginProfiles: MutableStateFlow<List<IpnLocal.LoginProfile>?> =
-        MutableStateFlow(null)
+            MutableStateFlow(null)
 
 
     val state: StateFlow<Ipn.State> = _state
@@ -55,7 +52,6 @@ class IpnModel(
             return prefs.value != null
         }
 
-
     // Backend Observation
 
     private suspend fun loadUserProfiles() {
@@ -63,17 +59,23 @@ class IpnModel(
 
         apiClient.getProfiles { result ->
             result.success?.let { users -> _loginProfiles.value = users }
-                ?: run { Log.e("IpnManager", "Error loading profiles: ${result.error}") }
+                    ?: run { Log.e("IpnManager", "Error loading profiles: ${result.error}") }
         }
 
         apiClient.getCurrentProfile { result ->
             result.success?.let { user -> _loggedInUser.value = user }
-                ?: run { Log.e("IpnManager", "Error loading profiles: ${result.error}") }
+                    ?: run { Log.e("IpnManager", "Error loading profiles: ${result.error}") }
         }
     }
 
     private fun onNotifyChange(notify: Ipn.Notify) {
         notify.State?.let { state ->
+            // Refresh the user profiles if we're transitioning out of the
+            // NeedsLogin state.
+            if (_state.value == Ipn.State.NeedsLogin) {
+                scope.launch { loadUserProfiles() }
+            }
+
             Log.d("IpnModel", "State changed: $state")
             _state.value = Ipn.State.fromInt(state)
         }
