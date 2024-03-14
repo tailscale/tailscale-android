@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.model.Ipn.State
+import com.tailscale.ipn.ui.model.StableNodeID
 import com.tailscale.ipn.ui.service.IpnActions
 import com.tailscale.ipn.ui.service.IpnModel
 import com.tailscale.ipn.ui.service.set
@@ -38,6 +39,12 @@ class MainViewModel(val model: IpnModel, val actions: IpnActions) : ViewModel() 
     val searchTerm: StateFlow<String> = MutableStateFlow("")
 
 
+    // The current peer ID
+    val selfPeerId: StableNodeID
+        get() = model.netmap.value?.SelfNode?.StableID ?: ""
+
+    val peerCategorizer = PeerCategorizer(model, viewModelScope)
+
     init {
         viewModelScope.launch {
             model.state.collect { state ->
@@ -48,7 +55,7 @@ class MainViewModel(val model: IpnModel, val actions: IpnActions) : ViewModel() 
 
         viewModelScope.launch {
             model.netmap.collect { netmap ->
-                peers.set(PeerCategorizer(model).groupedAndFilteredPeers(searchTerm.value))
+                peers.set(peerCategorizer.groupedAndFilteredPeers(searchTerm.value))
             }
         }
     }
@@ -56,7 +63,7 @@ class MainViewModel(val model: IpnModel, val actions: IpnActions) : ViewModel() 
     fun searchPeers(searchTerm: String) {
         this.searchTerm.set(searchTerm)
         viewModelScope.launch {
-            peers.set(PeerCategorizer(model).groupedAndFilteredPeers(searchTerm))
+            peers.set(peerCategorizer.groupedAndFilteredPeers(searchTerm))
         }
     }
 
