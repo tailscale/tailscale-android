@@ -9,6 +9,7 @@
     <string name="unknown_user">Unknown User</string>
     <string name="connected">Connected</string>
     <string name="not_connected">Not Connected</string>
+    <string name="search">Search</string>
     <string name="empty"> </string>
     <string name="template">%s</string>
 
