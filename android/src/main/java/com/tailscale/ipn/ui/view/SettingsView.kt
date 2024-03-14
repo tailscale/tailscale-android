@@ -49,7 +49,8 @@ import com.tailscale.ipn.ui.viewModel.SettingsViewModel
 data class SettingsNav(
         val onNavigateToBugReport: () -> Unit,
         val onNavigateToAbout: () -> Unit,
-        val onNavigateToMDMSettings: () -> Unit
+        val onNavigateToMDMSettings: () -> Unit,
+        val onNavigateToManagedBy: () -> Unit,
 )
 
 @Composable
@@ -78,11 +79,11 @@ fun Settings(viewModel: SettingsViewModel) {
                     handler.openUri(Links.ADMIN_URL)
                 })
                 Spacer(modifier = Modifier.height(8.dp))
-                Button(onClick = { viewModel.ipnActions.logout() }) {
+                Button(onClick = { viewModel.ipnManager.logout() }) {
                     Text(text = stringResource(id = R.string.log_out))
                 }
             } ?: run {
-                Button(onClick = { viewModel.ipnActions.login() }) {
+                Button(onClick = { viewModel.ipnManager.login() }) {
                     Text(text = stringResource(id = R.string.log_in))
                 }
             }
@@ -149,7 +150,7 @@ fun SettingsNavRow(setting: Setting) {
     val enabled = setting.enabled.collectAsState().value
 
     Row(modifier = defaultPaddingModifier().clickable { if (enabled) setting.onClick() }) {
-        Text(text = stringResource(id = setting.titleRes))
+        Text(setting.title.getString())
         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
             Text(text = txtVal, style = MaterialTheme.typography.bodyMedium)
         }
@@ -163,7 +164,7 @@ fun SettingsSwitchRow(setting: Setting) {
     val enabled = setting.enabled.collectAsState().value
 
     Row(modifier = defaultPaddingModifier().clickable { if (enabled) setting.onClick() }, verticalAlignment = Alignment.CenterVertically) {
-        Text(text = stringResource(id = setting.titleRes))
+        Text(setting.title.getString())
         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
             Switch(checked = swVal, onCheckedChange = setting.onToggle, enabled = enabled)
         }

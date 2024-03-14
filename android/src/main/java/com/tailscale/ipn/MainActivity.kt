@@ -25,6 +25,7 @@ import com.tailscale.ipn.ui.view.ExitNodePicker
 import com.tailscale.ipn.ui.view.MDMSettingsDebugView
 import com.tailscale.ipn.ui.view.MainView
 import com.tailscale.ipn.ui.view.MainViewNavigation
+import com.tailscale.ipn.ui.view.ManagedByView
 import com.tailscale.ipn.ui.view.PeerDetails
 import com.tailscale.ipn.ui.view.Settings
 import com.tailscale.ipn.ui.view.SettingsNav
@@ -58,7 +59,8 @@ class MainActivity : ComponentActivity() {
                     val settingsNav = SettingsNav(
                             onNavigateToBugReport = { navController.navigate("bugReport") },
                             onNavigateToAbout = { navController.navigate("about") },
-                            onNavigateToMDMSettings = { navController.navigate("mdmSettings") }
+                            onNavigateToMDMSettings = { navController.navigate("mdmSettings") },
+                            onNavigateToManagedBy = { navController.navigate("managedBy") }
                     )
 
                     composable("main") {
@@ -68,7 +70,7 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                     composable("settings") {
-                        Settings(SettingsViewModel(manager.model, manager, settingsNav))
+                        Settings(SettingsViewModel(manager, settingsNav))
                     }
                     composable("exitNodes") {
                         ExitNodePicker(ExitNodePickerViewModel(manager.model))
@@ -93,6 +95,9 @@ class MainActivity : ComponentActivity() {
                     }
                     composable("mdmSettings") {
                         MDMSettingsDebugView(manager.mdmSettings)
+                    }
+                    composable("managedBy") {
+                        ManagedByView(manager.mdmSettings)
                     }
                 }
             }
