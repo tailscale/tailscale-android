@@ -10,8 +10,8 @@ class DisplayAddress(val ip: String) {
     }
 
     val type: addrType = when {
-        ip.contains(":") -> addrType.V6
-        ip.contains(".") -> addrType.V4
+        ip.isIPV6() -> addrType.V6
+        ip.isIPV4() -> addrType.V4
         else -> addrType.MagicDNS
     }
 
@@ -25,4 +25,18 @@ class DisplayAddress(val ip: String) {
         addrType.MagicDNS -> ip
         else -> ip.split("/").first()
     }
+}
+
+fun String.isIPV6(): Boolean {
+    return this.contains(":")
+}
+
+fun String.isIPV4(): Boolean {
+    val parts = this.split("/").first().split(".")
+    if (parts.size != 4) return false
+    for (part in parts) {
+        val value = part.toIntOrNull() ?: return false
+        if (value !in 0..255) return false
+    }
+    return true
 }

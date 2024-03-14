@@ -8,10 +8,12 @@ import androidx.lifecycle.ViewModel
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.model.StableNodeID
 import com.tailscale.ipn.ui.service.IpnModel
+import com.tailscale.ipn.ui.util.ComposableStringFormatter
 import com.tailscale.ipn.ui.util.DisplayAddress
 import com.tailscale.ipn.ui.util.TimeUtil
 
-data class PeerSettingInfo(val titleRes: Int, val value: String)
+data class PeerSettingInfo(val titleRes: Int, val value: ComposableStringFormatter)
+
 
 class PeerDetailsViewModel(val model: IpnModel, val nodeId: StableNodeID) : ViewModel() {
 
@@ -30,9 +32,14 @@ class PeerDetailsViewModel(val model: IpnModel, val nodeId: StableNodeID) : View
             }
         }
 
+        peer?.Name?.let {
+            addresses = listOf(DisplayAddress(it)) + addresses
+        }
+        
+
         peer?.let { p ->
             info = listOf(
-                    PeerSettingInfo(R.string.os, p.Hostinfo?.OS ?: ""),
+                    PeerSettingInfo(R.string.os, ComposableStringFormatter(p.Hostinfo.OS ?: "")),
                     PeerSettingInfo(R.string.key_expiry, TimeUtil().keyExpiryFromGoTime(p.KeyExpiry))
             )
         }
