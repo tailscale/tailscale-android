@@ -11,6 +11,8 @@
     <string name="not_connected">Not Connected</string>
     <string name="empty"> </string>
     <string name="template">%s</string>
+    <string name="more">More</string>
+    <string name="offline">offline</string>
 
     <!-- Strings for the about screen -->
     <string name="app_name">Tailscale</string>
@@ -71,5 +73,11 @@
     <string name="in_x_days">in %d days</string>
     <string name="in_x_months">in %d months</string>
     <string name="in_x_years">in %.1f years</string>
+
+    <!-- Strings for ExitNode picker -->
+    <string name="choose_exit_node">Choose Exit Node</string>
+    <string name="tailnet_exit_nodes">Tailnet Exit Nodes</string>
+    <string name="mullvad_exit_nodes">Mullvad VPN</string>
+    <string name="best_available">Best Available</string>
 
 </resources>

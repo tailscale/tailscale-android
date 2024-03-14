@@ -9,22 +9,14 @@ import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.Netmap
 import com.tailscale.ipn.ui.notifier.Notifier
+import com.tailscale.ipn.ui.util.set
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-/**
- * Provides a way to expose a MutableStateFlow as an immutable StateFlow.
- */
-fun <T> StateFlow<T>.set(v: T) {
-    (this as MutableStateFlow<T>).value = v
-}
-
 class IpnModel(
-        notifier: Notifier,
-        val apiClient: LocalApiClient,
-        val scope: CoroutineScope
+    notifier: Notifier, val apiClient: LocalApiClient, val scope: CoroutineScope
 ) {
     private var notifierSessions: MutableList<String> = mutableListOf()
 
@@ -50,13 +42,19 @@ class IpnModel(
         LocalApiClient.isReady.await()
 
         apiClient.getProfiles { result ->
-            result.success?.let(loginProfiles::set)
-                    ?: run { Log.e("IpnManager", "Error loading profiles: ${result.error}") }
+            result.success?.let(loginProfiles::set) ?: run {
+                Log.e(
+                    "IpnManager", "Error loading profiles: ${result.error}"
+                )
+            }
         }
 
         apiClient.getCurrentProfile { result ->
-            result.success?.let(loggedInUser::set)
-                    ?: run { Log.e("IpnManager", "Error loading current profile: ${result.error}") }
+            result.success?.let(loggedInUser::set) ?: run {
+                Log.e(
+                    "IpnManager", "Error loading current profile: ${result.error}"
+                )
+            }
         }
     }
 

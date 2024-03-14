@@ -49,9 +49,7 @@ private object Endpoint {
 // it up if possible.
 
 enum class APIErrorVals(val rawValue: String) {
-    UNPARSEABLE_RESPONSE("Unparseable localAPI response"),
-    NOT_READY("Not Ready"),
-    NO_PREFS("Current prefs not available");
+    UNPARSEABLE_RESPONSE("Unparseable localAPI response"), NOT_READY("Not Ready"), NO_PREFS("Current prefs not available");
 
     fun toError(): Error {
         return Error(rawValue)
@@ -59,10 +57,10 @@ enum class APIErrorVals(val rawValue: String) {
 }
 
 class LocalAPIRequest<T>(
-        path: String,
-        val method: String,
-        val body: ByteArray? = null,
-        val parser: (ByteArray) -> Unit,
+    path: String,
+    val method: String,
+    val body: ByteArray? = null,
+    val parser: (ByteArray) -> Unit,
 ) {
     val path = "/localapi/v0/$path"
     val cookie = UUID.randomUUID().toString()
@@ -72,36 +70,24 @@ class LocalAPIRequest<T>(
         val decoder = Json { ignoreUnknownKeys = true }
 
         fun <T> get(path: String, body: ByteArray? = null, parser: (ByteArray) -> Unit) =
-                LocalAPIRequest<T>(
-                        method = "GET",
-                        path = path,
-                        body = body,
-                        parser = parser
-                )
+            LocalAPIRequest<T>(
+                method = "GET", path = path, body = body, parser = parser
+            )
 
         fun <T> put(path: String, body: ByteArray? = null, parser: (ByteArray) -> Unit) =
-                LocalAPIRequest<T>(
-                        method = "PUT",
-                        path = path,
-                        body = body,
-                        parser = parser
-                )
+            LocalAPIRequest<T>(
+                method = "PUT", path = path, body = body, parser = parser
+            )
 
         fun <T> post(path: String, body: ByteArray? = null, parser: (ByteArray) -> Unit) =
-                LocalAPIRequest<T>(
-                        method = "POST",
-                        path = path,
-                        body = body,
-                        parser = parser
-                )
+            LocalAPIRequest<T>(
+                method = "POST", path = path, body = body, parser = parser
+            )
 
         fun <T> patch(path: String, body: ByteArray? = null, parser: (ByteArray) -> Unit) =
-                LocalAPIRequest<T>(
-                        method = "PATCH",
-                        path = path,
-                        body = body,
-                        parser = parser
-                )
+            LocalAPIRequest<T>(
+                method = "PATCH", path = path, body = body, parser = parser
+            )
 
         fun status(responseHandler: StatusResponseHandler): LocalAPIRequest<IpnState.Status> {
             return get(Endpoint.STATUS) { resp ->
@@ -121,13 +107,14 @@ class LocalAPIRequest<T>(
             }
         }
 
-        fun editPrefs(prefs: Ipn.MaskedPrefs, responseHandler: (Result<Ipn.Prefs>) -> Unit): LocalAPIRequest<Ipn.Prefs> {
+        fun editPrefs(
+            prefs: Ipn.MaskedPrefs, responseHandler: (Result<Ipn.Prefs>) -> Unit
+        ): LocalAPIRequest<Ipn.Prefs> {
             val body = Json.encodeToString(prefs).toByteArray()
             return patch(Endpoint.PREFS, body) { resp ->
                 responseHandler(decode<Ipn.Prefs>(resp))
             }
         }
-
 
         fun profiles(responseHandler: (Result<List<IpnLocal.LoginProfile>>) -> Unit): LocalAPIRequest<List<IpnLocal.LoginProfile>> {
             return get(Endpoint.PROFILES) { resp ->

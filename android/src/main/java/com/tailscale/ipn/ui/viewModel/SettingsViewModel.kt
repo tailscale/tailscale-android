@@ -12,7 +12,7 @@ import com.tailscale.ipn.BuildConfig
 import com.tailscale.ipn.R
 import com.tailscale.ipn.mdm.StringSetting
 import com.tailscale.ipn.ui.service.IpnManager
-import com.tailscale.ipn.ui.service.set
+import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.service.toggleCorpDNS
 import com.tailscale.ipn.ui.view.SettingsNav
 import kotlinx.coroutines.flow.MutableStateFlow

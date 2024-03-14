@@ -26,6 +26,7 @@ class IpnState {
             val Online: Boolean,
             val ExitNode: Boolean,
             val ExitNodeOption: Boolean,
+            val Active: Boolean,
             val PeerAPIURL: List<String>? = null,
             val Capabilities: List<String>? = null,
             val SSH_HostKeys: List<String>? = null,

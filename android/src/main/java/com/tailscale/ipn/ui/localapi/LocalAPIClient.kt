@@ -10,6 +10,7 @@ import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.IpnState
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
 
@@ -45,10 +46,12 @@ class LocalApiClient(private val scope: CoroutineScope) {
     // body: The body of the request.
     // cookie: A unique identifier for this request.  This is used map responses to
     //         the corresponding request.  Cookies must be unique for each request.
-    private external fun doRequest(request: String, method: String, body: ByteArray?, cookie: String)
+    private external fun doRequest(
+        request: String, method: String, body: ByteArray?, cookie: String
+    )
 
-    fun <T> executeRequest(request: LocalAPIRequest<T>) {
-        scope.launch {
+    private fun <T> executeRequest(request: LocalAPIRequest<T>) {
+        scope.launch(Dispatchers.IO) {
             isReady.await()
             Log.d("LocalApiClient", "Executing request:${request.method}:${request.path}")
             requests[request.cookie] = request
@@ -63,7 +66,9 @@ class LocalApiClient(private val scope: CoroutineScope) {
         requests.remove(cookie)?.let { request ->
             Log.d("LocalApiClient", "Response for request:${request.path} cookie:${request.cookie}")
             // The response handler will invoked internally by the request parser
-            request.parser(response)
+            scope.launch {
+                request.parser(response)
+            }
         } ?: { Log.e("LocalApiClient", "Received response for unknown request: $cookie") }
     }
 
@@ -90,7 +95,7 @@ class LocalApiClient(private val scope: CoroutineScope) {
 
     fun editPrefs(prefs: Ipn.MaskedPrefs, responseHandler: (Result<Ipn.Prefs>) -> Unit) {
         val req = LocalAPIRequest.editPrefs(prefs, responseHandler)
-        executeRequest<Ipn.Prefs>(req)
+        executeRequest(req)
     }
 
     fun getProfiles(responseHandler: (Result<List<IpnLocal.LoginProfile>>) -> Unit) {
@@ -106,7 +111,7 @@ class LocalApiClient(private val scope: CoroutineScope) {
     fun startLoginInteractive() {
         val req = LocalAPIRequest.startLoginInteractive { result ->
             result.success?.let { Log.d("LocalApiClient", "Login started: $it") }
-                    ?: run { Log.e("LocalApiClient", "Error starting login: ${result.error}") }
+                ?: run { Log.e("LocalApiClient", "Error starting login: ${result.error}") }
         }
         executeRequest<String>(req)
     }
@@ -114,7 +119,7 @@ class LocalApiClient(private val scope: CoroutineScope) {
     fun logout() {
         val req = LocalAPIRequest.logout { result ->
             result.success?.let { Log.d("LocalApiClient", "Logout started: $it") }
-                    ?: run { Log.e("LocalApiClient", "Error starting logout: ${result.error}") }
+                ?: run { Log.e("LocalApiClient", "Error starting logout: ${result.error}") }
         }
         executeRequest<String>(req)
     }

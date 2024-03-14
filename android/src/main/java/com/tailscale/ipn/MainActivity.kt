@@ -10,12 +10,14 @@ import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.runtime.remember
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.navigation.navigation
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.service.IpnManager
 import com.tailscale.ipn.ui.theme.AppTheme
@@ -26,6 +28,7 @@ import com.tailscale.ipn.ui.view.MDMSettingsDebugView
 import com.tailscale.ipn.ui.view.MainView
 import com.tailscale.ipn.ui.view.MainViewNavigation
 import com.tailscale.ipn.ui.view.ManagedByView
+import com.tailscale.ipn.ui.view.MullvadExitNodePicker
 import com.tailscale.ipn.ui.view.PeerDetails
 import com.tailscale.ipn.ui.view.Settings
 import com.tailscale.ipn.ui.view.SettingsNav
@@ -48,43 +51,62 @@ class MainActivity : ComponentActivity() {
             AppTheme {
                 val navController = rememberNavController()
                 NavHost(navController = navController, startDestination = "main") {
-                    val mainViewNav = MainViewNavigation(
-                            onNavigateToSettings = { navController.navigate("settings") },
+                    val mainViewNav =
+                        MainViewNavigation(onNavigateToSettings = { navController.navigate("settings") },
                             onNavigateToPeerDetails = {
                                 navController.navigate("peerDetails/${it.StableID}")
                             },
-                            onNavigateToExitNodes = { navController.navigate("exitNodes") }
-                    )
+                            onNavigateToExitNodes = { navController.navigate("exitNodes") })
 
-                    val settingsNav = SettingsNav(
-                            onNavigateToBugReport = { navController.navigate("bugReport") },
+                    val settingsNav =
+                        SettingsNav(onNavigateToBugReport = { navController.navigate("bugReport") },
                             onNavigateToAbout = { navController.navigate("about") },
                             onNavigateToMDMSettings = { navController.navigate("mdmSettings") },
-                            onNavigateToManagedBy = { navController.navigate("managedBy") }
-                    )
+                            onNavigateToManagedBy = { navController.navigate("managedBy") })
 
                     composable("main") {
                         MainView(
-                                viewModel = MainViewModel(manager.model, manager),
-                                navigation = mainViewNav
+                            viewModel = MainViewModel(manager.model, manager),
+                            navigation = mainViewNav
                         )
                     }
                     composable("settings") {
                         Settings(SettingsViewModel(manager, settingsNav))
                     }
-                    composable("exitNodes") {
-                        ExitNodePicker(ExitNodePickerViewModel(manager.model))
+                    navigation(startDestination = "list", route = "exitNodes") {
+                        composable("list") {
+                            val viewModel = remember {
+                                ExitNodePickerViewModel(manager.model) {
+                                    navController.navigate("main")
+                                }
+                            }
+                            ExitNodePicker(viewModel) {
+                                navController.navigate("mullvad/$it")
+                            }
+                        }
+                        composable(
+                            "mullvad/{countryCode}", arguments = listOf(navArgument("countryCode") {
+                                type = NavType.StringType
+                            })
+                        ) {
+                            val viewModel = remember {
+                                ExitNodePickerViewModel(manager.model) {
+                                    navController.navigate("main")
+                                }
+                            }
+                            MullvadExitNodePicker(
+                                viewModel, it.arguments!!.getString("countryCode")!!
+                            )
+                        }
                     }
                     composable(
-
-                            "peerDetails/{nodeId}",
-                            arguments = listOf(navArgument("nodeId") { type = NavType.StringType })
+                        "peerDetails/{nodeId}",
+                        arguments = listOf(navArgument("nodeId") { type = NavType.StringType })
                     ) {
                         PeerDetails(
-                                PeerDetailsViewModel(
-                                        manager.model, nodeId = it.arguments?.getString("nodeId")
-                                        ?: ""
-                                )
+                            PeerDetailsViewModel(
+                                manager.model, nodeId = it.arguments?.getString("nodeId") ?: ""
+                            )
                         )
                     }
                     composable("bugReport") {
@@ -129,7 +151,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         val restrictionsManager =
-                this.getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
+            this.getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
         manager.mdmSettings = MDMSettings(restrictionsManager)
     }
 }
