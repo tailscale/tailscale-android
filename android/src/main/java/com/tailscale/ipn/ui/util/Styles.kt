@@ -16,14 +16,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.tailscale.ipn.R
 
-class ComposableStringFormatter(@StringRes val stringRes: Int = R.string.template, private vararg val params: Any) {
-    constructor(string: String) : this(stringRes = R.string.template, string)
-
-    @Composable
-    fun getString(): String = stringResource(id = stringRes, *params)
-}
-
-
 @Composable
 fun settingsRowModifier(): Modifier {
     return Modifier
