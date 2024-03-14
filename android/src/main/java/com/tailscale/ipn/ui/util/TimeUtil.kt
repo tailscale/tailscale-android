@@ -17,10 +17,13 @@ class TimeUtil {
 
         val diff = (expTime - now) / 1000
 
-        if(diff < 0){
+        if (diff < 0) {
             return "expired"
         }
 
+        // (jonathan) TODO: This is incorrect in a couple of ways
+        // - It needs to be in a composable so we can use stringResource
+        // - The string resources need to be proper plurals
         return when (diff) {
             in 0..60 -> "under a minute"
             in 61..3600 -> "in ${diff / 60} minutes"
@@ -43,3 +46,4 @@ class TimeUtil {
         return Date.from(i)
     }
 }
+

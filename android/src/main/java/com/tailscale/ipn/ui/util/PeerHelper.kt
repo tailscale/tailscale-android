@@ -35,8 +35,8 @@ class PeerCategorizer(val model: IpnModel) {
         var selfPeers = (grouped[selfNode.User] ?: emptyList()).sortedBy { it.ComputedName }
         grouped.remove(selfNode.User)
 
-        val currentNode = selfPeers.first { it.ID == selfNode.ID }
-        currentNode.let {
+        val currentNode = selfPeers.firstOrNull { it.ID == selfNode.ID }
+        currentNode?.let {
             selfPeers = selfPeers.filter { it.ID != currentNode.ID }
             selfPeers = listOf(currentNode) + selfPeers
         }
@@ -49,6 +49,10 @@ class PeerCategorizer(val model: IpnModel) {
         }
 
         val me = netmap.currentUserProfile()
-        return listOf(PeerSet(me, selfPeers)) + sorted
+        return if (selfPeers.isEmpty()) {
+            sorted
+        } else {
+            listOf(PeerSet(me, selfPeers)) + sorted
+        }
     }
 }

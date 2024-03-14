@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
@@ -46,10 +47,11 @@ fun BugReportView(viewModel: BugReportViewModel) {
     val handler = LocalUriHandler.current
 
     Surface(color = MaterialTheme.colorScheme.surface) {
-        Column(modifier = defaultPaddingModifier().fillMaxWidth()) {
+        Column(modifier = defaultPaddingModifier().fillMaxWidth().fillMaxHeight()) {
             Text(text = stringResource(id = R.string.bug_report_title),
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.titleMedium)
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -70,6 +72,7 @@ fun BugReportView(viewModel: BugReportViewModel) {
             Text(text = stringResource(id = R.string.bug_report_id_desc),
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.Left,
+                    color = MaterialTheme.colorScheme.secondary,
                     style = MaterialTheme.typography.bodySmall)
         }
     }
@@ -98,7 +101,9 @@ fun ReportIdRow(bugReportIdFlow: StateFlow<String>) {
 @Composable
 fun contactText(): AnnotatedString {
     val annotatedString = buildAnnotatedString {
-        append(stringResource(id = R.string.bug_report_instructions_prefix))
+        withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.primary)) {
+            append(stringResource(id = R.string.bug_report_instructions_prefix))
+        }
 
         pushStringAnnotation(tag = "reportLink", annotation = Links.SUPPORT_URL)
         withStyle(style = SpanStyle(color = Color.Blue)) {
@@ -106,7 +111,9 @@ fun contactText(): AnnotatedString {
         }
         pop()
 
-        append(stringResource(id = R.string.bug_report_instructions_suffix))
+        withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.primary)) {
+            append(stringResource(id = R.string.bug_report_instructions_suffix))
+        }
     }
     return annotatedString
 }

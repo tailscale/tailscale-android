@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -36,24 +37,33 @@ import com.tailscale.ipn.ui.viewModel.PeerDetailsViewModel
 fun PeerDetails(viewModel: PeerDetailsViewModel) {
     Surface(color = MaterialTheme.colorScheme.surface) {
 
-        Column(modifier = Modifier.padding(horizontal = 8.dp)) {
+        Column(modifier = Modifier.padding(horizontal = 8.dp).fillMaxHeight()) {
             Column(modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(text = viewModel.nodeName, style = MaterialTheme.typography.titleMedium)
+                Text(text = viewModel.nodeName,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
+                )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(modifier = Modifier
                             .size(8.dp)
                             .background(color = viewModel.connectedColor, shape = RoundedCornerShape(percent = 50))) {}
                     Spacer(modifier = Modifier.size(8.dp))
-                    Text(text = stringResource(id = viewModel.connectedStrRes), style = MaterialTheme.typography.bodyMedium)
+                    Text(text = stringResource(id = viewModel.connectedStrRes),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary
+                    )
                 }
             }
 
             Spacer(modifier = Modifier.size(8.dp))
 
-            Text(text = stringResource(id = R.string.addresses_section), style = MaterialTheme.typography.titleMedium)
+            Text(text = stringResource(id = R.string.addresses_section),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+            )
 
             Column(modifier = settingsRowModifier()) {
                 viewModel.addresses.forEach {
