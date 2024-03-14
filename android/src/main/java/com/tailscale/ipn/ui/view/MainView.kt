@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.IpnLocal
+import com.tailscale.ipn.ui.model.StableNodeID
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.util.PeerSet
 import com.tailscale.ipn.ui.viewModel.MainViewModel
@@ -84,17 +85,18 @@ fun MainView(viewModel: MainViewModel, navigation: MainViewNavigation) {
                 }
             }
 
-            // (jonathan) TODO: Show the selected exit node name here.
-            if (state.value == Ipn.State.Running) {
-                ExitNodeStatus(navAction = navigation.onNavigateToExitNodes, stringResource(id = R.string.none))
-            }
 
             when (state.value) {
-                Ipn.State.Running -> PeerList(
-                        searchTerm = viewModel.searchTerm,
-                        peers = viewModel.peers,
-                        onNavigateToPeerDetails = navigation.onNavigateToPeerDetails,
-                        onSearch = { viewModel.searchPeers(it) })
+                Ipn.State.Running -> {
+                    ExitNodeStatus(navAction = navigation.onNavigateToExitNodes, stringResource(id = R.string.none))
+                    PeerList(
+                            searchTerm = viewModel.searchTerm,
+                            state = viewModel.ipnState,
+                            peers = viewModel.peers,
+                            selfPeer = viewModel.selfPeerId,
+                            onNavigateToPeerDetails = navigation.onNavigateToPeerDetails,
+                            onSearch = { viewModel.searchPeers(it) })
+                }
 
                 Ipn.State.Starting -> StartingView()
                 else ->
@@ -102,6 +104,7 @@ fun MainView(viewModel: MainViewModel, navigation: MainViewNavigation) {
                             user.value,
                             { viewModel.toggleVpn() },
                             { viewModel.login() }
+
                     )
             }
         }
@@ -200,10 +203,16 @@ fun ConnectView(user: IpnLocal.LoginProfile?, connectAction: () -> Unit, loginAc
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PeerList(searchTerm: StateFlow<String>, peers: StateFlow<List<PeerSet>>, onNavigateToPeerDetails: (Tailcfg.Node) -> Unit, onSearch: (String) -> Unit) {
+fun PeerList(searchTerm: StateFlow<String>,
+             peers: StateFlow<List<PeerSet>>,
+             state: StateFlow<Ipn.State>,
+             selfPeer: StableNodeID,
+             onNavigateToPeerDetails: (Tailcfg.Node) -> Unit,
+             onSearch: (String) -> Unit) {
     val peerList = peers.collectAsState(initial = emptyList<PeerSet>())
     var searching = false
     val searchTermStr by searchTerm.collectAsState(initial = "")
+    val stateVal = state.collectAsState(initial = Ipn.State.NoState)
 
     SearchBar(
             query = searchTermStr,
@@ -237,7 +246,9 @@ fun PeerList(searchTerm: StateFlow<String>, peers: StateFlow<List<PeerSet>>, onN
                             },
                             headlineContent = {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    val color: Color = if (peer.Online ?: false) {
+                                    // By definition, SelfPeer is online since we will not show the peer list unless you're connected.
+                                    val isSelfAndRunning = (peer.StableID == selfPeer && stateVal.value == Ipn.State.Running)
+                                    val color: Color = if ((peer.Online == true) || isSelfAndRunning) {
                                         Color.Green
                                     } else {
                                         Color.Gray
