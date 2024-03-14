@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -22,7 +23,6 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -40,14 +40,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.StableNodeID
 import com.tailscale.ipn.ui.model.Tailcfg
+import com.tailscale.ipn.ui.theme.ts_color_light_green
 import com.tailscale.ipn.ui.util.PeerSet
+import com.tailscale.ipn.ui.util.PrimaryActionButton
 import com.tailscale.ipn.ui.viewModel.MainViewModel
 import kotlinx.coroutines.flow.StateFlow
 
@@ -61,7 +66,7 @@ data class MainViewNavigation(
 
 @Composable
 fun MainView(viewModel: MainViewModel, navigation: MainViewNavigation) {
-    Surface(color = MaterialTheme.colorScheme.background) {
+    Surface(color = MaterialTheme.colorScheme.secondaryContainer) {
         Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.Center
@@ -76,6 +81,7 @@ fun MainView(viewModel: MainViewModel, navigation: MainViewNavigation) {
                 val isOn = viewModel.vpnToggleState.collectAsState(initial = false)
 
                 Switch(onCheckedChange = { viewModel.toggleVpn() }, checked = isOn.value)
+                Spacer(Modifier.size(3.dp))
                 StateDisplay(viewModel.stateRes, viewModel.userName)
                 Box(modifier = Modifier
                         .weight(1f)
@@ -136,9 +142,9 @@ fun StateDisplay(state: StateFlow<Int>, tailnet: String) {
     val stateVal = state.collectAsState(initial = R.string.placeholder)
     val stateStr = stringResource(id = stateVal.value)
 
-    Column(modifier = Modifier.padding(6.dp)) {
+    Column(modifier = Modifier.padding(7.dp)) {
         Text(text = tailnet, style = MaterialTheme.typography.titleMedium)
-        Text(text = stateStr, style = MaterialTheme.typography.bodyMedium)
+        Text(text = stateStr, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.secondary)
     }
 }
 
@@ -176,26 +182,72 @@ fun StartingView() {
 
 @Composable
 fun ConnectView(user: IpnLocal.LoginProfile?, connectAction: () -> Unit, loginAction: () -> Unit) {
-    Column(
-            modifier =
-            Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(text = stringResource(id = R.string.not_connected),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary)
-        if (user != null && !user.isEmpty()) {
-            val tailnetName = user.NetworkProfile?.DomainName ?: ""
-            Text(stringResource(id = R.string.connect_to_tailnet, tailnetName),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary
-            )
-            Button(onClick = connectAction) { Text(text = stringResource(id = R.string.connect)) }
-        } else {
-            Button(onClick = loginAction) { Text(text = stringResource(id = R.string.log_in)) }
+    Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .background(MaterialTheme.colorScheme.secondaryContainer)
+                .padding(8.dp)
+                .fillMaxWidth(0.7f)
+                .fillMaxHeight(),
+            verticalArrangement = Arrangement.spacedBy(
+                8.dp,
+                alignment = Alignment.CenterVertically
+            ),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            if (user != null && !user.isEmpty()) {
+                Icon(
+                    painter = painterResource(id = R.drawable.power),
+                    contentDescription = null,
+                    modifier = Modifier.size(48.dp),
+                    tint = MaterialTheme.colorScheme.secondary
+                )
+                Text(
+                    text = stringResource(id = R.string.not_connected),
+                    fontSize = MaterialTheme.typography.titleMedium.fontSize,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary,
+                    textAlign = TextAlign.Center,
+                    fontFamily = MaterialTheme.typography.titleMedium.fontFamily
+                )
+                val tailnetName = user.NetworkProfile?.DomainName ?: ""
+                Text(
+                    stringResource(id = R.string.connect_to_tailnet, tailnetName),
+                    fontSize = MaterialTheme.typography.titleMedium.fontSize,
+                    fontWeight = FontWeight.Normal,
+                    color = MaterialTheme.colorScheme.secondary,
+                    textAlign = TextAlign.Center,
+                )
+                Spacer(modifier = Modifier.size(1.dp))
+                PrimaryActionButton(onClick = connectAction) {
+                    Text(
+                        text = stringResource(id = R.string.connect),
+                        fontSize = MaterialTheme.typography.titleMedium.fontSize
+                    )
+                }
+            } else {
+                TailscaleLogoView(Modifier.size(50.dp))
+                Spacer(modifier = Modifier.size(1.dp))
+                Text(
+                    text = stringResource(id = R.string.welcome_to_tailscale),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    stringResource(R.string.login_to_join_your_tailnet),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.secondary,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.size(1.dp))
+                PrimaryActionButton(onClick = loginAction) {
+                    Text(
+                        text = stringResource(id = R.string.log_in),
+                        fontSize = MaterialTheme.typography.titleMedium.fontSize
+                    )
+                }
+            }
         }
     }
 }
@@ -214,17 +266,18 @@ fun PeerList(searchTerm: StateFlow<String>,
     val stateVal = state.collectAsState(initial = Ipn.State.NoState)
 
     SearchBar(
-            query = searchTermStr,
-            onQueryChange = onSearch,
-            onSearch = onSearch,
-            active = true,
-            onActiveChange = { searching = it },
-            shape = RoundedCornerShape(10.dp),
-            leadingIcon = { Icon(Icons.Outlined.Search, null) },
-            tonalElevation = 2.dp,
-            shadowElevation = 2.dp,
-            colors = SearchBarDefaults.colors(),
-            modifier = Modifier.fillMaxWidth()) {
+        query = searchTermStr,
+        onQueryChange = onSearch,
+        onSearch = onSearch,
+        active = true,
+        onActiveChange = { searching = it },
+        shape = RoundedCornerShape(10.dp),
+        leadingIcon = { Icon(Icons.Outlined.Search, null) },
+        tonalElevation = 2.dp,
+        shadowElevation = 2.dp,
+        colors = SearchBarDefaults.colors(),
+        modifier = Modifier.fillMaxWidth()
+    ) {
 
         LazyColumn(
                 modifier =
@@ -250,7 +303,7 @@ fun PeerList(searchTerm: StateFlow<String>,
                                         // By definition, SelfPeer is online since we will not show the peer list unless you're connected.
                                         val isSelfAndRunning = (peer.StableID == selfPeer && stateVal.value == Ipn.State.Running)
                                         val color: Color = if ((peer.Online == true) || isSelfAndRunning) {
-                                            Color.Green
+                                            ts_color_light_green
                                         } else {
                                             Color.Gray
                                         }

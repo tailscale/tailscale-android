@@ -37,10 +37,12 @@
     <string name="bug_report">Bug Report</string>
     <string name="use_ts_dns">Use Tailscale DNS</string>
 
-    <!-- Strings for the main scren -->
+    <!-- Strings for the main screen -->
     <string name="exit_node">Exit Node</string>
     <string name="starting">Starting…</string>
-    <string name="connect_to_tailnet">"Connect to your %1$s tailnet"</string>
+    <string name="connect_to_tailnet">"Connect again to talk to the other devices in the %1$s tailnet."</string>
+    <string name="welcome_to_tailscale">Welcome to Tailscale</string>
+    <string name="login_to_join_your_tailnet">Log in to join your tailnet and connect your devices.</string>
 
     <!-- Strings for peer details -->
     <string name="addresses_section">TAILSCALE ADDRESSES</string>
