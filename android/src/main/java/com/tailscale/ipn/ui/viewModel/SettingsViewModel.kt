@@ -62,7 +62,7 @@ class SettingsViewModel(val model: IpnModel, val ipnActions: IpnActions, val nav
             // Monitor our prefs for changes and update the displayed values accordingly
             model.prefs.collect { prefs ->
                 useDNSSetting.isOn?.value = prefs?.CorpDNS
-                useDNSSetting.enabled?.value = prefs != null
+                useDNSSetting.enabled.value = prefs != null
             }
         }
     }
