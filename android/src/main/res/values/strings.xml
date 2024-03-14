@@ -9,6 +9,8 @@
     <string name="unknown_user">Unknown User</string>
     <string name="connected">Connected</string>
     <string name="not_connected">Not Connected</string>
+    <string name="empty"> </string>
+    <string name="template">%s</string>
 
     <!-- Strings for the about screen -->
     <string name="app_name">Tailscale</string>
@@ -62,10 +64,10 @@
     <!-- Time conversion templates -->
     <string name="expired">expired</string>
     <string name="under_a_minute">under a minute</string>
-    <string name="in_x_minutes">in %1$s minutes</string>
-    <string name="in_x_hours">in %1$s hours</string>
-    <string name="in_x_days">in %1$s days</string>
-    <string name="in_x_months">in %1$s months</string>
-    <string name="in_x_years">in %1$s years</string>
+    <string name="in_x_minutes">in %d minutes</string>
+    <string name="in_x_hours">in %d hours</string>
+    <string name="in_x_days">in %d days</string>
+    <string name="in_x_months">in %d months</string>
+    <string name="in_x_years">in %.1f years</string>
 
 </resources>

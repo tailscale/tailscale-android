@@ -37,7 +37,9 @@ import com.tailscale.ipn.ui.viewModel.PeerDetailsViewModel
 fun PeerDetails(viewModel: PeerDetailsViewModel) {
     Surface(color = MaterialTheme.colorScheme.surface) {
 
-        Column(modifier = Modifier.padding(horizontal = 8.dp).fillMaxHeight()) {
+        Column(modifier = Modifier
+                .padding(horizontal = 8.dp)
+                .fillMaxHeight()) {
             Column(modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp),
@@ -75,7 +77,7 @@ fun PeerDetails(viewModel: PeerDetailsViewModel) {
 
             Column(modifier = settingsRowModifier()) {
                 viewModel.info.forEach {
-                    ValueRow(title = stringResource(id = it.titleRes), value = it.value)
+                    ValueRow(title = stringResource(id = it.titleRes), value = it.value.getString())
                 }
             }
         }
