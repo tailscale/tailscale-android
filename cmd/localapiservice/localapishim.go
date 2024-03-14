@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"io"
 	"log"
+	"runtime/debug"
 	"time"
 	"unsafe"
 
@@ -47,6 +48,13 @@ func Java_com_tailscale_ipn_ui_localapi_LocalApiClient_doRequest(
 	jbody C.jbyteArray,
 	jcookie C.jstring) {
 
+	defer func() {
+		if p := recover(); p != nil {
+			log.Printf("doRequest() panicked with %q, stack: %s", p, debug.Stack())
+			panic(p)
+		}
+	}()
+
 	jenv := (*jni.Env)(unsafe.Pointer(env))
 
 	// The API Path
@@ -79,7 +87,7 @@ func doLocalAPIRequest(path string, method string, body []byte) []byte {
 		return []byte("{\"error\":\"Not Ready\"}")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	var reader io.Reader = nil
 	if len(body) > 0 {
@@ -87,11 +95,12 @@ func doLocalAPIRequest(path string, method string, body []byte) []byte {
 	}
 
 	r, err := shim.service.Call(ctx, method, path, reader)
-	defer r.Body().Close()
-
 	if err != nil {
+		log.Printf("error calling %s %q: %s", method, path, err)
 		return []byte("{\"error\":\"" + err.Error() + "\"}")
 	}
+
+	defer r.Body().Close()
 	respBytes, err := io.ReadAll(r.Body())
 	if err != nil {
 		return []byte("{\"error\":\"" + err.Error() + "\"}")

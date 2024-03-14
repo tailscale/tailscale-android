@@ -53,9 +53,9 @@ fun IpnModel.toggleShieldsUp(callback: (Result<Ipn.Prefs>) -> Unit) {
     apiClient.editPrefs(prefsOut, callback)
 }
 
-fun IpnModel.setExitNodeId(id: String, callback: (Result<Ipn.Prefs>) -> Unit) {
+fun IpnModel.setExitNodeId(id: String?, callback: (Result<Ipn.Prefs>) -> Unit) {
     val prefsOut = Ipn.MaskedPrefs()
-    prefsOut.ExitNodeId = id
+    prefsOut.ExitNodeID = id
     apiClient.editPrefs(prefsOut, callback)
 }
 

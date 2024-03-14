@@ -8,7 +8,6 @@ import com.tailscale.ipn.ui.model.Ipn.Notify
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 
@@ -16,9 +15,7 @@ typealias NotifierCallback = (Notify) -> Unit
 
 
 class Watcher(
-        val sessionId: String,
-        val mask: Int,
-        val callback: NotifierCallback
+    val sessionId: String, val mask: Int, val callback: NotifierCallback
 )
 
 // Notifier is a wrapper around the IPN Bus notifier.  It provides a way to watch
@@ -29,20 +26,13 @@ class Watcher(
 // The primary entry point here is watchIPNBus which will start a watcher on the IPN bus
 // and return you the session Id.  When you are done with your watcher, you must call
 // unwatchIPNBus with the sessionId.
-class Notifier() {
-
-    // (jonathan) TODO: We should be using a lifecycle aware scope here
-    private val scope = CoroutineScope(Dispatchers.IO + Job())
-
+class Notifier(private val scope: CoroutineScope) {
     // NotifyWatchOpt is a bitmask of options supplied to the notifier to specify which
     // what we want to see on the Noitfy bus
     enum class NotifyWatchOpt(val value: Int) {
-        engineUpdates(1),
-        initialState(2),
-        prefs(4),
-        netmap(8),
-        noPrivateKey(16),
-        initialTailFSShares(32)
+        engineUpdates(1), initialState(2), prefs(4), netmap(8), noPrivateKey(16), initialTailFSShares(
+            32
+        )
     }
 
     companion object {
@@ -80,8 +70,12 @@ class Notifier() {
     fun onNotify(notification: String, sessionId: String) {
         val notify = decoder.decodeFromString<Notify>(notification)
         val watcher = watchers[sessionId]
-        watcher?.let { watcher.callback(notify) }
-                ?: { Log.e("Notifier", "Received notification for unknown session: ${sessionId}") }
+        watcher?.let { watcher.callback(notify) } ?: {
+            Log.e(
+                "Notifier",
+                "Received notification for unknown session: ${sessionId}"
+            )
+        }
     }
 
     // Watch the IPN bus for notifications
@@ -91,7 +85,7 @@ class Notifier() {
         val sessionId = generateSessionId()
         val watcher = Watcher(sessionId, mask, callback)
         watchers[sessionId] = watcher
-        scope.launch {
+        scope.launch(Dispatchers.IO) {
             // Wait for the notifier to be ready
             isReady.await()
             Log.d("Notifier", "Starting IPN Bus watcher for sessionid: ${sessionId}")
@@ -136,10 +130,8 @@ class Notifier() {
 
     fun watchAll(callback: NotifierCallback): String {
         return watchIPNBus(
-                NotifyWatchOpt.netmap.value or
-                        NotifyWatchOpt.prefs.value or
-                        NotifyWatchOpt.initialState.value,
-                callback
+            NotifyWatchOpt.netmap.value or NotifyWatchOpt.prefs.value or NotifyWatchOpt.initialState.value,
+            callback
         )
     }
 

@@ -49,6 +49,7 @@ class Tailcfg {
             var Machine: String? = null,
             var RoutableIPs: List<Prefix>? = null,
             var Services: List<Service>? = null,
+            var Location: Location? = null,
     )
 
     @Serializable

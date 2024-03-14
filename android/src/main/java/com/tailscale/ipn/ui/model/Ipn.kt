@@ -46,21 +46,21 @@ class Ipn {
 
     @Serializable
     data class Prefs(
-            var ControlURL: String = "",
-            var RouteAll: Boolean = false,
-            var AllowsSingleHosts: Boolean = false,
-            var CorpDNS: Boolean = false,
-            var WantRunning: Boolean = false,
-            var LoggedOut: Boolean = false,
-            var ShieldsUp: Boolean = false,
-            var AdvertiseRoutes: List<String>? = null,
-            var AdvertiseTags: List<String>? = null,
-            var ExitNodeId: StableNodeID? = null,
-            var ExitNodeAllowLanAccess: Boolean = false,
-            var Config: Persist.Persist? = null,
-            var ForceDaemon: Boolean = false,
-            var HostName: String = "",
-            var AutoUpdate: AutoUpdatePrefs? = AutoUpdatePrefs(true, true),
+        var ControlURL: String = "",
+        var RouteAll: Boolean = false,
+        var AllowsSingleHosts: Boolean = false,
+        var CorpDNS: Boolean = false,
+        var WantRunning: Boolean = false,
+        var LoggedOut: Boolean = false,
+        var ShieldsUp: Boolean = false,
+        var AdvertiseRoutes: List<String>? = null,
+        var AdvertiseTags: List<String>? = null,
+        var ExitNodeID: StableNodeID? = null,
+        var ExitNodeAllowLANAccess: Boolean = false,
+        var Config: Persist.Persist? = null,
+        var ForceDaemon: Boolean = false,
+        var HostName: String = "",
+        var AutoUpdate: AutoUpdatePrefs? = AutoUpdatePrefs(true, true),
     )
 
     @Serializable
@@ -85,12 +85,12 @@ class Ipn {
                 field = value
                 CorpDNSSet = true
             }
-        var ExitNodeId: StableNodeID? = null
+        var ExitNodeID: StableNodeID? = null
             set(value) {
                 field = value
                 ExitNodeIDSet = true
             }
-        var ExitNodeAllowLanAccess: Boolean? = null
+        var ExitNodeAllowLANAccess: Boolean? = null
             set(value) {
                 field = value
                 ExitNodeAllowLANAccessSet = true

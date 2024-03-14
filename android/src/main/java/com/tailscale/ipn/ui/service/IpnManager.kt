@@ -26,8 +26,7 @@ interface IpnActions {
 }
 
 class IpnManager(scope: CoroutineScope) : IpnActions {
-    private var notifier = Notifier()
-
+    private var notifier = Notifier(scope)
     var apiClient = LocalApiClient(scope)
     var mdmSettings = MDMSettings()
     val model = IpnModel(notifier, apiClient, scope)
