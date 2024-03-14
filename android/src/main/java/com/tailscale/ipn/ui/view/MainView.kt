@@ -15,9 +15,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.ArrowDropDown
@@ -218,6 +217,7 @@ fun PeerList(searchTerm: StateFlow<String>,
             query = searchTermStr,
             onQueryChange = onSearch,
             onSearch = onSearch,
+            placeholder = { stringResource(id = R.string.search) },
             active = true,
             onActiveChange = { searching = it },
             shape = RoundedCornerShape(10.dp),
@@ -227,49 +227,53 @@ fun PeerList(searchTerm: StateFlow<String>,
             colors = SearchBarDefaults.colors(),
             modifier = Modifier.fillMaxWidth()) {
 
-        Column(
+        LazyColumn(
                 modifier =
                 Modifier
                         .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
                         .background(MaterialTheme.colorScheme.secondaryContainer),
         ) {
             peerList.value.forEach { peerSet ->
-                ListItem(headlineContent = {
-                    Text(text = peerSet.user?.DisplayName
-                            ?: stringResource(id = R.string.unknown_user), style = MaterialTheme.typography.titleLarge)
-                })
+                item {
+                    ListItem(headlineContent = {
+                        Text(text = peerSet.user?.DisplayName
+                                ?: stringResource(id = R.string.unknown_user), style = MaterialTheme.typography.titleLarge)
+                    })
+                }
                 peerSet.peers.forEach { peer ->
-                    ListItem(
-                            modifier = Modifier.clickable {
-                                onNavigateToPeerDetails(peer)
-                            },
-                            headlineContent = {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    // By definition, SelfPeer is online since we will not show the peer list unless you're connected.
-                                    val isSelfAndRunning = (peer.StableID == selfPeer && stateVal.value == Ipn.State.Running)
-                                    val color: Color = if ((peer.Online == true) || isSelfAndRunning) {
-                                        Color.Green
-                                    } else {
-                                        Color.Gray
+                    item {
+                        ListItem(
+                                modifier = Modifier.clickable {
+                                    onNavigateToPeerDetails(peer)
+                                },
+                                headlineContent = {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        // By definition, SelfPeer is online since we will not show the peer list unless you're connected.
+                                        val isSelfAndRunning = (peer.StableID == selfPeer && stateVal.value == Ipn.State.Running)
+                                        val color: Color = if ((peer.Online == true) || isSelfAndRunning) {
+                                            Color.Green
+                                        } else {
+                                            Color.Gray
+                                        }
+                                        Box(modifier = Modifier
+                                                .size(8.dp)
+                                                .background(color = color, shape = RoundedCornerShape(percent = 50))) {}
+                                        Spacer(modifier = Modifier.size(8.dp))
+                                        Text(text = peer.ComputedName, style = MaterialTheme.typography.titleMedium)
                                     }
-                                    Box(modifier = Modifier
-                                            .size(8.dp)
-                                            .background(color = color, shape = RoundedCornerShape(percent = 50))) {}
-                                    Spacer(modifier = Modifier.size(8.dp))
-                                    Text(text = peer.ComputedName, style = MaterialTheme.typography.titleMedium)
+                                },
+                                supportingContent = {
+                                    Text(
+                                            text = peer.Addresses?.first()?.split("/")?.first()
+                                                    ?: "",
+                                            style = MaterialTheme.typography.bodyMedium
+                                    )
+                                },
+                                trailingContent = {
+                                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
                                 }
-                            },
-                            supportingContent = {
-                                Text(
-                                        text = peer.Addresses?.first()?.split("/")?.first() ?: "",
-                                        style = MaterialTheme.typography.bodyMedium
-                                )
-                            },
-                            trailingContent = {
-                                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
-                            }
-                    )
+                        )
+                    }
                 }
             }
         }

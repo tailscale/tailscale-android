@@ -37,7 +37,10 @@ class MainViewModel(val model: IpnModel, val actions: IpnActions) : ViewModel() 
     // The active search term for filtering peers
     val searchTerm: StateFlow<String> = MutableStateFlow("")
 
+    // The peerId of the current node
     val selfPeerId = model.netmap.value?.SelfNode?.StableID ?: ""
+
+    val peerCategorizer = PeerCategorizer(model, viewModelScope)
 
     init {
         viewModelScope.launch {
@@ -49,7 +52,7 @@ class MainViewModel(val model: IpnModel, val actions: IpnActions) : ViewModel() 
 
         viewModelScope.launch {
             model.netmap.collect { netmap ->
-                peers.set(PeerCategorizer(model).groupedAndFilteredPeers(searchTerm.value))
+                peers.set(peerCategorizer.groupedAndFilteredPeers(searchTerm.value))
             }
         }
     }
@@ -57,7 +60,7 @@ class MainViewModel(val model: IpnModel, val actions: IpnActions) : ViewModel() 
     fun searchPeers(searchTerm: String) {
         this.searchTerm.set(searchTerm)
         viewModelScope.launch {
-            peers.set(PeerCategorizer(model).groupedAndFilteredPeers(searchTerm))
+            peers.set(peerCategorizer.groupedAndFilteredPeers(searchTerm))
         }
     }
 
