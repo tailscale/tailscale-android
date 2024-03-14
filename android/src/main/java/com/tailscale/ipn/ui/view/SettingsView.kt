@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.Links
 import com.tailscale.ipn.ui.model.IpnLocal
+import com.tailscale.ipn.ui.util.PrimaryActionButton
 import com.tailscale.ipn.ui.util.defaultPaddingModifier
 import com.tailscale.ipn.ui.util.settingsRowModifier
 import com.tailscale.ipn.ui.viewModel.Setting
@@ -47,25 +48,27 @@ import com.tailscale.ipn.ui.viewModel.SettingsViewModel
 
 
 data class SettingsNav(
-        val onNavigateToBugReport: () -> Unit,
-        val onNavigateToAbout: () -> Unit,
-        val onNavigateToMDMSettings: () -> Unit,
-        val onNavigateToManagedBy: () -> Unit,
+    val onNavigateToBugReport: () -> Unit,
+    val onNavigateToAbout: () -> Unit,
+    val onNavigateToMDMSettings: () -> Unit,
+    val onNavigateToManagedBy: () -> Unit,
 )
 
 @Composable
 fun Settings(viewModel: SettingsViewModel) {
     val handler = LocalUriHandler.current
 
-    Surface(color = MaterialTheme.colorScheme.surface) {
+    Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxHeight()) {
 
         Column(modifier = defaultPaddingModifier().fillMaxHeight()) {
 
-            Text(text = stringResource(id = R.string.settings_title),
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = stringResource(id = R.string.settings_title),
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.titleMedium
+            )
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -79,7 +82,7 @@ fun Settings(viewModel: SettingsViewModel) {
                     handler.openUri(Links.ADMIN_URL)
                 })
                 Spacer(modifier = Modifier.height(8.dp))
-                Button(onClick = { viewModel.ipnManager.logout() }) {
+                PrimaryActionButton(onClick = { viewModel.ipnManager.logout() }) {
                     Text(text = stringResource(id = R.string.log_out))
                 }
             } ?: run {
@@ -93,7 +96,11 @@ fun Settings(viewModel: SettingsViewModel) {
             viewModel.settings.forEach { settingBundle ->
                 Column(modifier = settingsRowModifier()) {
                     settingBundle.title?.let {
-                        Text(text = it, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(8.dp))
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(8.dp)
+                        )
                     }
                     settingBundle.settings.forEach { setting ->
                         when (setting.type) {
@@ -118,7 +125,12 @@ fun Settings(viewModel: SettingsViewModel) {
 }
 
 @Composable
-fun UserView(profile: IpnLocal.LoginProfile?, isAdmin: Boolean, adminText: AnnotatedString, onClick: () -> Unit) {
+fun UserView(
+    profile: IpnLocal.LoginProfile?,
+    isAdmin: Boolean,
+    adminText: AnnotatedString,
+    onClick: () -> Unit
+) {
     Column {
         Row(modifier = settingsRowModifier().padding(8.dp)) {
 
@@ -127,17 +139,22 @@ fun UserView(profile: IpnLocal.LoginProfile?, isAdmin: Boolean, adminText: Annot
             }
 
             Column(verticalArrangement = Arrangement.Center) {
-                Text(text = profile?.UserProfile?.DisplayName
-                        ?: "", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = profile?.UserProfile?.DisplayName
+                        ?: "", style = MaterialTheme.typography.titleMedium
+                )
                 Text(text = profile?.Name ?: "", style = MaterialTheme.typography.bodyMedium)
             }
         }
 
         if (isAdmin) {
             Column(modifier = Modifier.padding(horizontal = 12.dp)) {
-                ClickableText(text = adminText, style = MaterialTheme.typography.bodySmall, onClick = {
-                    onClick()
-                })
+                ClickableText(
+                    text = adminText,
+                    style = MaterialTheme.typography.bodySmall,
+                    onClick = {
+                        onClick()
+                    })
             }
         }
 

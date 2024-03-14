@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModel
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.model.StableNodeID
 import com.tailscale.ipn.ui.service.IpnModel
+import com.tailscale.ipn.ui.theme.ts_color_light_green
 import com.tailscale.ipn.ui.util.ComposableStringFormatter
 import com.tailscale.ipn.ui.util.DisplayAddress
 import com.tailscale.ipn.ui.util.TimeUtil
@@ -47,6 +48,6 @@ class PeerDetailsViewModel(val model: IpnModel, val nodeId: StableNodeID) : View
 
         nodeName = peer?.ComputedName ?: ""
         connectedStrRes = if (peer?.Online == true) R.string.connected else R.string.not_connected
-        connectedColor = if (peer?.Online == true) Color.Green else Color.Gray
+        connectedColor = if (peer?.Online == true) ts_color_light_green else Color.Gray
     }
 }
