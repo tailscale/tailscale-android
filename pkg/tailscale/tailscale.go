@@ -82,8 +82,6 @@ type App struct {
 	localAPI *localapiservice.LocalAPIService
 	backend  *ipnlocal.LocalBackend
 
-	// netStates receives the most recent network state.
-	netStates chan BackendState
 	// invalidates receives whenever the window should be refreshed.
 	invalidates chan struct{}
 }
@@ -119,21 +117,20 @@ type settingsFunc func(*router.Config, *dns.OSConfig) error
 
 const defaultMTU = 1280 // minimalMTU from wgengine/userspace.go
 
+type ConnectEvent struct {
+	Enable bool
+}
+
 const (
 	logPrefKey               = "privatelogid"
 	loginMethodPrefKey       = "loginmethod"
 	customLoginServerPrefKey = "customloginserver"
 )
 
-type ConnectEvent struct {
-	Enable bool
-}
-
 func main() {
 	a := &App{
 		jvm:         (*jnipkg.JVM)(unsafe.Pointer(javaVM())),
 		appCtx:      jnipkg.Object(appContext()),
-		netStates:   make(chan BackendState, 1),
 		invalidates: make(chan struct{}, 1),
 	}
 
@@ -207,6 +204,8 @@ func (a *App) runBackend(ctx context.Context) error {
 		state   BackendState
 		service jnipkg.Object // of IPNService
 	)
+
+	a.localAPI.Start(ctx, b.backend, ipn.Options{})
 	for {
 		select {
 		case c := <-configs:

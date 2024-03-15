@@ -74,7 +74,6 @@ import com.tailscale.ipn.mdm.BooleanSetting;
 import com.tailscale.ipn.mdm.MDMSettings;
 import com.tailscale.ipn.mdm.ShowHideSetting;
 import com.tailscale.ipn.mdm.StringSetting;
-import com.tailscale.ipn.ui.service.IpnManager;
 
 import com.tailscale.ipn.ui.localapi.LocalApiClient;
 
@@ -198,7 +197,7 @@ public class App extends Application {
 	public boolean autoConnect = false;
 	public boolean vpnReady = false;
 
-	void setTileReady(boolean ready) {
+	public void setTileReady(boolean ready) {
 		if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
 			return;
 		}
@@ -270,7 +269,7 @@ public class App extends Application {
 		return getPackageManager().hasSystemFeature("android.hardware.type.pc");
 	}
 
-	void prepareVPN(Activity act, int reqCode) {
+	public void prepareVPN(Activity act, int reqCode) {
 		act.runOnUiThread(new Runnable() {
 			@Override public void run() {
 				Intent intent = VpnService.prepare(act);

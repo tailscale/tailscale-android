@@ -17,7 +17,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.tailscale.ipn.mdm.MDMSettings
-import com.tailscale.ipn.ui.service.IpnManager
+import com.tailscale.ipn.ui.service.IpnViewManager
 import com.tailscale.ipn.ui.theme.AppTheme
 import com.tailscale.ipn.ui.view.AboutView
 import com.tailscale.ipn.ui.view.BugReportView
@@ -38,10 +38,23 @@ import kotlinx.coroutines.launch
 
 
 class MainActivity : ComponentActivity() {
-    private val manager = IpnManager(lifecycleScope)
+    private val manager = IpnViewManager(lifecycleScope)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val activity = this
+        val viewModel = MainViewModel(manager.model, manager)
+        lifecycleScope.launchWhenStarted {
+            viewModel.tileReady.collect { isTileReady ->
+                App.getApplication().setTileReady(isTileReady)
+            }
+        }
+        lifecycleScope.launchWhenStarted{
+            viewModel.readyToPrepareVPN.collect {
+                isReady -> if (isReady) App.getApplication().prepareVPN(activity, -1)
+            }
+        }
 
         setContent {
             AppTheme {
@@ -63,7 +76,7 @@ class MainActivity : ComponentActivity() {
 
                     composable("main") {
                         MainView(
-                                viewModel = MainViewModel(manager.model, manager),
+                                viewModel = viewModel,
                                 navigation = mainViewNav
                         )
                     }

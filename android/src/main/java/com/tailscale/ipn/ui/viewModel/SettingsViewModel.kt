@@ -6,7 +6,7 @@ package com.tailscale.ipn.ui.viewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tailscale.ipn.R
-import com.tailscale.ipn.ui.service.IpnActions
+import com.tailscale.ipn.ui.service.IpnViewActions
 import com.tailscale.ipn.ui.service.IpnModel
 import com.tailscale.ipn.ui.service.toggleCorpDNS
 import com.tailscale.ipn.ui.view.SettingsNav
@@ -38,7 +38,7 @@ data class Setting(
 
 data class SettingBundle(val title: String? = null, val settings: List<Setting>)
 
-class SettingsViewModel(val model: IpnModel, val ipnActions: IpnActions, val navigation: SettingsNav) : ViewModel() {
+class SettingsViewModel(val model: IpnModel, val ipnActions: IpnViewActions, val navigation: SettingsNav) : ViewModel() {
     // The logged in user
     val user = model.loggedInUser.value
 

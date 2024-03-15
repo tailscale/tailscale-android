@@ -7,9 +7,10 @@ package com.tailscale.ipn.ui.viewModel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tailscale.ipn.App
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.model.Ipn.State
-import com.tailscale.ipn.ui.service.IpnActions
+import com.tailscale.ipn.ui.service.IpnViewActions
 import com.tailscale.ipn.ui.service.IpnModel
 import com.tailscale.ipn.ui.service.set
 import com.tailscale.ipn.ui.util.PeerCategorizer
@@ -18,7 +19,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-class MainViewModel(val model: IpnModel, val actions: IpnActions) : ViewModel() {
+class MainViewModel(val model: IpnModel, val actions: IpnViewActions) : ViewModel() {
 
     // The user readable state of the system
     val stateRes: StateFlow<Int> = MutableStateFlow(State.NoState.userStringRes())
@@ -38,12 +39,22 @@ class MainViewModel(val model: IpnModel, val actions: IpnActions) : ViewModel() 
     // The active search term for filtering peers
     val searchTerm: StateFlow<String> = MutableStateFlow("")
 
+    // The state of the Quick Settings Tile 
+    val tileReady: StateFlow<Boolean> = MutableStateFlow(false)
+
+    // Whether the VPN is ready to be prepared
+    val readyToPrepareVPN: StateFlow<Boolean> = MutableStateFlow(false)
+
 
     init {
         viewModelScope.launch {
+            var previousState: State? = null
             model.state.collect { state ->
                 stateRes.set(state.userStringRes())
                 vpnToggleState.set((state == State.Running || state == State.Starting))
+                readyToPrepareVPN.set(previousState != null && previousState!! <= State.Stopped && state > State.Stopped)
+                tileReady.set(state >= State.Stopped)
+                previousState = state
             }
         }
 
@@ -67,6 +78,8 @@ class MainViewModel(val model: IpnModel, val actions: IpnActions) : ViewModel() 
         }
 
     fun toggleVpn() {
+        val stateValue = model.state.value
+        Log.d("MyApp", "Current VPN State: $stateValue")
         when (model.state.value) {
             State.Running -> actions.stopVPN()
             else -> actions.startVPN()

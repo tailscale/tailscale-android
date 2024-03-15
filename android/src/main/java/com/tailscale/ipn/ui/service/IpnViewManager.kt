@@ -17,16 +17,15 @@ typealias PrefChangeCallback = (Result<Boolean>) -> Unit
 
 // Abstracts the actions that can be taken by the UI so that the concept of an IPNManager
 // itself is hidden from the viewModel implementations.
-interface IpnActions {
+interface IpnViewActions {
     fun startVPN()
     fun stopVPN()
-    fun connect()
     fun login()
     fun logout()
     fun updatePrefs(prefs: Ipn.MaskedPrefs, callback: PrefChangeCallback)
 }
 
-class IpnManager(scope: CoroutineScope) : IpnActions {
+class IpnViewManager(scope: CoroutineScope) : IpnViewActions {
     private var notifier = Notifier()
 
     var apiClient = LocalApiClient(scope)
@@ -46,21 +45,7 @@ class IpnManager(scope: CoroutineScope) : IpnActions {
         intent.action = IPNReceiver.INTENT_DISCONNECT_VPN
         context.sendBroadcast(intent)
     }
-
-    override fun connect() {
-        val context = App.getApplication().applicationContext
-        val callback: (com.tailscale.ipn.ui.localapi.Result<Ipn.Prefs>) -> Unit = { result ->
-            if (result.successful) {
-                val prefs = result.success
-                Log.d("Connect: preferences updated successfully: $prefs")
-            } else if (result.failed) {
-                val error = result.error
-                Log.d("Connect: failed to update preferences: ${error?.message}")
-            }
-        }
-        model.setWantRunning(true, callback)
-    }
-
+    
     override fun login() {
         apiClient.startLoginInteractive()
     }

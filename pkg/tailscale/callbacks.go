@@ -63,22 +63,6 @@ func Java_com_tailscale_ipn_IPNService_requestVPN(env *C.JNIEnv, this C.jobject)
 	onVPNRequested <- jnipkg.NewGlobalRef(jenv, jnipkg.Object(this))
 }
 
-//export Java_com_tailscale_ipn_IPNService_connect
-func Java_com_tailscale_ipn_IPNService_connect(env *C.JNIEnv, this C.jobject) {
-	onConnect <- ConnectEvent{Enable: true}
-}
-
-//export Java_com_tailscale_ipn_IPNService_disconnect
-func Java_com_tailscale_ipn_IPNService_disconnect(env *C.JNIEnv, this C.jobject) {
-	jenv := (*jnipkg.Env)(unsafe.Pointer(env))
-	onDisconnect <- jnipkg.NewGlobalRef(jenv, jnipkg.Object(this))
-}
-
-//export Java_com_tailscale_ipn_StartVPNWorker_connect
-func Java_com_tailscale_ipn_StartVPNWorker_connect(env *C.JNIEnv, this C.jobject) {
-	onConnect <- ConnectEvent{Enable: true}
-}
-
 //export Java_com_tailscale_ipn_StopVPNWorker_disconnect
 func Java_com_tailscale_ipn_StopVPNWorker_disconnect(env *C.JNIEnv, this C.jobject) {
 	onConnect <- ConnectEvent{Enable: false}

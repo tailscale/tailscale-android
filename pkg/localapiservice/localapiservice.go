@@ -4,7 +4,9 @@
 package localapiservice
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -12,6 +14,7 @@ import (
 	"net/http"
 	"time"
 
+	"tailscale.com/ipn"
 	"tailscale.com/ipn/ipnlocal"
 )
 
@@ -109,5 +112,24 @@ func (s *LocalAPIService) Logout(ctx context.Context, backend *ipnlocal.LocalBac
 		backend.Logout(logoutctx)
 	}
 
+	return err
+}
+
+func (s *LocalAPIService) Start(ctx context.Context, backend *ipnlocal.LocalBackend, options ipn.Options) error {
+
+	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+	body, err := json.Marshal(options)
+	if err != nil {
+		log.Printf("start: %s", err)
+		return err
+	}
+	r, err := s.Call(ctx, "POST", "/localapi/v0/start", bytes.NewReader(body))
+	defer r.Body().Close()
+
+	if err != nil {
+		log.Printf("start: %s", err)
+		backend.Start(options)
+	}
 	return err
 }
