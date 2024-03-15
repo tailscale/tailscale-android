@@ -157,19 +157,19 @@ run: install
 # This is useful for testing on e.g. Amazon Fire Stick devices.
 tailscale-fdroid.apk: $(AAR)
 	(cd android_legacy && ./gradlew test assembleFdroidDebug)
-	mv android_legacy/build/outputs/apk/fdroid/debug/android_legacy-fdroid-debug.apk $@
+	install -C android_legacy/build/outputs/apk/fdroid/debug/android_legacy-fdroid-debug.apk $@
 
 tailscale-new-fdroid.apk: $(AAR)
 	(cd android && ./gradlew test assembleFdroidDebug)
-	mv android/build/outputs/apk/fdroid/debug/android-fdroid-debug.apk $@
+	install -C android/build/outputs/apk/fdroid/debug/android-fdroid-debug.apk $@
 
 tailscale-new-debug.apk: 
-	(cd android && ./gradlew test buildAllGoLibs assemblePlayDebug)
-	mv android/build/outputs/apk/play/debug/android-play-debug.apk $@
+	(cd android && ./gradlew test assemblePlayDebug)
+	install -C android/build/outputs/apk/play/debug/android-play-debug.apk $@
 
 $(RELEASE_AAB): $(AAR)
 	(cd android_legacy && ./gradlew test bundlePlayRelease)
-	mv ./android_legacy/build/outputs/bundle/playRelease/android-play-release.aab $@
+	install -C ./android_legacy/build/outputs/bundle/playRelease/android-play-release.aab $@
 
 release: $(RELEASE_AAB)
 	jarsigner -sigalg SHA256withRSA -digestalg SHA-256 -keystore $(KEYSTORE) $(RELEASE_AAB) $(KEYSTORE_ALIAS)

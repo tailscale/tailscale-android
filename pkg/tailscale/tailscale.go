@@ -68,18 +68,6 @@ func fatalErr(err error) {
 	log.Printf("fatal error: %v", err)
 }
 
-func javaVM() uintptr {
-	android.mu.Lock()
-	defer android.mu.Unlock()
-	return uintptr(unsafe.Pointer(android.jvm))
-}
-
-func appContext() uintptr {
-	android.mu.Lock()
-	defer android.mu.Unlock()
-	return uintptr(android.appCtx)
-}
-
 // osVersion returns android.os.Build.VERSION.RELEASE. " [nogoogle]" is appended
 // if Google Play services are not compiled in.
 func (a *App) osVersion() string {

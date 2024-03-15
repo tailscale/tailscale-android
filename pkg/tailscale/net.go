@@ -340,3 +340,7 @@ func (b *backend) getPlatformDNSConfig() string {
 	}
 	return baseConfig
 }
+
+func (b *backend) setCfg(rcfg *router.Config, dcfg *dns.OSConfig) error {
+	return b.settings(rcfg, dcfg)
+}
