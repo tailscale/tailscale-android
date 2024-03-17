@@ -5,24 +5,19 @@ package com.tailscale.ipn.ui.viewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.tailscale.ipn.ui.localapi.LocalApiClient
+import com.tailscale.ipn.ui.localapi.Client
 import com.tailscale.ipn.ui.util.set
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
 
 
-class BugReportViewModel(localAPI: LocalApiClient) : ViewModel() {
+class BugReportViewModel : ViewModel() {
     val bugReportID: StateFlow<String> = MutableStateFlow("")
 
     init {
-        viewModelScope.launch {
-            localAPI.getBugReportId {
-                when (it.successful) {
-                    true -> bugReportID.set(it.success ?: "(Error fetching ID)")
-                    false -> bugReportID.set("(Error fetching ID)")
-                }
-            }
+        Client(viewModelScope).bugReportId { result ->
+            result.onSuccess { bugReportID.set(it) }
+                .onFailure { bugReportID.set("(Error fetching ID)") }
         }
     }
 }

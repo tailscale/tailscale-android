@@ -4,7 +4,7 @@
 package com.tailscale.ipn.ui.service
 
 import android.util.Log
-import com.tailscale.ipn.ui.localapi.LocalApiClient
+import com.tailscale.ipn.ui.localapi.Client
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.Netmap
@@ -15,9 +15,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-class IpnModel(
-    notifier: Notifier, val apiClient: LocalApiClient, val scope: CoroutineScope
-) {
+class IpnModel(notifier: Notifier, val scope: CoroutineScope) {
+    companion object {
+        private const val TAG = "IpnModel"
+    }
+
     private var notifierSessions: MutableList<String> = mutableListOf()
 
     val state: StateFlow<Ipn.State> = MutableStateFlow(Ipn.State.NoState)
@@ -39,21 +41,15 @@ class IpnModel(
     // Backend Observation
 
     private suspend fun loadUserProfiles() {
-        LocalApiClient.isReady.await()
-
-        apiClient.getProfiles { result ->
-            result.success?.let(loginProfiles::set) ?: run {
-                Log.e(
-                    "IpnManager", "Error loading profiles: ${result.error}"
-                )
+        Client(scope).profiles { result ->
+            result.onSuccess(loginProfiles::set).onFailure {
+                Log.e(TAG, "Error loading profiles: ${it.message}")
             }
         }
 
-        apiClient.getCurrentProfile { result ->
-            result.success?.let(loggedInUser::set) ?: run {
-                Log.e(
-                    "IpnManager", "Error loading current profile: ${result.error}"
-                )
+        Client(scope).currentProfile { result ->
+            result.onSuccess(loggedInUser::set).onFailure {
+                Log.e(TAG, "Error loading current profile: ${it.message}")
             }
         }
     }

@@ -26,9 +26,3 @@ class Errors {
     @Serializable
     data class GenericError(val error: String)
 }
-
-// Returned on successful operations with no explicit response body
-class Success {
-    @Serializable
-    data class GenericSuccess(val message: String)
-}
