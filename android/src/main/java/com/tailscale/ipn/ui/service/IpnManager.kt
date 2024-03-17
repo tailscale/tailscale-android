@@ -5,10 +5,11 @@ package com.tailscale.ipn.ui.service
 
 
 import android.content.Intent
+import android.util.Log
 import com.tailscale.ipn.App
 import com.tailscale.ipn.IPNReceiver
 import com.tailscale.ipn.mdm.MDMSettings
-import com.tailscale.ipn.ui.localapi.LocalApiClient
+import com.tailscale.ipn.ui.localapi.Client
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.notifier.Notifier
 import kotlinx.coroutines.CoroutineScope
@@ -25,11 +26,14 @@ interface IpnActions {
     fun updatePrefs(prefs: Ipn.MaskedPrefs, callback: PrefChangeCallback)
 }
 
-class IpnManager(scope: CoroutineScope) : IpnActions {
+class IpnManager(private val scope: CoroutineScope) : IpnActions {
+    companion object {
+        private const val TAG = "IpnManager"
+    }
+
     private var notifier = Notifier(scope)
-    var apiClient = LocalApiClient(scope)
     var mdmSettings = MDMSettings()
-    val model = IpnModel(notifier, apiClient, scope)
+    val model = IpnModel(notifier, scope)
 
     override fun startVPN() {
         val context = App.getApplication().applicationContext
@@ -46,19 +50,31 @@ class IpnManager(scope: CoroutineScope) : IpnActions {
     }
 
     override fun login() {
-        apiClient.startLoginInteractive()
+        Client(scope).startLoginInteractive { result ->
+            result.onSuccess {
+                Log.d(TAG, "Login started: $it")
+            }.onFailure {
+                Log.e(TAG, "Error starting login: ${it.message}")
+            }
+        }
     }
 
     override fun logout() {
-        apiClient.logout()
+        Client(scope).logout { result ->
+            result.onSuccess {
+                Log.d(TAG, "Logout started: $it")
+            }.onFailure {
+                Log.e(TAG, "Error starting logout: ${it.message}")
+            }
+        }
     }
 
     override fun updatePrefs(prefs: Ipn.MaskedPrefs, callback: PrefChangeCallback) {
-        apiClient.editPrefs(prefs) { result ->
-            result.success?.let {
+        Client(scope).editPrefs(prefs) { result ->
+            result.onSuccess {
                 callback(Result.success(true))
-            } ?: run {
-                callback(Result.failure(Throwable(result.error)))
+            }.onFailure {
+                callback(Result.failure(it))
             }
         }
     }

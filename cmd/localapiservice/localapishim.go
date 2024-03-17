@@ -39,14 +39,13 @@ var shim struct {
 	jvm *jni.JVM
 }
 
-//export Java_com_tailscale_ipn_ui_localapi_LocalApiClient_doRequest
-func Java_com_tailscale_ipn_ui_localapi_LocalApiClient_doRequest(
+//export Java_com_tailscale_ipn_ui_localapi_Request_doRequest
+func Java_com_tailscale_ipn_ui_localapi_Request_doRequest(
 	env *C.JNIEnv,
 	cls C.jclass,
-	jpath C.jstring,
 	jmethod C.jstring,
-	jbody C.jbyteArray,
-	jcookie C.jstring) {
+	jpath C.jstring,
+	jbody C.jbyteArray) {
 
 	defer func() {
 		if p := recover(); p != nil {
@@ -57,15 +56,15 @@ func Java_com_tailscale_ipn_ui_localapi_LocalApiClient_doRequest(
 
 	jenv := (*jni.Env)(unsafe.Pointer(env))
 
-	// The API Path
-	pathRef := jni.NewGlobalRef(jenv, jni.Object(jpath))
-	pathStr := jni.GoString(jenv, jni.String(pathRef))
-	defer jni.DeleteGlobalRef(jenv, pathRef)
-
 	// The HTTP verb
 	methodRef := jni.NewGlobalRef(jenv, jni.Object(jmethod))
 	methodStr := jni.GoString(jenv, jni.String(methodRef))
 	defer jni.DeleteGlobalRef(jenv, methodRef)
+
+	// The API Path
+	pathRef := jni.NewGlobalRef(jenv, jni.Object(jpath))
+	pathStr := jni.GoString(jenv, jni.String(pathRef))
+	defer jni.DeleteGlobalRef(jenv, pathRef)
 
 	// The body string.  This is optional and may be empty.
 	bodyRef := jni.NewGlobalRef(jenv, jni.Object(jbody))
@@ -76,10 +75,9 @@ func Java_com_tailscale_ipn_ui_localapi_LocalApiClient_doRequest(
 
 	jrespBody := jni.NewByteArray(jenv, resp)
 	respBody := jni.Value(jrespBody)
-	cookie := jni.Value(jcookie)
-	onResponse := jni.GetMethodID(jenv, shim.clientClass, "onResponse", "([BLjava/lang/String;)V")
+	onResponse := jni.GetMethodID(jenv, shim.clientClass, "onResponse", "([B)V")
 
-	jni.CallVoidMethod(jenv, jni.Object(cls), onResponse, respBody, cookie)
+	jni.CallVoidMethod(jenv, jni.Object(cls), onResponse, respBody)
 }
 
 func doLocalAPIRequest(path string, method string, body []byte) []byte {
@@ -114,7 +112,7 @@ func ConfigureShim(jvm *jni.JVM, appCtx jni.Object, s *LocalAPIService, b *ipnlo
 	shim.service = s
 	shim.backend = b
 
-	configureLocalApiJNIHandler(jvm, appCtx)
+	configureLocalAPIJNIHandler(jvm, appCtx)
 
 	// Let the Kotlin side know we're ready to handle requests.
 	jni.Do(jvm, func(env *jni.Env) error {
@@ -130,12 +128,12 @@ func ConfigureShim(jvm *jni.JVM, appCtx jni.Object, s *LocalAPIService, b *ipnlo
 }
 
 // Loads the Kotlin-side LocalApiClient class and stores it in a global reference.
-func configureLocalApiJNIHandler(jvm *jni.JVM, appCtx jni.Object) error {
+func configureLocalAPIJNIHandler(jvm *jni.JVM, appCtx jni.Object) error {
 	shim.jvm = jvm
 
 	return jni.Do(jvm, func(env *jni.Env) error {
 		loader := jni.ClassLoaderFor(env, appCtx)
-		cl, err := jni.LoadClass(env, loader, "com.tailscale.ipn.ui.localapi.LocalApiClient")
+		cl, err := jni.LoadClass(env, loader, "com.tailscale.ipn.ui.localapi.Request")
 		if err != nil {
 			return err
 		}

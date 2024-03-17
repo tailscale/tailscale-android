@@ -3,8 +3,7 @@
 
 package com.tailscale.ipn.ui.service
 
-import com.tailscale.ipn.ui.localapi.APIErrorVals
-import com.tailscale.ipn.ui.localapi.Result
+import com.tailscale.ipn.ui.localapi.Client
 import com.tailscale.ipn.ui.model.Ipn
 
 
@@ -28,46 +27,46 @@ import com.tailscale.ipn.ui.model.Ipn
 
 fun IpnModel.setWantRunning(wantRunning: Boolean, callback: (Result<Ipn.Prefs>) -> Unit) {
     Ipn.MaskedPrefs().WantRunning = wantRunning
-    apiClient.editPrefs(Ipn.MaskedPrefs(), callback)
+    Client(scope).editPrefs(Ipn.MaskedPrefs(), callback)
 }
 
 fun IpnModel.toggleCorpDNS(callback: (Result<Ipn.Prefs>) -> Unit) {
     val prefs = prefs.value ?: run {
-        callback(Result(Error(APIErrorVals.NO_PREFS.rawValue)))
+        callback(Result.failure(Exception("no prefs")))
         return@toggleCorpDNS
     }
 
     val prefsOut = Ipn.MaskedPrefs()
     prefsOut.CorpDNS = !prefs.CorpDNS
-    apiClient.editPrefs(prefsOut, callback)
+    Client(scope).editPrefs(prefsOut, callback)
 }
 
 fun IpnModel.toggleShieldsUp(callback: (Result<Ipn.Prefs>) -> Unit) {
     val prefs = prefs.value ?: run {
-        callback(Result(Error(APIErrorVals.NO_PREFS.rawValue)))
+        callback(Result.failure(Exception("no prefs")))
         return@toggleShieldsUp
     }
 
     val prefsOut = Ipn.MaskedPrefs()
     prefsOut.ShieldsUp = !prefs.ShieldsUp
-    apiClient.editPrefs(prefsOut, callback)
+    Client(scope).editPrefs(prefsOut, callback)
 }
 
 fun IpnModel.setExitNodeId(id: String?, callback: (Result<Ipn.Prefs>) -> Unit) {
     val prefsOut = Ipn.MaskedPrefs()
     prefsOut.ExitNodeID = id
-    apiClient.editPrefs(prefsOut, callback)
+    Client(scope).editPrefs(prefsOut, callback)
 }
 
 fun IpnModel.toggleRouteAll(callback: (Result<Ipn.Prefs>) -> Unit) {
     val prefs = prefs.value ?: run {
-        callback(Result(Error(APIErrorVals.NO_PREFS.rawValue)))
+        callback(Result.failure(Exception("no prefs")))
         return@toggleRouteAll
     }
 
     val prefsOut = Ipn.MaskedPrefs()
     prefsOut.RouteAll = !prefs.RouteAll
-    apiClient.editPrefs(prefsOut, callback)
+    Client(scope).editPrefs(prefsOut, callback)
 }
 
 

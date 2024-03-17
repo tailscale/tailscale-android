@@ -110,7 +110,7 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                     composable("bugReport") {
-                        BugReportView(BugReportViewModel(manager.apiClient))
+                        BugReportView(BugReportViewModel())
                     }
                     composable("about") {
                         AboutView()
