@@ -9,13 +9,9 @@ class Ipn {
 
     // Represents the overall state of the Tailscale engine.
     enum class State(val value: Int) {
-        NoState(0),
-        InUseOtherUser(1),
-        NeedsLogin(2),
-        NeedsMachineAuth(3),
-        Stopped(4),
-        Starting(5),
-        Running(6);
+        NoState(0), InUseOtherUser(1), NeedsLogin(2), NeedsMachineAuth(3), Stopped(4), Starting(5), Running(
+            6
+        );
 
         companion object {
             fun fromInt(value: Int): State {
@@ -28,20 +24,20 @@ class Ipn {
     // on which NotifyWatchOpts were set when the Notifier was created.
     @Serializable
     data class Notify(
-            val Version: String? = null,
-            val ErrMessage: String? = null,
-            val LoginFinished: Empty.Message? = null,
-            val FilesWaiting: Empty.Message? = null,
-            val State: Int? = null,
-            var Prefs: Prefs? = null,
-            var NetMap: Netmap.NetworkMap? = null,
-            var Engine: EngineStatus? = null,
-            var BrowseToURL: String? = null,
-            var BackendLogId: String? = null,
-            var LocalTCPPort: Int? = null,
-            var IncomingFiles: List<PartialFile>? = null,
-            var ClientVersion: Tailcfg.ClientVersion? = null,
-            var TailFSShares: Map<String, String>? = null,
+        val Version: String? = null,
+        val ErrMessage: String? = null,
+        val LoginFinished: Empty.Message? = null,
+        val FilesWaiting: Empty.Message? = null,
+        val State: Int? = null,
+        var Prefs: Prefs? = null,
+        var NetMap: NetworkMap? = null,
+        var Engine: EngineStatus? = null,
+        var BrowseToURL: String? = null,
+        var BackendLogId: String? = null,
+        var LocalTCPPort: Int? = null,
+        var IncomingFiles: List<PartialFile>? = null,
+//            var ClientVersion: Tailcfg.ClientVersion? = null, // Currently unused
+        var TailFSShares: Map<String, String>? = null,
     )
 
     @Serializable
@@ -65,15 +61,15 @@ class Ipn {
 
     @Serializable
     data class MaskedPrefs(
-            var RouteAllSet: Boolean? = null,
-            var CorpDNSSet: Boolean? = null,
-            var ExitNodeIDSet: Boolean? = null,
-            var ExitNodeAllowLANAccessSet: Boolean? = null,
-            var WantRunningSet: Boolean? = null,
-            var ShieldsUpSet: Boolean? = null,
-            var AdvertiseRoutesSet: Boolean? = null,
-            var ForceDaemonSet: Boolean? = null,
-            var HostnameSet: Boolean? = null,
+        var RouteAllSet: Boolean? = null,
+        var CorpDNSSet: Boolean? = null,
+        var ExitNodeIDSet: Boolean? = null,
+        var ExitNodeAllowLANAccessSet: Boolean? = null,
+        var WantRunningSet: Boolean? = null,
+        var ShieldsUpSet: Boolean? = null,
+        var AdvertiseRoutesSet: Boolean? = null,
+        var ForceDaemonSet: Boolean? = null,
+        var HostnameSet: Boolean? = null,
     ) {
         var RouteAll: Boolean? = null
             set(value) {
@@ -124,39 +120,36 @@ class Ipn {
 
     @Serializable
     data class AutoUpdatePrefs(
-            var Check: Boolean? = null,
-            var Apply: Boolean? = null,
+        var Check: Boolean? = null,
+        var Apply: Boolean? = null,
     )
 
     @Serializable
     data class EngineStatus(
-            val RBytes: Long,
-            val WBytes: Long,
-            val NumLive: Int,
-            val LivePeers: Map<String, IpnState.PeerStatusLite>,
+        val RBytes: Long,
+        val WBytes: Long,
+        val NumLive: Int,
+//            val LivePeers: Map<String, IpnState.PeerStatusLite>,
     )
 
     @Serializable
     data class PartialFile(
-            val Name: String,
-            val Started: String,
-            val DeclaredSize: Long,
-            val Received: Long,
-            val PartialPath: String? = null,
-            var FinalPath: String? = null,
-            val Done: Boolean? = null,
+        val Name: String,
+        val Started: String,
+        val DeclaredSize: Long,
+        val Received: Long,
+        val PartialPath: String? = null,
+        var FinalPath: String? = null,
+        val Done: Boolean? = null,
     )
 }
 
 class Persist {
     @Serializable
     data class Persist(
-            var PrivateMachineKey: String =
-                    "privkey:0000000000000000000000000000000000000000000000000000000000000000",
-            var PrivateNodeKey: String =
-                    "privkey:0000000000000000000000000000000000000000000000000000000000000000",
-            var OldPrivateNodeKey: String =
-                    "privkey:0000000000000000000000000000000000000000000000000000000000000000",
-            var Provider: String = "",
+        var PrivateMachineKey: String = "privkey:0000000000000000000000000000000000000000000000000000000000000000",
+        var PrivateNodeKey: String = "privkey:0000000000000000000000000000000000000000000000000000000000000000",
+        var OldPrivateNodeKey: String = "privkey:0000000000000000000000000000000000000000000000000000000000000000",
+        var Provider: String = "",
     )
 }

@@ -7,11 +7,11 @@ import kotlinx.serialization.Serializable
 
 typealias Addr = String
 typealias Prefix = String
-typealias NodeID = Long
-typealias KeyNodePublic = String
-typealias MachineKey = String
+//typealias NodeID = Long // Currently unused
+//typealias KeyNodePublic = String // Currently unused
+//typealias MachineKey = String // Currently unused
 typealias UserID = Long
-typealias Time = String
+//typealias Time = String // Currently unused
 typealias StableNodeID = String
 typealias BugReportID = String
 

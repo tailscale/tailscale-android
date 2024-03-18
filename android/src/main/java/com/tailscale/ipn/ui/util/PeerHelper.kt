@@ -4,7 +4,7 @@
 
 package com.tailscale.ipn.ui.util
 
-import com.tailscale.ipn.ui.model.Netmap
+import com.tailscale.ipn.ui.model.NetworkMap
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.model.UserID
 import com.tailscale.ipn.ui.notifier.Notifier
@@ -37,7 +37,7 @@ class PeerCategorizer(scope: CoroutineScope) {
         }
     }
 
-    private fun regenerateGroupedPeers(netmap: Netmap.NetworkMap): List<PeerSet> {
+    private fun regenerateGroupedPeers(netmap: NetworkMap): List<PeerSet> {
         val peers: List<Tailcfg.Node> = netmap.Peers ?: return emptyList()
         val selfNode = netmap.SelfNode
         var grouped = mutableMapOf<UserID, MutableList<Tailcfg.Node>>()
