@@ -8,7 +8,6 @@ import com.tailscale.ipn.ui.model.BugReportID
 import com.tailscale.ipn.ui.model.Errors
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.IpnLocal
-import com.tailscale.ipn.ui.model.IpnState
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -44,7 +43,6 @@ private object Endpoint {
     const val TAILFS_SERVER_ADDRESS = "tailfs/fileserver-address"
 }
 
-typealias StatusResponseHandler = (Result<IpnState.Status>) -> Unit
 typealias BugReportIdHandler = (Result<BugReportID>) -> Unit
 typealias PrefsHandler = (Result<Ipn.Prefs>) -> Unit
 
@@ -53,10 +51,6 @@ typealias PrefsHandler = (Result<Ipn.Prefs>) -> Unit
  * corresponding method on this Client.
  */
 class Client(private val scope: CoroutineScope) {
-    fun status(responseHandler: StatusResponseHandler) {
-        get(Endpoint.STATUS, responseHandler = responseHandler)
-    }
-
     fun bugReportId(responseHandler: BugReportIdHandler) {
         post(Endpoint.BUG_REPORT, responseHandler = responseHandler)
     }

@@ -6,7 +6,7 @@ package com.tailscale.ipn.ui.notifier
 import android.util.Log
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.Ipn.Notify
-import com.tailscale.ipn.ui.model.Netmap
+import com.tailscale.ipn.ui.model.NetworkMap
 import com.tailscale.ipn.ui.util.set
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -32,7 +32,7 @@ object Notifier {
     private val isReady = CompletableDeferred<Boolean>()
 
     val state: StateFlow<Ipn.State> = MutableStateFlow(Ipn.State.NoState)
-    val netmap: StateFlow<Netmap.NetworkMap?> = MutableStateFlow(null)
+    val netmap: StateFlow<NetworkMap?> = MutableStateFlow(null)
     val prefs: StateFlow<Ipn.Prefs?> = MutableStateFlow(null)
     val engineStatus: StateFlow<Ipn.EngineStatus?> = MutableStateFlow(null)
     val tailFSShares: StateFlow<Map<String, String>?> = MutableStateFlow(null)
