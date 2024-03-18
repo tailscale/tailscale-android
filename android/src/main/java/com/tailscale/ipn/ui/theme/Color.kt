@@ -13,6 +13,9 @@ val ts_color_light_tintedBackground = Color(0xFFF7F5F4)
 val ts_color_light_blue = Color(0xFF4B70CC)
 val ts_color_light_green = Color(0xFF1EA672)
 
+var ts_color_dark_desctrutive_text = Color(0xFFFF0000)
+var ts_color_light_desctrutive_text = Color(0xFFBB0000)
+
 val ts_color_dark_primary = Color(0xFFFAF9F8)
 val ts_color_dark_secondary = Color(0xFFAFACAB)
 val ts_color_dark_background = Color(0xFF232222)

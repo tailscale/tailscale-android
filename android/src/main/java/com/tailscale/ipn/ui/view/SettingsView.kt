@@ -11,14 +11,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.ClickableText
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -33,14 +28,15 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.Links
 import com.tailscale.ipn.ui.model.IpnLocal
-import com.tailscale.ipn.ui.util.PrimaryActionButton
+import com.tailscale.ipn.ui.theme.ts_color_dark_desctrutive_text
+import com.tailscale.ipn.ui.util.ChevronRight
+import com.tailscale.ipn.ui.util.Header
 import com.tailscale.ipn.ui.util.defaultPaddingModifier
 import com.tailscale.ipn.ui.util.settingsRowModifier
 import com.tailscale.ipn.ui.viewModel.Setting
@@ -52,42 +48,27 @@ import com.tailscale.ipn.ui.viewModel.SettingsViewModelFactory
 
 @Composable
 fun Settings(
-    settingsNav: SettingsNav,
-    viewModel: SettingsViewModel = viewModel(factory = SettingsViewModelFactory(settingsNav))
+        settingsNav: SettingsNav,
+        viewModel: SettingsViewModel = viewModel(factory = SettingsViewModelFactory(settingsNav))
 ) {
     val handler = LocalUriHandler.current
+    val user = viewModel.loggedInUser.collectAsState().value
+    val isAdmin = viewModel.isAdmin.collectAsState().value
 
     Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxHeight()) {
 
         Column(modifier = defaultPaddingModifier().fillMaxHeight()) {
 
-            Text(
-                text = stringResource(id = R.string.settings_title),
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.primary,
-                style = MaterialTheme.typography.titleMedium
-            )
 
+            Header(title = R.string.settings_title)
             Spacer(modifier = Modifier.height(8.dp))
 
-            // The login/logout button here is probably in the wrong location, but we need something
-            // somewhere for the time being.  FUS should probably be implemented for V0 given that
-            // it's relatively simple to do so with localAPI.  On iOS, the UI for user switching is
-            // all in the FUS screen.
-
-            viewModel.user?.let { user ->
-                UserView(profile = user, viewModel.isAdmin, adminText(), onClick = {
-                    handler.openUri(Links.ADMIN_URL)
-                })
-                Spacer(modifier = Modifier.height(8.dp))
-                PrimaryActionButton(onClick = { viewModel.logout() }) {
-                    Text(text = stringResource(id = R.string.log_out))
-                }
-            } ?: run {
-                Button(onClick = { viewModel.login() }) {
-                    Text(text = stringResource(id = R.string.log_in))
-                }
+            UserView(profile = user,
+                    actionState = UserActionState.NAV,
+                    onClick = viewModel.navigation.onNavigateToUserSwitcher)
+            if (isAdmin) {
+                Spacer(modifier = Modifier.height(4.dp))
+                AdminTextView { handler.openUri(Links.ADMIN_URL) }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -96,27 +77,9 @@ fun Settings(
             settings.forEach { settingBundle ->
                 Column(modifier = settingsRowModifier()) {
                     settingBundle.title?.let {
-                        Text(
-                            text = it,
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.padding(8.dp)
-                        )
+                        SettingTitle(it)
                     }
-                    settingBundle.settings.forEach { setting ->
-                        when (setting.type) {
-                            SettingType.NAV -> {
-                                SettingsNavRow(setting)
-                            }
-
-                            SettingType.SWITCH -> {
-                                SettingsSwitchRow(setting)
-                            }
-
-                            SettingType.NAV_WITH_TEXT -> {
-                                SettingsNavRow(setting)
-                            }
-                        }
-                    }
+                    settingBundle.settings.forEach { SettingRow(it) }
                 }
                 Spacer(modifier = Modifier.height(8.dp))
             }
@@ -124,12 +87,13 @@ fun Settings(
     }
 }
 
+
 @Composable
 fun UserView(
-    profile: IpnLocal.LoginProfile?,
-    isAdmin: Boolean,
-    adminText: AnnotatedString,
-    onClick: () -> Unit
+        profile: IpnLocal.LoginProfile?,
+        isAdmin: Boolean,
+        adminText: AnnotatedString,
+        onClick: () -> Unit
 ) {
     Column {
         Row(modifier = settingsRowModifier().padding(8.dp)) {
@@ -140,8 +104,8 @@ fun UserView(
 
             Column(verticalArrangement = Arrangement.Center) {
                 Text(
-                    text = profile?.UserProfile?.DisplayName ?: "",
-                    style = MaterialTheme.typography.titleMedium
+                        text = profile?.UserProfile?.DisplayName ?: "",
+                        style = MaterialTheme.typography.titleMedium
                 )
                 Text(text = profile?.Name ?: "", style = MaterialTheme.typography.bodyMedium)
             }
@@ -150,11 +114,11 @@ fun UserView(
         if (isAdmin) {
             Column(modifier = Modifier.padding(horizontal = 12.dp)) {
                 ClickableText(
-                    text = adminText,
-                    style = MaterialTheme.typography.bodySmall,
-                    onClick = {
-                        onClick()
-                    })
+                        text = adminText,
+                        style = MaterialTheme.typography.bodySmall,
+                        onClick = {
+                            onClick()
+                        })
             }
         }
 
@@ -162,38 +126,61 @@ fun UserView(
 }
 
 @Composable
-fun SettingsNavRow(setting: Setting) {
-    val txtVal = setting.value?.collectAsState()?.value ?: ""
-    val enabled = setting.enabled.collectAsState().value
-
-    Row(modifier = defaultPaddingModifier().clickable { if (enabled) setting.onClick() }) {
-        Text(setting.title.getString())
-        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
-            Text(text = txtVal, style = MaterialTheme.typography.bodyMedium)
-        }
-        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
-    }
+fun SettingTitle(title: String) {
+    Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(8.dp)
+    )
 }
 
 @Composable
-fun SettingsSwitchRow(setting: Setting) {
+fun SettingRow(setting: Setting) {
+    val enabled = setting.enabled.collectAsState().value
     val swVal = setting.isOn?.collectAsState()?.value ?: false
-    val enabled = setting.enabled.collectAsState().value
+    val txtVal = setting.value?.collectAsState()?.value ?: ""
 
-    Row(
-        modifier = defaultPaddingModifier().clickable { if (enabled) setting.onClick() },
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(setting.title.getString())
-        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
-            Switch(checked = swVal, onCheckedChange = setting.onToggle, enabled = enabled)
+    Row(modifier = defaultPaddingModifier().clickable { if (enabled) setting.onClick() }, verticalAlignment = Alignment.CenterVertically) {
+        when (setting.type) {
+            SettingType.NAV_WITH_TEXT -> {
+                Text(setting.title.getString(),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (setting.destructive) ts_color_dark_desctrutive_text else MaterialTheme.colorScheme.primary)
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
+                    Text(text = txtVal, style = MaterialTheme.typography.bodyMedium)
+                }
+
+            }
+
+            SettingType.TEXT -> {
+                Text(setting.title.getString(),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (setting.destructive) ts_color_dark_desctrutive_text else MaterialTheme.colorScheme.primary)
+            }
+
+            SettingType.SWITCH -> {
+                Text(setting.title.getString())
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
+                    Switch(checked = swVal, onCheckedChange = setting.onToggle, enabled = enabled)
+                }
+            }
+
+            SettingType.NAV -> {
+                Text(setting.title.getString(),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (setting.destructive) ts_color_dark_desctrutive_text else MaterialTheme.colorScheme.primary)
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
+                    Text(text = txtVal, style = MaterialTheme.typography.bodyMedium)
+                }
+                ChevronRight()
+            }
         }
     }
 }
 
 @Composable
-fun adminText(): AnnotatedString {
-    val annotatedString = buildAnnotatedString {
+fun AdminTextView(onNavigateToAdminConsole: () -> Unit) {
+    val adminStr = buildAnnotatedString {
         withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.primary)) {
             append(stringResource(id = R.string.settings_admin_prefix))
         }
@@ -204,5 +191,13 @@ fun adminText(): AnnotatedString {
         }
         pop()
     }
-    return annotatedString
+
+    Column(modifier = Modifier.padding(horizontal = 12.dp)) {
+        ClickableText(
+                text = adminStr,
+                style = MaterialTheme.typography.bodySmall,
+                onClick = {
+                    onNavigateToAdminConsole()
+                })
+    }
 }

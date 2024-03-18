@@ -4,12 +4,10 @@
 
 package com.tailscale.ipn.ui.viewModel
 
-import android.content.Intent
 import androidx.lifecycle.viewModelScope
-import com.tailscale.ipn.App
-import com.tailscale.ipn.IPNReceiver
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.model.Ipn.State
+import com.tailscale.ipn.ui.model.StableNodeID
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.util.PeerCategorizer
 import com.tailscale.ipn.ui.util.PeerSet
@@ -39,9 +37,15 @@ class MainViewModel : IpnViewModel() {
     val searchTerm: StateFlow<String> = MutableStateFlow("")
 
     // The peerID of the local node
-    val selfPeerId = Notifier.netmap.value?.SelfNode?.StableID ?: ""
+    val selfPeerId: StateFlow<StableNodeID> = MutableStateFlow("")
 
     private val peerCategorizer = PeerCategorizer(viewModelScope)
+
+    val userName: String
+        get() {
+            return loggedInUser.value?.Name ?: ""
+        }
+
 
     init {
         viewModelScope.launch {
@@ -54,6 +58,7 @@ class MainViewModel : IpnViewModel() {
         viewModelScope.launch {
             Notifier.netmap.collect { netmap ->
                 peers.set(peerCategorizer.groupedAndFilteredPeers(searchTerm.value))
+                selfPeerId.set(netmap?.SelfNode?.StableID ?: "")
             }
         }
     }
@@ -63,32 +68,6 @@ class MainViewModel : IpnViewModel() {
         viewModelScope.launch {
             peers.set(peerCategorizer.groupedAndFilteredPeers(searchTerm))
         }
-    }
-
-    val userName: String
-        get() {
-            return loggedInUser.value?.Name ?: ""
-        }
-
-    fun toggleVpn() {
-        when (Notifier.state.value) {
-            State.Running -> stopVPN()
-            else -> startVPN()
-        }
-    }
-
-    private fun startVPN() {
-        val context = App.getApplication().applicationContext
-        val intent = Intent(context, IPNReceiver::class.java)
-        intent.action = IPNReceiver.INTENT_CONNECT_VPN
-        context.sendBroadcast(intent)
-    }
-
-    fun stopVPN() {
-        val context = App.getApplication().applicationContext
-        val intent = Intent(context, IPNReceiver::class.java)
-        intent.action = IPNReceiver.INTENT_DISCONNECT_VPN
-        context.sendBroadcast(intent)
     }
 }
 
