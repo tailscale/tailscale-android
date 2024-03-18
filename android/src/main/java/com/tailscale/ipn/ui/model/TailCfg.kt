@@ -75,6 +75,10 @@ class Tailcfg {
     ) {
         val isAdmin: Boolean
             get() = (Capabilities ?: emptyList()).contains("https://tailscale.com/cap/is-admin")
+
+        // isExitNode reproduces the Go logic in local.go peerStatusFromNode
+        val isExitNode: Boolean =
+            AllowedIPs?.contains("0.0.0.0/0") ?: false && AllowedIPs?.contains("::/0") ?: false
     }
 
     @Serializable
