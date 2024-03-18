@@ -4,17 +4,20 @@
 
 package com.tailscale.ipn.ui.viewModel
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.tailscale.ipn.ui.localapi.Client
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.StableNodeID
+import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.set
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.util.TreeMap
 
 data class ExitNodePickerNav(
@@ -52,66 +55,66 @@ class ExitNodePickerViewModel(private val nav: ExitNodePickerNav) : IpnViewModel
     val anyActive: StateFlow<Boolean> = MutableStateFlow(false)
 
     init {
-        Client(viewModelScope).status { result ->
-            result.onFailure {
-                Log.e(TAG, "getStatus: ${it.message}")
-            }.onSuccess {
-                it.Peer?.values?.let { peers ->
-                    val allNodes = peers.filter { it.ExitNodeOption }.map {
-                        ExitNode(
-                            id = it.ID,
-                            label = it.DNSName,
-                            online = it.Online,
-                            selected = it.ExitNode,
-                            mullvad = it.DNSName.endsWith(".mullvad.ts.net."),
-                            priority = it.Location?.Priority ?: 0,
-                            countryCode = it.Location?.CountryCode ?: "",
-                            country = it.Location?.Country ?: "",
-                            city = it.Location?.City ?: "",
-                        )
-                    }
+        viewModelScope.launch {
+            Notifier.netmap.combine(Notifier.prefs) { netmap, prefs -> Pair(netmap, prefs) }
+                .stateIn(viewModelScope).collect { (netmap, prefs) ->
+                    val exitNodeId = prefs?.ExitNodeID
+                    netmap?.Peers?.let { peers ->
+                        val allNodes = peers.filter { it.isExitNode }.map {
+                            ExitNode(
+                                id = it.StableID,
+                                label = it.Name,
+                                online = it.Online ?: false,
+                                selected = it.StableID == exitNodeId,
+                                mullvad = it.Name.endsWith(".mullvad.ts.net."),
+                                priority = it.Hostinfo?.Location?.Priority ?: 0,
+                                countryCode = it.Hostinfo?.Location?.CountryCode ?: "",
+                                country = it.Hostinfo?.Location?.Country ?: "",
+                                city = it.Hostinfo?.Location?.City ?: "",
+                            )
+                        }
 
-                    val tailnetNodes = allNodes.filter { !it.mullvad }
-                    tailnetExitNodes.set(tailnetNodes.sortedWith { a, b ->
-                        a.label.compareTo(
-                            b.label
-                        )
-                    })
+                        val tailnetNodes = allNodes.filter { !it.mullvad }
+                        tailnetExitNodes.set(tailnetNodes.sortedWith { a, b ->
+                            a.label.compareTo(
+                                b.label
+                            )
+                        })
 
-                    val mullvadExitNodes = allNodes.filter {
-                        // Pick all mullvad nodes that are online or the currently selected
-                        it.mullvad && (it.selected || it.online)
-                    }.groupBy {
-                        // Group by countryCode
-                        it.countryCode
-                    }.mapValues { (_, nodes) ->
-                        // Group by city
-                        nodes.groupBy {
-                            it.city
+                        val mullvadExitNodes = allNodes.filter {
+                            // Pick all mullvad nodes that are online or the currently selected
+                            it.mullvad && (it.selected || it.online)
+                        }.groupBy {
+                            // Group by countryCode
+                            it.countryCode
                         }.mapValues { (_, nodes) ->
-                            // Pick one node per city, either the selected one or the best
-                            // available
-                            nodes.sortedWith { a, b ->
-                                if (a.selected && !b.selected) {
-                                    -1
-                                } else if (b.selected && !a.selected) {
-                                    1
-                                } else {
-                                    b.priority.compareTo(a.priority)
-                                }
-                            }.first()
-                        }.values.sortedBy { it.city.lowercase() }
-                    }
-                    mullvadExitNodesByCountryCode.set(mullvadExitNodes)
+                            // Group by city
+                            nodes.groupBy {
+                                it.city
+                            }.mapValues { (_, nodes) ->
+                                // Pick one node per city, either the selected one or the best
+                                // available
+                                nodes.sortedWith { a, b ->
+                                    if (a.selected && !b.selected) {
+                                        -1
+                                    } else if (b.selected && !a.selected) {
+                                        1
+                                    } else {
+                                        b.priority.compareTo(a.priority)
+                                    }
+                                }.first()
+                            }.values.sortedBy { it.city.lowercase() }
+                        }
+                        mullvadExitNodesByCountryCode.set(mullvadExitNodes)
 
-                    val bestAvailableByCountry = mullvadExitNodes.mapValues { (_, nodes) ->
-                        nodes.minByOrNull { -1 * it.priority }!!
-                    }
-                    mullvadBestAvailableByCountry.set(bestAvailableByCountry)
+                        val bestAvailableByCountry = mullvadExitNodes.mapValues { (_, nodes) ->
+                            nodes.minByOrNull { -1 * it.priority }!!
+                        }
+                        mullvadBestAvailableByCountry.set(bestAvailableByCountry)
 
-                    anyActive.set(allNodes.any { it.selected })
+                        anyActive.set(allNodes.any { it.selected })
+                    }
                 }
-            }
         }
     }
 
