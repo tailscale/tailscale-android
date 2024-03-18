@@ -74,7 +74,6 @@ import com.tailscale.ipn.mdm.BooleanSetting;
 import com.tailscale.ipn.mdm.MDMSettings;
 import com.tailscale.ipn.mdm.ShowHideSetting;
 import com.tailscale.ipn.mdm.StringSetting;
-import com.tailscale.ipn.ui.service.IpnManager;
 
 import org.gioui.Gio;
 

@@ -36,6 +36,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.Links
 import com.tailscale.ipn.ui.model.IpnLocal
@@ -44,18 +45,16 @@ import com.tailscale.ipn.ui.util.defaultPaddingModifier
 import com.tailscale.ipn.ui.util.settingsRowModifier
 import com.tailscale.ipn.ui.viewModel.Setting
 import com.tailscale.ipn.ui.viewModel.SettingType
+import com.tailscale.ipn.ui.viewModel.SettingsNav
 import com.tailscale.ipn.ui.viewModel.SettingsViewModel
+import com.tailscale.ipn.ui.viewModel.SettingsViewModelFactory
 
-
-data class SettingsNav(
-    val onNavigateToBugReport: () -> Unit,
-    val onNavigateToAbout: () -> Unit,
-    val onNavigateToMDMSettings: () -> Unit,
-    val onNavigateToManagedBy: () -> Unit,
-)
 
 @Composable
-fun Settings(viewModel: SettingsViewModel) {
+fun Settings(
+    settingsNav: SettingsNav,
+    viewModel: SettingsViewModel = viewModel(factory = SettingsViewModelFactory(settingsNav))
+) {
     val handler = LocalUriHandler.current
 
     Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxHeight()) {
@@ -82,18 +81,19 @@ fun Settings(viewModel: SettingsViewModel) {
                     handler.openUri(Links.ADMIN_URL)
                 })
                 Spacer(modifier = Modifier.height(8.dp))
-                PrimaryActionButton(onClick = { viewModel.ipnManager.logout() }) {
+                PrimaryActionButton(onClick = { viewModel.logout() }) {
                     Text(text = stringResource(id = R.string.log_out))
                 }
             } ?: run {
-                Button(onClick = { viewModel.ipnManager.login() }) {
+                Button(onClick = { viewModel.login() }) {
                     Text(text = stringResource(id = R.string.log_in))
                 }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            viewModel.settings.forEach { settingBundle ->
+            val settings = viewModel.settings.collectAsState().value
+            settings.forEach { settingBundle ->
                 Column(modifier = settingsRowModifier()) {
                     settingBundle.title?.let {
                         Text(
@@ -140,8 +140,8 @@ fun UserView(
 
             Column(verticalArrangement = Arrangement.Center) {
                 Text(
-                    text = profile?.UserProfile?.DisplayName
-                        ?: "", style = MaterialTheme.typography.titleMedium
+                    text = profile?.UserProfile?.DisplayName ?: "",
+                    style = MaterialTheme.typography.titleMedium
                 )
                 Text(text = profile?.Name ?: "", style = MaterialTheme.typography.bodyMedium)
             }
@@ -180,7 +180,10 @@ fun SettingsSwitchRow(setting: Setting) {
     val swVal = setting.isOn?.collectAsState()?.value ?: false
     val enabled = setting.enabled.collectAsState().value
 
-    Row(modifier = defaultPaddingModifier().clickable { if (enabled) setting.onClick() }, verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        modifier = defaultPaddingModifier().clickable { if (enabled) setting.onClick() },
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Text(setting.title.getString())
         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
             Switch(checked = swVal, onCheckedChange = setting.onToggle, enabled = enabled)

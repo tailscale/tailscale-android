@@ -30,35 +30,37 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.flag
+import com.tailscale.ipn.ui.viewModel.ExitNodePickerNav
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerViewModel
+import com.tailscale.ipn.ui.viewModel.ExitNodePickerViewModelFactory
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExitNodePicker(
-    viewModel: ExitNodePickerViewModel,
-    onNavigateToMullvadCountry: (String) -> Unit,
+    nav: ExitNodePickerNav,
+    model: ExitNodePickerViewModel = viewModel(factory = ExitNodePickerViewModelFactory(nav))
 ) {
     LoadingIndicator.Wrap {
         Scaffold(topBar = {
             TopAppBar(title = { Text(stringResource(R.string.choose_exit_node)) })
         }) { innerPadding ->
-            val tailnetExitNodes = viewModel.tailnetExitNodes.collectAsState()
-            val mullvadExitNodes = viewModel.mullvadExitNodesByCountryCode.collectAsState()
-            val anyActive = viewModel.anyActive.collectAsState()
+            val tailnetExitNodes = model.tailnetExitNodes.collectAsState()
+            val mullvadExitNodes = model.mullvadExitNodesByCountryCode.collectAsState()
+            val anyActive = model.anyActive.collectAsState()
 
             LazyColumn(modifier = Modifier.padding(innerPadding)) {
                 item(key = "none") {
                     ExitNodeItem(
-                        viewModel,
-                        ExitNodePickerViewModel.ExitNode(
+                        model, ExitNodePickerViewModel.ExitNode(
                             label = stringResource(R.string.none),
                             online = true,
                             selected = !anyActive.value,
-                        ),
+                        )
                     )
                 }
 
@@ -67,7 +69,7 @@ fun ExitNodePicker(
                 }
 
                 items(tailnetExitNodes.value, key = { it.id!! }) { node ->
-                    ExitNodeItem(viewModel, node, indent = 16.dp)
+                    ExitNodeItem(model, node, indent = 16.dp)
                 }
 
                 item {
@@ -89,11 +91,11 @@ fun ExitNodePicker(
                             .padding(start = 16.dp)
                             .clickable {
                                 if (nodes.size > 1) {
-                                    onNavigateToMullvadCountry(
+                                    nav.onNavigateToMullvadCountry(
                                         countryCode
                                     )
                                 } else {
-                                    viewModel.setExitNode(first)
+                                    model.setExitNode(first)
                                 }
                             }, headlineContent = {
                             Text("${countryCode.flag()} ${first.country}")

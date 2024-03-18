@@ -7,7 +7,7 @@ package com.tailscale.ipn.ui.util
 import com.tailscale.ipn.ui.model.Netmap
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.model.UserID
-import com.tailscale.ipn.ui.service.IpnModel
+import com.tailscale.ipn.ui.notifier.Notifier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -16,7 +16,7 @@ data class PeerSet(val user: Tailcfg.UserProfile?, val peers: List<Tailcfg.Node>
 
 typealias GroupedPeers = MutableMap<UserID, MutableList<Tailcfg.Node>>
 
-class PeerCategorizer(val model: IpnModel, val scope: CoroutineScope) {
+class PeerCategorizer(scope: CoroutineScope) {
     var peerSets: List<PeerSet> = emptyList()
     var lastSearchResult: List<PeerSet> = emptyList()
     var searchTerm: String = ""
@@ -24,7 +24,7 @@ class PeerCategorizer(val model: IpnModel, val scope: CoroutineScope) {
     // Keep the peer sets current while the model is active
     init {
         scope.launch {
-            model.netmap.collect { netmap ->
+            Notifier.netmap.collect { netmap ->
                 netmap?.let {
                     peerSets = regenerateGroupedPeers(netmap)
                     lastSearchResult = peerSets
@@ -79,19 +79,21 @@ class PeerCategorizer(val model: IpnModel, val scope: CoroutineScope) {
         }
 
         // We can optimize out typing... If the search term starts with the last search term, we can just search the last result
-        val setsToSearch = if (searchTerm.startsWith(this.searchTerm)) lastSearchResult else peerSets
+        val setsToSearch =
+            if (searchTerm.startsWith(this.searchTerm)) lastSearchResult else peerSets
         this.searchTerm = searchTerm
 
         val matchingSets = setsToSearch.map { peerSet ->
             val user = peerSet.user
             val peers = peerSet.peers
-            
+
             val userMatches = user?.DisplayName?.contains(searchTerm, ignoreCase = true) ?: false
             if (userMatches) {
                 return@map peerSet
             }
 
-            val matchingPeers = peers.filter { it.ComputedName.contains(searchTerm, ignoreCase = true) }
+            val matchingPeers =
+                peers.filter { it.ComputedName.contains(searchTerm, ignoreCase = true) }
             if (matchingPeers.isNotEmpty()) {
                 PeerSet(user, matchingPeers)
             } else {

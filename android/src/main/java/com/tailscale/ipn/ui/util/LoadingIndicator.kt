@@ -33,8 +33,8 @@ object LoadingIndicator {
             contentAlignment = Alignment.Center,
         ) {
             content()
-            val isLoading = loading.collectAsState()
-            if (isLoading.value) {
+            val isLoading = loading.collectAsState().value
+            if (isLoading) {
                 Box(
                     Modifier
                         .matchParentSize()

@@ -6,23 +6,30 @@ package com.tailscale.ipn.ui.viewModel
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.tailscale.ipn.ui.localapi.Client
+import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.StableNodeID
-import com.tailscale.ipn.ui.service.IpnModel
-import com.tailscale.ipn.ui.service.setExitNodeId
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.set
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.util.TreeMap
 
-class ExitNodePickerViewModel(private val model: IpnModel, private val onNavigateHome: () -> Unit) :
-    ViewModel() {
-    companion object {
-        const val TAG = "ExitNodePickerViewModel"
-    }
+data class ExitNodePickerNav(
+    val onNavigateHome: () -> Unit,
+    val onNavigateToMullvadCountry: (String) -> Unit,
+)
 
+class ExitNodePickerViewModelFactory(private val nav: ExitNodePickerNav) :
+    ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        return ExitNodePickerViewModel(nav) as T
+    }
+}
+
+class ExitNodePickerViewModel(private val nav: ExitNodePickerNav) : IpnViewModel() {
     data class ExitNode(
         val id: StableNodeID? = null,
         val label: String,
@@ -110,8 +117,10 @@ class ExitNodePickerViewModel(private val model: IpnModel, private val onNavigat
 
     fun setExitNode(node: ExitNode) {
         LoadingIndicator.start()
-        model.setExitNodeId(node.id) {
-            onNavigateHome()
+        val prefsOut = Ipn.MaskedPrefs()
+        prefsOut.ExitNodeID = node.id
+        Client(viewModelScope).editPrefs(prefsOut) {
+            nav.onNavigateHome()
             LoadingIndicator.stop()
         }
     }

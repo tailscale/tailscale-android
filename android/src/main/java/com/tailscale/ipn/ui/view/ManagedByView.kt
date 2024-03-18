@@ -11,16 +11,18 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
-import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.mdm.StringSetting
+import com.tailscale.ipn.ui.viewModel.IpnViewModel
 
 @Composable
-fun ManagedByView(mdmSettings: MDMSettings) {
+fun ManagedByView(model: IpnViewModel = viewModel()) {
     Surface(color = MaterialTheme.colorScheme.surface) {
         Column(
             verticalArrangement = Arrangement.spacedBy(
@@ -31,6 +33,7 @@ fun ManagedByView(mdmSettings: MDMSettings) {
                 .fillMaxWidth()
                 .safeContentPadding()
         ) {
+            val mdmSettings = IpnViewModel.mdmSettings.collectAsState().value
             mdmSettings.get(StringSetting.ManagedByOrganizationName)?.let {
                 Text(stringResource(R.string.managed_by_explainer_orgName, it))
             } ?: run {

@@ -10,7 +10,6 @@ import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.runtime.remember
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -19,8 +18,9 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navigation
 import com.tailscale.ipn.mdm.MDMSettings
-import com.tailscale.ipn.ui.service.IpnManager
+import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.theme.AppTheme
+import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.view.AboutView
 import com.tailscale.ipn.ui.view.BugReportView
 import com.tailscale.ipn.ui.view.ExitNodePicker
@@ -31,18 +31,16 @@ import com.tailscale.ipn.ui.view.ManagedByView
 import com.tailscale.ipn.ui.view.MullvadExitNodePicker
 import com.tailscale.ipn.ui.view.PeerDetails
 import com.tailscale.ipn.ui.view.Settings
-import com.tailscale.ipn.ui.view.SettingsNav
-import com.tailscale.ipn.ui.viewModel.BugReportViewModel
-import com.tailscale.ipn.ui.viewModel.ExitNodePickerViewModel
-import com.tailscale.ipn.ui.viewModel.MainViewModel
-import com.tailscale.ipn.ui.viewModel.PeerDetailsViewModel
-import com.tailscale.ipn.ui.viewModel.SettingsViewModel
+import com.tailscale.ipn.ui.viewModel.ExitNodePickerNav
+import com.tailscale.ipn.ui.viewModel.IpnViewModel
+import com.tailscale.ipn.ui.viewModel.SettingsNav
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 
 class MainActivity : ComponentActivity() {
-    private val manager = IpnManager(lifecycleScope)
+    private var notifierScope: CoroutineScope? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -64,38 +62,29 @@ class MainActivity : ComponentActivity() {
                             onNavigateToMDMSettings = { navController.navigate("mdmSettings") },
                             onNavigateToManagedBy = { navController.navigate("managedBy") })
 
-                    composable("main") {
-                        MainView(
-                            viewModel = MainViewModel(manager.model, manager),
-                            navigation = mainViewNav
+                    val exitNodePickerNav = ExitNodePickerNav(onNavigateHome = {
+                        navController.popBackStack(
+                            route = "main", inclusive = false
                         )
+                    }, onNavigateToMullvadCountry = { navController.navigate("mullvad/$it") })
+
+                    composable("main") {
+                        MainView(navigation = mainViewNav)
                     }
                     composable("settings") {
-                        Settings(SettingsViewModel(manager, settingsNav))
+                        Settings(settingsNav)
                     }
                     navigation(startDestination = "list", route = "exitNodes") {
                         composable("list") {
-                            val viewModel = remember {
-                                ExitNodePickerViewModel(manager.model) {
-                                    navController.navigate("main")
-                                }
-                            }
-                            ExitNodePicker(viewModel) {
-                                navController.navigate("mullvad/$it")
-                            }
+                            ExitNodePicker(exitNodePickerNav)
                         }
                         composable(
                             "mullvad/{countryCode}", arguments = listOf(navArgument("countryCode") {
                                 type = NavType.StringType
                             })
                         ) {
-                            val viewModel = remember {
-                                ExitNodePickerViewModel(manager.model) {
-                                    navController.navigate("main")
-                                }
-                            }
                             MullvadExitNodePicker(
-                                viewModel, it.arguments!!.getString("countryCode")!!
+                                it.arguments!!.getString("countryCode")!!, exitNodePickerNav
                             )
                         }
                     }
@@ -103,23 +92,19 @@ class MainActivity : ComponentActivity() {
                         "peerDetails/{nodeId}",
                         arguments = listOf(navArgument("nodeId") { type = NavType.StringType })
                     ) {
-                        PeerDetails(
-                            PeerDetailsViewModel(
-                                manager.model, nodeId = it.arguments?.getString("nodeId") ?: ""
-                            )
-                        )
+                        PeerDetails(it.arguments?.getString("nodeId") ?: "")
                     }
                     composable("bugReport") {
-                        BugReportView(BugReportViewModel())
+                        BugReportView()
                     }
                     composable("about") {
                         AboutView()
                     }
                     composable("mdmSettings") {
-                        MDMSettingsDebugView(manager.mdmSettings)
+                        MDMSettingsDebugView()
                     }
                     composable("managedBy") {
-                        ManagedByView(manager.mdmSettings)
+                        ManagedByView()
                     }
                 }
             }
@@ -130,7 +115,7 @@ class MainActivity : ComponentActivity() {
         // Watch the model's browseToURL and launch the browser when it changes
         // This will trigger the login flow
         lifecycleScope.launch {
-            manager.model.browseToURL.collect { url ->
+            Notifier.browseToURL.collect { url ->
                 url?.let {
                     Dispatchers.Main.run {
                         login(it)
@@ -152,7 +137,19 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         val restrictionsManager =
             this.getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
-        manager.mdmSettings = MDMSettings(restrictionsManager)
+        IpnViewModel.mdmSettings.set(MDMSettings(restrictionsManager))
+    }
+
+    override fun onStart() {
+        super.onStart()
+        val scope = CoroutineScope(Dispatchers.IO)
+        notifierScope = scope
+        Notifier.start(lifecycleScope)
+    }
+
+    override fun onStop() {
+        Notifier.stop()
+        super.onStop()
     }
 }
 

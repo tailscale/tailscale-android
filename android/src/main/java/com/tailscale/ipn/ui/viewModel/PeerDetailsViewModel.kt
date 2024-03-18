@@ -5,9 +5,10 @@ package com.tailscale.ipn.ui.viewModel
 
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.model.StableNodeID
-import com.tailscale.ipn.ui.service.IpnModel
+import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.theme.ts_color_light_green
 import com.tailscale.ipn.ui.util.ComposableStringFormatter
 import com.tailscale.ipn.ui.util.DisplayAddress
@@ -16,7 +17,13 @@ import com.tailscale.ipn.ui.util.TimeUtil
 data class PeerSettingInfo(val titleRes: Int, val value: ComposableStringFormatter)
 
 
-class PeerDetailsViewModel(val model: IpnModel, val nodeId: StableNodeID) : ViewModel() {
+class PeerDetailsViewModelFactory(private val nodeId: StableNodeID) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        return PeerDetailsViewModel(nodeId) as T
+    }
+}
+
+class PeerDetailsViewModel(val nodeId: StableNodeID) : IpnViewModel() {
 
     var addresses: List<DisplayAddress> = emptyList()
     var info: List<PeerSettingInfo> = emptyList()
@@ -26,7 +33,7 @@ class PeerDetailsViewModel(val model: IpnModel, val nodeId: StableNodeID) : View
     val connectedColor: Color
 
     init {
-        val peer = model.netmap.value?.getPeer(nodeId)
+        val peer = Notifier.netmap.value?.getPeer(nodeId)
         peer?.Addresses?.let {
             addresses = it.map { addr ->
                 DisplayAddress(addr)
@@ -36,12 +43,12 @@ class PeerDetailsViewModel(val model: IpnModel, val nodeId: StableNodeID) : View
         peer?.Name?.let {
             addresses = listOf(DisplayAddress(it)) + addresses
         }
-        
+
 
         peer?.let { p ->
             info = listOf(
-                    PeerSettingInfo(R.string.os, ComposableStringFormatter(p.Hostinfo.OS ?: "")),
-                    PeerSettingInfo(R.string.key_expiry, TimeUtil().keyExpiryFromGoTime(p.KeyExpiry))
+                PeerSettingInfo(R.string.os, ComposableStringFormatter(p.Hostinfo.OS ?: "")),
+                PeerSettingInfo(R.string.key_expiry, TimeUtil().keyExpiryFromGoTime(p.KeyExpiry))
             )
         }
 

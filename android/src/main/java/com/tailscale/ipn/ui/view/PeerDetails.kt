@@ -28,47 +28,65 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.util.settingsRowModifier
 import com.tailscale.ipn.ui.viewModel.PeerDetailsViewModel
+import com.tailscale.ipn.ui.viewModel.PeerDetailsViewModelFactory
 
 
 @Composable
-fun PeerDetails(viewModel: PeerDetailsViewModel) {
+fun PeerDetails(
+    nodeId: String, model: PeerDetailsViewModel = viewModel(
+        factory = PeerDetailsViewModelFactory(nodeId)
+    )
+) {
     Surface(color = MaterialTheme.colorScheme.surface) {
 
-        Column(modifier = Modifier
+        Column(
+            modifier = Modifier
                 .padding(horizontal = 8.dp)
-                .fillMaxHeight()) {
-            Column(modifier = Modifier
+                .fillMaxHeight()
+        ) {
+            Column(
+                modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(text = viewModel.nodeName,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = model.nodeName,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier
+                    Box(
+                        modifier = Modifier
                             .size(8.dp)
-                            .background(color = viewModel.connectedColor, shape = RoundedCornerShape(percent = 50))) {}
+                            .background(
+                                color = model.connectedColor,
+                                shape = RoundedCornerShape(percent = 50)
+                            )
+                    ) {}
                     Spacer(modifier = Modifier.size(8.dp))
-                    Text(text = stringResource(id = viewModel.connectedStrRes),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.primary
+                    Text(
+                        text = stringResource(id = model.connectedStrRes),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             }
 
             Spacer(modifier = Modifier.size(8.dp))
 
-            Text(text = stringResource(id = R.string.addresses_section),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary
+            Text(
+                text = stringResource(id = R.string.addresses_section),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary
             )
 
             Column(modifier = settingsRowModifier()) {
-                viewModel.addresses.forEach {
+                model.addresses.forEach {
                     AddressRow(address = it.address, type = it.typeString)
                 }
             }
@@ -76,7 +94,7 @@ fun PeerDetails(viewModel: PeerDetailsViewModel) {
             Spacer(modifier = Modifier.size(16.dp))
 
             Column(modifier = settingsRowModifier()) {
-                viewModel.info.forEach {
+                model.info.forEach {
                     ValueRow(title = stringResource(id = it.titleRes), value = it.value.getString())
                 }
             }
@@ -88,9 +106,11 @@ fun PeerDetails(viewModel: PeerDetailsViewModel) {
 fun AddressRow(address: String, type: String) {
     val localClipboardManager = LocalClipboardManager.current
 
-    Row(modifier = Modifier
+    Row(
+        modifier = Modifier
             .padding(horizontal = 8.dp, vertical = 4.dp)
-            .clickable(onClick = { localClipboardManager.setText(AnnotatedString(address)) })) {
+            .clickable(onClick = { localClipboardManager.setText(AnnotatedString(address)) })
+    ) {
         Column {
             Text(text = address, style = MaterialTheme.typography.titleMedium)
             Text(text = type, style = MaterialTheme.typography.bodyMedium)
@@ -103,9 +123,11 @@ fun AddressRow(address: String, type: String) {
 
 @Composable
 fun ValueRow(title: String, value: String) {
-    Row(modifier = Modifier
+    Row(
+        modifier = Modifier
             .padding(horizontal = 8.dp, vertical = 4.dp)
-            .fillMaxWidth()) {
+            .fillMaxWidth()
+    ) {
         Text(text = title, style = MaterialTheme.typography.titleMedium)
         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
             Text(text = value, style = MaterialTheme.typography.bodyMedium)

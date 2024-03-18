@@ -4,19 +4,19 @@
 package com.tailscale.ipn.ui.notifier
 
 import android.util.Log
+import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.Ipn.Notify
+import com.tailscale.ipn.ui.model.Netmap
+import com.tailscale.ipn.ui.util.set
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
-
-typealias NotifierCallback = (Notify) -> Unit
-
-
-class Watcher(
-    val sessionId: String, val mask: Int, val callback: NotifierCallback
-)
+import kotlinx.serialization.json.decodeFromStream
 
 // Notifier is a wrapper around the IPN Bus notifier.  It provides a way to watch
 // for changes in various parts of the Tailscale engine.  You will typically only use
@@ -26,116 +26,72 @@ class Watcher(
 // The primary entry point here is watchIPNBus which will start a watcher on the IPN bus
 // and return you the session Id.  When you are done with your watcher, you must call
 // unwatchIPNBus with the sessionId.
-class Notifier(private val scope: CoroutineScope) {
-    // NotifyWatchOpt is a bitmask of options supplied to the notifier to specify which
-    // what we want to see on the Noitfy bus
-    enum class NotifyWatchOpt(val value: Int) {
-        engineUpdates(1), initialState(2), prefs(4), netmap(8), noPrivateKey(16), initialTailFSShares(
-            32
-        )
+object Notifier {
+    private val TAG = Notifier::class.simpleName
+    private val decoder = Json { ignoreUnknownKeys = true }
+    private val isReady = CompletableDeferred<Boolean>()
+
+    val state: StateFlow<Ipn.State> = MutableStateFlow(Ipn.State.NoState)
+    val netmap: StateFlow<Netmap.NetworkMap?> = MutableStateFlow(null)
+    val prefs: StateFlow<Ipn.Prefs?> = MutableStateFlow(null)
+    val engineStatus: StateFlow<Ipn.EngineStatus?> = MutableStateFlow(null)
+    val tailFSShares: StateFlow<Map<String, String>?> = MutableStateFlow(null)
+    val browseToURL: StateFlow<String?> = MutableStateFlow(null)
+    val loginFinished: StateFlow<String?> = MutableStateFlow(null)
+    val version: StateFlow<String?> = MutableStateFlow(null)
+
+    // Called by the backend when the localAPI is ready to accept requests.
+    @JvmStatic
+    @Suppress("unused")
+    fun onReady() {
+        isReady.complete(true)
+        Log.d(TAG, "Ready")
     }
 
-    companion object {
-        private val sessionIdLock = Any()
-        private var sessionId: Int = 0
-        private val decoder = Json { ignoreUnknownKeys = true }
-        private val isReady = CompletableDeferred<Boolean>()
-
-        // Called by the backend when the localAPI is ready to accept requests.
-        @JvmStatic
-        fun onReady() {
-            isReady.complete(true)
-            Log.d("Notifier", "Notifier is ready")
-        }
-
-        private fun generateSessionId(): String {
-            synchronized(sessionIdLock) {
-                sessionId += 1
-                return sessionId.toString()
-            }
-        }
-    }
-
-    // Starts an IPN Bus watcher.  **This is blocking** and will not return until
-    // the watcher is stopped and must be executed in a suitable coroutine scope such
-    // as Dispatchers.IO
-    private external fun startIPNBusWatcher(sessionId: String, mask: Int)
-
-    // Stops an IPN Bus watcher
-    private external fun stopIPNBusWatcher(sessionId: String)
-
-    private var watchers = HashMap<String, Watcher>()
-
-    // Callback from jni when a new notification is received
-    fun onNotify(notification: String, sessionId: String) {
-        val notify = decoder.decodeFromString<Notify>(notification)
-        val watcher = watchers[sessionId]
-        watcher?.let { watcher.callback(notify) } ?: {
-            Log.e(
-                "Notifier",
-                "Received notification for unknown session: ${sessionId}"
-            )
-        }
-    }
-
-    // Watch the IPN bus for notifications
-    // Notifications will be passed to the caller via the callback until
-    // the caller calls unwatchIPNBus with the sessionId returned from this call.
-    private fun watchIPNBus(mask: Int, callback: NotifierCallback): String {
-        val sessionId = generateSessionId()
-        val watcher = Watcher(sessionId, mask, callback)
-        watchers[sessionId] = watcher
+    fun start(scope: CoroutineScope) {
+        Log.d(TAG, "Starting")
         scope.launch(Dispatchers.IO) {
             // Wait for the notifier to be ready
             isReady.await()
-            Log.d("Notifier", "Starting IPN Bus watcher for sessionid: ${sessionId}")
-            startIPNBusWatcher(sessionId, mask)
-            watchers.remove(sessionId)
-            Log.d("Notifier", "IPN Bus watcher for sessionid:${sessionId} has halted")
-        }
-        return sessionId
-    }
-
-    // Cancels the watcher with the given sessionId. No errors are thrown or
-    // indicated for invalid sessionIds.
-    private fun unwatchIPNBus(sessionId: String) {
-        stopIPNBusWatcher(sessionId)
-    }
-
-    // Cancels all watchers
-    fun cancelAllWatchers() {
-        for (sessionId in watchers.values.map({ it.sessionId })) {
-            unwatchIPNBus(sessionId)
+            val mask =
+                NotifyWatchOpt.Netmap.value or NotifyWatchOpt.Prefs.value or NotifyWatchOpt.InitialState.value
+            startIPNBusWatcher(mask)
+            Log.d(TAG, "Stopped")
         }
     }
 
-    // Returns a list of all active watchers
-    fun watchers(): List<Watcher> {
-        return watchers.values.toList()
+    fun stop() {
+        Log.d(TAG, "Stopping")
+        stopIPNBusWatcher()
     }
 
-    // Convenience methods for watching specific parts of the IPN bus
-
-    fun watchNetMap(callback: NotifierCallback): String {
-        return watchIPNBus(NotifyWatchOpt.netmap.value, callback)
+    // Callback from jni when a new notification is received
+    @OptIn(ExperimentalSerializationApi::class)
+    @JvmStatic
+    @Suppress("unused")
+    fun onNotify(notification: ByteArray) {
+        val notify = decoder.decodeFromStream<Notify>(notification.inputStream())
+        notify.State?.let { state.set(Ipn.State.fromInt(it)) }
+        notify.NetMap?.let(netmap::set)
+        notify.Prefs?.let(prefs::set)
+        notify.Engine?.let(engineStatus::set)
+        notify.TailFSShares?.let(tailFSShares::set)
+        notify.BrowseToURL?.let(browseToURL::set)
+        notify.LoginFinished?.let { loginFinished.set(it.property) }
+        notify.Version?.let(version::set)
     }
 
-    fun watchPrefs(callback: NotifierCallback): String {
-        return watchIPNBus(NotifyWatchOpt.prefs.value, callback)
-    }
+    // Starts watching the IPN Bus. This is blocking.
+    private external fun startIPNBusWatcher(mask: Int)
 
-    fun watchEngineUpdates(callback: NotifierCallback): String {
-        return watchIPNBus(NotifyWatchOpt.engineUpdates.value, callback)
-    }
+    // Stop watching the IPN Bus. This is non-blocking.
+    private external fun stopIPNBusWatcher()
 
-    fun watchAll(callback: NotifierCallback): String {
-        return watchIPNBus(
-            NotifyWatchOpt.netmap.value or NotifyWatchOpt.prefs.value or NotifyWatchOpt.initialState.value,
-            callback
+    // NotifyWatchOpt is a bitmask of options supplied to the notifier to specify which
+    // what we want to see on the Notify bus
+    private enum class NotifyWatchOpt(val value: Int) {
+        EngineUpdates(1), InitialState(2), Prefs(4), Netmap(8), NoPrivateKey(16), InitialTailFSShares(
+            32
         )
-    }
-
-    init {
-        Log.d("Notifier", "Notifier created")
     }
 }
