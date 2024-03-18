@@ -34,7 +34,7 @@ var shim struct {
 
 	backend *ipnlocal.LocalBackend
 
-	busWatchers map[string]func()
+	cancelWatchBus func()
 
 	jvm *jni.JVM
 }
@@ -108,7 +108,6 @@ func doLocalAPIRequest(path string, method string, body []byte) []byte {
 
 // Assign a localAPIService to our shim for handling incoming localapi requests from the Kotlin side.
 func ConfigureShim(jvm *jni.JVM, appCtx jni.Object, s *LocalAPIService, b *ipnlocal.LocalBackend) {
-	shim.busWatchers = make(map[string]func())
 	shim.service = s
 	shim.backend = b
 
@@ -152,22 +151,14 @@ func configureLocalAPIJNIHandler(jvm *jni.JVM, appCtx jni.Object) error {
 //export Java_com_tailscale_ipn_ui_notifier_Notifier_stopIPNBusWatcher
 func Java_com_tailscale_ipn_ui_notifier_Notifier_stopIPNBusWatcher(
 	env *C.JNIEnv,
-	cls C.jclass,
-	jsessionId C.jstring) {
+	cls C.jclass) {
 
-	jenv := (*jni.Env)(unsafe.Pointer(env))
-
-	sessionIdRef := jni.NewGlobalRef(jenv, jni.Object(jsessionId))
-	sessionId := jni.GoString(jenv, jni.String(sessionIdRef))
-	defer jni.DeleteGlobalRef(jenv, sessionIdRef)
-
-	cancel := shim.busWatchers[sessionId]
-	if cancel != nil {
-		log.Printf("Deregistering app layer bus watcher with sessionid: %s", sessionId)
-		cancel()
-		delete(shim.busWatchers, sessionId)
+	if shim.cancelWatchBus != nil {
+		log.Printf("Stop watching IPN bus")
+		shim.cancelWatchBus()
+		shim.cancelWatchBus = nil
 	} else {
-		log.Printf("Error: Could not find bus watcher with sessionid: %s", sessionId)
+		log.Printf("Not watching IPN bus, nothing to cancel")
 	}
 }
 
@@ -175,19 +166,14 @@ func Java_com_tailscale_ipn_ui_notifier_Notifier_stopIPNBusWatcher(
 func Java_com_tailscale_ipn_ui_notifier_Notifier_startIPNBusWatcher(
 	env *C.JNIEnv,
 	cls C.jclass,
-	jsessionId C.jstring,
 	jmask C.jint) {
 
 	jenv := (*jni.Env)(unsafe.Pointer(env))
 
-	sessionIdRef := jni.NewGlobalRef(jenv, jni.Object(jsessionId))
-	sessionId := jni.GoString(jenv, jni.String(sessionIdRef))
-	defer jni.DeleteGlobalRef(jenv, sessionIdRef)
-
-	log.Printf("Registering app layer bus watcher with sessionid: %s", sessionId)
+	log.Printf("Start watching IPN bus")
 
 	ctx, cancel := context.WithCancel(context.Background())
-	shim.busWatchers[sessionId] = cancel
+	shim.cancelWatchBus = cancel
 	opts := ipn.NotifyWatchOpt(jmask)
 
 	shim.backend.WatchNotifications(ctx, opts, func() {
@@ -198,9 +184,9 @@ func Java_com_tailscale_ipn_ui_notifier_Notifier_startIPNBusWatcher(
 			return true
 		}
 		jni.Do(shim.jvm, func(env *jni.Env) error {
-			jjson := jni.JavaString(env, string(js))
-			onNotify := jni.GetMethodID(env, shim.notifierClass, "onNotify", "(Ljava/lang/String;Ljava/lang/String;)V")
-			jni.CallVoidMethod(env, jni.Object(cls), onNotify, jni.Value(jjson), jni.Value(jsessionId))
+			jjson := jni.NewByteArray(jenv, js)
+			onNotify := jni.GetStaticMethodID(jenv, shim.notifierClass, "onNotify", "([B)V")
+			jni.CallStaticVoidMethod(jenv, shim.notifierClass, onNotify, jni.Value(jjson))
 			return nil
 		})
 		return true

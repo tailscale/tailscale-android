@@ -4,20 +4,21 @@
 
 package com.tailscale.ipn.ui.viewModel
 
-import androidx.lifecycle.ViewModel
+import android.content.Intent
 import androidx.lifecycle.viewModelScope
+import com.tailscale.ipn.App
+import com.tailscale.ipn.IPNReceiver
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.model.Ipn.State
-import com.tailscale.ipn.ui.service.IpnActions
-import com.tailscale.ipn.ui.service.IpnModel
-import com.tailscale.ipn.ui.util.set
+import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.util.PeerCategorizer
 import com.tailscale.ipn.ui.util.PeerSet
+import com.tailscale.ipn.ui.util.set
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-class MainViewModel(val model: IpnModel, val actions: IpnActions) : ViewModel() {
+class MainViewModel : IpnViewModel() {
 
     // The user readable state of the system
     val stateRes: StateFlow<Int> = MutableStateFlow(State.NoState.userStringRes())
@@ -29,29 +30,29 @@ class MainViewModel(val model: IpnModel, val actions: IpnActions) : ViewModel() 
     val peers: StateFlow<List<PeerSet>> = MutableStateFlow(emptyList<PeerSet>())
 
     // The current state of the IPN for determining view visibility
-    val ipnState = model.state
+    val ipnState = Notifier.state
 
-    // The logged in user
-    val loggedInUser = model.loggedInUser
+    val prefs = Notifier.prefs
+    val netmap = Notifier.netmap
 
     // The active search term for filtering peers
     val searchTerm: StateFlow<String> = MutableStateFlow("")
 
     // The peerID of the local node
-    val selfPeerId = model.netmap.value?.SelfNode?.StableID ?: ""
-    
-    val peerCategorizer = PeerCategorizer(model, viewModelScope)
+    val selfPeerId = Notifier.netmap.value?.SelfNode?.StableID ?: ""
+
+    private val peerCategorizer = PeerCategorizer(viewModelScope)
 
     init {
         viewModelScope.launch {
-            model.state.collect { state ->
+            Notifier.state.collect { state ->
                 stateRes.set(state.userStringRes())
                 vpnToggleState.set((state == State.Running || state == State.Starting))
             }
         }
 
         viewModelScope.launch {
-            model.netmap.collect { netmap ->
+            Notifier.netmap.collect { netmap ->
                 peers.set(peerCategorizer.groupedAndFilteredPeers(searchTerm.value))
             }
         }
@@ -70,16 +71,25 @@ class MainViewModel(val model: IpnModel, val actions: IpnActions) : ViewModel() 
         }
 
     fun toggleVpn() {
-        when (model.state.value) {
-            State.Running -> actions.stopVPN()
-            else -> actions.startVPN()
+        when (Notifier.state.value) {
+            State.Running -> stopVPN()
+            else -> startVPN()
         }
     }
 
-    fun login() {
-        actions.login()
+    private fun startVPN() {
+        val context = App.getApplication().applicationContext
+        val intent = Intent(context, IPNReceiver::class.java)
+        intent.action = IPNReceiver.INTENT_CONNECT_VPN
+        context.sendBroadcast(intent)
     }
 
+    fun stopVPN() {
+        val context = App.getApplication().applicationContext
+        val intent = Intent(context, IPNReceiver::class.java)
+        intent.action = IPNReceiver.INTENT_DISCONNECT_VPN
+        context.sendBroadcast(intent)
+    }
 }
 
 private fun State?.userStringRes(): Int {

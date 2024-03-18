@@ -45,6 +45,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.IpnLocal
@@ -62,31 +63,36 @@ import kotlinx.coroutines.flow.StateFlow
 data class MainViewNavigation(
     val onNavigateToSettings: () -> Unit,
     val onNavigateToPeerDetails: (Tailcfg.Node) -> Unit,
-    val onNavigateToExitNodes: () -> Unit)
+    val onNavigateToExitNodes: () -> Unit
+)
 
 
 @Composable
-fun MainView(viewModel: MainViewModel, navigation: MainViewNavigation) {
+fun MainView(navigation: MainViewNavigation, model: MainViewModel = viewModel()) {
     Surface(color = MaterialTheme.colorScheme.secondaryContainer) {
         Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.Center
+            modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.Center
         ) {
-            val state = viewModel.ipnState.collectAsState(initial = Ipn.State.NoState)
-            val user = viewModel.loggedInUser.collectAsState(initial = null)
+            val state = model.ipnState.collectAsState(initial = Ipn.State.NoState)
+            val user = model.loggedInUser.collectAsState(initial = null)
 
-            Row(modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp),
-                verticalAlignment = Alignment.CenterVertically) {
-                val isOn = viewModel.vpnToggleState.collectAsState(initial = false)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val isOn = model.vpnToggleState.collectAsState(initial = false)
 
-                Switch(onCheckedChange = { viewModel.toggleVpn() }, checked = isOn.value)
+                Switch(onCheckedChange = { model.toggleVpn() }, checked = isOn.value)
                 Spacer(Modifier.size(3.dp))
-                StateDisplay(viewModel.stateRes, viewModel.userName)
-                Box(modifier = Modifier
-                    .weight(1f)
-                    .clickable { navigation.onNavigateToSettings() }, contentAlignment = Alignment.CenterEnd) {
+                StateDisplay(model.stateRes, model.userName)
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { navigation.onNavigateToSettings() },
+                    contentAlignment = Alignment.CenterEnd
+                ) {
                     Avatar(profile = user.value, size = 36)
                 }
             }
@@ -94,24 +100,19 @@ fun MainView(viewModel: MainViewModel, navigation: MainViewNavigation) {
 
             when (state.value) {
                 Ipn.State.Running -> {
-                    ExitNodeStatus(navigation.onNavigateToExitNodes, viewModel)
-                    PeerList(
-                        searchTerm = viewModel.searchTerm,
-                        state = viewModel.ipnState,
-                        peers = viewModel.peers,
-                        selfPeer = viewModel.selfPeerId,
+                    ExitNodeStatus(navigation.onNavigateToExitNodes, model)
+                    PeerList(searchTerm = model.searchTerm,
+                        state = model.ipnState,
+                        peers = model.peers,
+                        selfPeer = model.selfPeerId,
                         onNavigateToPeerDetails = navigation.onNavigateToPeerDetails,
-                        onSearch = { viewModel.searchPeers(it) })
+                        onSearch = { model.searchPeers(it) })
                 }
 
                 Ipn.State.Starting -> StartingView()
-                else ->
-                    ConnectView(
-                        user.value,
-                        { viewModel.toggleVpn() },
-                        { viewModel.login() }
+                else -> ConnectView(user.value, { model.toggleVpn() }, { model.login() }
 
-                    )
+                )
             }
         }
     }
@@ -119,8 +120,8 @@ fun MainView(viewModel: MainViewModel, navigation: MainViewNavigation) {
 
 @Composable
 fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
-    val prefs = viewModel.model.prefs.collectAsState()
-    val netmap = viewModel.model.netmap.collectAsState()
+    val prefs = viewModel.prefs.collectAsState()
+    val netmap = viewModel.netmap.collectAsState()
     val exitNodeId = prefs.value?.ExitNodeID
     val exitNode = exitNodeId?.let { id ->
         netmap.value?.Peers?.find { it.StableID == id }?.let { peer ->
@@ -136,9 +137,15 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
         .background(MaterialTheme.colorScheme.secondaryContainer)
         .fillMaxWidth()) {
         Column(modifier = Modifier.padding(6.dp)) {
-            Text(text = stringResource(id = R.string.exit_node), style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = stringResource(id = R.string.exit_node),
+                style = MaterialTheme.typography.titleMedium
+            )
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(text = exitNode ?: stringResource(id = R.string.none), style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    text = exitNode ?: stringResource(id = R.string.none),
+                    style = MaterialTheme.typography.bodyMedium
+                )
                 Icon(
                     Icons.Outlined.ArrowDropDown,
                     null,
@@ -155,17 +162,18 @@ fun StateDisplay(state: StateFlow<Int>, tailnet: String) {
 
     Column(modifier = Modifier.padding(7.dp)) {
         Text(text = tailnet, style = MaterialTheme.typography.titleMedium)
-        Text(text = stateStr, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.secondary)
+        Text(
+            text = stateStr,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.secondary
+        )
     }
 }
 
 @Composable
 fun SettingsButton(user: IpnLocal.LoginProfile?, action: () -> Unit) {
     // (jonathan) TODO: On iOS this is the users avatar or a letter avatar.
-    IconButton(
-        modifier = Modifier.size(24.dp),
-        onClick = { action() }
-    ) {
+    IconButton(modifier = Modifier.size(24.dp), onClick = { action() }) {
         Icon(
             Icons.Outlined.Settings,
             null,
@@ -177,14 +185,14 @@ fun SettingsButton(user: IpnLocal.LoginProfile?, action: () -> Unit) {
 fun StartingView() {
     // (jonathan) TODO: On iOS this is the game-of-life Tailscale animation.
     Column(
-        modifier =
-        Modifier
+        modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = stringResource(id = R.string.starting),
+        Text(
+            text = stringResource(id = R.string.starting),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.primary
         )
@@ -201,8 +209,7 @@ fun ConnectView(user: IpnLocal.LoginProfile?, connectAction: () -> Unit, loginAc
                 .fillMaxWidth(0.7f)
                 .fillMaxHeight(),
             verticalArrangement = Arrangement.spacedBy(
-                8.dp,
-                alignment = Alignment.CenterVertically
+                8.dp, alignment = Alignment.CenterVertically
             ),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
@@ -265,12 +272,14 @@ fun ConnectView(user: IpnLocal.LoginProfile?, connectAction: () -> Unit, loginAc
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PeerList(searchTerm: StateFlow<String>,
-             peers: StateFlow<List<PeerSet>>,
-             state: StateFlow<Ipn.State>,
-             selfPeer: StableNodeID,
-             onNavigateToPeerDetails: (Tailcfg.Node) -> Unit,
-             onSearch: (String) -> Unit) {
+fun PeerList(
+    searchTerm: StateFlow<String>,
+    peers: StateFlow<List<PeerSet>>,
+    state: StateFlow<Ipn.State>,
+    selfPeer: StableNodeID,
+    onNavigateToPeerDetails: (Tailcfg.Node) -> Unit,
+    onSearch: (String) -> Unit
+) {
     val peerList = peers.collectAsState(initial = emptyList<PeerSet>())
     var searching = false
     val searchTermStr by searchTerm.collectAsState(initial = "")
@@ -291,51 +300,55 @@ fun PeerList(searchTerm: StateFlow<String>,
     ) {
 
         LazyColumn(
-            modifier =
-            Modifier
+            modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.secondaryContainer),
         ) {
             peerList.value.forEach { peerSet ->
                 item {
                     ListItem(headlineContent = {
-                        Text(text = peerSet.user?.DisplayName
-                            ?: stringResource(id = R.string.unknown_user), style = MaterialTheme.typography.titleLarge)
+                        Text(
+                            text = peerSet.user?.DisplayName
+                                ?: stringResource(id = R.string.unknown_user),
+                            style = MaterialTheme.typography.titleLarge
+                        )
                     })
                 }
                 peerSet.peers.forEach { peer ->
                     item {
-                        ListItem(
-                            modifier = Modifier.clickable {
-                                onNavigateToPeerDetails(peer)
-                            },
-                            headlineContent = {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    // By definition, SelfPeer is online since we will not show the peer list unless you're connected.
-                                    val isSelfAndRunning = (peer.StableID == selfPeer && stateVal.value == Ipn.State.Running)
-                                    val color: Color = if ((peer.Online == true) || isSelfAndRunning) {
-                                        ts_color_light_green
-                                    } else {
-                                        Color.Gray
-                                    }
-                                    Box(modifier = Modifier
-                                        .size(8.dp)
-                                        .background(color = color, shape = RoundedCornerShape(percent = 50))) {}
-                                    Spacer(modifier = Modifier.size(8.dp))
-                                    Text(text = peer.ComputedName, style = MaterialTheme.typography.titleMedium)
+                        ListItem(modifier = Modifier.clickable {
+                            onNavigateToPeerDetails(peer)
+                        }, headlineContent = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                // By definition, SelfPeer is online since we will not show the peer list unless you're connected.
+                                val isSelfAndRunning =
+                                    (peer.StableID == selfPeer && stateVal.value == Ipn.State.Running)
+                                val color: Color = if ((peer.Online == true) || isSelfAndRunning) {
+                                    ts_color_light_green
+                                } else {
+                                    Color.Gray
                                 }
-                            },
-                            supportingContent = {
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .background(
+                                            color = color, shape = RoundedCornerShape(percent = 50)
+                                        )
+                                ) {}
+                                Spacer(modifier = Modifier.size(8.dp))
                                 Text(
-                                    text = peer.Addresses?.first()?.split("/")?.first()
-                                        ?: "",
-                                    style = MaterialTheme.typography.bodyMedium
+                                    text = peer.ComputedName,
+                                    style = MaterialTheme.typography.titleMedium
                                 )
-                            },
-                            trailingContent = {
-                                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
                             }
-                        )
+                        }, supportingContent = {
+                            Text(
+                                text = peer.Addresses?.first()?.split("/")?.first() ?: "",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }, trailingContent = {
+                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
+                        })
                     }
                 }
             }

@@ -15,17 +15,24 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.flag
+import com.tailscale.ipn.ui.viewModel.ExitNodePickerNav
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerViewModel
+import com.tailscale.ipn.ui.viewModel.ExitNodePickerViewModelFactory
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MullvadExitNodePicker(viewModel: ExitNodePickerViewModel, countryCode: String) {
-    val mullvadExitNodes = viewModel.mullvadExitNodesByCountryCode.collectAsState()
-    val bestAvailableByCountry = viewModel.mullvadBestAvailableByCountry.collectAsState()
+fun MullvadExitNodePicker(
+    countryCode: String,
+    nav: ExitNodePickerNav,
+    model: ExitNodePickerViewModel = viewModel(factory = ExitNodePickerViewModelFactory(nav))
+) {
+    val mullvadExitNodes = model.mullvadExitNodesByCountryCode.collectAsState()
+    val bestAvailableByCountry = model.mullvadBestAvailableByCountry.collectAsState()
 
     mullvadExitNodes.value[countryCode]?.toList()?.let { nodes ->
         val any = nodes.first()
@@ -39,7 +46,7 @@ fun MullvadExitNodePicker(viewModel: ExitNodePickerViewModel, countryCode: Strin
                         val bestAvailableNode = bestAvailableByCountry.value[countryCode]!!
                         item {
                             ExitNodeItem(
-                                viewModel, ExitNodePickerViewModel.ExitNode(
+                                model, ExitNodePickerViewModel.ExitNode(
                                     id = bestAvailableNode.id,
                                     label = stringResource(R.string.best_available),
                                     online = bestAvailableNode.online,
@@ -50,7 +57,7 @@ fun MullvadExitNodePicker(viewModel: ExitNodePickerViewModel, countryCode: Strin
                     }
 
                     items(nodes) { node ->
-                        ExitNodeItem(viewModel, node)
+                        ExitNodeItem(model, node)
                     }
                 }
             }

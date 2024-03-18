@@ -34,6 +34,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.Links
 import com.tailscale.ipn.ui.util.defaultPaddingModifier
@@ -43,37 +44,45 @@ import kotlinx.coroutines.flow.StateFlow
 
 
 @Composable
-fun BugReportView(viewModel: BugReportViewModel) {
+fun BugReportView(model: BugReportViewModel = viewModel()) {
     val handler = LocalUriHandler.current
 
     Surface(color = MaterialTheme.colorScheme.surface) {
-        Column(modifier = defaultPaddingModifier().fillMaxWidth().fillMaxHeight()) {
-            Text(text = stringResource(id = R.string.bug_report_title),
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.titleMedium)
+        Column(
+            modifier = defaultPaddingModifier()
+                .fillMaxWidth()
+                .fillMaxHeight()
+        ) {
+            Text(
+                text = stringResource(id = R.string.bug_report_title),
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.titleMedium
+            )
 
             Spacer(modifier = Modifier.height(8.dp))
 
             ClickableText(text = contactText(),
-                    modifier = Modifier.fillMaxWidth(),
-                    style = MaterialTheme.typography.bodyMedium,
-                    onClick = {
-                        handler.openUri(Links.SUPPORT_URL)
-                    })
+                modifier = Modifier.fillMaxWidth(),
+                style = MaterialTheme.typography.bodyMedium,
+                onClick = {
+                    handler.openUri(Links.SUPPORT_URL)
+                })
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            ReportIdRow(bugReportIdFlow = viewModel.bugReportID)
+            ReportIdRow(bugReportIdFlow = model.bugReportID)
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Text(text = stringResource(id = R.string.bug_report_id_desc),
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Left,
-                    color = MaterialTheme.colorScheme.secondary,
-                    style = MaterialTheme.typography.bodySmall)
+            Text(
+                text = stringResource(id = R.string.bug_report_id_desc),
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Left,
+                color = MaterialTheme.colorScheme.secondary,
+                style = MaterialTheme.typography.bodySmall
+            )
         }
     }
 }
@@ -83,17 +92,27 @@ fun ReportIdRow(bugReportIdFlow: StateFlow<String>) {
     val localClipboardManager = LocalClipboardManager.current
     val bugReportId = bugReportIdFlow.collectAsState()
 
-    Row(modifier = settingsRowModifier()
+    Row(
+        modifier = settingsRowModifier()
             .fillMaxWidth()
             .clickable(onClick = { localClipboardManager.setText(AnnotatedString(bugReportId.value)) }),
-            verticalAlignment = Alignment.CenterVertically) {
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Box(Modifier.weight(10f)) {
-            Text(text = bugReportId.value, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = defaultPaddingModifier())
+            Text(
+                text = bugReportId.value,
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = defaultPaddingModifier()
+            )
         }
         Box(Modifier.weight(1f)) {
-            Icon(Icons.Outlined.Share, null, modifier = Modifier
+            Icon(
+                Icons.Outlined.Share, null, modifier = Modifier
                     .width(24.dp)
-                    .height(24.dp))
+                    .height(24.dp)
+            )
         }
     }
 }
