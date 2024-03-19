@@ -13,6 +13,7 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContract
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavType
@@ -45,6 +46,7 @@ import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
   private var notifierScope: CoroutineScope? = null
+  private lateinit var requestVpnPermission: ActivityResultLauncher<Unit>
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -150,14 +152,15 @@ class MainActivity : ComponentActivity() {
     val vpnIntent = VpnService.prepare(this)
     if (vpnIntent != null) {
       val contract = VpnPermissionContract()
-      registerForActivityResult(contract) { granted ->
-        Notifier.vpnPermissionGranted.set(granted)
-        if (granted) {
-          Log.i("VPN", "VPN permission granted")
-        } else {
-          Log.i("VPN", "VPN permission not granted")
-        }
-      }
+      requestVpnPermission =
+          registerForActivityResult(contract) { granted ->
+            Notifier.vpnPermissionGranted.set(granted)
+            Log.i("VPN", "VPN permission ${if (granted) "granted" else "denied"}")
+          }
+      requestVpnPermission.launch(Unit)
+    } else {
+      Notifier.vpnPermissionGranted.set(true)
+      Log.i("VPN", "VPN permission granted")
     }
   }
 }
