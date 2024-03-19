@@ -145,30 +145,15 @@ apk: $(DEBUG_APK)
 run: install
 	adb shell am start -n com.tailscale.ipn/com.tailscale.ipn.IPNActivity
 
-GOMOBILE=/tmp/gopath/bin/gomobile
-GOBIND=/tmp/gopath/bin/gobind
 LIBTAILSCALE=android/libs/libtailscale.aar
 LIBTAILSCALE_SOURCES=$(shell find libtailscale -name *.go) go.mod go.sum
 
-$(GOMOBILE):
-	@echo "building gomobile" && \
-	export GOPATH=/tmp/gopath && \
-	mkdir -p $$GOPATH && \
-	export PATH=$$PATH:$$GOPATH/bin && \
-	go install golang.org/x/mobile/cmd/gomobile@latest
+android/libs:
+	mkdir -p android/libs
 
-$(GOBIND): $(GOMOBILE)
-	@export GOPATH=/tmp/gopath && \
-	$(GOMOBILE) init
-
-gomobile: $(GOBIND)
-
-$(LIBTAILSCALE): $(LIBTAILSCALE_SOURCES) $(GOBIND)
-	@export GOPATH=/tmp/gopath && \
-	export PATH=$$PATH:$$GOPATH/bin && \
-	$(GOMOBILE) bind -target android -androidapi 26 ./libtailscale && \
-	mkdir -p android/libs/ && \
-	cp libtailscale.aar $(LIBTAILSCALE)
+$(LIBTAILSCALE): android/libs $(LIBTAILSCALE_SOURCES)
+	go run golang.org/x/mobile/cmd/gomobile init
+	go run golang.org/x/mobile/cmd/gomobile bind -target android -androidapi 26 -o $@ ./libtailscale
 
 libtailscale: $(LIBTAILSCALE)
 
