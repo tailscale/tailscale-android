@@ -21,31 +21,25 @@ import coil.annotation.ExperimentalCoilApi
 import coil.compose.rememberImagePainter
 import com.tailscale.ipn.ui.model.IpnLocal
 
-
 @OptIn(ExperimentalCoilApi::class)
 @Composable
 fun Avatar(profile: IpnLocal.LoginProfile?, size: Int = 50) {
-    Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                    .size(size.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.tertiaryContainer)
-    ) {
+  Box(
+      contentAlignment = Alignment.Center,
+      modifier =
+          Modifier.size(size.dp)
+              .clip(CircleShape)
+              .background(MaterialTheme.colorScheme.tertiaryContainer)) {
         profile?.UserProfile?.ProfilePicURL?.let { url ->
-            val painter = rememberImagePainter(data = url)
-            Image(
-                    painter = painter,
-                    contentDescription = null,
-                    modifier = Modifier.size(size.dp)
-            )
-        } ?: run {
-            Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                    modifier = Modifier.size((size * .8f).dp)
-            )
+          val painter = rememberImagePainter(data = url)
+          Image(painter = painter, contentDescription = null, modifier = Modifier.size(size.dp))
         }
-    }
+            ?: run {
+              Icon(
+                  imageVector = Icons.Default.Person,
+                  contentDescription = null,
+                  tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                  modifier = Modifier.size((size * .8f).dp))
+            }
+      }
 }

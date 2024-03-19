@@ -1,7 +1,7 @@
 // Gratefully borrowed from Gio https://gioui.org/
 // SPDX-License-Identifier: MIT
 
-package main
+package libtailscale
 
 /*
 #cgo LDFLAGS: -llog
@@ -17,6 +17,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"runtime/debug"
 	"syscall"
 	"unsafe"
 )
@@ -28,10 +29,12 @@ var ID = filepath.Base(os.Args[0])
 
 var logTag = C.CString(ID)
 
-func init() {
+func initLogging(appCtx AppContext) {
 	// Android's logcat already includes timestamps.
 	log.SetFlags(log.Flags() &^ log.LstdFlags)
-	log.SetOutput(new(androidLogWriter))
+	log.SetOutput(&androidLogWriter{
+		appCtx: appCtx,
+	})
 
 	// Redirect stdout and stderr to the Android logger.
 	logFd(os.Stdout.Fd())
@@ -39,23 +42,18 @@ func init() {
 }
 
 type androidLogWriter struct {
-	// buf has room for the maximum log line, plus a terminating '\0'.
-	buf [logLineLimit + 1]byte
+	appCtx AppContext
 }
 
 func (w *androidLogWriter) Write(data []byte) (int, error) {
 	n := 0
 	for len(data) > 0 {
 		msg := data
-		// Truncate the buffer, leaving space for the '\0'.
-		if max := len(w.buf) - 1; len(msg) > max {
-			msg = msg[:max]
+		// Truncate the buffer
+		if len(msg) > logLineLimit {
+			msg = msg[:logLineLimit]
 		}
-		buf := w.buf[:len(msg)+1]
-		copy(buf, msg)
-		// Terminating '\0'.
-		buf[len(msg)] = 0
-		C.__android_log_write(C.ANDROID_LOG_INFO, logTag, (*C.char)(unsafe.Pointer(&buf[0])))
+		w.appCtx.Log(ID, string(msg))
 		n += len(msg)
 		data = data[len(msg):]
 	}
@@ -71,6 +69,13 @@ func logFd(fd uintptr) {
 		panic(err)
 	}
 	go func() {
+		defer func() {
+			if p := recover(); p != nil {
+				log.Printf("panic in logFd %s: %s", p, debug.Stack())
+				panic(p)
+			}
+		}()
+
 		lineBuf := bufio.NewReaderSize(r, logLineLimit)
 		// The buffer to pass to C, including the terminating '\0'.
 		buf := make([]byte, lineBuf.Size()+1)

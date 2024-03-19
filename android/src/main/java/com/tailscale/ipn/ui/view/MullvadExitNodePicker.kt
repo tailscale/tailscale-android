@@ -1,7 +1,6 @@
 // Copyright (c) Tailscale Inc & AUTHORS
 // SPDX-License-Identifier: BSD-3-Clause
 
-
 package com.tailscale.ipn.ui.view
 
 import androidx.compose.foundation.layout.padding
@@ -23,7 +22,6 @@ import com.tailscale.ipn.ui.viewModel.ExitNodePickerNav
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerViewModel
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerViewModelFactory
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MullvadExitNodePicker(
@@ -31,36 +29,33 @@ fun MullvadExitNodePicker(
     nav: ExitNodePickerNav,
     model: ExitNodePickerViewModel = viewModel(factory = ExitNodePickerViewModelFactory(nav))
 ) {
-    val mullvadExitNodes = model.mullvadExitNodesByCountryCode.collectAsState()
-    val bestAvailableByCountry = model.mullvadBestAvailableByCountry.collectAsState()
+  val mullvadExitNodes = model.mullvadExitNodesByCountryCode.collectAsState()
+  val bestAvailableByCountry = model.mullvadBestAvailableByCountry.collectAsState()
 
-    mullvadExitNodes.value[countryCode]?.toList()?.let { nodes ->
-        val any = nodes.first()
+  mullvadExitNodes.value[countryCode]?.toList()?.let { nodes ->
+    val any = nodes.first()
 
-        LoadingIndicator.Wrap {
-            Scaffold(topBar = {
-                TopAppBar(title = { Text("${countryCode.flag()} ${any.country}") })
-            }) { innerPadding ->
-                LazyColumn(modifier = Modifier.padding(innerPadding)) {
-                    if (nodes.size > 1) {
-                        val bestAvailableNode = bestAvailableByCountry.value[countryCode]!!
-                        item {
-                            ExitNodeItem(
-                                model, ExitNodePickerViewModel.ExitNode(
-                                    id = bestAvailableNode.id,
-                                    label = stringResource(R.string.best_available),
-                                    online = bestAvailableNode.online,
-                                    selected = false,
-                                )
-                            )
-                        }
-                    }
-
-                    items(nodes) { node ->
-                        ExitNodeItem(model, node)
-                    }
-                }
+    LoadingIndicator.Wrap {
+      Scaffold(topBar = { TopAppBar(title = { Text("${countryCode.flag()} ${any.country}") }) }) {
+          innerPadding ->
+        LazyColumn(modifier = Modifier.padding(innerPadding)) {
+          if (nodes.size > 1) {
+            val bestAvailableNode = bestAvailableByCountry.value[countryCode]!!
+            item {
+              ExitNodeItem(
+                  model,
+                  ExitNodePickerViewModel.ExitNode(
+                      id = bestAvailableNode.id,
+                      label = stringResource(R.string.best_available),
+                      online = bestAvailableNode.online,
+                      selected = false,
+                  ))
             }
+          }
+
+          items(nodes) { node -> ExitNodeItem(model, node) }
         }
+      }
     }
+  }
 }

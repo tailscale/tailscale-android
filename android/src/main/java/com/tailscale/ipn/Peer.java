@@ -3,14 +3,14 @@
 
 package com.tailscale.ipn;
 
-import android.app.Activity;
 import android.app.Fragment;
 import android.content.Intent;
 
-public class Peer extends Fragment {
-	@Override public void onActivityResult(int requestCode, int resultCode, Intent data) {
-		onActivityResult0(getActivity(), requestCode, resultCode);
-	}
+import libtailscale.Libtailscale;
 
-	private static native void onActivityResult0(Activity act, int reqCode, int resCode);
+public class Peer extends Fragment {
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        Libtailscale.onActivityResult(requestCode, resultCode, MaybeGoogle.getIdTokenForActivity(getActivity()));
+    }
 }

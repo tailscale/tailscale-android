@@ -1,7 +1,6 @@
 // Copyright (c) Tailscale Inc & AUTHORS
 // SPDX-License-Identifier: BSD-3-Clause
 
-
 package com.tailscale.ipn.ui.view
 
 import androidx.compose.foundation.clickable
@@ -49,79 +48,75 @@ import com.tailscale.ipn.ui.viewModel.SettingsNav
 import com.tailscale.ipn.ui.viewModel.SettingsViewModel
 import com.tailscale.ipn.ui.viewModel.SettingsViewModelFactory
 
-
 @Composable
 fun Settings(
     settingsNav: SettingsNav,
     viewModel: SettingsViewModel = viewModel(factory = SettingsViewModelFactory(settingsNav))
 ) {
-    val handler = LocalUriHandler.current
+  val handler = LocalUriHandler.current
 
-    Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxHeight()) {
+  Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxHeight()) {
+    Column(modifier = defaultPaddingModifier().fillMaxHeight()) {
+      Text(
+          text = stringResource(id = R.string.settings_title),
+          modifier = Modifier.fillMaxWidth(),
+          textAlign = TextAlign.Center,
+          color = MaterialTheme.colorScheme.primary,
+          style = MaterialTheme.typography.titleMedium)
 
-        Column(modifier = defaultPaddingModifier().fillMaxHeight()) {
+      Spacer(modifier = Modifier.height(8.dp))
 
-            Text(
-                text = stringResource(id = R.string.settings_title),
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.primary,
-                style = MaterialTheme.typography.titleMedium
-            )
+      // The login/logout button here is probably in the wrong location, but we need something
+      // somewhere for the time being.  FUS should probably be implemented for V0 given that
+      // it's relatively simple to do so with localAPI.  On iOS, the UI for user switching is
+      // all in the FUS screen.
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // The login/logout button here is probably in the wrong location, but we need something
-            // somewhere for the time being.  FUS should probably be implemented for V0 given that
-            // it's relatively simple to do so with localAPI.  On iOS, the UI for user switching is
-            // all in the FUS screen.
-
-            viewModel.user?.let { user ->
-                UserView(profile = user, viewModel.isAdmin, adminText(), onClick = {
-                    handler.openUri(Links.ADMIN_URL)
-                })
-                Spacer(modifier = Modifier.height(8.dp))
-                PrimaryActionButton(onClick = { viewModel.logout() }) {
-                    Text(text = stringResource(id = R.string.log_out))
-                }
-            } ?: run {
-                Button(onClick = { viewModel.login() }) {
-                    Text(text = stringResource(id = R.string.log_in))
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            val settings = viewModel.settings.collectAsState().value
-            settings.forEach { settingBundle ->
-                Column(modifier = settingsRowModifier()) {
-                    settingBundle.title?.let {
-                        Text(
-                            text = it,
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.padding(8.dp)
-                        )
-                    }
-                    settingBundle.settings.forEach { setting ->
-                        when (setting.type) {
-                            SettingType.NAV -> {
-                                SettingsNavRow(setting)
-                            }
-
-                            SettingType.SWITCH -> {
-                                SettingsSwitchRow(setting)
-                            }
-
-                            SettingType.NAV_WITH_TEXT -> {
-                                SettingsNavRow(setting)
-                            }
-                        }
-                    }
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-            }
+      viewModel.user?.let { user ->
+        UserView(
+            profile = user,
+            viewModel.isAdmin,
+            adminText(),
+            onClick = { handler.openUri(Links.ADMIN_URL) })
+        Spacer(modifier = Modifier.height(8.dp))
+        PrimaryActionButton(onClick = { viewModel.logout() }) {
+          Text(text = stringResource(id = R.string.log_out))
         }
+      }
+          ?: run {
+            Button(onClick = { viewModel.login() }) {
+              Text(text = stringResource(id = R.string.log_in))
+            }
+          }
+
+      Spacer(modifier = Modifier.height(8.dp))
+
+      val settings = viewModel.settings.collectAsState().value
+      settings.forEach { settingBundle ->
+        Column(modifier = settingsRowModifier()) {
+          settingBundle.title?.let {
+            Text(
+                text = it,
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(8.dp))
+          }
+          settingBundle.settings.forEach { setting ->
+            when (setting.type) {
+              SettingType.NAV -> {
+                SettingsNavRow(setting)
+              }
+              SettingType.SWITCH -> {
+                SettingsSwitchRow(setting)
+              }
+              SettingType.NAV_WITH_TEXT -> {
+                SettingsNavRow(setting)
+              }
+            }
+          }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+      }
     }
+  }
 }
 
 @Composable
@@ -131,78 +126,68 @@ fun UserView(
     adminText: AnnotatedString,
     onClick: () -> Unit
 ) {
-    Column {
-        Row(modifier = settingsRowModifier().padding(8.dp)) {
+  Column {
+    Row(modifier = settingsRowModifier().padding(8.dp)) {
+      Box(modifier = defaultPaddingModifier()) { Avatar(profile = profile, size = 36) }
 
-            Box(modifier = defaultPaddingModifier()) {
-                Avatar(profile = profile, size = 36)
-            }
-
-            Column(verticalArrangement = Arrangement.Center) {
-                Text(
-                    text = profile?.UserProfile?.DisplayName ?: "",
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(text = profile?.Name ?: "", style = MaterialTheme.typography.bodyMedium)
-            }
-        }
-
-        if (isAdmin) {
-            Column(modifier = Modifier.padding(horizontal = 12.dp)) {
-                ClickableText(
-                    text = adminText,
-                    style = MaterialTheme.typography.bodySmall,
-                    onClick = {
-                        onClick()
-                    })
-            }
-        }
-
+      Column(verticalArrangement = Arrangement.Center) {
+        Text(
+            text = profile?.UserProfile?.DisplayName ?: "",
+            style = MaterialTheme.typography.titleMedium)
+        Text(text = profile?.Name ?: "", style = MaterialTheme.typography.bodyMedium)
+      }
     }
+
+    if (isAdmin) {
+      Column(modifier = Modifier.padding(horizontal = 12.dp)) {
+        ClickableText(
+            text = adminText, style = MaterialTheme.typography.bodySmall, onClick = { onClick() })
+      }
+    }
+  }
 }
 
 @Composable
 fun SettingsNavRow(setting: Setting) {
-    val txtVal = setting.value?.collectAsState()?.value ?: ""
-    val enabled = setting.enabled.collectAsState().value
+  val txtVal = setting.value?.collectAsState()?.value ?: ""
+  val enabled = setting.enabled.collectAsState().value
 
-    Row(modifier = defaultPaddingModifier().clickable { if (enabled) setting.onClick() }) {
-        Text(setting.title.getString())
-        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
-            Text(text = txtVal, style = MaterialTheme.typography.bodyMedium)
-        }
-        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
+  Row(modifier = defaultPaddingModifier().clickable { if (enabled) setting.onClick() }) {
+    Text(setting.title.getString())
+    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
+      Text(text = txtVal, style = MaterialTheme.typography.bodyMedium)
     }
+    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
+  }
 }
 
 @Composable
 fun SettingsSwitchRow(setting: Setting) {
-    val swVal = setting.isOn?.collectAsState()?.value ?: false
-    val enabled = setting.enabled.collectAsState().value
+  val swVal = setting.isOn?.collectAsState()?.value ?: false
+  val enabled = setting.enabled.collectAsState().value
 
-    Row(
-        modifier = defaultPaddingModifier().clickable { if (enabled) setting.onClick() },
-        verticalAlignment = Alignment.CenterVertically
-    ) {
+  Row(
+      modifier = defaultPaddingModifier().clickable { if (enabled) setting.onClick() },
+      verticalAlignment = Alignment.CenterVertically) {
         Text(setting.title.getString())
         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
-            Switch(checked = swVal, onCheckedChange = setting.onToggle, enabled = enabled)
+          Switch(checked = swVal, onCheckedChange = setting.onToggle, enabled = enabled)
         }
-    }
+      }
 }
 
 @Composable
 fun adminText(): AnnotatedString {
-    val annotatedString = buildAnnotatedString {
-        withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.primary)) {
-            append(stringResource(id = R.string.settings_admin_prefix))
-        }
-
-        pushStringAnnotation(tag = "link", annotation = Links.ADMIN_URL)
-        withStyle(style = SpanStyle(color = Color.Blue)) {
-            append(stringResource(id = R.string.settings_admin_link))
-        }
-        pop()
+  val annotatedString = buildAnnotatedString {
+    withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.primary)) {
+      append(stringResource(id = R.string.settings_admin_prefix))
     }
-    return annotatedString
+
+    pushStringAnnotation(tag = "link", annotation = Links.ADMIN_URL)
+    withStyle(style = SpanStyle(color = Color.Blue)) {
+      append(stringResource(id = R.string.settings_admin_link))
+    }
+    pop()
+  }
+  return annotatedString
 }

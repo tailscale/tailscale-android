@@ -16,21 +16,16 @@ import androidx.compose.ui.unit.dp
 import com.tailscale.ipn.ui.theme.ts_color_light_blue
 
 @Composable
-fun PrimaryActionButton(
-    onClick: () -> Unit,
-    content: @Composable RowScope.() -> Unit
-) {
-    Button(
-        onClick = onClick,
-        colors = ButtonColors(
-            containerColor = ts_color_light_blue,
-            contentColor = Color.White,
-            disabledContainerColor = MaterialTheme.colorScheme.secondary,
-            disabledContentColor = MaterialTheme.colorScheme.onSecondary
-        ),
-        contentPadding = PaddingValues(vertical = 12.dp),
-        modifier = Modifier
-            .fillMaxWidth(),
-        content = content
-    )
+fun PrimaryActionButton(onClick: () -> Unit, content: @Composable RowScope.() -> Unit) {
+  Button(
+      onClick = onClick,
+      colors =
+          ButtonColors(
+              containerColor = ts_color_light_blue,
+              contentColor = Color.White,
+              disabledContainerColor = MaterialTheme.colorScheme.secondary,
+              disabledContentColor = MaterialTheme.colorScheme.onSecondary),
+      contentPadding = PaddingValues(vertical = 12.dp),
+      modifier = Modifier.fillMaxWidth(),
+      content = content)
 }

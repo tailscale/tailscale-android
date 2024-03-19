@@ -37,3 +37,6 @@ tailscale.jks
 #IDE
 .vscode
 .idea
+
+libtailscale.aar
+libtailscale-sources.jar

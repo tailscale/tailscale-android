@@ -3,8 +3,9 @@
 
 package com.tailscale.ipn;
 
-import androidx.work.Worker;
 import android.content.Context;
+
+import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
 public final class StopVPNWorker extends Worker {
@@ -15,10 +16,8 @@ public final class StopVPNWorker extends Worker {
         super(appContext, workerParams);
     }
 
-    @Override public Result doWork() {
-        disconnect();
+    @Override
+    public Result doWork() {
         return Result.success();
     }
-
-    private native void disconnect();
 }
