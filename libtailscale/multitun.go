@@ -1,10 +1,12 @@
 // Copyright (c) Tailscale Inc & AUTHORS
 // SPDX-License-Identifier: BSD-3-Clause
 
-package main
+package libtailscale
 
 import (
+	"log"
 	"os"
+	"runtime/debug"
 
 	"github.com/tailscale/wireguard-go/tun"
 )
@@ -80,6 +82,13 @@ func newTUNDevices() *multiTUN {
 }
 
 func (d *multiTUN) run() {
+	defer func() {
+		if p := recover(); p != nil {
+			log.Printf("panic in multiTUN.run %s: %s", p, debug.Stack())
+			panic(p)
+		}
+	}()
+
 	var devices []*tunDevice
 	// readDone is the readDone channel of the device being read from.
 	var readDone chan struct{}
@@ -162,6 +171,13 @@ func (d *multiTUN) run() {
 
 func (d *multiTUN) readFrom(dev *tunDevice) {
 	defer func() {
+		if p := recover(); p != nil {
+			log.Printf("panic in multiTUN.readFrom %s: %s", p, debug.Stack())
+			panic(p)
+		}
+	}()
+
+	defer func() {
 		dev.readDone <- struct{}{}
 	}()
 	for {
@@ -189,6 +205,13 @@ func (d *multiTUN) readFrom(dev *tunDevice) {
 
 func (d *multiTUN) runDevice(dev *tunDevice) {
 	defer func() {
+		if p := recover(); p != nil {
+			log.Printf("panic in multiTUN.runDevice %s: %s", p, debug.Stack())
+			panic(p)
+		}
+	}()
+
+	defer func() {
 		// The documentation for https://developer.android.com/reference/android/net/VpnService.Builder#establish()
 		// states that "Therefore, after draining the old file
 		// descriptor...", but pending Reads are never unblocked
@@ -199,6 +222,12 @@ func (d *multiTUN) runDevice(dev *tunDevice) {
 	}()
 	// Pump device events.
 	go func() {
+		defer func() {
+			if p := recover(); p != nil {
+				log.Printf("panic in multiTUN.readFrom.events %s: %s", p, debug.Stack())
+				panic(p)
+			}
+		}()
 		for {
 			select {
 			case e := <-dev.dev.Events():

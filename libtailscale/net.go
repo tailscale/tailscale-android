@@ -1,7 +1,7 @@
 // Copyright (c) Tailscale Inc & AUTHORS
 // SPDX-License-Identifier: BSD-3-Clause
 
-package main
+package libtailscale
 
 import (
 	"errors"
@@ -10,9 +10,9 @@ import (
 	"net"
 	"net/netip"
 	"reflect"
+	"runtime/debug"
 	"strings"
 
-	jnipkg "github.com/tailscale/tailscale-android/pkg/jni"
 	"github.com/tailscale/wireguard-go/tun"
 	"golang.org/x/sys/unix"
 	"inet.af/netaddr"
@@ -21,8 +21,6 @@ import (
 	"tailscale.com/util/dnsname"
 	"tailscale.com/wgengine/router"
 )
-
-import "C"
 
 // errVPNNotPrepared is used when VPNService.Builder.establish returns
 // null, either because the VPNService is not yet prepared or because
@@ -37,16 +35,9 @@ var errMultipleUsers = errors.New("VPN cannot be created on this device due to a
 
 // Report interfaces in the device in net.Interface format.
 func (a *App) getInterfaces() ([]interfaces.Interface, error) {
-	var ifaceString string
-	err := jnipkg.Do(a.jvm, func(env *jnipkg.Env) error {
-		cls := jnipkg.GetObjectClass(env, a.appCtx)
-		m := jnipkg.GetMethodID(env, cls, "getInterfacesAsString", "()Ljava/lang/String;")
-		n, err := jnipkg.CallObjectMethod(env, a.appCtx, m)
-		ifaceString = jnipkg.GoString(env, jnipkg.String(n))
-		return err
-
-	})
 	var ifaces []interfaces.Interface
+
+	ifaceString, err := a.appCtx.GetInterfacesAsString()
 	if err != nil {
 		return ifaces, err
 	}
@@ -125,7 +116,7 @@ var googleDNSServers = []netip.Addr{
 	netip.MustParseAddr("2001:4860:4860::8844"),
 }
 
-func (b *backend) updateTUN(service jnipkg.Object, rcfg *router.Config, dcfg *dns.OSConfig) error {
+func (b *backend) updateTUN(service IPNService, rcfg *router.Config, dcfg *dns.OSConfig) error {
 	if reflect.DeepEqual(rcfg, b.lastCfg) && reflect.DeepEqual(dcfg, b.lastDNSCfg) {
 		return nil
 	}
@@ -141,123 +132,75 @@ func (b *backend) updateTUN(service jnipkg.Object, rcfg *router.Config, dcfg *dn
 	if len(rcfg.LocalAddrs) == 0 {
 		return nil
 	}
-	err := jnipkg.Do(b.jvm, func(env *jnipkg.Env) error {
-		cls := jnipkg.GetObjectClass(env, service)
-		// Construct a VPNService.Builder. IPNService.newBuilder calls
-		// setConfigureIntent, and allowFamily for both IPv4 and IPv6.
-		m := jnipkg.GetMethodID(env, cls, "newBuilder", "()Landroid/net/VpnService$Builder;")
-		builder, err := jnipkg.CallObjectMethod(env, service, m)
-		if err != nil {
-			return fmt.Errorf("IPNService.newBuilder: %v", err)
-		}
-		bcls := jnipkg.GetObjectClass(env, builder)
+	builder := service.NewBuilder()
 
-		// builder.setMtu.
-		setMtu := jnipkg.GetMethodID(env, bcls, "setMtu", "(I)Landroid/net/VpnService$Builder;")
-		const mtu = defaultMTU
-		if _, err := jnipkg.CallObjectMethod(env, builder, setMtu, jnipkg.Value(mtu)); err != nil {
-			return fmt.Errorf("VpnService.Builder.setMtu: %v", err)
-		}
-
-		// builder.addDnsServer
-		addDnsServer := jnipkg.GetMethodID(env, bcls, "addDnsServer", "(Ljava/lang/String;)Landroid/net/VpnService$Builder;")
-		// builder.addSearchDomain.
-		addSearchDomain := jnipkg.GetMethodID(env, bcls, "addSearchDomain", "(Ljava/lang/String;)Landroid/net/VpnService$Builder;")
-		if dcfg != nil {
-			nameservers := dcfg.Nameservers
-			if b.avoidEmptyDNS && len(nameservers) == 0 {
-				nameservers = googleDNSServers
-			}
-			for _, dns := range nameservers {
-				_, err = jnipkg.CallObjectMethod(env,
-					builder,
-					addDnsServer,
-					jnipkg.Value(jnipkg.JavaString(env, dns.String())),
-				)
-				if err != nil {
-					return fmt.Errorf("VpnService.Builder.addDnsServer(%v): %v", dns, err)
-				}
-			}
-
-			for _, dom := range dcfg.SearchDomains {
-				_, err = jnipkg.CallObjectMethod(env,
-					builder,
-					addSearchDomain,
-					jnipkg.Value(jnipkg.JavaString(env, dom.WithoutTrailingDot())),
-				)
-				if err != nil {
-					return fmt.Errorf("VpnService.Builder.addSearchDomain(%v): %v", dom, err)
-				}
-			}
-		}
-
-		// builder.addRoute.
-		addRoute := jnipkg.GetMethodID(env, bcls, "addRoute", "(Ljava/lang/String;I)Landroid/net/VpnService$Builder;")
-		for _, route := range rcfg.Routes {
-			// Normalize route address; Builder.addRoute does not accept non-zero masked bits.
-			route = route.Masked()
-			_, err = jnipkg.CallObjectMethod(env,
-				builder,
-				addRoute,
-				jnipkg.Value(jnipkg.JavaString(env, route.Addr().String())),
-				jnipkg.Value(route.Bits()),
-			)
-			if err != nil {
-				return fmt.Errorf("VpnService.Builder.addRoute(%v): %v", route, err)
-			}
-		}
-
-		// builder.addAddress.
-		addAddress := jnipkg.GetMethodID(env, bcls, "addAddress", "(Ljava/lang/String;I)Landroid/net/VpnService$Builder;")
-		for _, addr := range rcfg.LocalAddrs {
-			_, err = jnipkg.CallObjectMethod(env,
-				builder,
-				addAddress,
-				jnipkg.Value(jnipkg.JavaString(env, addr.Addr().String())),
-				jnipkg.Value(addr.Bits()),
-			)
-			if err != nil {
-				return fmt.Errorf("VpnService.Builder.addAddress(%v): %v", addr, err)
-			}
-		}
-
-		// builder.establish.
-		establish := jnipkg.GetMethodID(env, bcls, "establish", "()Landroid/os/ParcelFileDescriptor;")
-		parcelFD, err := jnipkg.CallObjectMethod(env, builder, establish)
-		if err != nil {
-			if strings.Contains(err.Error(), "INTERACT_ACROSS_USERS") {
-				return errMultipleUsers
-			}
-			return fmt.Errorf("VpnService.Builder.establish: %v", err)
-		}
-		if parcelFD == 0 {
-			return errVPNNotPrepared
-		}
-
-		// detachFd.
-		parcelCls := jnipkg.GetObjectClass(env, parcelFD)
-		detachFd := jnipkg.GetMethodID(env, parcelCls, "detachFd", "()I")
-		tunFD, err := jnipkg.CallIntMethod(env, parcelFD, detachFd)
-		if err != nil {
-			return fmt.Errorf("detachFd: %v", err)
-		}
-
-		// Create TUN device.
-		tunDev, _, err := tun.CreateUnmonitoredTUNFromFD(int(tunFD))
-		if err != nil {
-			unix.Close(int(tunFD))
-			return err
-		}
-
-		b.devices.add(tunDev)
-
-		return nil
-	})
-	if err != nil {
-		b.lastCfg = nil
-		b.CloseTUNs()
+	if err := builder.SetMTU(defaultMTU); err != nil {
 		return err
 	}
+	if dcfg != nil {
+		nameservers := dcfg.Nameservers
+		if b.avoidEmptyDNS && len(nameservers) == 0 {
+			nameservers = googleDNSServers
+		}
+		for _, dns := range nameservers {
+			if err := builder.AddDNSServer(dns.String()); err != nil {
+				return err
+			}
+		}
+		for _, dom := range dcfg.SearchDomains {
+			if err := builder.AddSearchDomain(dom.WithoutTrailingDot()); err != nil {
+				return err
+			}
+		}
+	}
+
+	for _, route := range rcfg.Routes {
+		// Normalize route address; Builder.addRoute does not accept non-zero masked bits.
+		route = route.Masked()
+		if err := builder.AddRoute(route.Addr().String(), int32(route.Bits())); err != nil {
+			return err
+		}
+	}
+
+	for _, addr := range rcfg.LocalAddrs {
+		if err := builder.AddAddress(addr.Addr().String(), int32(addr.Bits())); err != nil {
+			return err
+		}
+	}
+
+	parcelFD, err := builder.Establish()
+	if err != nil {
+		if strings.Contains(err.Error(), "INTERACT_ACROSS_USERS") {
+			return errMultipleUsers
+		}
+		return fmt.Errorf("VpnService.Builder.establish: %v", err)
+	}
+
+	if parcelFD == nil {
+		return errVPNNotPrepared
+	}
+
+	// detachFd.
+	tunFD, err := parcelFD.Detach()
+	if err != nil {
+		return fmt.Errorf("detachFd: %v", err)
+	}
+
+	// Create TUN device.
+	tunDev, _, err := tun.CreateUnmonitoredTUNFromFD(int(tunFD))
+	if err != nil {
+		unix.Close(int(tunFD))
+		return err
+	}
+
+	b.devices.add(tunDev)
+
+	// TODO(oxtoacart): figure out what to do with this
+	// if err != nil {
+	// 	b.lastCfg = nil
+	// 	b.CloseTUNs()
+	// 	return err
+	// }
 	b.lastCfg = rcfg
 	b.lastDNSCfg = dcfg
 	return nil
@@ -270,6 +213,13 @@ func (b *backend) CloseTUNs() {
 }
 
 func (b *backend) NetworkChanged() {
+	defer func() {
+		if p := recover(); p != nil {
+			log.Printf("panic in NetworkChanged %s: %s", p, debug.Stack())
+			panic(p)
+		}
+	}()
+
 	if b.sys != nil {
 		if nm, ok := b.sys.NetMon.GetOK(); ok {
 			nm.InjectEvent()
@@ -285,7 +235,7 @@ func (b *backend) getDNSBaseConfig() (ret dns.OSConfig, _ error) {
 		// DNS config are lacking, and almost all Android phones use Google
 		// services anyway, so it's a reasonable default: it's an ecosystem the
 		// user has selected by having an Android device.
-		if len(ret.Nameservers) == 0 && googleSignInEnabled() {
+		if len(ret.Nameservers) == 0 && b.appCtx.IsPlayVersion() {
 			log.Printf("getDNSBaseConfig: none found; falling back to Google public DNS")
 			ret.Nameservers = append(ret.Nameservers, googleDNSServers...)
 		}
@@ -320,25 +270,7 @@ func (b *backend) getDNSBaseConfig() (ret dns.OSConfig, _ error) {
 }
 
 func (b *backend) getPlatformDNSConfig() string {
-	var baseConfig string
-	err := jnipkg.Do(b.jvm, func(env *jnipkg.Env) error {
-		cls := jnipkg.GetObjectClass(env, b.appCtx)
-		m := jnipkg.GetMethodID(env, cls, "getDnsConfigObj", "()Lcom/tailscale/ipn/DnsConfig;")
-		dns, err := jnipkg.CallObjectMethod(env, b.appCtx, m)
-		if err != nil {
-			return fmt.Errorf("getDnsConfigObj: %v", err)
-		}
-		dnsCls := jnipkg.GetObjectClass(env, dns)
-		m = jnipkg.GetMethodID(env, dnsCls, "getDnsConfigAsString", "()Ljava/lang/String;")
-		n, err := jnipkg.CallObjectMethod(env, dns, m)
-		baseConfig = jnipkg.GoString(env, jnipkg.String(n))
-		return err
-	})
-	if err != nil {
-		log.Printf("getPlatformDNSConfig JNI: %v", err)
-		return ""
-	}
-	return baseConfig
+	return b.appCtx.GetPlatformDNSConfig()
 }
 
 func (b *backend) setCfg(rcfg *router.Config, dcfg *dns.OSConfig) error {

@@ -6,7 +6,6 @@ DEBUG_APK=tailscale-debug.apk
 RELEASE_AAB=tailscale-release.aab
 APPID=com.tailscale.ipn
 AAR=android_legacy/libs/ipn.aar
-AAR_NEXTGEN=android/libs/ipn.aar
 KEYSTORE=tailscale.jks
 KEYSTORE_ALIAS=tailscale
 TAILSCALE_VERSION=$(shell ./version/tailscale-version.sh 200)
@@ -136,12 +135,6 @@ $(AAR): toolchain checkandroidsdk
 		-ldflags "-X tailscale.com/version.longStamp=$(VERSIONNAME) -X tailscale.com/version.shortStamp=$(VERSIONNAME_SHORT) -X tailscale.com/version.gitCommitStamp=$(TAILSCALE_COMMIT) -X tailscale.com/version.extraGitCommitStamp=$(OUR_VERSION)" \
 		-buildmode archive -target android -appid $(APPID) -tags novulkan,tailscale_go -o $@ github.com/tailscale/tailscale-android/cmd/tailscale
 
-$(AAR_NEXTGEN): $(AAR)
-	@mkdir -p android/libs && \
-	cp $(AAR) $(AAR_NEXTGEN)
-
-lib: $(AAR_NEXTGEN)
-
 # tailscale-debug.apk builds a debuggable APK with the Google Play SDK.
 $(DEBUG_APK): $(AAR)
 	(cd android_legacy && ./gradlew test assemblePlayDebug)
@@ -152,6 +145,33 @@ apk: $(DEBUG_APK)
 run: install
 	adb shell am start -n com.tailscale.ipn/com.tailscale.ipn.IPNActivity
 
+GOMOBILE=/tmp/gopath/bin/gomobile
+GOBIND=/tmp/gopath/bin/gobind
+LIBTAILSCALE=android/libs/libtailscale.aar
+LIBTAILSCALE_SOURCES=$(shell find libtailscale -name *.go) go.mod go.sum
+
+$(GOMOBILE):
+	@echo "building gomobile" && \
+	export GOPATH=/tmp/gopath && \
+	mkdir -p $$GOPATH && \
+	export PATH=$$PATH:$$GOPATH/bin && \
+	go install golang.org/x/mobile/cmd/gomobile@latest
+
+$(GOBIND): $(GOMOBILE)
+	@export GOPATH=/tmp/gopath && \
+	$(GOMOBILE) init
+
+gomobile: $(GOBIND)
+
+$(LIBTAILSCALE): $(LIBTAILSCALE_SOURCES) $(GOBIND)
+	@export GOPATH=/tmp/gopath && \
+	export PATH=$$PATH:$$GOPATH/bin && \
+	$(GOMOBILE) bind -target android -androidapi 26 ./libtailscale && \
+	mkdir -p android/libs/ && \
+	cp libtailscale.aar $(LIBTAILSCALE)
+
+libtailscale: $(LIBTAILSCALE)
+
 # tailscale-fdroid.apk builds a non-Google Play SDK, without the Google bits.
 # This is effectively what the F-Droid build definition produces.
 # This is useful for testing on e.g. Amazon Fire Stick devices.
@@ -159,12 +179,12 @@ tailscale-fdroid.apk: $(AAR)
 	(cd android_legacy && ./gradlew test assembleFdroidDebug)
 	mv android_legacy/build/outputs/apk/fdroid/debug/android_legacy-fdroid-debug.apk $@
 
-tailscale-new-fdroid.apk: $(AAR_NEXTGEN)
+tailscale-new-fdroid.apk: $(LIBTAILSCALE)
 	(cd android && ./gradlew test assembleFdroidDebug)
 	mv android/build/outputs/apk/fdroid/debug/android-fdroid-debug.apk $@
 
-tailscale-new-debug.apk: 
-	(cd android && ./gradlew test buildAllGoLibs assemblePlayDebug)
+tailscale-new-debug.apk: $(LIBTAILSCALE)
+	(cd android && ./gradlew test assemblePlayDebug)
 	mv android/build/outputs/apk/play/debug/android-play-debug.apk $@
 
 tailscale-new-debug: tailscale-new-debug.apk
@@ -190,4 +210,4 @@ clean:
 	-rm -rf android_legacy/build $(DEBUG_APK) $(RELEASE_AAB) $(AAR) tailscale-fdroid.apk
 	-pkill -f gradle
 
-.PHONY: all clean install android_legacy/lib $(DEBUG_APK) $(RELEASE_AAB) $(AAR) release bump_version dockershell lib
+.PHONY: all clean install android_legacy/lib $(DEBUG_APK) $(RELEASE_AAB) $(AAR) release bump_version dockershell lib tailscale-new-debug

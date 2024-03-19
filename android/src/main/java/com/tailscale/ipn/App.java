@@ -33,6 +33,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.provider.MediaStore;
 import android.provider.Settings;
+import android.util.Log;
 
 import androidx.browser.customtabs.CustomTabsIntent;
 import androidx.core.app.NotificationCompat;
@@ -46,6 +47,8 @@ import com.tailscale.ipn.mdm.BooleanSetting;
 import com.tailscale.ipn.mdm.MDMSettings;
 import com.tailscale.ipn.mdm.ShowHideSetting;
 import com.tailscale.ipn.mdm.StringSetting;
+import com.tailscale.ipn.ui.localapi.Request;
+import com.tailscale.ipn.ui.notifier.Notifier;
 
 import java.io.File;
 import java.io.IOException;
@@ -57,7 +60,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-public class App extends Application {
+import libtailscale.Libtailscale;
+
+public class App extends Application implements libtailscale.AppContext {
     static final String STATUS_CHANNEL_ID = "tailscale-status";
     static final int STATUS_NOTIFICATION_ID = 1;
     static final String NOTIFY_CHANNEL_ID = "tailscale-notify";
@@ -74,7 +79,15 @@ public class App extends Application {
     private ConnectivityManager connectivityManager;
 
     public static App getApplication() {
+        // TODO: this should be injected to MDMSettings by grabbing it from the activity's context
+        // rather than being a static singleton.
         return _application;
+    }
+
+    private libtailscale.Application app;
+
+    public libtailscale.Application getTailscaleApp() {
+        return app;
     }
 
     private static boolean isEmpty(String str) {
@@ -86,34 +99,33 @@ public class App extends Application {
         f.startActivityForResult(intent, request);
     }
 
-    static native void initBackend(byte[] dataDir, Context context);
-    
-    static native void onVPNPrepared();
-
-    private static native void onDnsConfigChanged();
-
-    static native void onShareIntent(int nfiles, int[] types, String[] mimes, String[] items, String[] names, long[] sizes);
-
-    static native void onWriteStorageGranted();
-
     public DnsConfig getDnsConfigObj() {
         return this.dns;
+    }
+
+    @Override
+    public String getPlatformDNSConfig() {
+        return dns.getDnsConfigAsString();
+    }
+
+    @Override
+    public boolean isPlayVersion() {
+        return MaybeGoogle.isGoogle();
+    }
+
+    @Override
+    public void log(String s, String s1) {
+        Log.d(s, s1);
     }
 
     @Override
     public void onCreate() {
         super.onCreate();
 
-        System.loadLibrary("tailscale");
-
         String dataDir = this.getFilesDir().getAbsolutePath();
-        byte[] dataDirUTF8;
-        try {
-            dataDirUTF8 = dataDir.getBytes("UTF-8");
-            initBackend(dataDirUTF8, this);
-        } catch (Exception e) {
-            android.util.Log.d("tailscale", "Error getting directory");
-        }
+        app = Libtailscale.start(dataDir, this);
+        Request.setApp(app);
+        Notifier.setApp(app);
 
         this.connectivityManager = (ConnectivityManager) this.getSystemService(Context.CONNECTIVITY_SERVICE);
         setAndRegisterNetworkCallbacks();
@@ -145,13 +157,13 @@ public class App extends Application {
                 }
 
                 dns.updateDNSFromNetwork(sb.toString());
-                onDnsConfigChanged();
+                Libtailscale.onDnsConfigChanged();
             }
 
             @Override
             public void onLost(Network network) {
                 super.onLost(network);
-                onDnsConfigChanged();
+                Libtailscale.onDnsConfigChanged();
             }
         });
     }
@@ -221,7 +233,7 @@ public class App extends Application {
         return getModelName();
     }
 
-    String getModelName() {
+    public String getModelName() {
         String manu = Build.MANUFACTURER;
         String model = Build.MODEL;
         // Strip manufacturer from model.
@@ -233,7 +245,7 @@ public class App extends Application {
         return manu + " " + model;
     }
 
-    String getOSVersion() {
+    public String getOSVersion() {
         return Build.VERSION.RELEASE;
     }
 
@@ -259,7 +271,7 @@ public class App extends Application {
         });
     }
 
-    boolean isChromeOS() {
+    public boolean isChromeOS() {
         return getPackageManager().hasSystemFeature("android.hardware.type.pc");
     }
 
@@ -269,7 +281,7 @@ public class App extends Application {
             public void run() {
                 Intent intent = VpnService.prepare(act);
                 if (intent == null) {
-                    onVPNPrepared();
+                    Libtailscale.onVPNPrepared();
                 } else {
                     startActivityForResult(act, intent, reqCode);
                 }
@@ -386,7 +398,7 @@ public class App extends Application {
     //
     // Where the fields are:
     // name ifindex mtu isUp hasBroadcast isLoopback isPointToPoint hasMulticast | ip1/N ip2/N ip3/N;
-    String getInterfacesAsString() {
+    public String getInterfacesAsString() {
         List<NetworkInterface> interfaces;
         try {
             interfaces = Collections.list(NetworkInterface.getNetworkInterfaces());

@@ -1,17 +1,16 @@
 // Copyright (c) Tailscale Inc & AUTHORS
 // SPDX-License-Identifier: BSD-3-Clause
 
-package main
+package libtailscale
 
 import (
 	"context"
 	"log"
 	"net/http"
 	"path/filepath"
+	"runtime/debug"
 	"time"
-	"unsafe"
 
-	jnipkg "github.com/tailscale/tailscale-android/pkg/jni"
 	"tailscale.com/logpolicy"
 	"tailscale.com/logtail"
 	"tailscale.com/logtail/filch"
@@ -21,13 +20,6 @@ import (
 	"tailscale.com/types/logid"
 	"tailscale.com/util/clientmetric"
 	"tailscale.com/util/must"
-)
-
-import "C"
-
-var (
-	// googleClass is a global reference to the com.tailscale.ipn.Google class.
-	googleClass jnipkg.Class
 )
 
 const defaultMTU = 1280 // minimalMTU from wgengine/userspace.go
@@ -42,25 +34,30 @@ type ConnectEvent struct {
 	Enable bool
 }
 
-func main() {
+func newApp(dataDir string, appCtx AppContext) Application {
 	a := &App{
-		jvm:    (*jnipkg.JVM)(unsafe.Pointer(javaVM())),
-		appCtx: jnipkg.Object(appContext()),
+		dataDir: dataDir,
+		appCtx:  appCtx,
 	}
+	a.ready.Add(1)
 
-	err := a.loadJNIGlobalClassRefs()
-	if err != nil {
-		fatalErr(err)
-	}
-
-	a.store = newStateStore(a.jvm, a.appCtx)
+	a.store = newStateStore(a.appCtx)
 	interfaces.RegisterInterfaceGetter(a.getInterfaces)
 	go func() {
+		defer func() {
+			if p := recover(); p != nil {
+				log.Printf("panic in runBackend %s: %s", p, debug.Stack())
+				panic(p)
+			}
+		}()
+
 		ctx := context.Background()
 		if err := a.runBackend(ctx); err != nil {
 			fatalErr(err)
 		}
 	}()
+
+	return a
 }
 
 func fatalErr(err error) {
@@ -71,14 +68,7 @@ func fatalErr(err error) {
 // osVersion returns android.os.Build.VERSION.RELEASE. " [nogoogle]" is appended
 // if Google Play services are not compiled in.
 func (a *App) osVersion() string {
-	var version string
-	err := jnipkg.Do(a.jvm, func(env *jnipkg.Env) error {
-		cls := jnipkg.GetObjectClass(env, a.appCtx)
-		m := jnipkg.GetMethodID(env, cls, "getOSVersion", "()Ljava/lang/String;")
-		n, err := jnipkg.CallObjectMethod(env, a.appCtx, m)
-		version = jnipkg.GoString(env, jnipkg.String(n))
-		return err
-	})
+	version, err := a.appCtx.GetOSVersion()
 	if err != nil {
 		panic(err)
 	}
@@ -88,14 +78,7 @@ func (a *App) osVersion() string {
 // modelName return the MANUFACTURER + MODEL from
 // android.os.Build.
 func (a *App) modelName() string {
-	var model string
-	err := jnipkg.Do(a.jvm, func(env *jnipkg.Env) error {
-		cls := jnipkg.GetObjectClass(env, a.appCtx)
-		m := jnipkg.GetMethodID(env, cls, "getModelName", "()Ljava/lang/String;")
-		n, err := jnipkg.CallObjectMethod(env, a.appCtx, m)
-		model = jnipkg.GoString(env, jnipkg.String(n))
-		return err
-	})
+	model, err := a.appCtx.GetModelName()
 	if err != nil {
 		panic(err)
 	}
@@ -103,37 +86,11 @@ func (a *App) modelName() string {
 }
 
 func (a *App) isChromeOS() bool {
-	var chromeOS bool
-	err := jnipkg.Do(a.jvm, func(env *jnipkg.Env) error {
-		cls := jnipkg.GetObjectClass(env, a.appCtx)
-		m := jnipkg.GetMethodID(env, cls, "isChromeOS", "()Z")
-		b, err := jnipkg.CallBooleanMethod(env, a.appCtx, m)
-		chromeOS = b
-		return err
-	})
+	isChromeOS, err := a.appCtx.IsChromeOS()
 	if err != nil {
 		panic(err)
 	}
-	return chromeOS
-}
-
-func googleSignInEnabled() bool {
-	return googleClass != 0
-}
-
-// Loads the global JNI class references.  Failures here are fatal if the
-// class ref is required for the app to function.
-func (a *App) loadJNIGlobalClassRefs() error {
-	return jnipkg.Do(a.jvm, func(env *jnipkg.Env) error {
-		loader := jnipkg.ClassLoaderFor(env, a.appCtx)
-		cl, err := jnipkg.LoadClass(env, loader, "com.tailscale.ipn.Google")
-		if err != nil {
-			// Ignore load errors; the Google class is not included in F-Droid builds.
-			return nil
-		}
-		googleClass = jnipkg.Class(jnipkg.NewGlobalRef(env, jnipkg.Object(cl)))
-		return nil
-	})
+	return isChromeOS
 }
 
 // SetupLogs sets up remote logging.
