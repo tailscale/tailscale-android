@@ -28,7 +28,7 @@ public final class Google {
 					.build();
 				GoogleSignInClient client = GoogleSignIn.getClient(act, gso);
 				Intent signInIntent = client.getSignInIntent();
-				App.startActivityForResult(act, signInIntent, reqCode);
+				App.Companion.startActivityForResult(act, signInIntent, reqCode);
 			}
 		});
 	}

@@ -31,7 +31,11 @@ public class DnsConfig {
     //
     // an empty string means the current DNS configuration could not be retrieved.
     String getDnsConfigAsString() {
-        return getDnsConfigs().trim();
+        String dnsConfig = getDnsConfigs();
+        if (dnsConfig != null) {
+            return getDnsConfigs().trim();
+        }
+        return "";
     }
 
     private String getDnsConfigs() {

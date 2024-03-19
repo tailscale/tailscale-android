@@ -43,6 +43,7 @@ import com.tailscale.ipn.ui.viewModel.SettingsNav
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import com.tailscale.ipn.App
 
 class MainActivity : ComponentActivity() {
   private var notifierScope: CoroutineScope? = null
@@ -102,6 +103,11 @@ class MainActivity : ComponentActivity() {
           composable("managedBy") { ManagedByView() }
           composable("userSwitcher") { UserSwitcherView() }
         }
+      }
+    }
+    lifecycleScope.launch {
+      Notifier.readyToPrepareVPN.collect { isReady ->
+        if (isReady) App.getApplication().prepareVPN(this@MainActivity, -1)
       }
     }
   }
