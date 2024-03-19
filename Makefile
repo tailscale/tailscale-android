@@ -21,6 +21,7 @@ TAILSCALE_COMMIT=$(shell echo $(TAILSCALE_VERSION) | cut -d - -f 2 | cut -d t -f
 # Extract the version code from build.gradle.
 VERSIONCODE=$(lastword $(shell grep versionCode android_legacy/build.gradle))
 VERSIONCODE_PLUSONE=$(shell expr $(VERSIONCODE) + 1)
+VERSION_LDFLAGS="-X tailscale.com/version.longStamp=$(VERSIONNAME) -X tailscale.com/version.shortStamp=$(VERSIONNAME_SHORT) -X tailscale.com/version.gitCommitStamp=$(TAILSCALE_COMMIT) -X tailscale.com/version.extraGitCommitStamp=$(OUR_VERSION)"
 ifeq ($(shell uname),Linux)
 	ANDROID_TOOLS_URL="https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip"
 	ANDROID_TOOLS_SUM="bd1aa17c7ef10066949c88dc6c9c8d536be27f992a1f3b5a584f9bd2ba5646a0  commandlinetools-linux-9477386_latest.zip"
@@ -63,10 +64,16 @@ endif
 # version in tailscale.com/cmd/printdep.
 TOOLCHAINDIR ?= ${HOME}/.cache/tailscale-android-go-$(shell go run tailscale.com/cmd/printdep --go)
 
-export PATH := $(TOOLCHAINDIR)/bin:$(JAVA_HOME)/bin:$(ANDROID_HOME)/cmdline-tools/latest/bin:$(ANDROID_HOME)/platform-tools:$(PATH)
+# TODO: GOPATH should be handled more cleanly here, but gomobile installs files
+# into GOPATH/bin and expects them in $PATH. Ideally we'd move GOPATH entirely
+# inside the build output directory, but as Go marks all the files recursively
+# read only that makes clean more complex as well. We run the risk of
+# $(TOOLCHAINDIR)/bin/go and "go" providing different answers, but today that
+# would be extremely unlikely.
+export PATH := $(TOOLCHAINDIR)/bin:$(JAVA_HOME)/bin:$(shell go env GOPATH)/bin:$(ANDROID_HOME)/cmdline-tools/latest/bin:$(ANDROID_HOME)/platform-tools:$(PATH)
 export GOROOT := # Unset
 
-all: $(DEBUG_APK) tailscale-fdroid.apk
+all: tailscale-new-debug.apk test $(DEBUG_APK) tailscale-fdroid.apk
 
 env:
 	@echo PATH=$(PATH)
@@ -132,7 +139,7 @@ toolchain: $(TOOLCHAINDIR)/bin/go
 $(AAR): toolchain checkandroidsdk
 	@mkdir -p android_legacy/libs && \
 	go run gioui.org/cmd/gogio \
-		-ldflags "-X tailscale.com/version.longStamp=$(VERSIONNAME) -X tailscale.com/version.shortStamp=$(VERSIONNAME_SHORT) -X tailscale.com/version.gitCommitStamp=$(TAILSCALE_COMMIT) -X tailscale.com/version.extraGitCommitStamp=$(OUR_VERSION)" \
+		-ldflags $(VERSION_LDFLAGS) \
 		-buildmode archive -target android -appid $(APPID) -tags novulkan,tailscale_go -o $@ github.com/tailscale/tailscale-android/cmd/tailscale
 
 # tailscale-debug.apk builds a debuggable APK with the Google Play SDK.
@@ -140,10 +147,21 @@ $(DEBUG_APK): $(AAR)
 	(cd android_legacy && ./gradlew test assemblePlayDebug)
 	mv android_legacy/build/outputs/apk/play/debug/android_legacy-play-debug.apk $@
 
-apk: $(DEBUG_APK)
+# tailscale-fdroid.apk builds a non-Google Play SDK, without the Google bits.
+# This is effectively what the F-Droid build definition produces.
+# This is useful for testing on e.g. Amazon Fire Stick devices.
+tailscale-fdroid.apk: $(AAR)
+	(cd android_legacy && ./gradlew test assembleFdroidDebug)
+	mv android_legacy/build/outputs/apk/fdroid/debug/android_legacy-fdroid-debug.apk $@
 
-run: install
-	adb shell am start -n com.tailscale.ipn/com.tailscale.ipn.IPNActivity
+$(RELEASE_AAB): $(AAR)
+	(cd android_legacy && ./gradlew test bundlePlayRelease)
+	mv ./android_legacy/build/outputs/bundle/playRelease/android_legacy-play-release.aab $@
+
+release: $(RELEASE_AAB)
+	jarsigner -sigalg SHA256withRSA -digestalg SHA-256 -keystore $(KEYSTORE) $(RELEASE_AAB) $(KEYSTORE_ALIAS)
+
+apk: $(DEBUG_APK)
 
 LIBTAILSCALE=android/libs/libtailscale.aar
 LIBTAILSCALE_SOURCES=$(shell find libtailscale -name *.go) go.mod go.sum
@@ -151,18 +169,22 @@ LIBTAILSCALE_SOURCES=$(shell find libtailscale -name *.go) go.mod go.sum
 android/libs:
 	mkdir -p android/libs
 
-$(LIBTAILSCALE): android/libs $(LIBTAILSCALE_SOURCES)
-	go run golang.org/x/mobile/cmd/gomobile init
-	go run golang.org/x/mobile/cmd/gomobile bind -target android -androidapi 26 -o $@ ./libtailscale
+android/build/go:
+	mkdir -p android/build/go
+
+GOMOBILE=android/build/go/gomobile
+$(GOMOBILE): go.mod go.sum $(TOOLCHAINDIR)/bin/go
+	$(TOOLCHAINDIR)/bin/go build -o android/build/go/gomobile golang.org/x/mobile/cmd/gomobile
+
+# TODO: the version names used below parse the legacy version information,
+# though hopefully they won't substantially differ for now.
+$(LIBTAILSCALE): Makefile android/libs android/build/go/gomobile $(LIBTAILSCALE_SOURCES)
+	./$(GOMOBILE) init
+	./$(GOMOBILE) bind -target android -androidapi 26 \
+		-ldflags $(VERSION_LDFLAGS) \
+		-o $@ ./libtailscale
 
 libtailscale: $(LIBTAILSCALE)
-
-# tailscale-fdroid.apk builds a non-Google Play SDK, without the Google bits.
-# This is effectively what the F-Droid build definition produces.
-# This is useful for testing on e.g. Amazon Fire Stick devices.
-tailscale-fdroid.apk: $(AAR)
-	(cd android_legacy && ./gradlew test assembleFdroidDebug)
-	mv android_legacy/build/outputs/apk/fdroid/debug/android_legacy-fdroid-debug.apk $@
 
 tailscale-new-fdroid.apk: $(LIBTAILSCALE)
 	(cd android && ./gradlew test assembleFdroidDebug)
@@ -174,25 +196,21 @@ tailscale-new-debug.apk: $(LIBTAILSCALE)
 
 tailscale-new-debug: tailscale-new-debug.apk
 
-test: $(AAR_NEXTGEN)
+test: $(LIBTAILSCALE)
 	(cd android && ./gradlew test)
 
-$(RELEASE_AAB): $(AAR)
-	(cd android_legacy && ./gradlew test bundlePlayRelease)
-	mv ./android_legacy/build/outputs/bundle/playRelease/android_legacy-play-release.aab $@
+install: tailscale-new-debug.apk
+	adb install -r $<
 
-release: $(RELEASE_AAB)
-	jarsigner -sigalg SHA256withRSA -digestalg SHA-256 -keystore $(KEYSTORE) $(RELEASE_AAB) $(KEYSTORE_ALIAS)
-
-install: $(DEBUG_APK)
-	adb install -r $(DEBUG_APK)
+run: install
+	adb shell am start -n com.tailscale.ipn/com.tailscale.ipn.IPNActivity
 
 dockershell:
 	docker build -t tailscale-android .
 	docker run -v $(CURDIR):/build/tailscale-android -it --rm tailscale-android
 
 clean:
-	-rm -rf android_legacy/build $(DEBUG_APK) $(RELEASE_AAB) $(AAR) tailscale-fdroid.apk
+	-rm -rf android/build android_legacy/build $(DEBUG_APK) $(RELEASE_AAB) $(AAR) $(LIBTAILSCALE) android/libs tailscale-fdroid.apk *.apk
 	-pkill -f gradle
 
 .PHONY: all clean install android_legacy/lib $(DEBUG_APK) $(RELEASE_AAB) $(AAR) release bump_version dockershell lib tailscale-new-debug
