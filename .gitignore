@@ -8,6 +8,9 @@ build
 android/libs
 android_legacy/libs
 
+# Ignore ABI
+android/src/main/jniLibs/*
+
 # Android Studio files
 android_legacy/.idea
 android_legacy/local.properties

@@ -47,8 +47,6 @@ import com.tailscale.ipn.mdm.MDMSettings;
 import com.tailscale.ipn.mdm.ShowHideSetting;
 import com.tailscale.ipn.mdm.StringSetting;
 
-import org.gioui.Gio;
-
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -88,6 +86,8 @@ public class App extends Application {
         f.startActivityForResult(intent, request);
     }
 
+    static native void initBackend(byte[] dataDir, Context context);
+    
     static native void onVPNPrepared();
 
     private static native void onDnsConfigChanged();
@@ -103,8 +103,17 @@ public class App extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        // Load and initialize the Go library.
-        Gio.init(this);
+
+        System.loadLibrary("tailscale");
+
+        String dataDir = this.getFilesDir().getAbsolutePath();
+        byte[] dataDirUTF8;
+        try {
+            dataDirUTF8 = dataDir.getBytes("UTF-8");
+            initBackend(dataDirUTF8, this);
+        } catch (Exception e) {
+            android.util.Log.d("tailscale", "Error getting directory");
+        }
 
         this.connectivityManager = (ConnectivityManager) this.getSystemService(Context.CONNECTIVITY_SERVICE);
         setAndRegisterNetworkCallbacks();
