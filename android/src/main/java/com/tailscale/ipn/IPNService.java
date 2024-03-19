@@ -13,9 +13,20 @@ import android.system.OsConstants;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
-public class IPNService extends VpnService {
+import java.util.UUID;
+
+import libtailscale.Libtailscale;
+
+public class IPNService extends VpnService implements libtailscale.IPNService {
     public static final String ACTION_REQUEST_VPN = "com.tailscale.ipn.REQUEST_VPN";
     public static final String ACTION_STOP_VPN = "com.tailscale.ipn.STOP_VPN";
+
+    private final String randomID = UUID.randomUUID().toString();
+
+    @Override
+    public String id() {
+        return randomID;
+    }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -30,21 +41,17 @@ public class IPNService extends VpnService {
             i.setPackage(getPackageName());
             i.setClass(getApplicationContext(), com.tailscale.ipn.IPNReceiver.class);
             sendBroadcast(i);
-            requestVPN();
-            connect();
+            Libtailscale.requestVPN(this);
             return START_STICKY;
         }
-        requestVPN();
+        Libtailscale.requestVPN(this);
         App app = ((App) getApplicationContext());
-        if (app.vpnReady && app.autoConnect) {
-            connect();
-        }
         return START_STICKY;
     }
 
     private void close() {
         stopForeground(true);
-        disconnect();
+        Libtailscale.serviceDisconnect(this);
     }
 
     @Override
@@ -71,7 +78,7 @@ public class IPNService extends VpnService {
         }
     }
 
-    protected VpnService.Builder newBuilder() {
+    public libtailscale.VPNServiceBuilder newBuilder() {
         VpnService.Builder b = new VpnService.Builder()
                 .setConfigureIntent(configIntent())
                 .allowFamily(OsConstants.AF_INET)
@@ -100,7 +107,7 @@ public class IPNService extends VpnService {
         // Google Chromecast https://github.com/tailscale/tailscale/issues/3636
         this.disallowApp(b, "com.google.android.apps.chromecast.app");
 
-        return b;
+        return new VPNServiceBuilder(b);
     }
 
     public void notify(String title, String message) {
@@ -127,10 +134,4 @@ public class IPNService extends VpnService {
 
         startForeground(App.STATUS_NOTIFICATION_ID, builder.build());
     }
-
-    private native void requestVPN();
-
-    private native void disconnect();
-
-    private native void connect();
 }

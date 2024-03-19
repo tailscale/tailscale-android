@@ -14,6 +14,8 @@ import android.provider.OpenableColumns;
 
 import java.util.List;
 
+import libtailscale.Libtailscale;
+
 public final class IPNActivity extends Activity {
     final static int WRITE_STORAGE_RESULT = 1000;
 
@@ -82,14 +84,15 @@ public final class IPNActivity extends Activity {
                 nfiles++;
             }
         }
-        App.onShareIntent(nfiles, types, mimes, items, names, sizes);
+        // TODO(oxtoacart): actually implement this
+//        App.onShareIntent(nfiles, types, mimes, items, names, sizes);
     }
 
     @Override
     public void onRequestPermissionsResult(int reqCode, String[] perms, int[] grants) {
         if (reqCode == WRITE_STORAGE_RESULT) {
             if (grants.length > 0 && grants[0] == PackageManager.PERMISSION_GRANTED) {
-                App.onWriteStorageGranted();
+                Libtailscale.onWriteStorageGranted();
             }
         }
     }

@@ -1,47 +1,26 @@
 // Copyright (c) Tailscale Inc & AUTHORS
 // SPDX-License-Identifier: BSD-3-Clause
 
-package main
+package libtailscale
 
 import (
 	"encoding/base64"
 
 	"tailscale.com/ipn"
-
-	jnipkg "github.com/tailscale/tailscale-android/pkg/jni"
 )
 
 // stateStore is the Go interface for a persistent storage
 // backend by androidx.security.crypto.EncryptedSharedPreferences (see
 // App.java).
 type stateStore struct {
-	jvm *jnipkg.JVM
 	// appCtx is the global Android app context.
-	appCtx jnipkg.Object
-
-	// Cached method ids on appCtx.
-	encrypt jnipkg.MethodID
-	decrypt jnipkg.MethodID
+	appCtx AppContext
 }
 
-func newStateStore(jvm *jnipkg.JVM, appCtx jnipkg.Object) *stateStore {
-	s := &stateStore{
-		jvm:    jvm,
+func newStateStore(appCtx AppContext) *stateStore {
+	return &stateStore{
 		appCtx: appCtx,
 	}
-	jnipkg.Do(jvm, func(env *jnipkg.Env) error {
-		appCls := jnipkg.GetObjectClass(env, appCtx)
-		s.encrypt = jnipkg.GetMethodID(
-			env, appCls,
-			"encryptToPref", "(Ljava/lang/String;Ljava/lang/String;)V",
-		)
-		s.decrypt = jnipkg.GetMethodID(
-			env, appCls,
-			"decryptFromPref", "(Ljava/lang/String;)Ljava/lang/String;",
-		)
-		return nil
-	})
-	return s
 }
 
 func prefKeyFor(id ipn.StateKey) string {
@@ -99,35 +78,17 @@ func (s *stateStore) WriteState(id ipn.StateKey, bs []byte) error {
 }
 
 func (s *stateStore) read(key string) ([]byte, error) {
-	var data []byte
-	err := jnipkg.Do(s.jvm, func(env *jnipkg.Env) error {
-		jfile := jnipkg.JavaString(env, key)
-		plain, err := jnipkg.CallObjectMethod(env, s.appCtx, s.decrypt,
-			jnipkg.Value(jfile))
-		if err != nil {
-			return err
-		}
-		b64 := jnipkg.GoString(env, jnipkg.String(plain))
-		if b64 == "" {
-			return nil
-		}
-		data, err = base64.RawStdEncoding.DecodeString(b64)
-		return err
-	})
-	return data, err
+	b64, err := s.appCtx.DecryptFromPref(key)
+	if err != nil {
+		return nil, err
+	}
+	if b64 == "" {
+		return nil, nil
+	}
+	return base64.RawStdEncoding.DecodeString(b64)
 }
 
 func (s *stateStore) write(key string, value []byte) error {
 	bs64 := base64.RawStdEncoding.EncodeToString(value)
-	err := jnipkg.Do(s.jvm, func(env *jnipkg.Env) error {
-		jfile := jnipkg.JavaString(env, key)
-		jplain := jnipkg.JavaString(env, bs64)
-		err := jnipkg.CallVoidMethod(env, s.appCtx, s.encrypt,
-			jnipkg.Value(jfile), jnipkg.Value(jplain))
-		if err != nil {
-			return err
-		}
-		return nil
-	})
-	return err
+	return s.appCtx.EncryptToPref(key, bs64)
 }

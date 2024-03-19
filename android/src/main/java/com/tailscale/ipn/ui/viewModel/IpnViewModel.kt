@@ -100,7 +100,7 @@ open class IpnViewModel : ViewModel() {
     context.sendBroadcast(intent)
   }
 
-  fun login(completionHandler: (Result<String>) -> Unit = {}) {
+  fun login(completionHandler: (Result<Unit>) -> Unit = {}) {
     Client(viewModelScope).startLoginInteractive { result ->
       result
           .onSuccess { Log.d(TAG, "Login started: $it") }
