@@ -10,6 +10,9 @@ import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.IpnState
 import com.tailscale.ipn.ui.util.InputStreamAdapter
+import java.nio.charset.Charset
+import kotlin.reflect.KType
+import kotlin.reflect.typeOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -18,9 +21,6 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
 import kotlinx.serialization.serializer
-import java.nio.charset.Charset
-import kotlin.reflect.KType
-import kotlin.reflect.typeOf
 
 private object Endpoint {
   const val DEBUG = "debug"
@@ -215,7 +215,8 @@ class Request<T>(
                 timeoutMillis, method, fullPath, body?.let { InputStreamAdapter(it.inputStream()) })
         // TODO: use the streaming body for performance
         Log.d(TAG, "Got Response")
-        val respData = resp.bodyBytes()
+        // An empty body is a perfectly valid response and indicates success
+        val respData = resp.bodyBytes() ?: ByteArray(0)
         Log.d(TAG, "Got response body")
         val response: Result<T> =
             when (responseType) {
