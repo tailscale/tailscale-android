@@ -21,7 +21,6 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
@@ -42,12 +41,12 @@ import com.tailscale.ipn.ui.viewModel.ExitNodePickerViewModelFactory
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExitNodePicker(
-    nav: ExitNodePickerNav,
-    model: ExitNodePickerViewModel = viewModel(factory = ExitNodePickerViewModelFactory(nav))
+        nav: ExitNodePickerNav,
+        model: ExitNodePickerViewModel = viewModel(factory = ExitNodePickerViewModelFactory(nav))
 ) {
     LoadingIndicator.Wrap {
         Scaffold(topBar = {
-            TopAppBar(title = { Text(stringResource(R.string.choose_exit_node)) })
+            Header(R.string.choose_exit_node)
         }) { innerPadding ->
             val tailnetExitNodes = model.tailnetExitNodes.collectAsState()
             val mullvadExitNodes = model.mullvadExitNodesByCountryCode.collectAsState()
@@ -56,11 +55,11 @@ fun ExitNodePicker(
             LazyColumn(modifier = Modifier.padding(innerPadding)) {
                 item(key = "none") {
                     ExitNodeItem(
-                        model, ExitNodePickerViewModel.ExitNode(
+                            model, ExitNodePickerViewModel.ExitNode(
                             label = stringResource(R.string.none),
                             online = true,
                             selected = !anyActive.value,
-                        )
+                    )
                     )
                 }
 
@@ -88,29 +87,29 @@ fun ExitNodePicker(
                     // interaction between the LazyList and the modifier.
                     Box {
                         ListItem(modifier = Modifier
-                            .padding(start = 16.dp)
-                            .clickable {
-                                if (nodes.size > 1) {
-                                    nav.onNavigateToMullvadCountry(
-                                        countryCode
-                                    )
-                                } else {
-                                    model.setExitNode(first)
-                                }
-                            }, headlineContent = {
+                                .padding(start = 16.dp)
+                                .clickable {
+                                    if (nodes.size > 1) {
+                                        nav.onNavigateToMullvadCountry(
+                                                countryCode
+                                        )
+                                    } else {
+                                        model.setExitNode(first)
+                                    }
+                                }, headlineContent = {
                             Text("${countryCode.flag()} ${first.country}")
                         }, trailingContent = {
                             val text = if (nodes.size == 1) first.city else "${nodes.size}"
                             val icon =
-                                if (nodes.size > 1) Icons.AutoMirrored.Outlined.KeyboardArrowRight
-                                else if (first.selected) Icons.Outlined.Check
-                                else null
+                                    if (nodes.size > 1) Icons.AutoMirrored.Outlined.KeyboardArrowRight
+                                    else if (first.selected) Icons.Outlined.Check
+                                    else null
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(text)
                                 Spacer(modifier = Modifier.width(8.dp))
                                 icon?.let {
                                     Icon(
-                                        it, contentDescription = stringResource(R.string.more)
+                                            it, contentDescription = stringResource(R.string.more)
                                     )
                                 }
                             }
@@ -131,26 +130,26 @@ fun ListHeading(label: String, indent: Dp = 0.dp) {
 
 @Composable
 fun ExitNodeItem(
-    viewModel: ExitNodePickerViewModel, node: ExitNodePickerViewModel.ExitNode, indent: Dp = 0.dp
+        viewModel: ExitNodePickerViewModel, node: ExitNodePickerViewModel.ExitNode, indent: Dp = 0.dp
 ) {
     Box {
         ListItem(modifier = Modifier
-            .padding(start = indent)
-            .clickable { viewModel.setExitNode(node) },
-            headlineContent = {
-                Text(node.city.ifEmpty { node.label })
-            },
-            trailingContent = {
-                Row {
-                    if (node.selected) {
-                        Icon(
-                            Icons.Outlined.Check, contentDescription = stringResource(R.string.more)
-                        )
-                    } else if (!node.online) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(R.string.offline), fontStyle = FontStyle.Italic)
+                .padding(start = indent)
+                .clickable { viewModel.setExitNode(node) },
+                headlineContent = {
+                    Text(node.city.ifEmpty { node.label })
+                },
+                trailingContent = {
+                    Row {
+                        if (node.selected) {
+                            Icon(
+                                    Icons.Outlined.Check, contentDescription = stringResource(R.string.more)
+                            )
+                        } else if (!node.online) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(stringResource(R.string.offline), fontStyle = FontStyle.Italic)
+                        }
                     }
-                }
-            })
+                })
     }
 }

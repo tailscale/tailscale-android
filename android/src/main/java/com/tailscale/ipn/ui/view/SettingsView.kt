@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,8 +35,6 @@ import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.Links
 import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.theme.ts_color_dark_desctrutive_text
-import com.tailscale.ipn.ui.util.ChevronRight
-import com.tailscale.ipn.ui.util.Header
 import com.tailscale.ipn.ui.util.defaultPaddingModifier
 import com.tailscale.ipn.ui.util.settingsRowModifier
 import com.tailscale.ipn.ui.viewModel.Setting
@@ -55,13 +53,13 @@ fun Settings(
     val user = viewModel.loggedInUser.collectAsState().value
     val isAdmin = viewModel.isAdmin.collectAsState().value
 
-    Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxHeight()) {
+    Scaffold(topBar = {
+        Header(title = R.string.settings_title)
+    }) { innerPadding ->
 
-        Column(modifier = defaultPaddingModifier().fillMaxHeight()) {
-
-
-            Header(title = R.string.settings_title)
-            Spacer(modifier = Modifier.height(8.dp))
+        Column(modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxHeight()) {
 
             UserView(profile = user,
                     actionState = UserActionState.NAV,

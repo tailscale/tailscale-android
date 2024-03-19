@@ -6,12 +6,11 @@ package com.tailscale.ipn.ui.view
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
@@ -20,8 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
-import com.tailscale.ipn.ui.util.Header
-import com.tailscale.ipn.ui.util.defaultPaddingModifier
 import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.util.settingsRowModifier
 import com.tailscale.ipn.ui.viewModel.UserSwitcherViewModel
@@ -33,15 +30,18 @@ fun UserSwitcherView(viewModel: UserSwitcherViewModel = viewModel()) {
     val users = viewModel.loginProfiles.collectAsState().value
     val currentUser = viewModel.loggedInUser.collectAsState().value
 
-    Surface(modifier = Modifier.fillMaxHeight(), color = MaterialTheme.colorScheme.background) {
-        Column(modifier = defaultPaddingModifier().fillMaxWidth(),
+    Scaffold(topBar = {
+        Header(R.string.accounts)
+    }) { innerPadding ->
+
+        Column(modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)) {
             val showDialog = viewModel.showDialog.collectAsState().value
 
             // Show the error overlay if need be
             showDialog?.let { ErrorDialog(type = it, action = { viewModel.showDialog.set(null) }) }
-
-            Header(title = R.string.accounts)
 
             Column(modifier = settingsRowModifier()) {
 
