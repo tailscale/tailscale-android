@@ -66,7 +66,7 @@ class Client(private val scope: CoroutineScope) {
     }
 
     fun editPrefs(
-        prefs: Ipn.MaskedPrefs, responseHandler: (Result<Ipn.Prefs>) -> Unit
+            prefs: Ipn.MaskedPrefs, responseHandler: (Result<Ipn.Prefs>) -> Unit
     ) {
         val body = Json.encodeToString(prefs).toByteArray()
         return patch(Endpoint.PREFS, body, responseHandler = responseHandler)
@@ -80,6 +80,18 @@ class Client(private val scope: CoroutineScope) {
         return get(Endpoint.PROFILES_CURRENT, responseHandler = responseHandler)
     }
 
+    fun addProfile(responseHandler: (Result<String>) -> Unit = {}) {
+        return put(Endpoint.PROFILES, responseHandler = responseHandler)
+    }
+
+    fun deleteProfile(profile: IpnLocal.LoginProfile, responseHandler: (Result<String>) -> Unit = {}) {
+        return delete(Endpoint.PROFILES + profile.ID, responseHandler = responseHandler)
+    }
+
+    fun switchProfile(profile: IpnLocal.LoginProfile, responseHandler: (Result<String>) -> Unit = {}) {
+        return post(Endpoint.PROFILES + profile.ID, responseHandler = responseHandler)
+    }
+
     fun startLoginInteractive(responseHandler: (Result<String>) -> Unit) {
         return post(Endpoint.LOGIN_INTERACTIVE, responseHandler = responseHandler)
     }
@@ -89,77 +101,77 @@ class Client(private val scope: CoroutineScope) {
     }
 
     private inline fun <reified T> get(
-        path: String, body: ByteArray? = null, noinline responseHandler: (Result<T>) -> Unit
+            path: String, body: ByteArray? = null, noinline responseHandler: (Result<T>) -> Unit
     ) {
         Request(
-            scope = scope,
-            method = "GET",
-            path = path,
-            body = body,
-            responseType = typeOf<T>(),
-            responseHandler = responseHandler
+                scope = scope,
+                method = "GET",
+                path = path,
+                body = body,
+                responseType = typeOf<T>(),
+                responseHandler = responseHandler
         ).execute()
     }
 
     private inline fun <reified T> put(
-        path: String, body: ByteArray? = null, noinline responseHandler: (Result<T>) -> Unit
+            path: String, body: ByteArray? = null, noinline responseHandler: (Result<T>) -> Unit
     ) {
         Request(
-            scope = scope,
-            method = "PUT",
-            path = path,
-            body = body,
-            responseType = typeOf<T>(),
-            responseHandler = responseHandler
+                scope = scope,
+                method = "PUT",
+                path = path,
+                body = body,
+                responseType = typeOf<T>(),
+                responseHandler = responseHandler
         ).execute()
     }
 
     private inline fun <reified T> post(
-        path: String, body: ByteArray? = null, noinline responseHandler: (Result<T>) -> Unit
+            path: String, body: ByteArray? = null, noinline responseHandler: (Result<T>) -> Unit
     ) {
         Request(
-            scope = scope,
-            method = "POST",
-            path = path,
-            body = body,
-            responseType = typeOf<T>(),
-            responseHandler = responseHandler
+                scope = scope,
+                method = "POST",
+                path = path,
+                body = body,
+                responseType = typeOf<T>(),
+                responseHandler = responseHandler
         ).execute()
     }
 
     private inline fun <reified T> patch(
-        path: String, body: ByteArray? = null, noinline responseHandler: (Result<T>) -> Unit
+            path: String, body: ByteArray? = null, noinline responseHandler: (Result<T>) -> Unit
     ) {
         Request(
-            scope = scope,
-            method = "PATCH",
-            path = path,
-            body = body,
-            responseType = typeOf<T>(),
-            responseHandler = responseHandler
+                scope = scope,
+                method = "PATCH",
+                path = path,
+                body = body,
+                responseType = typeOf<T>(),
+                responseHandler = responseHandler
         ).execute()
     }
 
     private inline fun <reified T> delete(
-        path: String, noinline responseHandler: (Result<T>) -> Unit
+            path: String, noinline responseHandler: (Result<T>) -> Unit
     ) {
         Request(
-            scope = scope,
-            method = "DELETE",
-            path = path,
-            responseType = typeOf<T>(),
-            responseHandler = responseHandler
+                scope = scope,
+                method = "DELETE",
+                path = path,
+                responseType = typeOf<T>(),
+                responseHandler = responseHandler
         ).execute()
     }
 }
 
 class Request<T>(
-    private val scope: CoroutineScope,
-    private val method: String,
-    path: String,
-    private val body: ByteArray? = null,
-    private val responseType: KType,
-    private val responseHandler: (Result<T>) -> Unit
+        private val scope: CoroutineScope,
+        private val method: String,
+        path: String,
+        private val body: ByteArray? = null,
+        private val responseType: KType,
+        private val responseHandler: (Result<T>) -> Unit
 ) {
     private val fullPath = "/localapi/v0/$path"
 
@@ -206,15 +218,15 @@ class Request<T>(
             typeOf<String>() -> Result.success(respData.decodeToString() as T)
             else -> try {
                 Result.success(
-                    jsonDecoder.decodeFromStream(
-                        Json.serializersModule.serializer(responseType), respData.inputStream()
-                    ) as T
+                        jsonDecoder.decodeFromStream(
+                                Json.serializersModule.serializer(responseType), respData.inputStream()
+                        ) as T
                 )
             } catch (t: Throwable) {
                 // If we couldn't parse the response body, assume it's an error response
                 try {
                     val error =
-                        jsonDecoder.decodeFromStream<Errors.GenericError>(respData.inputStream())
+                            jsonDecoder.decodeFromStream<Errors.GenericError>(respData.inputStream())
                     throw Exception(error.error)
                 } catch (t: Throwable) {
                     Result.failure(t)

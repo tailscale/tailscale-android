@@ -40,6 +40,11 @@ object Notifier {
     val loginFinished: StateFlow<String?> = MutableStateFlow(null)
     val version: StateFlow<String?> = MutableStateFlow(null)
 
+    // Indicates whether or not we have granted permission to use the VPN.  This must be
+    // explicitly set by the main activity.  null indicates that we have not yet
+    // checked.
+    val vpnPermissionGranted: StateFlow<Boolean?> = MutableStateFlow(null)
+
     // Called by the backend when the localAPI is ready to accept requests.
     @JvmStatic
     @Suppress("unused")
@@ -54,7 +59,7 @@ object Notifier {
             // Wait for the notifier to be ready
             isReady.await()
             val mask =
-                NotifyWatchOpt.Netmap.value or NotifyWatchOpt.Prefs.value or NotifyWatchOpt.InitialState.value
+                    NotifyWatchOpt.Netmap.value or NotifyWatchOpt.Prefs.value or NotifyWatchOpt.InitialState.value
             startIPNBusWatcher(mask)
             Log.d(TAG, "Stopped")
         }
@@ -91,7 +96,7 @@ object Notifier {
     // what we want to see on the Notify bus
     private enum class NotifyWatchOpt(val value: Int) {
         EngineUpdates(1), InitialState(2), Prefs(4), Netmap(8), NoPrivateKey(16), InitialTailFSShares(
-            32
+                32
         )
     }
 }

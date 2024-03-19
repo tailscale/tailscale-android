@@ -1,7 +1,7 @@
 // Copyright (c) Tailscale Inc & AUTHORS
 // SPDX-License-Identifier: BSD-3-Clause
 
-package com.tailscale.ipn.ui.util
+package com.tailscale.ipn.ui.view
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
@@ -17,20 +17,20 @@ import com.tailscale.ipn.ui.theme.ts_color_light_blue
 
 @Composable
 fun PrimaryActionButton(
-    onClick: () -> Unit,
-    content: @Composable RowScope.() -> Unit
+        onClick: () -> Unit,
+        content: @Composable RowScope.() -> Unit
 ) {
     Button(
-        onClick = onClick,
-        colors = ButtonColors(
-            containerColor = ts_color_light_blue,
-            contentColor = Color.White,
-            disabledContainerColor = MaterialTheme.colorScheme.secondary,
-            disabledContentColor = MaterialTheme.colorScheme.onSecondary
-        ),
-        contentPadding = PaddingValues(vertical = 12.dp),
-        modifier = Modifier
-            .fillMaxWidth(),
-        content = content
+            onClick = onClick,
+            colors = ButtonColors(
+                    containerColor = ts_color_light_blue,
+                    contentColor = Color.White,
+                    disabledContainerColor = MaterialTheme.colorScheme.secondary,
+                    disabledContentColor = MaterialTheme.colorScheme.onSecondary
+            ),
+            contentPadding = PaddingValues(vertical = 12.dp),
+            modifier = Modifier
+                    .fillMaxWidth(),
+            content = content
     )
 }

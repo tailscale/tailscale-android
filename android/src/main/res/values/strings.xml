@@ -13,6 +13,7 @@
     <string name="template">%s</string>
     <string name="more">More</string>
     <string name="offline">offline</string>
+    <string name="ok">OK</string>
 
     <!-- Strings for the about screen -->
     <string name="app_name">Tailscale</string>
@@ -73,6 +74,14 @@
     <string name="in_x_days">in %d days</string>
     <string name="in_x_months">in %d months</string>
     <string name="in_x_years">in %.1f years</string>
+    <string name="user_switcher">Accounts</string>
+    <string name="logout_failed">Unable to logout at this time.  Please try again.</string>
+    <string name="error">Error</string>
+    <string name="accounts">Accounts</string>
+    <string name="add_account">Add Another Account…</string>
+    <string name="reauthenticate">Reauthenticate</string>
+    <string name="switch_user_failed">Unable to switch users.  Please try again.</string>
+    <string name="add_profile_failed">Unable to add a new profile.  Please try again.</string>
 
     <!-- Strings for ExitNode picker -->
     <string name="choose_exit_node">Choose Exit Node</string>

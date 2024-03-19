@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.Links
+import com.tailscale.ipn.ui.util.Header
 import com.tailscale.ipn.ui.util.defaultPaddingModifier
 import com.tailscale.ipn.ui.util.settingsRowModifier
 import com.tailscale.ipn.ui.viewModel.BugReportViewModel
@@ -48,18 +49,9 @@ fun BugReportView(model: BugReportViewModel = viewModel()) {
     val handler = LocalUriHandler.current
 
     Surface(color = MaterialTheme.colorScheme.surface) {
-        Column(
-            modifier = defaultPaddingModifier()
-                .fillMaxWidth()
-                .fillMaxHeight()
-        ) {
-            Text(
-                text = stringResource(id = R.string.bug_report_title),
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.primary,
-                style = MaterialTheme.typography.titleMedium
-            )
+        Column(modifier = defaultPaddingModifier().fillMaxWidth().fillMaxHeight()) {
+
+            Header(title = R.string.bug_report_title)
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -136,4 +128,3 @@ fun contactText(): AnnotatedString {
     }
     return annotatedString
 }
-
