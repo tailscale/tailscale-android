@@ -134,7 +134,11 @@ androidpath:
 	@echo "export ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT)"
 	@echo 'export PATH=$(ANDROID_HOME)/cmdline-tools/latest/bin:$(ANDROID_HOME)/platform-tools:$$PATH'
 
+
+# Assert that the go toolchain referred to by TOOLCHAINDIR is in fact the
+# one that `go` in the current PATH is using.
 toolchain: $(TOOLCHAINDIR)/bin/go
+	test `go env GOROOT` = $(TOOLCHAINDIR)
 
 $(AAR): toolchain checkandroidsdk
 	@mkdir -p android_legacy/libs && \
