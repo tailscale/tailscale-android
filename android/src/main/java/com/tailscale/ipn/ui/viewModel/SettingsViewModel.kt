@@ -19,12 +19,15 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-enum class SettingType { NAV, SWITCH, NAV_WITH_TEXT, TEXT }
-
+enum class SettingType {
+  NAV,
+  SWITCH,
+  NAV_WITH_TEXT,
+  TEXT
+}
 
 class ComposableStringFormatter(@StringRes val stringRes: Int, vararg val params: Any) {
-    @Composable
-    fun getString(): String = stringResource(id = stringRes, *params)
+  @Composable fun getString(): String = stringResource(id = stringRes, *params)
 }
 
 // Represents a bundle of settings values that should be grouped together under a title
@@ -43,122 +46,118 @@ data class SettingBundle(val title: String? = null, val settings: List<Setting>)
 // isOn and onToggle, while navigation settings should supply an onClick and an optional
 // value
 data class Setting(
-
-        val title: ComposableStringFormatter,
-        val type: SettingType,
-        val destructive: Boolean = false,
-        val enabled: StateFlow<Boolean> = MutableStateFlow(true),
-        val value: StateFlow<String?>? = null,
-        val isOn: StateFlow<Boolean?>? = null,
-        val onClick: () -> Unit = {},
-        val onToggle: (Boolean) -> Unit = {}
+    val title: ComposableStringFormatter,
+    val type: SettingType,
+    val destructive: Boolean = false,
+    val enabled: StateFlow<Boolean> = MutableStateFlow(true),
+    val value: StateFlow<String?>? = null,
+    val isOn: StateFlow<Boolean?>? = null,
+    val onClick: () -> Unit = {},
+    val onToggle: (Boolean) -> Unit = {}
 ) {
-    constructor(
-            titleRes: Int,
-            type: SettingType,
-            enabled: StateFlow<Boolean> = MutableStateFlow(false),
-            value: StateFlow<String?>? = null,
-            isOn: StateFlow<Boolean?>? = null,
-            onClick: () -> Unit = {},
-            onToggle: (Boolean) -> Unit = {}
-    ) : this(
-            title = ComposableStringFormatter(titleRes),
-            type = type,
-            enabled = enabled,
-            value = value,
-            isOn = isOn,
-            onClick = onClick,
-            onToggle = onToggle
-    )
+  constructor(
+      titleRes: Int,
+      type: SettingType,
+      enabled: StateFlow<Boolean> = MutableStateFlow(false),
+      value: StateFlow<String?>? = null,
+      isOn: StateFlow<Boolean?>? = null,
+      onClick: () -> Unit = {},
+      onToggle: (Boolean) -> Unit = {}
+  ) : this(
+      title = ComposableStringFormatter(titleRes),
+      type = type,
+      enabled = enabled,
+      value = value,
+      isOn = isOn,
+      onClick = onClick,
+      onToggle = onToggle)
 }
 
 data class SettingsNav(
-        val onNavigateToBugReport: () -> Unit,
-        val onNavigateToAbout: () -> Unit,
-        val onNavigateToMDMSettings: () -> Unit,
-        val onNavigateToManagedBy: () -> Unit,
-        val onNavigateToUserSwitcher: () -> Unit)
+    val onNavigateToBugReport: () -> Unit,
+    val onNavigateToAbout: () -> Unit,
+    val onNavigateToMDMSettings: () -> Unit,
+    val onNavigateToManagedBy: () -> Unit,
+    val onNavigateToUserSwitcher: () -> Unit
+)
 
 class SettingsViewModelFactory(private val navigation: SettingsNav) : ViewModelProvider.Factory {
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        return SettingsViewModel(navigation) as T
-    }
+  override fun <T : ViewModel> create(modelClass: Class<T>): T {
+    return SettingsViewModel(navigation) as T
+  }
 }
 
 class SettingsViewModel(val navigation: SettingsNav) : IpnViewModel() {
-    // Display name for the logged in user
-    var isAdmin: StateFlow<Boolean> = MutableStateFlow(false)
+  // Display name for the logged in user
+  var isAdmin: StateFlow<Boolean> = MutableStateFlow(false)
 
-    val useDNSSetting = Setting(R.string.use_ts_dns,
-            SettingType.SWITCH,
-            isOn = MutableStateFlow(Notifier.prefs.value?.CorpDNS),
-            onToggle = {
-                toggleCorpDNS {
-                    // (jonathan) TODO: Error handling
-                }
-            })
-
-    val settings: StateFlow<List<SettingBundle>> = MutableStateFlow(emptyList())
-
-    init {
-        viewModelScope.launch {
-            // Monitor our prefs for changes and update the displayed values accordingly
-            Notifier.prefs.collect { prefs ->
-                useDNSSetting.isOn?.set(prefs?.CorpDNS)
-                useDNSSetting.enabled.set(prefs != null)
+  val useDNSSetting =
+      Setting(
+          R.string.use_ts_dns,
+          SettingType.SWITCH,
+          isOn = MutableStateFlow(Notifier.prefs.value?.CorpDNS),
+          onToggle = {
+            toggleCorpDNS {
+              // (jonathan) TODO: Error handling
             }
-        }
+          })
 
-        viewModelScope.launch {
-            mdmSettings.collect { mdmSettings ->
-                settings.set(
-                        listOf(
-                                SettingBundle(
-                                        settings = listOf(
-                                                useDNSSetting,
-                                        )
-                                ),
-                                // General settings, always enabled
-                                SettingBundle(settings = footerSettings(mdmSettings))
-                        )
-                )
-            }
-        }
+  val settings: StateFlow<List<SettingBundle>> = MutableStateFlow(emptyList())
 
-        viewModelScope.launch {
-            Notifier.netmap.collect { netmap ->
-                isAdmin.set(netmap?.SelfNode?.isAdmin ?: false)
-            }
-        }
+  init {
+    viewModelScope.launch {
+      // Monitor our prefs for changes and update the displayed values accordingly
+      Notifier.prefs.collect { prefs ->
+        useDNSSetting.isOn?.set(prefs?.CorpDNS)
+        useDNSSetting.enabled.set(prefs != null)
+      }
     }
 
-    private fun footerSettings(mdmSettings: MDMSettings): List<Setting> = listOfNotNull(
+    viewModelScope.launch {
+      mdmSettings.collect { mdmSettings ->
+        settings.set(
+            listOf(
+                SettingBundle(
+                    settings =
+                        listOf(
+                            useDNSSetting,
+                        )),
+                // General settings, always enabled
+                SettingBundle(settings = footerSettings(mdmSettings))))
+      }
+    }
+
+    viewModelScope.launch {
+      Notifier.netmap.collect { netmap -> isAdmin.set(netmap?.SelfNode?.isAdmin ?: false) }
+    }
+  }
+
+  private fun footerSettings(mdmSettings: MDMSettings): List<Setting> =
+      listOfNotNull(
+          Setting(
+              titleRes = R.string.about,
+              SettingType.NAV,
+              onClick = { navigation.onNavigateToAbout() },
+              enabled = MutableStateFlow(true)),
+          Setting(
+              titleRes = R.string.bug_report,
+              SettingType.NAV,
+              onClick = { navigation.onNavigateToBugReport() },
+              enabled = MutableStateFlow(true)),
+          mdmSettings.get(StringSetting.ManagedByOrganizationName)?.let {
             Setting(
-                    titleRes = R.string.about,
-                    SettingType.NAV,
-                    onClick = { navigation.onNavigateToAbout() },
-                    enabled = MutableStateFlow(true)
-            ), Setting(
-            titleRes = R.string.bug_report,
-            SettingType.NAV,
-            onClick = { navigation.onNavigateToBugReport() },
-            enabled = MutableStateFlow(true)
-    ), mdmSettings.get(StringSetting.ManagedByOrganizationName)?.let {
-        Setting(
                 ComposableStringFormatter(R.string.managed_by_orgName, it),
                 SettingType.NAV,
                 onClick = { navigation.onNavigateToManagedBy() },
-                enabled = MutableStateFlow(true)
-        )
-    }, if (BuildConfig.DEBUG) {
-        Setting(
+                enabled = MutableStateFlow(true))
+          },
+          if (BuildConfig.DEBUG) {
+            Setting(
                 titleRes = R.string.mdm_settings,
                 SettingType.NAV,
                 onClick = { navigation.onNavigateToMDMSettings() },
-                enabled = MutableStateFlow(true)
-        )
-    } else {
-        null
-    }
-    )
+                enabled = MutableStateFlow(true))
+          } else {
+            null
+          })
 }

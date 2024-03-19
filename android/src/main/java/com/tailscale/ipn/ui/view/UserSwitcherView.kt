@@ -27,61 +27,58 @@ import com.tailscale.ipn.ui.viewModel.UserSwitcherViewModel
 @Composable
 fun UserSwitcherView(viewModel: UserSwitcherViewModel = viewModel()) {
 
-    val users = viewModel.loginProfiles.collectAsState().value
-    val currentUser = viewModel.loggedInUser.collectAsState().value
+  val users = viewModel.loginProfiles.collectAsState().value
+  val currentUser = viewModel.loggedInUser.collectAsState().value
 
-    Scaffold(topBar = {
-        Header(R.string.accounts)
-    }) { innerPadding ->
+  Scaffold(topBar = { Header(R.string.accounts) }) { innerPadding ->
+    Column(
+        modifier = Modifier.padding(innerPadding).fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)) {
+          val showDialog = viewModel.showDialog.collectAsState().value
 
-        Column(modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            val showDialog = viewModel.showDialog.collectAsState().value
+          // Show the error overlay if need be
+          showDialog?.let { ErrorDialog(type = it, action = { viewModel.showDialog.set(null) }) }
 
-            // Show the error overlay if need be
-            showDialog?.let { ErrorDialog(type = it, action = { viewModel.showDialog.set(null) }) }
+          Column(modifier = settingsRowModifier()) {
 
-            Column(modifier = settingsRowModifier()) {
+            // When switch is invoked, this stores the ID of the user we're trying to switch to
+            // so we can decorate it with a spinner.  The actual logged in user will not change
+            // until
+            // we get our first netmap update back with the new userId for SelfNode.
+            // (jonathan) TODO: This user switch is not immediate.  We may need to represent the
+            // "switching users" state globally (if ipnState is insufficient)
+            val nextUserId = remember { mutableStateOf<String?>(null) }
 
-                // When switch is invoked, this stores the ID of the user we're trying to switch to
-                // so we can decorate it with a spinner.  The actual logged in user will not change until
-                // we get our first netmap update back with the new userId for SelfNode.
-                // (jonathan) TODO: This user switch is not immediate.  We may need to represent the
-                // "switching users" state globally (if ipnState is insufficient)
-                val nextUserId = remember { mutableStateOf<String?>(null) }
-
-                users?.forEach { user ->
-                    if (user.ID == currentUser?.ID) {
-                        UserView(profile = user, actionState = UserActionState.CURRENT)
-                    } else {
-                        val state =
-                                if (user.ID == nextUserId.value) UserActionState.SWITCHING
-                                else UserActionState.NONE
-                        UserView(
-                                profile = user,
-                                actionState = state,
-                                onClick = {
-                                    nextUserId.value = user.ID
-                                    viewModel.switchProfile(user) {
-                                        if (it.isFailure) {
-                                            viewModel.showDialog.set(ErrorDialogType.LOGOUT_FAILED)
-                                            nextUserId.value = null
-                                        }
-                                    }
-                                })
-                    }
-                }
-                SettingRow(viewModel.addProfileSetting)
+            users?.forEach { user ->
+              if (user.ID == currentUser?.ID) {
+                UserView(profile = user, actionState = UserActionState.CURRENT)
+              } else {
+                val state =
+                    if (user.ID == nextUserId.value) UserActionState.SWITCHING
+                    else UserActionState.NONE
+                UserView(
+                    profile = user,
+                    actionState = state,
+                    onClick = {
+                      nextUserId.value = user.ID
+                      viewModel.switchProfile(user) {
+                        if (it.isFailure) {
+                          viewModel.showDialog.set(ErrorDialogType.LOGOUT_FAILED)
+                          nextUserId.value = null
+                        }
+                      }
+                    })
+              }
             }
+            SettingRow(viewModel.addProfileSetting)
+          }
 
-            Spacer(modifier = Modifier.height(8.dp))
+          Spacer(modifier = Modifier.height(8.dp))
 
-            Column(modifier = settingsRowModifier()) {
-                SettingRow(viewModel.loginSetting)
-                SettingRow(viewModel.logoutSetting)
-            }
+          Column(modifier = settingsRowModifier()) {
+            SettingRow(viewModel.loginSetting)
+            SettingRow(viewModel.logoutSetting)
+          }
         }
-    }
+  }
 }

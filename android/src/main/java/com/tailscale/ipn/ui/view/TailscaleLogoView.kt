@@ -21,43 +21,43 @@ import androidx.compose.ui.graphics.Color
 
 @Composable
 fun TailscaleLogoView(modifier: Modifier) {
-    val primaryColor: Color = MaterialTheme.colorScheme.primary
-    val secondaryColor: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-    BoxWithConstraints(modifier) {
-        Column(verticalArrangement = Arrangement.spacedBy(this@BoxWithConstraints.maxWidth.div(8))) {
-            Row(horizontalArrangement = Arrangement.spacedBy(this@BoxWithConstraints.maxWidth.div(8))) {
-                Canvas(modifier = Modifier.size(this@BoxWithConstraints.maxWidth.div(4)), onDraw = {
-                    drawCircle(color = secondaryColor)
-                })
-                Canvas(modifier = Modifier.size(this@BoxWithConstraints.maxWidth.div(4)), onDraw = {
-                    drawCircle(color = secondaryColor)
-                })
-                Canvas(modifier = Modifier.size(this@BoxWithConstraints.maxWidth.div(4)), onDraw = {
-                    drawCircle(color = secondaryColor)
-                })
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(this@BoxWithConstraints.maxWidth.div(8))) {
-                Canvas(modifier = Modifier.size(this@BoxWithConstraints.maxWidth.div(4)), onDraw = {
-                    drawCircle(color = primaryColor)
-                })
-                Canvas(modifier = Modifier.size(this@BoxWithConstraints.maxWidth.div(4)), onDraw = {
-                    drawCircle(color = primaryColor)
-                })
-                Canvas(modifier = Modifier.size(this@BoxWithConstraints.maxWidth.div(4)), onDraw = {
-                    drawCircle(color = primaryColor)
-                })
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(this@BoxWithConstraints.maxWidth.div(8))) {
-                Canvas(modifier = Modifier.size(this@BoxWithConstraints.maxWidth.div(4)), onDraw = {
-                    drawCircle(color = secondaryColor)
-                })
-                Canvas(modifier = Modifier.size(this@BoxWithConstraints.maxWidth.div(4)), onDraw = {
-                    drawCircle(color = primaryColor)
-                })
-                Canvas(modifier = Modifier.size(this@BoxWithConstraints.maxWidth.div(4)), onDraw = {
-                    drawCircle(color = secondaryColor)
-                })
-            }
-        }
+  val primaryColor: Color = MaterialTheme.colorScheme.primary
+  val secondaryColor: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+  BoxWithConstraints(modifier) {
+    Column(verticalArrangement = Arrangement.spacedBy(this@BoxWithConstraints.maxWidth.div(8))) {
+      Row(horizontalArrangement = Arrangement.spacedBy(this@BoxWithConstraints.maxWidth.div(8))) {
+        Canvas(
+            modifier = Modifier.size(this@BoxWithConstraints.maxWidth.div(4)),
+            onDraw = { drawCircle(color = secondaryColor) })
+        Canvas(
+            modifier = Modifier.size(this@BoxWithConstraints.maxWidth.div(4)),
+            onDraw = { drawCircle(color = secondaryColor) })
+        Canvas(
+            modifier = Modifier.size(this@BoxWithConstraints.maxWidth.div(4)),
+            onDraw = { drawCircle(color = secondaryColor) })
+      }
+      Row(horizontalArrangement = Arrangement.spacedBy(this@BoxWithConstraints.maxWidth.div(8))) {
+        Canvas(
+            modifier = Modifier.size(this@BoxWithConstraints.maxWidth.div(4)),
+            onDraw = { drawCircle(color = primaryColor) })
+        Canvas(
+            modifier = Modifier.size(this@BoxWithConstraints.maxWidth.div(4)),
+            onDraw = { drawCircle(color = primaryColor) })
+        Canvas(
+            modifier = Modifier.size(this@BoxWithConstraints.maxWidth.div(4)),
+            onDraw = { drawCircle(color = primaryColor) })
+      }
+      Row(horizontalArrangement = Arrangement.spacedBy(this@BoxWithConstraints.maxWidth.div(8))) {
+        Canvas(
+            modifier = Modifier.size(this@BoxWithConstraints.maxWidth.div(4)),
+            onDraw = { drawCircle(color = secondaryColor) })
+        Canvas(
+            modifier = Modifier.size(this@BoxWithConstraints.maxWidth.div(4)),
+            onDraw = { drawCircle(color = primaryColor) })
+        Canvas(
+            modifier = Modifier.size(this@BoxWithConstraints.maxWidth.div(4)),
+            onDraw = { drawCircle(color = secondaryColor) })
+      }
     }
+  }
 }

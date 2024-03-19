@@ -33,9 +33,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.provider.MediaStore;
 import android.provider.Settings;
-import android.util.Log;
 
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.browser.customtabs.CustomTabsIntent;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
@@ -62,31 +60,44 @@ import java.util.List;
 import java.util.Objects;
 
 public class App extends Application {
-    private static final String PEER_TAG = "peer";
-
     static final String STATUS_CHANNEL_ID = "tailscale-status";
     static final int STATUS_NOTIFICATION_ID = 1;
-
     static final String NOTIFY_CHANNEL_ID = "tailscale-notify";
     static final int NOTIFY_NOTIFICATION_ID = 2;
-
+    private static final String PEER_TAG = "peer";
     private static final String FILE_CHANNEL_ID = "tailscale-files";
     private static final int FILE_NOTIFICATION_ID = 3;
 
     private static final Handler mainHandler = new Handler(Looper.getMainLooper());
-
-    private ConnectivityManager connectivityManager;
-    public DnsConfig dns = new DnsConfig();
-
-    public DnsConfig getDnsConfigObj() {
-        return this.dns;
-    }
-
-
     static App _application;
+    public DnsConfig dns = new DnsConfig();
+    public boolean autoConnect = false;
+    public boolean vpnReady = false;
+    private ConnectivityManager connectivityManager;
 
     public static App getApplication() {
         return _application;
+    }
+
+    private static boolean isEmpty(String str) {
+        return str == null || str.length() == 0;
+    }
+
+    static void startActivityForResult(Activity act, Intent intent, int request) {
+        Fragment f = act.getFragmentManager().findFragmentByTag(PEER_TAG);
+        f.startActivityForResult(intent, request);
+    }
+
+    static native void onVPNPrepared();
+
+    private static native void onDnsConfigChanged();
+
+    static native void onShareIntent(int nfiles, int[] types, String[] mimes, String[] items, String[] names, long[] sizes);
+
+    static native void onWriteStorageGranted();
+
+    public DnsConfig getDnsConfigObj() {
+        return this.dns;
     }
 
     @Override
@@ -112,7 +123,7 @@ public class App extends Application {
             @Override
             public void onAvailable(Network network) {
                 super.onAvailable(network);
-                StringBuilder sb = new StringBuilder("");
+                StringBuilder sb = new StringBuilder();
                 LinkProperties linkProperties = connectivityManager.getLinkProperties(network);
                 List<InetAddress> dnsList = linkProperties.getDnsServers();
                 for (InetAddress ip : dnsList) {
@@ -135,7 +146,6 @@ public class App extends Application {
             }
         });
     }
-
 
     public void startVPN() {
         Intent intent = new Intent(this, IPNService.class);
@@ -174,9 +184,6 @@ public class App extends Application {
                 EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
         );
     }
-
-    public boolean autoConnect = false;
-    public boolean vpnReady = false;
 
     void setTileReady(boolean ready) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
@@ -229,10 +236,6 @@ public class App extends Application {
         return null;
     }
 
-    private static boolean isEmpty(String str) {
-        return str == null || str.length() == 0;
-    }
-
     // attachPeer adds a Peer fragment for tracking the Activity
     // lifecycle.
     void attachPeer(Activity act) {
@@ -263,11 +266,6 @@ public class App extends Application {
                 }
             }
         });
-    }
-
-    static void startActivityForResult(Activity act, Intent intent, int request) {
-        Fragment f = act.getFragmentManager().findFragmentByTag(PEER_TAG);
-        f.startActivityForResult(intent, request);
     }
 
     void showURL(Activity act, String url) {
@@ -363,14 +361,6 @@ public class App extends Application {
         nm.createNotificationChannel(channel);
     }
 
-    static native void onVPNPrepared();
-
-    private static native void onDnsConfigChanged();
-
-    static native void onShareIntent(int nfiles, int[] types, String[] mimes, String[] items, String[] names, long[] sizes);
-
-    static native void onWriteStorageGranted();
-
     // Returns details of the interfaces in the system, encoded as a single string for ease
     // of JNI transfer over to the Go environment.
     //
@@ -395,7 +385,7 @@ public class App extends Application {
             return "";
         }
 
-        StringBuilder sb = new StringBuilder("");
+        StringBuilder sb = new StringBuilder();
         for (NetworkInterface nif : interfaces) {
             try {
                 // Android doesn't have a supportsBroadcast() but the Go net.Interface wants

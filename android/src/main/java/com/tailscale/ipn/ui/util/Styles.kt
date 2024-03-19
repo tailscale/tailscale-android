@@ -15,13 +15,12 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun settingsRowModifier(): Modifier {
-    return Modifier
-            .clip(shape = RoundedCornerShape(8.dp))
-            .background(color = MaterialTheme.colorScheme.secondaryContainer)
-            .fillMaxWidth()
+  return Modifier.clip(shape = RoundedCornerShape(8.dp))
+      .background(color = MaterialTheme.colorScheme.secondaryContainer)
+      .fillMaxWidth()
 }
 
 @Composable
 fun defaultPaddingModifier(): Modifier {
-    return Modifier.padding(8.dp)
+  return Modifier.padding(8.dp)
 }

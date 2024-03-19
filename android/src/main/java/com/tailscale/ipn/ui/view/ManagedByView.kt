@@ -23,30 +23,24 @@ import com.tailscale.ipn.ui.viewModel.IpnViewModel
 
 @Composable
 fun ManagedByView(model: IpnViewModel = viewModel()) {
-    Surface(color = MaterialTheme.colorScheme.surface) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(
-                space = 20.dp, alignment = Alignment.CenterVertically
-            ),
-            horizontalAlignment = Alignment.Start,
-            modifier = Modifier
-                .fillMaxWidth()
-                .safeContentPadding()
-        ) {
-            val mdmSettings = IpnViewModel.mdmSettings.collectAsState().value
-            mdmSettings.get(StringSetting.ManagedByOrganizationName)?.let {
-                Text(stringResource(R.string.managed_by_explainer_orgName, it))
-            } ?: run {
-                Text(stringResource(R.string.managed_by_explainer))
+  Surface(color = MaterialTheme.colorScheme.surface) {
+    Column(
+        verticalArrangement =
+            Arrangement.spacedBy(space = 20.dp, alignment = Alignment.CenterVertically),
+        horizontalAlignment = Alignment.Start,
+        modifier = Modifier.fillMaxWidth().safeContentPadding()) {
+          val mdmSettings = IpnViewModel.mdmSettings.collectAsState().value
+          mdmSettings.get(StringSetting.ManagedByOrganizationName)?.let {
+            Text(stringResource(R.string.managed_by_explainer_orgName, it))
+          } ?: run { Text(stringResource(R.string.managed_by_explainer)) }
+          mdmSettings.get(StringSetting.ManagedByCaption)?.let {
+            if (it.isNotEmpty()) {
+              Text(it)
             }
-            mdmSettings.get(StringSetting.ManagedByCaption)?.let {
-                if (it.isNotEmpty()) {
-                    Text(it)
-                }
-            }
-            mdmSettings.get(StringSetting.ManagedByURL)?.let {
-                OpenURLButton(stringResource(R.string.open_support), it)
-            }
+          }
+          mdmSettings.get(StringSetting.ManagedByURL)?.let {
+            OpenURLButton(stringResource(R.string.open_support), it)
+          }
         }
-    }
+  }
 }

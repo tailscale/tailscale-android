@@ -25,20 +25,20 @@
         android:required="false" />
 
     <application
-        android:label="Tailscale"
-        android:icon="@mipmap/ic_launcher"
-        android:roundIcon="@mipmap/ic_launcher_round"
-        android:banner="@drawable/tv_banner"
         android:name=".App"
-        android:allowBackup="false">
+        android:allowBackup="false"
+        android:banner="@drawable/tv_banner"
+        android:icon="@mipmap/ic_launcher"
+        android:label="Tailscale"
+        android:roundIcon="@mipmap/ic_launcher_round">
         <activity
             android:name="MainActivity"
-            android:label="@string/app_name"
-            android:theme="@style/Theme.GioApp"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
-            android:windowSoftInputMode="adjustResize"
+            android:exported="true"
+            android:label="@string/app_name"
             android:launchMode="singleTask"
-            android:exported="true">
+            android:theme="@style/Theme.GioApp"
+            android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -84,18 +84,18 @@
 
         <service
             android:name=".IPNService"
-            android:permission="android.permission.BIND_VPN_SERVICE"
-            android:exported="false">
+            android:exported="false"
+            android:permission="android.permission.BIND_VPN_SERVICE">
             <intent-filter>
                 <action android:name="android.net.VpnService" />
             </intent-filter>
         </service>
         <service
             android:name=".QuickToggleService"
+            android:exported="true"
             android:icon="@drawable/ic_tile"
             android:label="@string/tile_name"
-            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
-            android:exported="true">
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
             <intent-filter>
                 <action android:name="android.service.quicksettings.action.QS_TILE" />
             </intent-filter>

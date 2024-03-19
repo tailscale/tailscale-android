@@ -10,14 +10,12 @@ import com.tailscale.ipn.ui.util.set
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
-
 class BugReportViewModel : ViewModel() {
-    val bugReportID: StateFlow<String> = MutableStateFlow("")
+  val bugReportID: StateFlow<String> = MutableStateFlow("")
 
-    init {
-        Client(viewModelScope).bugReportId { result ->
-            result.onSuccess { bugReportID.set(it) }
-                .onFailure { bugReportID.set("(Error fetching ID)") }
-        }
+  init {
+    Client(viewModelScope).bugReportId { result ->
+      result.onSuccess { bugReportID.set(it) }.onFailure { bugReportID.set("(Error fetching ID)") }
     }
+  }
 }
