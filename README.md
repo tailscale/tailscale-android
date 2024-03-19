@@ -47,6 +47,11 @@ If you installed Android Studio the tools may not be in your path. To get the
 correct tool path, run `make androidpath` and export the provided path in your
 shell.
 
+#### Code Formatting
+
+The ktmft plugin on the default setting should be used to autoformat all Java, Kotlin
+and XML files in Android Studio.  Enable "Format on Save".
+
 ### Docker
 
 If you wish to avoid installing software on your host system, a Docker based development strategy is available, you can build and start a shell with:

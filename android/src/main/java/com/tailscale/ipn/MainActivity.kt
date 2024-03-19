@@ -43,158 +43,131 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-
 class MainActivity : ComponentActivity() {
-    private var notifierScope: CoroutineScope? = null
+  private var notifierScope: CoroutineScope? = null
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+  override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
 
-        setContent {
-            AppTheme {
-                val navController = rememberNavController()
-                NavHost(navController = navController, startDestination = "main") {
-                    val mainViewNav =
-                            MainViewNavigation(
-                                    onNavigateToSettings = { navController.navigate("settings") },
-                                    onNavigateToPeerDetails = {
-                                        navController.navigate("peerDetails/${it.StableID}")
-                                    },
-                                    onNavigateToExitNodes = { navController.navigate("exitNodes") },
-                            )
+    setContent {
+      AppTheme {
+        val navController = rememberNavController()
+        NavHost(navController = navController, startDestination = "main") {
+          val mainViewNav =
+              MainViewNavigation(
+                  onNavigateToSettings = { navController.navigate("settings") },
+                  onNavigateToPeerDetails = {
+                    navController.navigate("peerDetails/${it.StableID}")
+                  },
+                  onNavigateToExitNodes = { navController.navigate("exitNodes") },
+              )
 
-                    val settingsNav =
-                            SettingsNav(
-                                    onNavigateToBugReport = { navController.navigate("bugReport") },
-                                    onNavigateToAbout = { navController.navigate("about") },
-                                    onNavigateToMDMSettings = { navController.navigate("mdmSettings") },
-                                    onNavigateToManagedBy = { navController.navigate("managedBy") },
-                                    onNavigateToUserSwitcher = { navController.navigate("userSwitcher") },
-                            )
+          val settingsNav =
+              SettingsNav(
+                  onNavigateToBugReport = { navController.navigate("bugReport") },
+                  onNavigateToAbout = { navController.navigate("about") },
+                  onNavigateToMDMSettings = { navController.navigate("mdmSettings") },
+                  onNavigateToManagedBy = { navController.navigate("managedBy") },
+                  onNavigateToUserSwitcher = { navController.navigate("userSwitcher") },
+              )
 
-                    val exitNodePickerNav = ExitNodePickerNav(onNavigateHome = {
-                        navController.popBackStack(
-                                route = "main", inclusive = false
-                        )
-                    }, onNavigateToMullvadCountry = { navController.navigate("mullvad/$it") })
+          val exitNodePickerNav =
+              ExitNodePickerNav(
+                  onNavigateHome = {
+                    navController.popBackStack(route = "main", inclusive = false)
+                  },
+                  onNavigateToMullvadCountry = { navController.navigate("mullvad/$it") })
 
-                    composable("main") {
-                        MainView(navigation = mainViewNav)
-                    }
-                    composable("settings") {
-                        Settings(settingsNav)
-                    }
-                    navigation(startDestination = "list", route = "exitNodes") {
-                        composable("list") {
-                            ExitNodePicker(exitNodePickerNav)
-                        }
-                        composable(
-                                "mullvad/{countryCode}", arguments = listOf(navArgument("countryCode") {
-                            type = NavType.StringType
-                        })
-                        ) {
-                            MullvadExitNodePicker(
-                                    it.arguments!!.getString("countryCode")!!, exitNodePickerNav
-                            )
-                        }
-                    }
-                    composable(
-                            "peerDetails/{nodeId}",
-                            arguments = listOf(navArgument("nodeId") { type = NavType.StringType })
-                    ) {
-                        PeerDetails(it.arguments?.getString("nodeId") ?: "")
-                    }
-                    composable("bugReport") {
-                        BugReportView()
-                    }
-                    composable("about") {
-                        AboutView()
-                    }
-                    composable("mdmSettings") {
-                        MDMSettingsDebugView()
-                    }
-                    composable("managedBy") {
-                        ManagedByView()
-                    }
-                    composable("userSwitcher") {
-                        UserSwitcherView()
-                    }
+          composable("main") { MainView(navigation = mainViewNav) }
+          composable("settings") { Settings(settingsNav) }
+          navigation(startDestination = "list", route = "exitNodes") {
+            composable("list") { ExitNodePicker(exitNodePickerNav) }
+            composable(
+                "mullvad/{countryCode}",
+                arguments = listOf(navArgument("countryCode") { type = NavType.StringType })) {
+                  MullvadExitNodePicker(
+                      it.arguments!!.getString("countryCode")!!, exitNodePickerNav)
                 }
-            }
+          }
+          composable(
+              "peerDetails/{nodeId}",
+              arguments = listOf(navArgument("nodeId") { type = NavType.StringType })) {
+                PeerDetails(it.arguments?.getString("nodeId") ?: "")
+              }
+          composable("bugReport") { BugReportView() }
+          composable("about") { AboutView() }
+          composable("mdmSettings") { MDMSettingsDebugView() }
+          composable("managedBy") { ManagedByView() }
+          composable("userSwitcher") { UserSwitcherView() }
         }
+      }
     }
+  }
 
-    init {
-        // Watch the model's browseToURL and launch the browser when it changes
-        // This will trigger the login flow
-        lifecycleScope.launch {
-            Notifier.browseToURL.collect { url ->
-                url?.let {
-                    Dispatchers.Main.run {
-                        login(it)
-                    }
-                }
-            }
+  init {
+    // Watch the model's browseToURL and launch the browser when it changes
+    // This will trigger the login flow
+    lifecycleScope.launch {
+      Notifier.browseToURL.collect { url -> url?.let { Dispatchers.Main.run { login(it) } } }
+    }
+  }
+
+  private fun login(url: String) {
+    // (jonathan) TODO: This is functional, but the navigation doesn't quite work
+    // as expected.  There's probably a better built in way to do this.  This will
+    // unblock in dev for the time being though.
+    val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+    startActivity(browserIntent)
+  }
+
+  override fun onResume() {
+    super.onResume()
+    val restrictionsManager =
+        this.getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
+    IpnViewModel.mdmSettings.set(MDMSettings(restrictionsManager))
+  }
+
+  override fun onStart() {
+    super.onStart()
+    val scope = CoroutineScope(Dispatchers.IO)
+    notifierScope = scope
+    Notifier.start(lifecycleScope)
+
+    // (jonathan) TODO: Requesting VPN permissions onStart is a bit aggressive.  This should
+    // be done when the user initiall starts the VPN
+    requestVpnPermission()
+  }
+
+  override fun onStop() {
+    Notifier.stop()
+    super.onStop()
+    val restrictionsManager =
+        this.getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
+    IpnViewModel.mdmSettings.set(MDMSettings(restrictionsManager))
+  }
+
+  private fun requestVpnPermission() {
+    val vpnIntent = VpnService.prepare(this)
+    if (vpnIntent != null) {
+      val contract = VpnPermissionContract()
+      registerForActivityResult(contract) { granted ->
+        Notifier.vpnPermissionGranted.set(granted)
+        if (granted) {
+          Log.i("VPN", "VPN permission granted")
+        } else {
+          Log.i("VPN", "VPN permission not granted")
         }
+      }
     }
-
-    private fun login(url: String) {
-        // (jonathan) TODO: This is functional, but the navigation doesn't quite work
-        // as expected.  There's probably a better built in way to do this.  This will
-        // unblock in dev for the time being though.
-        val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-        startActivity(browserIntent)
-    }
-
-    override fun onResume() {
-        super.onResume()
-        val restrictionsManager =
-                this.getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
-        IpnViewModel.mdmSettings.set(MDMSettings(restrictionsManager))
-    }
-
-    override fun onStart() {
-        super.onStart()
-        val scope = CoroutineScope(Dispatchers.IO)
-        notifierScope = scope
-        Notifier.start(lifecycleScope)
-
-        // (jonathan) TODO: Requesting VPN permissions onStart is a bit aggressive.  This should
-        // be done when the user initiall starts the VPN
-        requestVpnPermission()
-    }
-
-    override fun onStop() {
-        Notifier.stop()
-        super.onStop()
-        val restrictionsManager = this.getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
-        IpnViewModel.mdmSettings.set(MDMSettings(restrictionsManager))
-    }
-
-
-    private fun requestVpnPermission() {
-        val vpnIntent = VpnService.prepare(this)
-        if (vpnIntent != null) {
-            val contract = VpnPermissionContract()
-            registerForActivityResult(contract) { granted ->
-                Notifier.vpnPermissionGranted.set(granted)
-                if (granted) {
-                    Log.i("VPN", "VPN permission granted")
-                } else {
-                    Log.i("VPN", "VPN permission not granted")
-                }
-            }
-        }
-    }
+  }
 }
 
-
 class VpnPermissionContract : ActivityResultContract<Unit, Boolean>() {
-    override fun createIntent(context: Context, input: Unit): Intent {
-        return VpnService.prepare(context) ?: Intent()
-    }
+  override fun createIntent(context: Context, input: Unit): Intent {
+    return VpnService.prepare(context) ?: Intent()
+  }
 
-    override fun parseResult(resultCode: Int, intent: Intent?): Boolean {
-        return resultCode == Activity.RESULT_OK
-    }
+  override fun parseResult(resultCode: Int, intent: Intent?): Boolean {
+    return resultCode == Activity.RESULT_OK
+  }
 }

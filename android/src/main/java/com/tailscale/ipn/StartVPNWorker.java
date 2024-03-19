@@ -4,13 +4,13 @@
 package com.tailscale.ipn;
 
 import android.app.Notification;
-import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.net.VpnService;
 import android.os.Build;
+
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
@@ -22,8 +22,9 @@ public final class StartVPNWorker extends Worker {
         super(appContext, workerParams);
     }
 
-    @Override public Result doWork() {
-        App app = ((App)getApplicationContext());
+    @Override
+    public Result doWork() {
+        App app = ((App) getApplicationContext());
 
         // We will start the VPN from the background
         app.autoConnect = true;

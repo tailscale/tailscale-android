@@ -6,16 +6,6 @@ package com.tailscale.ipn;
 import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
 
-import java.lang.reflect.Method;
-
-import java.net.InetAddress;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-
 // Tailscale DNS Config retrieval
 //
 // Tailscale's DNS support can either override the local DNS servers with a set of servers
@@ -29,35 +19,35 @@ import java.util.concurrent.locks.ReentrantLock;
 // from Wi-Fi to LTE, we want the DNS servers received from LTE.
 
 public class DnsConfig {
-	private String dnsConfigs;
+    private String dnsConfigs;
 
-	// getDnsConfigAsString returns the current DNS configuration as a multiline string:
-	// line[0] DNS server addresses separated by spaces
-	// line[1] search domains separated by spaces
-	//
-	// For example:
-	// 8.8.8.8 8.8.4.4
-	// example.com
-	//
-	// an empty string means the current DNS configuration could not be retrieved.
-	String getDnsConfigAsString() {
-		return getDnsConfigs().trim();
-	}
+    // getDnsConfigAsString returns the current DNS configuration as a multiline string:
+    // line[0] DNS server addresses separated by spaces
+    // line[1] search domains separated by spaces
+    //
+    // For example:
+    // 8.8.8.8 8.8.4.4
+    // example.com
+    //
+    // an empty string means the current DNS configuration could not be retrieved.
+    String getDnsConfigAsString() {
+        return getDnsConfigs().trim();
+    }
 
-	private String getDnsConfigs(){
-		synchronized(this) {
-			return this.dnsConfigs;
-		}
-	}
+    private String getDnsConfigs() {
+        synchronized (this) {
+            return this.dnsConfigs;
+        }
+    }
 
-	void updateDNSFromNetwork(String dnsConfigs){
-		synchronized(this) {
-			this.dnsConfigs = dnsConfigs;
-		}
-	}
+    void updateDNSFromNetwork(String dnsConfigs) {
+        synchronized (this) {
+            this.dnsConfigs = dnsConfigs;
+        }
+    }
 
-	NetworkRequest getDNSConfigNetworkRequest(){
-		// Request networks that are able to reach the Internet.
-		return new NetworkRequest.Builder().addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET).build();
-	}
+    NetworkRequest getDNSConfigNetworkRequest() {
+        // Request networks that are able to reach the Internet.
+        return new NetworkRequest.Builder().addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET).build();
+    }
 }

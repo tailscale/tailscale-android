@@ -11,57 +11,60 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.model.IpnLocal
-import com.tailscale.ipn.ui.util.CheckedIndicator
-import com.tailscale.ipn.ui.util.ChevronRight
-import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.defaultPaddingModifier
 import com.tailscale.ipn.ui.util.settingsRowModifier
-
 
 // Used to decorate UserViews.
 // NONE indicates no decoration
 // CURRENT indicates the user is the current user and will be "checked"
 // SWITCHING indicates the user is being switched to and will be "loading"
 // NAV will show a chevron
-enum class UserActionState { CURRENT, SWITCHING, NAV, NONE }
+enum class UserActionState {
+  CURRENT,
+  SWITCHING,
+  NAV,
+  NONE
+}
 
 @Composable
 fun UserView(
-        profile: IpnLocal.LoginProfile?,
-        onClick: () -> Unit = {},
-        actionState: UserActionState = UserActionState.NONE
+    profile: IpnLocal.LoginProfile?,
+    onClick: () -> Unit = {},
+    actionState: UserActionState = UserActionState.NONE
 ) {
-    Column {
-        Row(modifier = settingsRowModifier().clickable { onClick() }) {
+  Column {
+    Row(
+        modifier = settingsRowModifier().clickable { onClick() },
+        verticalAlignment = Alignment.CenterVertically) {
+          profile?.let {
+            Box(modifier = defaultPaddingModifier()) { Avatar(profile = profile, size = 36) }
 
-            profile?.let {
-                Box(modifier = defaultPaddingModifier()) {
-                    Avatar(profile = profile, size = 36)
-                }
-
-                Column(modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.Center) {
-                    Text(
-                            text = profile.UserProfile.DisplayName
-                                    ?: "", style = MaterialTheme.typography.titleMedium
-                    )
-                    Text(text = profile.Name ?: "", style = MaterialTheme.typography.bodyMedium)
-                }
-            } ?: run {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
+              Text(
+                  text = profile.UserProfile.DisplayName,
+                  style = MaterialTheme.typography.titleMedium)
+              Text(text = profile.Name, style = MaterialTheme.typography.bodyMedium)
+            }
+          }
+              ?: run {
                 Box(modifier = Modifier.weight(1f)) {
-                    Text(text = stringResource(id = R.string.accounts), style = MaterialTheme.typography.titleMedium)
+                  Text(
+                      text = stringResource(id = R.string.accounts),
+                      style = MaterialTheme.typography.titleMedium)
                 }
-            }
-            when (actionState) {
-                UserActionState.CURRENT -> CheckedIndicator()
-                UserActionState.SWITCHING -> LoadingIndicator(size = 32)
-                UserActionState.NAV -> ChevronRight()
-                UserActionState.NONE -> Unit
-            }
+              }
+
+          when (actionState) {
+            UserActionState.CURRENT -> CheckedIndicator()
+            UserActionState.SWITCHING -> SimpleActivityIndicator(size = 26)
+            UserActionState.NAV -> ChevronRight()
+            UserActionState.NONE -> Unit
+          }
         }
-    }
+  }
 }

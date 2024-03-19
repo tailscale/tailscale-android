@@ -16,39 +16,33 @@ import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.flow.MutableStateFlow
 
 object LoadingIndicator {
-    private val loading = MutableStateFlow(false)
+  private val loading = MutableStateFlow(false)
 
-    fun start() {
-        loading.value = true
-    }
+  fun start() {
+    loading.value = true
+  }
 
-    fun stop() {
-        loading.value = false
-    }
+  fun stop() {
+    loading.value = false
+  }
 
-    @Composable
-    fun Wrap(content: @Composable () -> Unit) {
-        Box(
+  @Composable
+  fun Wrap(content: @Composable () -> Unit) {
+    Box(
+        modifier = Modifier.fillMaxWidth(),
+        contentAlignment = Alignment.Center,
+    ) {
+      content()
+      val isLoading = loading.collectAsState().value
+      if (isLoading) {
+        Box(Modifier.matchParentSize().background(Color.Gray.copy(alpha = 0.5f)))
+
+        Column(
             modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center,
-        ) {
-            content()
-            val isLoading = loading.collectAsState().value
-            if (isLoading) {
-                Box(
-                    Modifier
-                        .matchParentSize()
-                        .background(Color.Gray.copy(alpha = 0.5f))
-                )
-
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    CircularProgressIndicator()
-                }
-
+            horizontalAlignment = Alignment.CenterHorizontally) {
+              CircularProgressIndicator()
             }
-        }
+      }
     }
+  }
 }
