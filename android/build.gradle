@@ -5,11 +5,15 @@ buildscript {
     repositories {
         google()
         mavenCentral()
+        maven {
+            url = uri("https://plugins.gradle.org/m2/")
+        }
     }
     dependencies {
         classpath "com.android.tools.build:gradle:8.1.4"
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         classpath "org.jetbrains.kotlin:kotlin-serialization:$kotlin_version"
+        classpath("com.ncorti.ktfmt.gradle:plugin:0.17.0")
     }
 }
 
@@ -24,6 +28,7 @@ repositories {
 apply plugin: 'kotlin-android'
 apply plugin: 'com.android.application'
 apply plugin: 'org.jetbrains.kotlin.plugin.serialization'
+apply plugin: 'com.ncorti.ktfmt.gradle'
 
 android {
     ndkVersion "23.1.7779620"
