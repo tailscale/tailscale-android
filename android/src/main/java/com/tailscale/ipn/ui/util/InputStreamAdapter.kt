@@ -12,7 +12,7 @@ class InputStreamAdapter(private val inputStream: InputStream) : libtailscale.In
     if (i == -1) {
       return null
     }
-    return b.sliceArray(0..i)
+    return b.sliceArray(0 ..< i)
   }
 
   override fun close() {

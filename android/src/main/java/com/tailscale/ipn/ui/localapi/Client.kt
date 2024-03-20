@@ -9,6 +9,7 @@ import com.tailscale.ipn.ui.model.Errors
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.IpnState
+import com.tailscale.ipn.ui.model.StableNodeID
 import com.tailscale.ipn.ui.util.InputStreamAdapter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -18,6 +19,8 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
 import kotlinx.serialization.serializer
+import libtailscale.FilePart
+import java.io.File
 import java.nio.charset.Charset
 import kotlin.reflect.KType
 import kotlin.reflect.typeOf
@@ -113,6 +116,34 @@ class Client(private val scope: CoroutineScope) {
     get(Endpoint.TKA_STATUS, responseHandler = responseHandler)
   }
 
+  fun putTaildropFiles(
+      peerId: StableNodeID,
+      files: Collection<File>,
+      responseHandler: (Result<String>) -> Unit
+  ) {
+    val manifest = Json.encodeToString(files.map { it.name to it.length() }.toMap())
+    val manifestPart = FilePart()
+    manifestPart.body = InputStreamAdapter(manifest.byteInputStream(Charset.defaultCharset()))
+    manifestPart.filename = "manifest.json"
+    manifestPart.contentType = "application/json"
+    manifestPart.contentLength = manifest.length.toLong()
+    val parts = mutableListOf(manifestPart)
+    parts.addAll(
+        files.map { file ->
+          val part = FilePart()
+          part.filename = file.name
+          part.contentLength = file.length()
+          part.body = InputStreamAdapter(file.inputStream())
+          part
+        })
+
+    return postMultipart(
+        "${Endpoint.FILE_PUT}/${peerId}",
+        FileParts(parts),
+        responseHandler,
+    )
+  }
+
   private inline fun <reified T> get(
       path: String,
       body: ByteArray? = null,
@@ -158,6 +189,22 @@ class Client(private val scope: CoroutineScope) {
         .execute()
   }
 
+  private inline fun <reified T> postMultipart(
+      path: String,
+      parts: FileParts,
+      noinline responseHandler: (Result<T>) -> Unit
+  ) {
+    Request(
+            scope = scope,
+            method = "POST",
+            path = path,
+            parts = parts,
+            timeoutMillis = 24 * 60 * 60 * 1000, // 24 hours
+            responseType = typeOf<T>(),
+            responseHandler = responseHandler)
+        .execute()
+  }
+
   private inline fun <reified T> patch(
       path: String,
       body: ByteArray? = null,
@@ -187,11 +234,12 @@ class Client(private val scope: CoroutineScope) {
   }
 }
 
-class Request<T>(
+public class Request<T>(
     private val scope: CoroutineScope,
     private val method: String,
     path: String,
     private val body: ByteArray? = null,
+    private val parts: FileParts? = null,
     private val timeoutMillis: Long = 30000,
     private val responseType: KType,
     private val responseHandler: (Result<T>) -> Unit
@@ -217,13 +265,16 @@ class Request<T>(
       Log.d(TAG, "Executing request:${method}:${fullPath} on app $app")
       try {
         val resp =
-            app.callLocalAPI(
-                timeoutMillis, method, fullPath, body?.let { InputStreamAdapter(it.inputStream()) })
+            if (parts != null) app.callLocalAPIMultipart(timeoutMillis, method, fullPath, parts)
+            else
+                app.callLocalAPI(
+                    timeoutMillis,
+                    method,
+                    fullPath,
+                    body?.let { InputStreamAdapter(it.inputStream()) })
         // TODO: use the streaming body for performance
-        Log.d(TAG, "Got Response")
         // An empty body is a perfectly valid response and indicates success
         val respData = resp.bodyBytes() ?: ByteArray(0)
-        Log.d(TAG, "Got response body")
         val response: Result<T> =
             when (responseType) {
               typeOf<String>() -> Result.success(respData.decodeToString() as T)
@@ -256,5 +307,15 @@ class Request<T>(
         scope.launch { responseHandler(Result.failure(e)) }
       }
     }
+  }
+}
+
+class FileParts(private val parts: List<FilePart>) : libtailscale.FileParts {
+  override fun get(i: Int): FilePart {
+    return parts[i]
+  }
+
+  override fun len(): Int {
+    return parts.size
   }
 }

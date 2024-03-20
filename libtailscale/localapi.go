@@ -8,9 +8,14 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"maps"
+	"mime/multipart"
 	"net"
 	"net/http"
+	"net/textproto"
 	"runtime/debug"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -22,9 +27,86 @@ import (
 // Note - Response includes a response body available from the Body method, it
 // is the caller's responsibility to close this.
 func (app *App) CallLocalAPI(timeoutMillis int, method, endpoint string, body InputStream) (LocalAPIResponse, error) {
+	return app.callLocalAPI(timeoutMillis, method, endpoint, nil, adaptInputStream(body))
+}
+
+// CallLocalAPIMultipart is like CallLocalAPI, but instead of uploading a
+// generic body, it uploads a multipart/form-encoded body consisting of the
+// supplied parts.
+func (app *App) CallLocalAPIMultipart(timeoutMillis int, method, endpoint string, parts FileParts) (LocalAPIResponse, error) {
 	defer func() {
 		if p := recover(); p != nil {
-			log.Printf("panic in CallLocalAPI %s: %s", p, debug.Stack())
+			log.Printf("panic in CallLocalAPIMultipart %s: %s", p, debug.Stack())
+			panic(p)
+		}
+	}()
+
+	r, w := io.Pipe()
+	defer r.Close()
+
+	mw := multipart.NewWriter(w)
+	header := make(http.Header)
+	header.Set("Content-Type", mw.FormDataContentType())
+	resultCh := make(chan interface{})
+	go func() {
+		resp, err := app.callLocalAPI(timeoutMillis, method, endpoint, header, r)
+		if err != nil {
+			resultCh <- err
+		} else {
+			resultCh <- resp
+		}
+	}()
+
+	go func() {
+		for i := int32(0); i < parts.Len(); i++ {
+			part := parts.Get(i)
+			contentType := "application/octet-stream"
+			if part.ContentType != "" {
+				contentType = part.ContentType
+			}
+			header := make(textproto.MIMEHeader, 3)
+			header.Set("Content-Disposition",
+				fmt.Sprintf(`form-data; name="%s"; filename="%s"`,
+					escapeQuotes("file"), escapeQuotes(part.Filename)))
+			header.Set("Content-Type", contentType)
+			header.Set("Content-Length", strconv.FormatInt(part.ContentLength, 10))
+			p, err := mw.CreatePart(header)
+			if err != nil {
+				resultCh <- fmt.Errorf("CreatePart: %w", err)
+				return
+			}
+			_, err = io.Copy(p, adaptInputStream(part.Body))
+			if err != nil {
+				resultCh <- fmt.Errorf("Copy: %w", err)
+				return
+			}
+		}
+
+		err := mw.Close()
+		if err != nil {
+			resultCh <- fmt.Errorf("Close MultipartWriter: %w", err)
+		}
+		err = w.Close()
+		if err != nil {
+			resultCh <- fmt.Errorf("Close Writer: %w", err)
+		}
+	}()
+
+	result := <-resultCh
+	switch t := result.(type) {
+	case LocalAPIResponse:
+		return t, nil
+	case error:
+		return nil, t
+	default:
+		panic("unexpected result type, this shouldn't happen")
+	}
+}
+
+func (app *App) callLocalAPI(timeoutMillis int, method, endpoint string, header http.Header, body io.ReadCloser) (LocalAPIResponse, error) {
+	defer func() {
+		if p := recover(); p != nil {
+			log.Printf("panic in callLocalAPI %s: %s", p, debug.Stack())
 			panic(p)
 		}
 	}()
@@ -38,7 +120,8 @@ func (app *App) CallLocalAPI(timeoutMillis int, method, endpoint string, body In
 		defer body.Close()
 	}
 
-	req, err := http.NewRequestWithContext(ctx, method, endpoint, adaptInputStream(body))
+	req, err := http.NewRequestWithContext(ctx, method, endpoint, body)
+	maps.Copy(req.Header, header)
 	if err != nil {
 		return nil, fmt.Errorf("error creating new request for %s: %w", endpoint, err)
 	}
@@ -63,9 +146,9 @@ func (app *App) CallLocalAPI(timeoutMillis int, method, endpoint string, body In
 			}
 		}()
 
+		defer pipeWriter.Close()
 		app.localAPIHandler.ServeHTTP(resp, req)
 		resp.Flush()
-		pipeWriter.Close()
 	}()
 
 	select {
@@ -127,7 +210,7 @@ func (r *Response) Flush() {
 	})
 }
 
-func adaptInputStream(in InputStream) io.Reader {
+func adaptInputStream(in InputStream) io.ReadCloser {
 	if in == nil {
 		return nil
 	}
@@ -146,4 +229,11 @@ func adaptInputStream(in InputStream) io.Reader {
 		}
 	}()
 	return r
+}
+
+// Below taken from Go stdlib
+var quoteEscaper = strings.NewReplacer("\\", "\\\\", `"`, "\\\"")
+
+func escapeQuotes(s string) string {
+	return quoteEscaper.Replace(s)
 }

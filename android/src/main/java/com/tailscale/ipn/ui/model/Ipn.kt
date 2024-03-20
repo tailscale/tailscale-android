@@ -32,6 +32,7 @@ class Ipn {
       val ErrMessage: String? = null,
       val LoginFinished: Empty.Message? = null,
       val FilesWaiting: Empty.Message? = null,
+      val OutgoingFiles: List<OutgoingFile>? = null,
       val State: Int? = null,
       var Prefs: Prefs? = null,
       var NetMap: Netmap.NetworkMap? = null,
@@ -153,6 +154,19 @@ class Ipn {
       val PartialPath: String? = null,
       var FinalPath: String? = null,
       val Done: Boolean? = null,
+  )
+
+  @Serializable
+  data class OutgoingFile(
+      val Name: String,
+      val PeerID: StableNodeID,
+      val Started: String,
+      val DeclaredSize: Long,
+      val Sent: Long,
+      val PartialPath: String? = null,
+      var FinalPath: String? = null,
+      val Finished: Boolean,
+      val Succeeded: Boolean,
   )
 }
 

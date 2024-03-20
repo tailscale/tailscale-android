@@ -22,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -37,7 +38,8 @@ import com.tailscale.ipn.ui.viewModel.PeerDetailsViewModelFactory
 fun PeerDetails(
     nav: BackNavigation,
     nodeId: String,
-    model: PeerDetailsViewModel = viewModel(factory = PeerDetailsViewModelFactory(nodeId))
+    model: PeerDetailsViewModel =
+        viewModel(factory = PeerDetailsViewModelFactory(nodeId, LocalContext.current.filesDir))
 ) {
   Scaffold(topBar = { Header(title = R.string.peer_details, onBack = nav.onBack) }) { innerPadding
     ->
