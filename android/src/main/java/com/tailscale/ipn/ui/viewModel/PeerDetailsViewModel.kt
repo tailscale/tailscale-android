@@ -13,16 +13,18 @@ import com.tailscale.ipn.ui.theme.ts_color_light_green
 import com.tailscale.ipn.ui.util.ComposableStringFormatter
 import com.tailscale.ipn.ui.util.DisplayAddress
 import com.tailscale.ipn.ui.util.TimeUtil
+import java.io.File
 
 data class PeerSettingInfo(val titleRes: Int, val value: ComposableStringFormatter)
 
-class PeerDetailsViewModelFactory(private val nodeId: StableNodeID) : ViewModelProvider.Factory {
+class PeerDetailsViewModelFactory(private val nodeId: StableNodeID, private val filesDir: File) :
+    ViewModelProvider.Factory {
   override fun <T : ViewModel> create(modelClass: Class<T>): T {
-    return PeerDetailsViewModel(nodeId) as T
+    return PeerDetailsViewModel(nodeId, filesDir) as T
   }
 }
 
-class PeerDetailsViewModel(val nodeId: StableNodeID) : IpnViewModel() {
+class PeerDetailsViewModel(val nodeId: StableNodeID, val filesDir: File) : IpnViewModel() {
 
   var addresses: List<DisplayAddress> = emptyList()
   var info: List<PeerSettingInfo> = emptyList()

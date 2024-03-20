@@ -85,11 +85,29 @@ type Application interface {
 	// without having to call over the network.
 	CallLocalAPI(timeoutMillis int, method, endpoint string, body InputStream) (LocalAPIResponse, error)
 
+	// CallLocalAPIMultipart is like CallLocalAPI, but instead of a single body,
+	// it accepts multiple FileParts that get encoded as multipart/form-data.
+	CallLocalAPIMultipart(timeoutMillis int, method, endpoint string, parts FileParts) (LocalAPIResponse, error)
+
 	// WatchNotifications provides a mechanism for subscribing to ipn.Notify
 	// updates. The given NotificationCallback's OnNotify function is invoked
 	// on every new ipn.Notify message. The returned NotificationManager
 	// allows the watcher to stop watching notifications.
 	WatchNotifications(mask int, cb NotificationCallback) NotificationManager
+}
+
+// FileParts is an array of multiple FileParts.
+type FileParts interface {
+	Len() int32
+	Get(int32) *FilePart
+}
+
+// FilePart is a multipart file that can be submitted via CallLocalAPIMultiPart.
+type FilePart struct {
+	ContentLength int64
+	Filename      string
+	Body          InputStream
+	ContentType   string // optional MIME content type
 }
 
 // LocalAPIResponse is a response to a localapi call, analogous to an http.Response.

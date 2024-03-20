@@ -40,6 +40,7 @@ object Notifier {
   val vpnPermissionGranted: StateFlow<Boolean?> = MutableStateFlow(null)
   val tileReady: StateFlow<Boolean> = MutableStateFlow(false)
   val readyToPrepareVPN: StateFlow<Boolean> = MutableStateFlow(false)
+  val outgoingFiles: StateFlow<List<Ipn.OutgoingFile>?> = MutableStateFlow(null)
 
   private lateinit var app: libtailscale.Application
   private var manager: libtailscale.NotificationManager? = null
@@ -68,12 +69,12 @@ object Notifier {
             notify.BrowseToURL?.let(browseToURL::set)
             notify.LoginFinished?.let { loginFinished.set(it.property) }
             notify.Version?.let(version::set)
+            notify.OutgoingFiles?.let(outgoingFiles::set)
           }
       state.collect { currstate ->
         readyToPrepareVPN.set(currstate > Ipn.State.Stopped)
         tileReady.set(currstate >= Ipn.State.Stopped)
       }
-      Log.d(TAG, "Stopped")
     }
   }
 
