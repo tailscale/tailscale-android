@@ -280,7 +280,7 @@ class App : Application(), libtailscale.AppContext {
         Runnable {
           val intent: Intent? = VpnService.prepare(act)
           if (intent == null) {
-            Libtailscale.onVPNPrepared()
+            startVPN()
           } else {
             startActivityForResult(act, intent, reqCode)
           }

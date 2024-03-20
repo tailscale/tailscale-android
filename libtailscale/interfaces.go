@@ -65,7 +65,7 @@ type IPNService interface {
 
 // VPNServiceBuilder corresponds to Android's VpnService.Builder.
 type VPNServiceBuilder interface {
-	SetMTU(int) error
+	SetMTU(int32) error
 	AddDNSServer(string) error
 	AddSearchDomain(string) error
 	AddRoute(string, int32) error
@@ -120,32 +120,10 @@ type InputStream interface {
 // The below are global callbacks that allow the Java application to notify Go
 // of various state changes.
 
-func OnVPNPrepared() {
-	notifyVPNPrepared()
-}
-
 func RequestVPN(service IPNService) {
 	onVPNRequested <- service
 }
 
 func ServiceDisconnect(service IPNService) {
 	onDisconnect <- service
-}
-
-func OnActivityResult(reqCode, resCode int, idToken string) {
-	switch reqCode {
-	case requestSignin:
-		if resCode != resultOK {
-			onGoogleToken <- ""
-			break
-		}
-		onGoogleToken <- idToken
-	case requestPrepareVPN:
-		if resCode == resultOK {
-			notifyVPNPrepared()
-		} else {
-			notifyVPNClosed()
-			notifyVPNRevoked()
-		}
-	}
 }

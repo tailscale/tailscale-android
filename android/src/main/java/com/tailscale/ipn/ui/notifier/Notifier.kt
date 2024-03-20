@@ -69,14 +69,9 @@ object Notifier {
             notify.LoginFinished?.let { loginFinished.set(it.property) }
             notify.Version?.let(version::set)
           }
-      var previousState: Ipn.State? = null
       state.collect { currstate ->
-        readyToPrepareVPN.set(
-            previousState != null &&
-                previousState!! <= Ipn.State.Stopped &&
-                currstate > Ipn.State.Stopped)
+        readyToPrepareVPN.set(currstate > Ipn.State.Stopped)
         tileReady.set(currstate >= Ipn.State.Stopped)
-        previousState = currstate
       }
       Log.d(TAG, "Stopped")
     }
