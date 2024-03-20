@@ -60,17 +60,14 @@ ifeq ($(JAVA_HOME),)
 	unexport JAVA_HOME
 endif
 
-# Go toolchain path, by default pulled from Tailscale prebuilts pinned to the
-# version in tailscale.com/cmd/printdep.
-TOOLCHAINDIR ?= ${HOME}/.cache/tailscale-android-go-$(shell go run tailscale.com/cmd/printdep --go)
+# TOOLCHAINDIR is set by fdoid CI and used by tool/* scripts.
+TOOLCHAINDIR ?=
+export TOOLCHAINDIR
 
-# TODO: GOPATH should be handled more cleanly here, but gomobile installs files
-# into GOPATH/bin and expects them in $PATH. Ideally we'd move GOPATH entirely
-# inside the build output directory, but as Go marks all the files recursively
-# read only that makes clean more complex as well. We run the risk of
-# $(TOOLCHAINDIR)/bin/go and "go" providing different answers, but today that
-# would be extremely unlikely.
-export PATH := $(TOOLCHAINDIR)/bin:$(JAVA_HOME)/bin:$(shell go env GOPATH)/bin:$(ANDROID_HOME)/cmdline-tools/latest/bin:$(ANDROID_HOME)/platform-tools:$(PATH)
+GOBIN ?= $(PWD)/android/build/go/bin
+export GOBIN
+
+export PATH := $(PWD)/tool:$(GOBIN):$(JAVA_HOME)/bin:$(ANDROID_HOME)/cmdline-tools/latest/bin:$(ANDROID_HOME)/platform-tools:$(PATH)
 export GOROOT := # Unset
 
 all: tailscale-new-debug.apk test $(DEBUG_APK) tailscale-fdroid.apk
@@ -89,18 +86,10 @@ tag_release:
 	git commit -sm "android: bump version code" android_legacy/build.gradle
 	git tag -a "$(VERSION_LONG)"
 
-bumposs: toolchain
+bumposs:
 	GOPROXY=direct go get tailscale.com@main
+	go run tailscale.com/cmd/printdep --go > go.toolchain.rev
 	go mod tidy -compat=1.22
-
-$(TOOLCHAINDIR)/bin/go:
-	@if ! echo $(TOOLCHAINDIR) | grep -q 'tailscale-android-go'; then \
-		echo "ERROR: TOOLCHAINDIR=$(TOOLCHAINDIR) is missing bin/go and does not appear to be a tailscale managed path"; \
-		exit 1; \
-	fi
-	rm -rf ${HOME}/.cache/tailscale-android-go-*
-	mkdir -p $(TOOLCHAINDIR)
-	curl --silent -L $(shell go run tailscale.com/cmd/printdep --go-url) | tar --strip-components=1 -C $(TOOLCHAINDIR) -zx
 
 # Get the commandline tools package, this provides (among other things) the sdkmanager binary.
 $(ANDROID_HOME)/cmdline-tools/latest/bin/sdkmanager:
@@ -134,9 +123,7 @@ androidpath:
 	@echo "export ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT)"
 	@echo 'export PATH=$(ANDROID_HOME)/cmdline-tools/latest/bin:$(ANDROID_HOME)/platform-tools:$$PATH'
 
-toolchain: $(TOOLCHAINDIR)/bin/go
-
-$(AAR): toolchain checkandroidsdk
+$(AAR): checkandroidsdk
 	@mkdir -p android_legacy/libs && \
 	go run gioui.org/cmd/gogio \
 		-ldflags $(VERSION_LDFLAGS) \
@@ -169,18 +156,16 @@ LIBTAILSCALE_SOURCES=$(shell find libtailscale -name *.go) go.mod go.sum
 android/libs:
 	mkdir -p android/libs
 
-android/build/go:
-	mkdir -p android/build/go
+$(GOBIN)/gomobile: $(GOBIN)/gobind go.mod go.sum
+	go install golang.org/x/mobile/cmd/gomobile
 
-GOMOBILE=android/build/go/gomobile
-$(GOMOBILE): go.mod go.sum $(TOOLCHAINDIR)/bin/go
-	$(TOOLCHAINDIR)/bin/go build -o android/build/go/gomobile golang.org/x/mobile/cmd/gomobile
+$(GOBIN)/gobind: go.mod go.sum
+	go install golang.org/x/mobile/cmd/gobind
 
 # TODO: the version names used below parse the legacy version information,
 # though hopefully they won't substantially differ for now.
-$(LIBTAILSCALE): Makefile android/libs android/build/go/gomobile $(LIBTAILSCALE_SOURCES)
-	./$(GOMOBILE) init
-	./$(GOMOBILE) bind -target android -androidapi 26 \
+$(LIBTAILSCALE): Makefile android/libs $(LIBTAILSCALE_SOURCES) $(GOBIN)/gomobile
+	gomobile bind -target android -androidapi 26 \
 		-ldflags $(VERSION_LDFLAGS) \
 		-o $@ ./libtailscale
 
