@@ -33,12 +33,12 @@ open class IPNService : VpnService(), libtailscale.IPNService {
             i.setClass(getApplicationContext(), IPNReceiver::class.java)
             sendBroadcast(i)
             Libtailscale.requestVPN(this)
-            app.connect()
+            app.setWantRunning(true)
             return START_STICKY
         }
         Libtailscale.requestVPN(this)
         if (app.vpnReady && app.autoConnect) {
-            app.connect();
+            app.setWantRunning(true);
         }
         return START_STICKY
     }
