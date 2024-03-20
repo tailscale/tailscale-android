@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -51,29 +50,31 @@ fun Settings(
   val user = viewModel.loggedInUser.collectAsState().value
   val isAdmin = viewModel.isAdmin.collectAsState().value
 
-  Scaffold(topBar = { Header(title = R.string.settings_title) }) { innerPadding ->
-    Column(modifier = Modifier.padding(innerPadding).fillMaxHeight()) {
-      UserView(
-          profile = user,
-          actionState = UserActionState.NAV,
-          onClick = viewModel.navigation.onNavigateToUserSwitcher)
-      if (isAdmin) {
-        Spacer(modifier = Modifier.height(4.dp))
-        AdminTextView { handler.openUri(Links.ADMIN_URL) }
-      }
+  Scaffold(
+      topBar = { Header(title = R.string.settings_title, onBack = settingsNav.onBackPressed) }) {
+          innerPadding ->
+        Column(modifier = Modifier.padding(innerPadding).fillMaxHeight().padding(16.dp)) {
+          UserView(
+              profile = user,
+              actionState = UserActionState.NAV,
+              onClick = viewModel.navigation.onNavigateToUserSwitcher)
+          if (isAdmin) {
+            Spacer(modifier = Modifier.height(4.dp))
+            AdminTextView { handler.openUri(Links.ADMIN_URL) }
+          }
 
-      Spacer(modifier = Modifier.height(8.dp))
+          Spacer(modifier = Modifier.height(8.dp))
 
-      val settings = viewModel.settings.collectAsState().value
-      settings.forEach { settingBundle ->
-        Column(modifier = settingsRowModifier()) {
-          settingBundle.title?.let { SettingTitle(it) }
-          settingBundle.settings.forEach { SettingRow(it) }
+          val settings = viewModel.settings.collectAsState().value
+          settings.forEach { settingBundle ->
+            Column(modifier = settingsRowModifier()) {
+              settingBundle.title?.let { SettingTitle(it) }
+              settingBundle.settings.forEach { SettingRow(it) }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+          }
         }
-        Spacer(modifier = Modifier.height(8.dp))
       }
-    }
-  }
 }
 
 @Composable
@@ -142,7 +143,7 @@ fun SettingRow(setting: Setting) {
           SettingType.SWITCH -> {
             Text(setting.title.getString())
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
-              Switch(checked = swVal, onCheckedChange = setting.onToggle, enabled = enabled)
+              TintedSwitch(checked = swVal, onCheckedChange = setting.onToggle, enabled = enabled)
             }
           }
           SettingType.NAV -> {
@@ -155,7 +156,6 @@ fun SettingRow(setting: Setting) {
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
               Text(text = txtVal, style = MaterialTheme.typography.bodyMedium)
             }
-            ChevronRight()
           }
         }
       }
