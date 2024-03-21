@@ -18,9 +18,7 @@ public final class StopVPNWorker extends Worker {
 
     @Override
     public Result doWork() {
-        disconnect();
+        App.getApplication().setWantRunning(false);
         return Result.success();
     }
-
-    private native void disconnect();
 }

@@ -30,10 +30,6 @@ const (
 	customLoginServerPrefKey = "customloginserver"
 )
 
-type ConnectEvent struct {
-	Enable bool
-}
-
 func newApp(dataDir string, appCtx AppContext) Application {
 	a := &App{
 		dataDir: dataDir,

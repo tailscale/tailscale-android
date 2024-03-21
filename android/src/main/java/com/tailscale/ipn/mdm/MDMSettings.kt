@@ -13,18 +13,18 @@ class MDMSettings(private val restrictionsManager: RestrictionsManager? = null) 
         return it.applicationRestrictions.getBoolean(setting.key)
       }
     }
-    return App.getApplication().encryptedPrefs.getBoolean(setting.key, false)
+    return App.getApplication().getEncryptedPrefs().getBoolean(setting.key, false)
   }
 
   fun get(setting: StringSetting): String? {
     return restrictionsManager?.applicationRestrictions?.getString(setting.key)
-        ?: App.getApplication().encryptedPrefs.getString(setting.key, null)
+        ?: App.getApplication().getEncryptedPrefs().getString(setting.key, null)
   }
 
   fun get(setting: AlwaysNeverUserDecidesSetting): AlwaysNeverUserDecidesValue {
     val storedString: String =
         restrictionsManager?.applicationRestrictions?.getString(setting.key)
-            ?: App.getApplication().encryptedPrefs.getString(setting.key, null)
+            ?: App.getApplication().getEncryptedPrefs().getString(setting.key, null)
             ?: "user-decides"
     return when (storedString) {
       "always" -> {
@@ -42,7 +42,7 @@ class MDMSettings(private val restrictionsManager: RestrictionsManager? = null) 
   fun get(setting: ShowHideSetting): ShowHideValue {
     val storedString: String =
         restrictionsManager?.applicationRestrictions?.getString(setting.key)
-            ?: App.getApplication().encryptedPrefs.getString(setting.key, null)
+            ?: App.getApplication().getEncryptedPrefs().getString(setting.key, null)
             ?: "show"
     return when (storedString) {
       "hide" -> {
@@ -61,7 +61,7 @@ class MDMSettings(private val restrictionsManager: RestrictionsManager? = null) 
       }
     }
     return App.getApplication()
-        .encryptedPrefs
+            .getEncryptedPrefs()
         .getStringSet(setting.key, HashSet<String>())
         ?.toTypedArray()
         ?.sortedArray()
