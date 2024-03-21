@@ -30,7 +30,7 @@
     <string name="bug_report_title">Report a Bug</string>
     <string name="bug_report_instructions_prefix">To report a bug,&#160;</string>
     <string name="bug_report_instructions_linktext">contact our support team&#160;</string>
-    <string name="bug_report_instructions_suffix"> and include the ID below.</string>
+    <string name="bug_report_instructions_suffix"> and include the identifier below.</string>
     <string name="bug_report_id_desc">This ID helps us find the event in our diagnostic logs. This process does not share any of your personally-identifiable information.</string>
 
     <!-- Strings for the settings screen -->
@@ -63,7 +63,7 @@
     <string name="open_support">Open Support</string>
 
     <!-- State strings -->
-    <string name="waiting">Waiting…</string>
+    <string name="waiting">Loading…</string>
     <string name="placeholder">--</string>
     <string name="please_login">Please Login</string>
     <string name="stopped">Stopped</string>
@@ -100,5 +100,20 @@
     <string name="run_exit_node_explainer_running">Other devices in your tailnet can now route their Internet traffic through this Android device. Make sure to approve this exit node in the admin console in order for other devices to see it.</string>
     <string name="enabled">Enabled</string>
     <string name="disabled">Disabled</string>
+    <string name="tailnet_lock">Tailnet lock</string>
+    <string name="tailnet_lock_explainer">Tailnet lock lets devices in your network verify public keys distributed by the coordination server before trusting them for connectivity. </string>
+    <string name="tailnet_lock_enabled">Tailnet lock is currently enabled.</string>
+    <string name="tailnet_lock_disabled">Tailnet lock is currently not enabled.</string>
+    <string name="this_node_has_been_signed">This node has been signed by another device.</string>
+    <string name="this_node_has_not_been_signed">This node has not been signed by another device.</string>
+    <string name="this_node_is_trusted">This node is trusted to change the Tailnet lock configuration.</string>
+    <string name="this_node_is_not_trusted">This node is not trusted to change the Tailnet lock configuration.</string>
+    <string name="copy_to_clipboard">Copy to Clipboard</string>
+    <string name="node_key">Node Key</string>
+    <string name="tailnet_lock_key">Tailnet Lock Key</string>
+    <string name="node_key_explainer">Used to sign this node from another signing device in your tailnet.</string>
+    <string name="tailnet_lock_key_explainer">Used to authorize changes to the Tailnet lock configuration.</string>
+    <string name="bug_report_id">Bug Report ID</string>
+    <string name="learn_more">Learn more…</string>
 
 </resources>

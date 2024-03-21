@@ -39,6 +39,7 @@ import com.tailscale.ipn.ui.view.MullvadExitNodePicker
 import com.tailscale.ipn.ui.view.PeerDetails
 import com.tailscale.ipn.ui.view.RunExitNodeView
 import com.tailscale.ipn.ui.view.Settings
+import com.tailscale.ipn.ui.view.TailnetLockSetupView
 import com.tailscale.ipn.ui.view.UserSwitcherView
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerNav
 import com.tailscale.ipn.ui.viewModel.IpnViewModel
@@ -79,6 +80,7 @@ class MainActivity : ComponentActivity() {
               SettingsNav(
                   onNavigateToBugReport = { navController.navigate("bugReport") },
                   onNavigateToAbout = { navController.navigate("about") },
+                  onNavigateToTailnetLock = { navController.navigate("tailnetLock") },
                   onNavigateToMDMSettings = { navController.navigate("mdmSettings") },
                   onNavigateToManagedBy = { navController.navigate("managedBy") },
                   onNavigateToUserSwitcher = { navController.navigate("userSwitcher") },
@@ -116,6 +118,7 @@ class MainActivity : ComponentActivity() {
                 PeerDetails(nav = backNav, it.arguments?.getString("nodeId") ?: "")
               }
           composable("bugReport") { BugReportView(nav = backNav) }
+          composable("tailnetLock") { TailnetLockSetupView(nav = backNav) }
           composable("about") { AboutView(nav = backNav) }
           composable("mdmSettings") { MDMSettingsDebugView(nav = backNav) }
           composable("managedBy") { ManagedByView(nav = backNav) }

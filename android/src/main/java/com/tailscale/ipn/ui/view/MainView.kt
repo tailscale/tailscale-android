@@ -80,7 +80,7 @@ fun MainView(navigation: MainViewNavigation, viewModel: MainViewModel = viewMode
               modifier =
                   Modifier.fillMaxWidth()
                       .background(MaterialTheme.colorScheme.secondaryContainer)
-                      .padding(horizontal = 8.dp)
+                      .padding(horizontal = 16.dp)
                       .padding(top = 10.dp),
               verticalAlignment = Alignment.CenterVertically) {
                 val isOn = viewModel.vpnToggleState.collectAsState(initial = false)
@@ -146,7 +146,7 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
   Box(
       modifier =
           Modifier.clickable { navAction() }
-              .padding(horizontal = 8.dp)
+              .padding(horizontal = 16.dp)
               .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
               .background(MaterialTheme.colorScheme.background)
               .fillMaxWidth()) {
