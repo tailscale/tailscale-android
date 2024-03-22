@@ -4,6 +4,7 @@
 package com.tailscale.ipn.ui.notifier
 
 import android.util.Log
+import com.tailscale.ipn.ui.model.Empty
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.Ipn.Notify
 import com.tailscale.ipn.ui.model.Netmap
@@ -29,6 +30,11 @@ object Notifier {
   private val TAG = Notifier::class.simpleName
   private val decoder = Json { ignoreUnknownKeys = true }
 
+  // Global App State
+  val tileReady: StateFlow<Boolean> = MutableStateFlow(false)
+  val readyToPrepareVPN: StateFlow<Boolean> = MutableStateFlow(false)
+
+  // General IPN Bus State
   val state: StateFlow<Ipn.State> = MutableStateFlow(Ipn.State.NoState)
   val netmap: StateFlow<Netmap.NetworkMap?> = MutableStateFlow(null)
   val prefs: StateFlow<Ipn.Prefs?> = MutableStateFlow(null)
@@ -37,10 +43,11 @@ object Notifier {
   val browseToURL: StateFlow<String?> = MutableStateFlow(null)
   val loginFinished: StateFlow<String?> = MutableStateFlow(null)
   val version: StateFlow<String?> = MutableStateFlow(null)
-  val vpnPermissionGranted: StateFlow<Boolean?> = MutableStateFlow(null)
-  val tileReady: StateFlow<Boolean> = MutableStateFlow(false)
-  val readyToPrepareVPN: StateFlow<Boolean> = MutableStateFlow(false)
+
+  // Taildrop-specific State
   val outgoingFiles: StateFlow<List<Ipn.OutgoingFile>?> = MutableStateFlow(null)
+  val incomingFiles: StateFlow<List<Ipn.PartialFile>?> = MutableStateFlow(null)
+  val filesWaiting: StateFlow<Empty.Message?> = MutableStateFlow(null)
 
   private lateinit var app: libtailscale.Application
   private var manager: libtailscale.NotificationManager? = null
@@ -70,6 +77,8 @@ object Notifier {
             notify.LoginFinished?.let { loginFinished.set(it.property) }
             notify.Version?.let(version::set)
             notify.OutgoingFiles?.let(outgoingFiles::set)
+            notify.FilesWaiting?.let(filesWaiting::set)
+            notify.IncomingFiles?.let(incomingFiles::set)
           }
       state.collect { currstate ->
         readyToPrepareVPN.set(currstate > Ipn.State.Stopped)

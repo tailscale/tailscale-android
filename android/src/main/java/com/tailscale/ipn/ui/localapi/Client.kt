@@ -3,14 +3,21 @@
 
 package com.tailscale.ipn.ui.localapi
 
+import android.content.Context
 import android.util.Log
 import com.tailscale.ipn.ui.model.BugReportID
 import com.tailscale.ipn.ui.model.Errors
+import com.tailscale.ipn.ui.model.FileTransfer
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.IpnState
 import com.tailscale.ipn.ui.model.StableNodeID
 import com.tailscale.ipn.ui.util.InputStreamAdapter
+import java.net.URLEncoder
+import java.nio.charset.Charset
+import java.nio.file.Files.delete
+import kotlin.reflect.KType
+import kotlin.reflect.typeOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -20,10 +27,6 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
 import kotlinx.serialization.serializer
 import libtailscale.FilePart
-import java.io.File
-import java.nio.charset.Charset
-import kotlin.reflect.KType
-import kotlin.reflect.typeOf
 
 private object Endpoint {
   const val DEBUG = "debug"
@@ -61,6 +64,8 @@ typealias PrefsHandler = (Result<Ipn.Prefs>) -> Unit
  * corresponding method on this Client.
  */
 class Client(private val scope: CoroutineScope) {
+  private val TAG = Client::class.simpleName
+
   fun status(responseHandler: StatusResponseHandler) {
     get(Endpoint.STATUS, responseHandler = responseHandler)
   }
@@ -116,26 +121,45 @@ class Client(private val scope: CoroutineScope) {
     get(Endpoint.TKA_STATUS, responseHandler = responseHandler)
   }
 
+  fun fileTargets(responseHandler: (Result<List<Ipn.FileTarget>>) -> Unit) {
+    get(Endpoint.FILE_TARGETS, responseHandler = responseHandler)
+  }
+
   fun putTaildropFiles(
+      context: Context,
       peerId: StableNodeID,
-      files: Collection<File>,
+      files: Collection<FileTransfer>,
       responseHandler: (Result<String>) -> Unit
   ) {
-    val manifest = Json.encodeToString(files.map { it.name to it.length() }.toMap())
+    val manifest =
+        Json.encodeToString(
+            files.map { URLEncoder.encode(it.filename, "utf-8") to it.size }.toMap())
     val manifestPart = FilePart()
     manifestPart.body = InputStreamAdapter(manifest.byteInputStream(Charset.defaultCharset()))
     manifestPart.filename = "manifest.json"
     manifestPart.contentType = "application/json"
-    manifestPart.contentLength = manifest.length.toLong()
     val parts = mutableListOf(manifestPart)
-    parts.addAll(
-        files.map { file ->
-          val part = FilePart()
-          part.filename = file.name
-          part.contentLength = file.length()
-          part.body = InputStreamAdapter(file.inputStream())
-          part
-        })
+
+    try {
+      parts.addAll(
+          files.map { file ->
+            val stream = context.contentResolver.openInputStream(file.uri)
+            if (stream == null) {
+              throw Exception("Error opening file stream")
+            }
+
+            val part = FilePart()
+            part.filename = URLEncoder.encode(file.filename, "utf-8")
+            part.contentLength = file.size
+            part.body = InputStreamAdapter(stream)
+            part
+          })
+    } catch (e: Exception) {
+      parts.forEach { it.body.close() }
+      Log.e(TAG, "Error creating file upload body: $e")
+      responseHandler(Result.failure(e))
+      return
+    }
 
     return postMultipart(
         "${Endpoint.FILE_PUT}/${peerId}",
@@ -234,7 +258,7 @@ class Client(private val scope: CoroutineScope) {
   }
 }
 
-public class Request<T>(
+class Request<T>(
     private val scope: CoroutineScope,
     private val method: String,
     path: String,

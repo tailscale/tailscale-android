@@ -7,8 +7,10 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.RestrictionsManager
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.net.VpnService
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
@@ -16,6 +18,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContract
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -51,6 +55,7 @@ import com.tailscale.ipn.ui.viewModel.SettingsNav
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import libtailscale.Libtailscale
 
 class MainActivity : ComponentActivity() {
   private var notifierScope: CoroutineScope? = null
@@ -62,6 +67,8 @@ class MainActivity : ComponentActivity() {
     @JvmStatic val requestSignin: Int = 1000
     // requestPrepareVPN is for when Android's VpnService.prepare completes.
     @JvmStatic val requestPrepareVPN: Int = 1001
+
+    const val WRITE_STORAGE_RESULT = 1000
   }
 
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -177,6 +184,10 @@ class MainActivity : ComponentActivity() {
     // (jonathan) TODO: Requesting VPN permissions onStart is a bit aggressive.  This should
     // be done when the user initiall starts the VPN
     requestVpnPermission()
+
+    // (jonathan) TODO: Requesting storage permissions up front (repeatedly) might also be user
+    // hostile, but we need these to write incoming taildrop files
+    requestStoragePermission()
   }
 
   override fun onStop() {
@@ -193,13 +204,38 @@ class MainActivity : ComponentActivity() {
       val contract = VpnPermissionContract()
       requestVpnPermission =
           registerForActivityResult(contract) { granted ->
-            Notifier.vpnPermissionGranted.set(granted)
             Log.i("VPN", "VPN permission ${if (granted) "granted" else "denied"}")
           }
       requestVpnPermission.launch(Unit)
-    } else {
-      Notifier.vpnPermissionGranted.set(true)
-      Log.i("VPN", "VPN permission granted")
+    }
+  }
+
+  private fun requestStoragePermission() {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+      Libtailscale.onWriteStorageGranted()
+      return
+    }
+
+    if (ContextCompat.checkSelfPermission(
+        this, android.Manifest.permission.WRITE_EXTERNAL_STORAGE) !=
+        PackageManager.PERMISSION_GRANTED) {
+
+      ActivityCompat.requestPermissions(
+          this, arrayOf(android.Manifest.permission.WRITE_EXTERNAL_STORAGE), WRITE_STORAGE_RESULT)
+    }
+  }
+
+  @Deprecated("Deprecated in Android 11, but still needed for Android 10 and below.")
+  override fun onRequestPermissionsResult(
+      requestCode: Int,
+      permissions: Array<String>,
+      grantResults: IntArray
+  ) {
+    super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+    if (requestCode == WRITE_STORAGE_RESULT) {
+      if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+        Libtailscale.onWriteStorageGranted()
+      }
     }
   }
 
