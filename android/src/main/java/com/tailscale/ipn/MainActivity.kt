@@ -30,6 +30,7 @@ import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.view.AboutView
 import com.tailscale.ipn.ui.view.BackNavigation
 import com.tailscale.ipn.ui.view.BugReportView
+import com.tailscale.ipn.ui.view.DNSSettingsView
 import com.tailscale.ipn.ui.view.ExitNodePicker
 import com.tailscale.ipn.ui.view.MDMSettingsDebugView
 import com.tailscale.ipn.ui.view.MainView
@@ -80,6 +81,7 @@ class MainActivity : ComponentActivity() {
               SettingsNav(
                   onNavigateToBugReport = { navController.navigate("bugReport") },
                   onNavigateToAbout = { navController.navigate("about") },
+                  onNavigateToDNSSettings = { navController.navigate("dnsSettings") },
                   onNavigateToTailnetLock = { navController.navigate("tailnetLock") },
                   onNavigateToMDMSettings = { navController.navigate("mdmSettings") },
                   onNavigateToManagedBy = { navController.navigate("managedBy") },
@@ -118,6 +120,7 @@ class MainActivity : ComponentActivity() {
                 PeerDetails(nav = backNav, it.arguments?.getString("nodeId") ?: "")
               }
           composable("bugReport") { BugReportView(nav = backNav) }
+          composable("dnsSettings") { DNSSettingsView(nav = backNav) }
           composable("tailnetLock") { TailnetLockSetupView(nav = backNav) }
           composable("about") { AboutView(nav = backNav) }
           composable("mdmSettings") { MDMSettingsDebugView(nav = backNav) }
