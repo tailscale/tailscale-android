@@ -24,53 +24,50 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.Links
-import com.tailscale.ipn.ui.theme.ts_color_light_blue
 import com.tailscale.ipn.ui.util.defaultPaddingModifier
 import com.tailscale.ipn.ui.util.settingsRowModifier
 import com.tailscale.ipn.ui.viewModel.BugReportViewModel
 import kotlinx.coroutines.flow.StateFlow
 
 @Composable
-fun BugReportView(nav: BackNavigation, model: BugReportViewModel = viewModel()) {
+fun BugReportView(model: BugReportViewModel = viewModel()) {
   val handler = LocalUriHandler.current
 
-  Scaffold(topBar = { Header(R.string.bug_report_title, onBack = nav.onBack) }) { innerPadding ->
-    Column(
-        modifier = Modifier.padding(innerPadding).padding(24.dp).fillMaxWidth().fillMaxHeight()) {
-          ClickableText(
-              text = contactText(),
-              modifier = Modifier.fillMaxWidth(),
-              style = MaterialTheme.typography.bodyMedium,
-              onClick = { handler.openUri(Links.SUPPORT_URL) })
+  Scaffold(topBar = { Header(R.string.bug_report_title) }) { innerPadding ->
+    Column(modifier = Modifier.padding(innerPadding).padding(8.dp).fillMaxWidth().fillMaxHeight()) {
+      ClickableText(
+          text = contactText(),
+          modifier = Modifier.fillMaxWidth(),
+          style = MaterialTheme.typography.bodyMedium,
+          onClick = { handler.openUri(Links.SUPPORT_URL) })
 
-          Spacer(modifier = Modifier.height(16.dp))
+      Spacer(modifier = Modifier.height(8.dp))
 
-          ReportIdRow(bugReportIdFlow = model.bugReportID)
+      ReportIdRow(bugReportIdFlow = model.bugReportID)
 
-          Spacer(modifier = Modifier.height(16.dp))
+      Spacer(modifier = Modifier.height(8.dp))
 
-          Text(
-              text = stringResource(id = R.string.bug_report_id_desc),
-              modifier = Modifier.fillMaxWidth(),
-              textAlign = TextAlign.Left,
-              color = MaterialTheme.colorScheme.secondary,
-              style = MaterialTheme.typography.bodySmall)
-        }
+      Text(
+          text = stringResource(id = R.string.bug_report_id_desc),
+          modifier = Modifier.fillMaxWidth(),
+          textAlign = TextAlign.Left,
+          color = MaterialTheme.colorScheme.secondary,
+          style = MaterialTheme.typography.bodySmall)
+    }
   }
 }
 
@@ -90,8 +87,7 @@ fun ReportIdRow(bugReportIdFlow: StateFlow<String>) {
           Text(
               text = bugReportId.value,
               style = MaterialTheme.typography.titleMedium,
-              fontFamily = FontFamily.Monospace,
-              maxLines = 2,
+              maxLines = 1,
               overflow = TextOverflow.Ellipsis,
               modifier = defaultPaddingModifier())
         }
@@ -109,10 +105,9 @@ fun contactText(): AnnotatedString {
     }
 
     pushStringAnnotation(tag = "reportLink", annotation = Links.SUPPORT_URL)
-    withStyle(
-        style = SpanStyle(color = ts_color_light_blue, textDecoration = TextDecoration.Underline)) {
-          append(stringResource(id = R.string.bug_report_instructions_linktext))
-        }
+    withStyle(style = SpanStyle(color = Color.Blue)) {
+      append(stringResource(id = R.string.bug_report_instructions_linktext))
+    }
     pop()
 
     withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.primary)) {

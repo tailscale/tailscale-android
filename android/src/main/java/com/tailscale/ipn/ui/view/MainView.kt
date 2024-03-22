@@ -10,23 +10,21 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.material.icons.outlined.Clear
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -34,6 +32,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SearchBarDefaults
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -69,61 +68,49 @@ data class MainViewNavigation(
 
 @Composable
 fun MainView(navigation: MainViewNavigation, viewModel: MainViewModel = viewModel()) {
-  Scaffold(contentWindowInsets = WindowInsets.Companion.statusBars) { paddingInsets ->
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(paddingInsets),
-        verticalArrangement = Arrangement.Center) {
-          val state = viewModel.ipnState.collectAsState(initial = Ipn.State.NoState)
-          val user = viewModel.loggedInUser.collectAsState(initial = null)
+  Scaffold { _ ->
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.Center) {
+      val state = viewModel.ipnState.collectAsState(initial = Ipn.State.NoState)
+      val user = viewModel.loggedInUser.collectAsState(initial = null)
 
-          Row(
-              modifier =
-                  Modifier.fillMaxWidth()
-                      .background(MaterialTheme.colorScheme.secondaryContainer)
-                      .padding(horizontal = 8.dp)
-                      .padding(top = 10.dp),
-              verticalAlignment = Alignment.CenterVertically) {
-                val isOn = viewModel.vpnToggleState.collectAsState(initial = false)
-                if (state.value != Ipn.State.NeedsLogin && state.value != Ipn.State.NoState) {
-                  TintedSwitch(onCheckedChange = { viewModel.toggleVpn() }, checked = isOn.value)
-                  Spacer(Modifier.size(3.dp))
-                }
-
-                StateDisplay(viewModel.stateRes, viewModel.userName)
-
-                Box(
-                    modifier = Modifier.weight(1f).clickable { navigation.onNavigateToSettings() },
-                    contentAlignment = Alignment.CenterEnd) {
-                      when (user.value) {
-                        null -> SettingsButton(user.value) { navigation.onNavigateToSettings() }
-                        else -> Avatar(profile = user.value, size = 36)
-                      }
-                    }
-              }
-
-          when (state.value) {
-            Ipn.State.Running -> {
-
-              val selfPeerId = viewModel.selfPeerId.collectAsState(initial = "")
-              Row(
-                  modifier =
-                      Modifier.background(MaterialTheme.colorScheme.secondaryContainer)
-                          .padding(top = 10.dp, bottom = 20.dp)) {
-                    ExitNodeStatus(
-                        navAction = navigation.onNavigateToExitNodes, viewModel = viewModel)
-                  }
-              PeerList(
-                  searchTerm = viewModel.searchTerm,
-                  state = viewModel.ipnState,
-                  peers = viewModel.peers,
-                  selfPeer = selfPeerId.value,
-                  onNavigateToPeerDetails = navigation.onNavigateToPeerDetails,
-                  onSearch = { viewModel.searchPeers(it) })
+      Row(
+          modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+          verticalAlignment = Alignment.CenterVertically) {
+            val isOn = viewModel.vpnToggleState.collectAsState(initial = false)
+            if (state.value != Ipn.State.NeedsLogin && state.value != Ipn.State.NoState) {
+              Switch(onCheckedChange = { viewModel.toggleVpn() }, checked = isOn.value)
+              Spacer(Modifier.size(3.dp))
             }
-            Ipn.State.Starting -> StartingView()
-            else -> ConnectView(user.value, { viewModel.toggleVpn() }, { viewModel.login {} })
+
+            StateDisplay(viewModel.stateRes, viewModel.userName)
+
+            Box(
+                modifier = Modifier.weight(1f).clickable { navigation.onNavigateToSettings() },
+                contentAlignment = Alignment.CenterEnd) {
+                  when (user.value) {
+                    null -> SettingsButton(user.value) { navigation.onNavigateToSettings() }
+                    else -> Avatar(profile = user.value, size = 36)
+                  }
+                }
           }
+
+      when (state.value) {
+        Ipn.State.Running -> {
+
+          val selfPeerId = viewModel.selfPeerId.collectAsState(initial = "")
+          ExitNodeStatus(navAction = navigation.onNavigateToExitNodes, viewModel = viewModel)
+          PeerList(
+              searchTerm = viewModel.searchTerm,
+              state = viewModel.ipnState,
+              peers = viewModel.peers,
+              selfPeer = selfPeerId.value,
+              onNavigateToPeerDetails = navigation.onNavigateToPeerDetails,
+              onSearch = { viewModel.searchPeers(it) })
         }
+        Ipn.State.Starting -> StartingView()
+        else -> ConnectView(user.value, { viewModel.toggleVpn() }, { viewModel.login {} })
+      }
+    }
   }
 }
 
@@ -148,17 +135,16 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
           Modifier.clickable { navAction() }
               .padding(horizontal = 8.dp)
               .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
-              .background(MaterialTheme.colorScheme.background)
+              .background(MaterialTheme.colorScheme.secondaryContainer)
               .fillMaxWidth()) {
-        Column(modifier = Modifier.padding(vertical = 15.dp, horizontal = 18.dp)) {
+        Column(modifier = Modifier.padding(6.dp)) {
           Text(
               text = stringResource(id = R.string.exit_node),
-              color = MaterialTheme.colorScheme.secondary,
-              style = MaterialTheme.typography.titleSmall)
+              style = MaterialTheme.typography.titleMedium)
           Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = exitNode ?: stringResource(id = R.string.none),
-                style = MaterialTheme.typography.bodyLarge)
+                style = MaterialTheme.typography.bodyMedium)
             Icon(
                 Icons.Outlined.ArrowDropDown,
                 null,
@@ -222,64 +208,62 @@ fun StartingView() {
 fun ConnectView(user: IpnLocal.LoginProfile?, connectAction: () -> Unit, loginAction: () -> Unit) {
   Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
     Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
         modifier =
-            Modifier.background(MaterialTheme.colorScheme.secondaryContainer).fillMaxWidth()) {
-          Column(
-              modifier = Modifier.padding(8.dp).fillMaxWidth(0.7f).fillMaxHeight(),
-              verticalArrangement =
-                  Arrangement.spacedBy(8.dp, alignment = Alignment.CenterVertically),
-              horizontalAlignment = Alignment.CenterHorizontally,
-          ) {
-            if (user != null && !user.isEmpty()) {
-              Icon(
-                  painter = painterResource(id = R.drawable.power),
-                  contentDescription = null,
-                  modifier = Modifier.size(48.dp),
-                  tint = MaterialTheme.colorScheme.secondary)
-              Text(
-                  text = stringResource(id = R.string.not_connected),
-                  fontSize = MaterialTheme.typography.titleMedium.fontSize,
-                  fontWeight = FontWeight.SemiBold,
-                  color = MaterialTheme.colorScheme.primary,
-                  textAlign = TextAlign.Center,
-                  fontFamily = MaterialTheme.typography.titleMedium.fontFamily)
-              val tailnetName = user.NetworkProfile?.DomainName ?: ""
-              Text(
-                  stringResource(id = R.string.connect_to_tailnet, tailnetName),
-                  fontSize = MaterialTheme.typography.titleMedium.fontSize,
-                  fontWeight = FontWeight.Normal,
-                  color = MaterialTheme.colorScheme.secondary,
-                  textAlign = TextAlign.Center,
-              )
-              Spacer(modifier = Modifier.size(1.dp))
-              PrimaryActionButton(onClick = connectAction) {
-                Text(
-                    text = stringResource(id = R.string.connect),
-                    fontSize = MaterialTheme.typography.titleMedium.fontSize)
-              }
-            } else {
-              TailscaleLogoView(Modifier.size(50.dp))
-              Spacer(modifier = Modifier.size(1.dp))
-              Text(
-                  text = stringResource(id = R.string.welcome_to_tailscale),
-                  style = MaterialTheme.typography.titleMedium,
-                  color = MaterialTheme.colorScheme.primary,
-                  textAlign = TextAlign.Center)
-              Text(
-                  stringResource(R.string.login_to_join_your_tailnet),
-                  style = MaterialTheme.typography.titleSmall,
-                  color = MaterialTheme.colorScheme.secondary,
-                  textAlign = TextAlign.Center)
-              Spacer(modifier = Modifier.size(1.dp))
-              PrimaryActionButton(onClick = loginAction) {
-                Text(
-                    text = stringResource(id = R.string.log_in),
-                    fontSize = MaterialTheme.typography.titleMedium.fontSize)
-              }
-            }
-          }
+            Modifier.background(MaterialTheme.colorScheme.secondaryContainer)
+                .padding(8.dp)
+                .fillMaxWidth(0.7f)
+                .fillMaxHeight(),
+        verticalArrangement = Arrangement.spacedBy(8.dp, alignment = Alignment.CenterVertically),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+      if (user != null && !user.isEmpty()) {
+        Icon(
+            painter = painterResource(id = R.drawable.power),
+            contentDescription = null,
+            modifier = Modifier.size(48.dp),
+            tint = MaterialTheme.colorScheme.secondary)
+        Text(
+            text = stringResource(id = R.string.not_connected),
+            fontSize = MaterialTheme.typography.titleMedium.fontSize,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary,
+            textAlign = TextAlign.Center,
+            fontFamily = MaterialTheme.typography.titleMedium.fontFamily)
+        val tailnetName = user.NetworkProfile?.DomainName ?: ""
+        Text(
+            stringResource(id = R.string.connect_to_tailnet, tailnetName),
+            fontSize = MaterialTheme.typography.titleMedium.fontSize,
+            fontWeight = FontWeight.Normal,
+            color = MaterialTheme.colorScheme.secondary,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(modifier = Modifier.size(1.dp))
+        PrimaryActionButton(onClick = connectAction) {
+          Text(
+              text = stringResource(id = R.string.connect),
+              fontSize = MaterialTheme.typography.titleMedium.fontSize)
         }
+      } else {
+        TailscaleLogoView(Modifier.size(50.dp))
+        Spacer(modifier = Modifier.size(1.dp))
+        Text(
+            text = stringResource(id = R.string.welcome_to_tailscale),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary,
+            textAlign = TextAlign.Center)
+        Text(
+            stringResource(R.string.login_to_join_your_tailnet),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.secondary,
+            textAlign = TextAlign.Center)
+        Spacer(modifier = Modifier.size(1.dp))
+        PrimaryActionButton(onClick = loginAction) {
+          Text(
+              text = stringResource(id = R.string.log_in),
+              fontSize = MaterialTheme.typography.titleMedium.fontSize)
+        }
+      }
+    }
   }
 }
 
@@ -324,11 +308,9 @@ fun PeerList(
       trailingIcon = {
         if (searchTermStr.isNotEmpty()) ClearButton({ onSearch("") }) else CloseButton()
       },
-      tonalElevation = 0.dp,
-      shadowElevation = 0.dp,
-      colors =
-          SearchBarDefaults.colors(
-              containerColor = Color.Transparent, dividerColor = Color.Transparent),
+      tonalElevation = 2.dp,
+      shadowElevation = 2.dp,
+      colors = SearchBarDefaults.colors(),
       modifier = Modifier.fillMaxWidth()) {
         LazyColumn(
             modifier =
@@ -341,8 +323,7 @@ fun PeerList(
                     Text(
                         text =
                             peerSet.user?.DisplayName ?: stringResource(id = R.string.unknown_user),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold)
+                        style = MaterialTheme.typography.titleLarge)
                   })
             }
             peerSet.peers.forEach { peer ->
@@ -363,20 +344,19 @@ fun PeerList(
                             }
                         Box(
                             modifier =
-                                Modifier.size(10.dp)
+                                Modifier.size(8.dp)
                                     .background(
                                         color = color, shape = RoundedCornerShape(percent = 50))) {}
-                        Spacer(modifier = Modifier.size(6.dp))
+                        Spacer(modifier = Modifier.size(8.dp))
                         Text(text = peer.ComputedName, style = MaterialTheme.typography.titleMedium)
                       }
                     },
                     supportingContent = {
                       Text(
                           text = peer.Addresses?.first()?.split("/")?.first() ?: "",
-                          style = MaterialTheme.typography.bodyMedium,
-                          color = MaterialTheme.colorScheme.secondary)
-                    })
-                HorizontalDivider(color = MaterialTheme.colorScheme.secondaryContainer)
+                          style = MaterialTheme.typography.bodyMedium)
+                    },
+                    trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null) })
               }
             }
           }

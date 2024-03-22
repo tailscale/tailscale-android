@@ -24,14 +24,13 @@
     <string name="terms_of_service">Terms of Service</string>
     <string name="about_view_footnotes">WireGuard is a registered trademark of Jason A. Donenfeld.\n\n© 2024 Tailscale Inc. All rights reserved.\nTailscale is a registered trademark of Tailscale Inc.</string>
     <string name="app_icon_content_description">The Tailscale App Icon</string>
-    <string name="managed_by">Managed By</string>
 
     <!-- Strings for the bug reporting screen -->
     <string name="bug_report_title">Report a Bug</string>
     <string name="bug_report_instructions_prefix">To report a bug,&#160;</string>
-    <string name="bug_report_instructions_linktext">contact our support team&#160;</string>
-    <string name="bug_report_instructions_suffix"> and include the ID below.</string>
-    <string name="bug_report_id_desc">This ID helps us find the event in our diagnostic logs. This process does not share any of your personally-identifiable information.</string>
+    <string name="bug_report_instructions_linktext">contact our support team&#160; </string>
+    <string name="bug_report_instructions_suffix">and include the ID below.</string>
+    <string name="bug_report_id_desc">This ID helps us find the event ino our diagnostic logs.  This process does not share any of your personally-identifiable information.</string>
 
     <!-- Strings for the settings screen -->
     <string name="settings_title">Settings</string>
@@ -42,17 +41,16 @@
     <string name="use_ts_dns">Use Tailscale DNS</string>
 
     <!-- Strings for the main screen -->
-    <string name="exit_node">EXIT NODE</string>
+    <string name="exit_node">Exit Node</string>
     <string name="starting">Starting…</string>
     <string name="connect_to_tailnet">"Connect again to talk to the other devices in the %1$s tailnet."</string>
     <string name="welcome_to_tailscale">Welcome to Tailscale</string>
     <string name="login_to_join_your_tailnet">Log in to join your tailnet and connect your devices.</string>
 
     <!-- Strings for peer details -->
-    <string name="addresses_section"></string>
+    <string name="addresses_section">TAILSCALE ADDRESSES</string>
     <string name="os">OS</string>
     <string name="key_expiry">Key Expiry</string>
-    <string name="peer_details">Tailscale Addresses</string>
 
     <!-- Strings for MDM settings -->
     <string name="current_mdm_settings">Current MDM Settings</string>

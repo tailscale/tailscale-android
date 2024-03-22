@@ -7,7 +7,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.safeContentPadding
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -21,8 +22,8 @@ import com.tailscale.ipn.mdm.StringSetting
 import com.tailscale.ipn.ui.viewModel.IpnViewModel
 
 @Composable
-fun ManagedByView(nav: BackNavigation, model: IpnViewModel = viewModel()) {
-  Scaffold(topBar = { Header(R.string.managed_by, onBack = nav.onBack) }) { innerPadding ->
+fun ManagedByView(model: IpnViewModel = viewModel()) {
+  Surface(color = MaterialTheme.colorScheme.surface) {
     Column(
         verticalArrangement =
             Arrangement.spacedBy(space = 20.dp, alignment = Alignment.CenterVertically),
