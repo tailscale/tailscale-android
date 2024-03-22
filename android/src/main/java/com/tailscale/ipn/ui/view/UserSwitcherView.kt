@@ -25,12 +25,12 @@ import com.tailscale.ipn.ui.viewModel.UserSwitcherViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun UserSwitcherView(nav: BackNavigation, viewModel: UserSwitcherViewModel = viewModel()) {
+fun UserSwitcherView(viewModel: UserSwitcherViewModel = viewModel()) {
 
   val users = viewModel.loginProfiles.collectAsState().value
   val currentUser = viewModel.loggedInUser.collectAsState().value
 
-  Scaffold(topBar = { Header(R.string.accounts, onBack = nav.onBack) }) { innerPadding ->
+  Scaffold(topBar = { Header(R.string.accounts) }) { innerPadding ->
     Column(
         modifier = Modifier.padding(innerPadding).fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp)) {

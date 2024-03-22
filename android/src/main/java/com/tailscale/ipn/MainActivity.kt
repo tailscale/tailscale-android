@@ -28,7 +28,6 @@ import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.theme.AppTheme
 import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.view.AboutView
-import com.tailscale.ipn.ui.view.BackNavigation
 import com.tailscale.ipn.ui.view.BugReportView
 import com.tailscale.ipn.ui.view.ExitNodePicker
 import com.tailscale.ipn.ui.view.MDMSettingsDebugView
@@ -81,10 +80,7 @@ class MainActivity : ComponentActivity() {
                   onNavigateToMDMSettings = { navController.navigate("mdmSettings") },
                   onNavigateToManagedBy = { navController.navigate("managedBy") },
                   onNavigateToUserSwitcher = { navController.navigate("userSwitcher") },
-                  onBackPressed = { navController.popBackStack() },
               )
-
-          val backNav = BackNavigation(onBack = { navController.popBackStack() })
 
           val exitNodePickerNav =
               ExitNodePickerNav(
@@ -107,13 +103,13 @@ class MainActivity : ComponentActivity() {
           composable(
               "peerDetails/{nodeId}",
               arguments = listOf(navArgument("nodeId") { type = NavType.StringType })) {
-                PeerDetails(nav = backNav, it.arguments?.getString("nodeId") ?: "")
+                PeerDetails(it.arguments?.getString("nodeId") ?: "")
               }
-          composable("bugReport") { BugReportView(nav = backNav) }
-          composable("about") { AboutView(nav = backNav) }
-          composable("mdmSettings") { MDMSettingsDebugView(nav = backNav) }
-          composable("managedBy") { ManagedByView(nav = backNav) }
-          composable("userSwitcher") { UserSwitcherView(nav = backNav) }
+          composable("bugReport") { BugReportView() }
+          composable("about") { AboutView() }
+          composable("mdmSettings") { MDMSettingsDebugView() }
+          composable("managedBy") { ManagedByView() }
+          composable("userSwitcher") { UserSwitcherView() }
         }
       }
     }

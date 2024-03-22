@@ -31,9 +31,8 @@ import com.tailscale.ipn.ui.viewModel.IpnViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MDMSettingsDebugView(nav: BackNavigation, model: IpnViewModel = viewModel()) {
-  Scaffold(topBar = { Header(R.string.current_mdm_settings, onBack = nav.onBack) }) { innerPadding
-    ->
+fun MDMSettingsDebugView(model: IpnViewModel = viewModel()) {
+  Scaffold(topBar = { Header(R.string.current_mdm_settings) }) { innerPadding ->
     val mdmSettings = IpnViewModel.mdmSettings.collectAsState().value
     LazyColumn(modifier = Modifier.padding(innerPadding)) {
       items(enumValues<BooleanSetting>()) { booleanSetting ->
