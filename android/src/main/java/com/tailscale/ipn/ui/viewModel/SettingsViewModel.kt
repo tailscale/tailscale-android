@@ -76,6 +76,7 @@ data class Setting(
 data class SettingsNav(
     val onNavigateToBugReport: () -> Unit,
     val onNavigateToAbout: () -> Unit,
+    val onNavigateToDNSSettings: () -> Unit,
     val onNavigateToTailnetLock: () -> Unit,
     val onNavigateToMDMSettings: () -> Unit,
     val onNavigateToManagedBy: () -> Unit,
@@ -93,37 +94,15 @@ class SettingsViewModel(val navigation: SettingsNav) : IpnViewModel() {
   // Display name for the logged in user
   var isAdmin: StateFlow<Boolean> = MutableStateFlow(false)
 
-  val useDNSSetting =
-      Setting(
-          R.string.use_ts_dns,
-          SettingType.SWITCH,
-          isOn = MutableStateFlow(Notifier.prefs.value?.CorpDNS),
-          onToggle = {
-            toggleCorpDNS {
-              // (jonathan) TODO: Error handling
-            }
-          })
-
   val settings: StateFlow<List<SettingBundle>> = MutableStateFlow(emptyList())
 
   init {
     viewModelScope.launch {
-      // Monitor our prefs for changes and update the displayed values accordingly
-      Notifier.prefs.collect { prefs ->
-        useDNSSetting.isOn?.set(prefs?.CorpDNS)
-        useDNSSetting.enabled.set(prefs != null)
-      }
-    }
-
-    viewModelScope.launch {
       mdmSettings.collect { mdmSettings ->
         settings.set(
             listOf(
-                SettingBundle(
-                    settings =
-                        listOf(
-                            useDNSSetting,
-                        )),
+                // Empty for now
+                SettingBundle(settings = listOf()),
                 // General settings, always enabled
                 SettingBundle(settings = footerSettings(mdmSettings))))
       }
@@ -137,11 +116,15 @@ class SettingsViewModel(val navigation: SettingsNav) : IpnViewModel() {
   private fun footerSettings(mdmSettings: MDMSettings): List<Setting> =
       listOfNotNull(
           Setting(
+              titleRes = R.string.dns_settings,
+              SettingType.NAV,
+              onClick = { navigation.onNavigateToDNSSettings() },
+              enabled = MutableStateFlow(true)),
+          Setting(
               titleRes = R.string.tailnet_lock,
               SettingType.NAV,
               onClick = { navigation.onNavigateToTailnetLock() },
-              enabled = MutableStateFlow(true)
-          ),
+              enabled = MutableStateFlow(true)),
           Setting(
               titleRes = R.string.about,
               SettingType.NAV,

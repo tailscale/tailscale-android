@@ -164,19 +164,6 @@ open class IpnViewModel : ViewModel() {
     Client(viewModelScope).editPrefs(Ipn.MaskedPrefs(), callback)
   }
 
-  fun toggleCorpDNS(callback: (Result<Ipn.Prefs>) -> Unit) {
-    val prefs =
-        Notifier.prefs.value
-            ?: run {
-              callback(Result.failure(Exception("no prefs")))
-              return@toggleCorpDNS
-            }
-
-    val prefsOut = Ipn.MaskedPrefs()
-    prefsOut.CorpDNS = !prefs.CorpDNS
-    Client(viewModelScope).editPrefs(prefsOut, callback)
-  }
-
   fun toggleShieldsUp(callback: (Result<Ipn.Prefs>) -> Unit) {
     val prefs =
         Notifier.prefs.value

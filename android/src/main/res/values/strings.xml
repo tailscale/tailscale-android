@@ -115,5 +115,14 @@
     <string name="tailnet_lock_key_explainer">Used to authorize changes to the Tailnet lock configuration.</string>
     <string name="bug_report_id">Bug Report ID</string>
     <string name="learn_more">Learn more…</string>
+    <string name="dns_settings">DNS Settings</string>
+    <string name="using_tailscale_dns">Using Tailscale DNS</string>
+    <string name="this_device_is_using_tailscale_to_resolve_dns_names">This device is using Tailscale to resolve DNS names.</string>
+    <string name="resolvers">Resolvers</string>
+    <string name="search_domains">Search Domains</string>
+    <string name="not_running">Not Running</string>
+    <string name="tailscale_is_not_running_this_device_is_using_the_system_dns_resolver">Tailscale is not running. This device is using the system\'s DNS resolver.</string>
+    <string name="this_device_is_using_the_system_dns_resolver">This device is using the system DNS resolver.</string>
+    <string name="not_using_tailscale_dns">Not Using Tailscale DNS</string>
 
 </resources>
