@@ -76,6 +76,7 @@ data class Setting(
 data class SettingsNav(
     val onNavigateToBugReport: () -> Unit,
     val onNavigateToAbout: () -> Unit,
+    val onNavigateToTailnetLock: () -> Unit,
     val onNavigateToMDMSettings: () -> Unit,
     val onNavigateToManagedBy: () -> Unit,
     val onNavigateToUserSwitcher: () -> Unit,
@@ -135,6 +136,12 @@ class SettingsViewModel(val navigation: SettingsNav) : IpnViewModel() {
 
   private fun footerSettings(mdmSettings: MDMSettings): List<Setting> =
       listOfNotNull(
+          Setting(
+              titleRes = R.string.tailnet_lock,
+              SettingType.NAV,
+              onClick = { navigation.onNavigateToTailnetLock() },
+              enabled = MutableStateFlow(true)
+          ),
           Setting(
               titleRes = R.string.about,
               SettingType.NAV,

@@ -81,13 +81,19 @@ class IpnState {
 
   @Serializable
   data class NetworkLockStatus(
-      var Enabled: Boolean,
-      var PublicKey: String,
-      var NodeKey: String,
-      var NodeKeySigned: Boolean,
+      var Enabled: Boolean? = null,
+      var PublicKey: String? = null,
+      var NodeKey: String? = null,
+      var NodeKeySigned: Boolean? = null,
       var FilteredPeers: List<TKAFilteredPeer>? = null,
       var StateID: ULong? = null,
-  )
+      var TrustedKeys: List<TKAKey>? = null
+  ) {
+
+    fun IsPublicKeyTrusted(): Boolean {
+      return TrustedKeys?.any { it.Key == PublicKey } == true
+    }
+  }
 
   @Serializable
   data class TKAFilteredPeer(
@@ -95,6 +101,8 @@ class IpnState {
       var TailscaleIPs: List<Addr>,
       var NodeKey: String,
   )
+
+  @Serializable data class TKAKey(var Key: String)
 
   @Serializable
   data class PingResult(

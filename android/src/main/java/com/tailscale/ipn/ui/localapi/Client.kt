@@ -10,9 +10,6 @@ import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.IpnState
 import com.tailscale.ipn.ui.util.InputStreamAdapter
-import java.nio.charset.Charset
-import kotlin.reflect.KType
-import kotlin.reflect.typeOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -21,6 +18,9 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
 import kotlinx.serialization.serializer
+import java.nio.charset.Charset
+import kotlin.reflect.KType
+import kotlin.reflect.typeOf
 
 private object Endpoint {
   const val DEBUG = "debug"
@@ -46,6 +46,8 @@ private object Endpoint {
 }
 
 typealias StatusResponseHandler = (Result<IpnState.Status>) -> Unit
+
+typealias TailnetLockStatusResponseHandler = (Result<IpnState.NetworkLockStatus>) -> Unit
 
 typealias BugReportIdHandler = (Result<BugReportID>) -> Unit
 
@@ -105,6 +107,10 @@ class Client(private val scope: CoroutineScope) {
 
   fun logout(responseHandler: (Result<String>) -> Unit) {
     return post(Endpoint.LOGOUT, responseHandler = responseHandler)
+  }
+
+  fun tailnetLockStatus(responseHandler: TailnetLockStatusResponseHandler) {
+    get(Endpoint.TKA_STATUS, responseHandler = responseHandler)
   }
 
   private inline fun <reified T> get(
