@@ -12,7 +12,7 @@
     <string name="empty"> </string>
     <string name="template">%s</string>
     <string name="more">More</string>
-    <string name="offline">offline</string>
+    <string name="offline">Offline</string>
     <string name="ok">OK</string>
 
     <!-- Strings for the about screen -->
@@ -90,5 +90,15 @@
     <string name="tailnet_exit_nodes">Tailnet Exit Nodes</string>
     <string name="mullvad_exit_nodes">Mullvad VPN</string>
     <string name="best_available">Best Available</string>
+    <string name="run_as_exit_node">Run as Exit Node</string>
+    <string name="run_this_device_as_an_exit_node">Run this device as an exit node?</string>
+    <string name="run_exit_node_explainer">Other devices in your tailnet will be able to route their Internet traffic through this Android device. Make sure to approve this exit node in the admin console in order for other devices to see it.</string>
+    <string name="run_exit_node_caution">Caution: Running an exit node will severely impact battery life. On a metered data plan, significant cellular data charges may also apply. Always disable this feature when no longer needed.</string>
+    <string name="stop_running_as_exit_node">Stop Running as Exit Node</string>
+    <string name="start_running_as_exit_node">Start Running as Exit Node</string>
+    <string name="running_as_exit_node">Now Running as Exit Node</string>
+    <string name="run_exit_node_explainer_running">Other devices in your tailnet can now route their Internet traffic through this Android device. Make sure to approve this exit node in the admin console in order for other devices to see it.</string>
+    <string name="enabled">Enabled</string>
+    <string name="disabled">Disabled</string>
 
 </resources>
