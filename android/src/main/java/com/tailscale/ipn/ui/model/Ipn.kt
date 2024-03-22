@@ -111,7 +111,7 @@ class Ipn {
         ShieldsUpSet = true
       }
 
-    var AdvertiseRoutes: List<String>? = null
+    var AdvertiseRoutes: Boolean? = null
       set(value) {
         field = value
         AdvertiseRoutesSet = true

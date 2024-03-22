@@ -37,7 +37,6 @@ import com.tailscale.ipn.ui.view.MainViewNavigation
 import com.tailscale.ipn.ui.view.ManagedByView
 import com.tailscale.ipn.ui.view.MullvadExitNodePicker
 import com.tailscale.ipn.ui.view.PeerDetails
-import com.tailscale.ipn.ui.view.RunExitNodeView
 import com.tailscale.ipn.ui.view.Settings
 import com.tailscale.ipn.ui.view.UserSwitcherView
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerNav
@@ -92,9 +91,7 @@ class MainActivity : ComponentActivity() {
                   onNavigateHome = {
                     navController.popBackStack(route = "main", inclusive = false)
                   },
-                  onNavigateToExitNodePicker = { navController.popBackStack() },
-                  onNavigateToMullvadCountry = { navController.navigate("mullvad/$it") },
-                  onNavigateToRunAsExitNode = { navController.navigate("runExitNode") })
+                  onNavigateToMullvadCountry = { navController.navigate("mullvad/$it") })
 
           composable("main") { MainView(navigation = mainViewNav) }
           composable("settings") { Settings(settingsNav) }
@@ -106,9 +103,6 @@ class MainActivity : ComponentActivity() {
                   MullvadExitNodePicker(
                       it.arguments!!.getString("countryCode")!!, exitNodePickerNav)
                 }
-              composable("runExitNode") {
-                  RunExitNodeView(exitNodePickerNav)
-              }
           }
           composable(
               "peerDetails/{nodeId}",

@@ -15,7 +15,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
@@ -26,6 +25,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -50,11 +50,6 @@ fun ExitNodePicker(
       val anyActive = model.anyActive.collectAsState()
 
       LazyColumn(modifier = Modifier.padding(innerPadding)) {
-        item(key = "runExitNode") {
-          RunAsExitNodeItem(nav = nav, viewModel = model)
-          HorizontalDivider()
-        }
-
         item(key = "none") {
           ExitNodeItem(
               model,
@@ -137,26 +132,8 @@ fun ExitNodeItem(
               Icon(Icons.Outlined.Check, contentDescription = stringResource(R.string.more))
             } else if (!node.online) {
               Spacer(modifier = Modifier.width(8.dp))
-              Text(stringResource(R.string.offline))
+              Text(stringResource(R.string.offline), fontStyle = FontStyle.Italic)
             }
-          }
-        })
-  }
-}
-
-@Composable
-fun RunAsExitNodeItem(nav: ExitNodePickerNav, viewModel: ExitNodePickerViewModel) {
-  val isRunningExitNode = viewModel.isRunningExitNode.collectAsState().value
-
-  Box {
-    ListItem(
-        modifier = Modifier.clickable { nav.onNavigateToRunAsExitNode() },
-        headlineContent = { Text(stringResource(id = R.string.run_as_exit_node)) },
-        trailingContent = {
-          if (isRunningExitNode) {
-            Text(stringResource(R.string.enabled))
-          } else {
-            Text(stringResource(R.string.disabled))
           }
         })
   }
