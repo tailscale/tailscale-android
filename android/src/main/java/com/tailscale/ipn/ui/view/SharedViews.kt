@@ -4,9 +4,11 @@
 package com.tailscale.ipn.ui.view
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -20,22 +22,31 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 
+data class BackNavigation(
+    val onBack: () -> Unit,
+)
+
 // Header view for all secondary screens
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Header(@StringRes title: Int) {
+fun Header(@StringRes title: Int, onBack: (() -> Unit)? = null) {
   TopAppBar(
       colors =
           TopAppBarDefaults.topAppBarColors(
               containerColor = MaterialTheme.colorScheme.surfaceContainer,
               titleContentColor = MaterialTheme.colorScheme.primary,
           ),
-      title = { Text(stringResource(title)) })
+      title = { Text(stringResource(title)) },
+      navigationIcon = { onBack?.let { BackArrow(action = it) } },
+  )
 }
 
 @Composable
-fun ChevronRight() {
-  Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
+fun BackArrow(action: () -> Unit) {
+  Icon(
+      Icons.AutoMirrored.Filled.ArrowBack,
+      null,
+      modifier = Modifier.clickable { action() }.padding(start = 15.dp, end = 20.dp))
 }
 
 @Composable

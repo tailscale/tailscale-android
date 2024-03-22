@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -32,13 +31,13 @@ import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.Links
 
 @Composable
-fun AboutView() {
-  Scaffold { _ ->
+fun AboutView(nav: BackNavigation) {
+  Scaffold(topBar = { Header(R.string.about_view_title, onBack = nav.onBack) }) { innerPadding ->
     Column(
         verticalArrangement =
             Arrangement.spacedBy(space = 20.dp, alignment = Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.fillMaxWidth().fillMaxHeight().safeContentPadding()) {
+        modifier = Modifier.fillMaxWidth().fillMaxHeight().padding(innerPadding)) {
           Image(
               modifier =
                   Modifier.width(100.dp)

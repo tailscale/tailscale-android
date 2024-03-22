@@ -78,7 +78,8 @@ data class SettingsNav(
     val onNavigateToAbout: () -> Unit,
     val onNavigateToMDMSettings: () -> Unit,
     val onNavigateToManagedBy: () -> Unit,
-    val onNavigateToUserSwitcher: () -> Unit
+    val onNavigateToUserSwitcher: () -> Unit,
+    val onBackPressed: () -> Unit,
 )
 
 class SettingsViewModelFactory(private val navigation: SettingsNav) : ViewModelProvider.Factory {
