@@ -168,6 +168,8 @@ class Ipn {
       val Finished: Boolean,
       val Succeeded: Boolean,
   )
+
+  @Serializable data class FileTarget(var Node: Tailcfg.Node, var PeerAPIURL: String)
 }
 
 class Persist {

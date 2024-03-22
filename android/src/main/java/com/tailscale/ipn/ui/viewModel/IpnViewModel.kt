@@ -3,6 +3,9 @@
 
 package com.tailscale.ipn.ui.viewModel
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.content.Intent
 import android.util.Log
 import androidx.lifecycle.ViewModel
@@ -35,7 +38,7 @@ open class IpnViewModel : ViewModel() {
   val loginProfiles: StateFlow<List<IpnLocal.LoginProfile>?> = MutableStateFlow(null)
 
   // The userId associated with the current node. ie: The logged in user.
-  var selfNodeUserId: UserID? = null
+  private var selfNodeUserId: UserID? = null
 
   init {
     viewModelScope.launch {
@@ -65,6 +68,13 @@ open class IpnViewModel : ViewModel() {
     Log.d(TAG, "Created")
   }
 
+  protected fun Context.findActivity(): Activity? =
+      when (this) {
+        is Activity -> this
+        is ContextWrapper -> baseContext.findActivity()
+        else -> null
+      }
+
   private fun loadUserProfiles() {
     Client(viewModelScope).profiles { result ->
       result.onSuccess(loginProfiles::set).onFailure {
@@ -86,7 +96,7 @@ open class IpnViewModel : ViewModel() {
     }
   }
 
-  private fun startVPN() {
+  fun startVPN() {
     val context = App.getApplication().applicationContext
     val intent = Intent(context, IPNReceiver::class.java)
     intent.action = IPNReceiver.INTENT_CONNECT_VPN

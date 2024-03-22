@@ -13,7 +13,9 @@ import com.tailscale.ipn.R
 enum class ErrorDialogType {
   LOGOUT_FAILED,
   SWITCH_USER_FAILED,
-  ADD_PROFILE_FAILED;
+  ADD_PROFILE_FAILED,
+  SHARE_DEVICE_NOT_CONNECTED,
+  SHARE_FAILED;
 
   val message: Int
     get() {
@@ -21,10 +23,21 @@ enum class ErrorDialogType {
         LOGOUT_FAILED -> R.string.logout_failed
         SWITCH_USER_FAILED -> R.string.switch_user_failed
         ADD_PROFILE_FAILED -> R.string.add_profile_failed
+        SHARE_DEVICE_NOT_CONNECTED -> R.string.share_device_not_connected
+        SHARE_FAILED -> R.string.taildrop_share_failed
       }
     }
 
-  val title: Int = R.string.error
+  val title: Int
+    get() {
+      return when (this) {
+        LOGOUT_FAILED -> R.string.logout_failed_title
+        SWITCH_USER_FAILED -> R.string.switch_user_failed_title
+        ADD_PROFILE_FAILED -> R.string.add_profile_failed_title
+        SHARE_DEVICE_NOT_CONNECTED -> R.string.share_device_not_connected_title
+        SHARE_FAILED -> R.string.taildrop_share_failed_title
+      }
+    }
 
   val buttonText: Int = R.string.ok
 }
