@@ -35,52 +35,55 @@ import com.tailscale.ipn.ui.viewModel.PeerDetailsViewModelFactory
 
 @Composable
 fun PeerDetails(
+    nav: BackNavigation,
     nodeId: String,
     model: PeerDetailsViewModel = viewModel(factory = PeerDetailsViewModelFactory(nodeId))
 ) {
-  Scaffold(
-      topBar = {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(8.dp),
-        ) {
-          Text(
-              text = model.nodeName,
-              style = MaterialTheme.typography.titleLarge,
-              color = MaterialTheme.colorScheme.primary)
-          Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier =
-                    Modifier.size(8.dp)
-                        .background(
-                            color = model.connectedColor,
-                            shape = RoundedCornerShape(percent = 50))) {}
-            Spacer(modifier = Modifier.size(8.dp))
-            Text(
-                text = stringResource(id = model.connectedStrRes),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary)
-          }
+  Scaffold(topBar = { Header(title = R.string.peer_details, onBack = nav.onBack) }) { innerPadding
+    ->
+    Column(
+        modifier =
+            Modifier.fillMaxWidth()
+                .padding(innerPadding)
+                .padding(horizontal = 16.dp)
+                .padding(top = 22.dp),
+    ) {
+      Text(
+          text = model.nodeName,
+          style = MaterialTheme.typography.titleLarge,
+          color = MaterialTheme.colorScheme.primary)
+      Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier =
+                Modifier.size(8.dp)
+                    .background(
+                        color = model.connectedColor, shape = RoundedCornerShape(percent = 50))) {}
+        Spacer(modifier = Modifier.size(8.dp))
+        Text(
+            text = stringResource(id = model.connectedStrRes),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.primary)
+      }
+      Column(modifier = Modifier.fillMaxHeight()) {
+        Text(
+            text = stringResource(id = R.string.addresses_section),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary)
+
+        Column(modifier = settingsRowModifier()) {
+          model.addresses.forEach { AddressRow(address = it.address, type = it.typeString) }
         }
-      }) { innerPadding ->
-        Column(modifier = Modifier.padding(innerPadding).fillMaxHeight()) {
-          Text(
-              text = stringResource(id = R.string.addresses_section),
-              style = MaterialTheme.typography.titleMedium,
-              color = MaterialTheme.colorScheme.primary)
 
-          Column(modifier = settingsRowModifier()) {
-            model.addresses.forEach { AddressRow(address = it.address, type = it.typeString) }
-          }
+        Spacer(modifier = Modifier.size(16.dp))
 
-          Spacer(modifier = Modifier.size(16.dp))
-
-          Column(modifier = settingsRowModifier()) {
-            model.info.forEach {
-              ValueRow(title = stringResource(id = it.titleRes), value = it.value.getString())
-            }
+        Column(modifier = settingsRowModifier()) {
+          model.info.forEach {
+            ValueRow(title = stringResource(id = it.titleRes), value = it.value.getString())
           }
         }
       }
+    }
+  }
 }
 
 @Composable
@@ -88,25 +91,29 @@ fun AddressRow(address: String, type: String) {
   val localClipboardManager = LocalClipboardManager.current
 
   Row(
+      verticalAlignment = Alignment.CenterVertically,
       modifier =
-          Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+          Modifier.padding(horizontal = 8.dp, vertical = 8.dp)
               .clickable(onClick = { localClipboardManager.setText(AnnotatedString(address)) })) {
         Column {
-          Text(text = address, style = MaterialTheme.typography.titleMedium)
-          Text(text = type, style = MaterialTheme.typography.bodyMedium)
+          Text(text = address)
+          Text(
+              text = type,
+              fontSize = MaterialTheme.typography.labelLarge.fontSize,
+              color = MaterialTheme.colorScheme.secondary)
         }
         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
-          Icon(Icons.Outlined.Share, null)
+          Icon(Icons.Outlined.Share, null, tint = MaterialTheme.colorScheme.secondary)
         }
       }
 }
 
 @Composable
 fun ValueRow(title: String, value: String) {
-  Row(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp).fillMaxWidth()) {
-    Text(text = title, style = MaterialTheme.typography.titleMedium)
+  Row(modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp).fillMaxWidth()) {
+    Text(text = title)
     Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
-      Text(text = value, style = MaterialTheme.typography.bodyMedium)
+      Text(text = value, color = MaterialTheme.colorScheme.secondary)
     }
   }
 }
