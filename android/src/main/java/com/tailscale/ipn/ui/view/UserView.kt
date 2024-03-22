@@ -62,7 +62,7 @@ fun UserView(
           when (actionState) {
             UserActionState.CURRENT -> CheckedIndicator()
             UserActionState.SWITCHING -> SimpleActivityIndicator(size = 26)
-            UserActionState.NAV -> ChevronRight()
+            UserActionState.NAV -> Unit
             UserActionState.NONE -> Unit
           }
         }

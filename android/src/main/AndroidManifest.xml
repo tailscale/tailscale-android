@@ -29,6 +29,7 @@
         android:allowBackup="false"
         android:banner="@drawable/tv_banner"
         android:icon="@mipmap/ic_launcher"
+        android:theme="@style/Theme.AppCompat"
         android:label="Tailscale"
         android:roundIcon="@mipmap/ic_launcher_round">
         <activity
