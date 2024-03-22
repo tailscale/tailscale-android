@@ -22,6 +22,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navigation
+import com.tailscale.ipn.Peer.RequestCodes
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.theme.AppTheme
@@ -43,11 +44,18 @@ import com.tailscale.ipn.ui.viewModel.SettingsNav
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import com.tailscale.ipn.App
 
 class MainActivity : ComponentActivity() {
   private var notifierScope: CoroutineScope? = null
   private lateinit var requestVpnPermission: ActivityResultLauncher<Unit>
+
+  companion object {
+    // Request codes for Android callbacks.
+    // requestSignin is for Google Sign-In.
+    @JvmStatic val requestSignin: Int = 1000
+    // requestPrepareVPN is for when Android's VpnService.prepare completes.
+    @JvmStatic val requestPrepareVPN: Int = 1001
+  }
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -107,7 +115,8 @@ class MainActivity : ComponentActivity() {
     }
     lifecycleScope.launch {
       Notifier.readyToPrepareVPN.collect { isReady ->
-        if (isReady) App.getApplication().prepareVPN(this@MainActivity, -1)
+        if (isReady)
+            App.getApplication().prepareVPN(this@MainActivity, RequestCodes.requestPrepareVPN)
       }
     }
   }

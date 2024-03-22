@@ -27,8 +27,8 @@ class VPNServiceBuilder(private val builder: VpnService.Builder) : libtailscale.
     return builder.establish()?.let { ParcelFileDescriptor(it) }
   }
 
-  override fun setMTU(p0: Long) {
-    TODO("Not yet implemented")
+  override fun setMTU(p0: Int) {
+    builder.setMtu(p0)
   }
 }
 

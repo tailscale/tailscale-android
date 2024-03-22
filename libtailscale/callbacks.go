@@ -33,18 +33,6 @@ var (
 	onDNSConfigChanged = make(chan struct{}, 1)
 )
 
-const (
-	// Request codes for Android callbacks.
-	// requestSignin is for Google Sign-In.
-	requestSignin = 1000 + iota
-	// requestPrepareVPN is for when Android's VpnService.prepare
-	// completes.
-	requestPrepareVPN
-)
-
-// resultOK is Android's Activity.RESULT_OK.
-const resultOK = -1
-
 func OnShareIntent(nfiles int32, types []int32, mimes []string, items []string, names []string, sizes []int) {
 	// TODO(oxtoacart): actually implement this
 	// const (
