@@ -12,16 +12,18 @@ import com.tailscale.ipn.ui.model.StableNodeID
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.set
-import java.util.TreeMap
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.util.TreeMap
 
 data class ExitNodePickerNav(
     val onNavigateHome: () -> Unit,
+    val onNavigateToExitNodePicker: () -> Unit,
     val onNavigateToMullvadCountry: (String) -> Unit,
+    val onNavigateToRunAsExitNode: () -> Unit,
 )
 
 class ExitNodePickerViewModelFactory(private val nav: ExitNodePickerNav) :
@@ -49,6 +51,7 @@ class ExitNodePickerViewModel(private val nav: ExitNodePickerNav) : IpnViewModel
       MutableStateFlow(TreeMap())
   val mullvadBestAvailableByCountry: StateFlow<Map<String, ExitNode>> = MutableStateFlow(TreeMap())
   val anyActive: StateFlow<Boolean> = MutableStateFlow(false)
+    val isRunningExitNode: StateFlow<Boolean> = MutableStateFlow(false)
 
   init {
     viewModelScope.launch {
@@ -56,6 +59,7 @@ class ExitNodePickerViewModel(private val nav: ExitNodePickerNav) : IpnViewModel
           .combine(Notifier.prefs) { netmap, prefs -> Pair(netmap, prefs) }
           .stateIn(viewModelScope)
           .collect { (netmap, prefs) ->
+              isRunningExitNode.set(prefs?.let { AdvertisedRoutesHelper.exitNodeOnFromPrefs(it) })
             val exitNodeId = prefs?.ExitNodeID
             netmap?.Peers?.let { peers ->
               val allNodes =
