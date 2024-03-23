@@ -70,7 +70,7 @@ export GOBIN
 export PATH := $(PWD)/tool:$(GOBIN):$(JAVA_HOME)/bin:$(ANDROID_HOME)/cmdline-tools/latest/bin:$(ANDROID_HOME)/platform-tools:$(PATH)
 export GOROOT := # Unset
 
-all: tailscale-new-debug.apk test $(DEBUG_APK) tailscale-fdroid.apk
+all: tailscale-new-debug.apk test $(DEBUG_APK) tailscale-fdroid.apk ## Build and test everything
 
 env:
 	@echo PATH=$(PATH)
@@ -80,13 +80,13 @@ env:
 	@echo JAVA_HOME=$(JAVA_HOME)
 	@echo TOOLCHAINDIR=$(TOOLCHAINDIR)
 
-tag_release:
+tag_release: ## Tag a release
 	sed -i'.bak' 's/versionCode $(VERSIONCODE)/versionCode $(VERSIONCODE_PLUSONE)/' android_legacy/build.gradle && rm android_legacy/build.gradle.bak
 	sed -i'.bak' 's/versionName .*/versionName "$(VERSION_LONG)"/' android_legacy/build.gradle && rm android_legacy/build.gradle.bak
 	git commit -sm "android: bump version code" android_legacy/build.gradle
 	git tag -a "$(VERSION_LONG)"
 
-bumposs:
+bumposs: ## Update the tailscale.com go module
 	GOPROXY=direct go get tailscale.com@main
 	go run tailscale.com/cmd/printdep --go > go.toolchain.rev
 	go mod tidy -compat=1.22
@@ -102,8 +102,7 @@ $(ANDROID_HOME)/cmdline-tools/latest/bin/sdkmanager:
 	mv $(ANDROID_HOME)/tmp/cmdline-tools $(ANDROID_HOME)/cmdline-tools/latest
 	rm -rf $(ANDROID_HOME)/tmp
 
-# Install the set of Android SDK packages we need.
-androidsdk: $(ANDROID_HOME)/cmdline-tools/latest/bin/sdkmanager
+androidsdk: $(ANDROID_HOME)/cmdline-tools/latest/bin/sdkmanager ## Install the set of Android SDK packages we need.
 	yes | $(ANDROID_HOME)/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
 	$(ANDROID_HOME)/cmdline-tools/latest/bin/sdkmanager --update
 	$(ANDROID_HOME)/cmdline-tools/latest/bin/sdkmanager $(ANDROID_SDK_PACKAGES)
@@ -111,7 +110,7 @@ androidsdk: $(ANDROID_HOME)/cmdline-tools/latest/bin/sdkmanager
 # Normally in make you would simply take a dependency on the task that provides
 # the binaries, however users may have a decision to make as to whether they
 # want to install an SDK or use the one from an Android Studio installation.
-checkandroidsdk:
+checkandroidsdk: ## Check that Android SDK is installed
 	@$(ANDROID_HOME)/cmdline-tools/latest/bin/sdkmanager --list_installed | grep -q 'ndk' || (\
 		echo -e "\n\tERROR: Android SDK not installed.\n\
 		\tANDROID_HOME=$(ANDROID_HOME)\n\
@@ -145,10 +144,10 @@ $(RELEASE_AAB): $(AAR)
 	(cd android_legacy && ./gradlew test bundlePlayRelease)
 	mv ./android_legacy/build/outputs/bundle/playRelease/android_legacy-play-release.aab $@
 
-release: $(RELEASE_AAB)
+release: $(RELEASE_AAB) ## Build the release AAB
 	jarsigner -sigalg SHA256withRSA -digestalg SHA-256 -keystore $(KEYSTORE) $(RELEASE_AAB) $(KEYSTORE_ALIAS)
 
-apk: $(DEBUG_APK)
+apk: $(DEBUG_APK) ## Build the debug APK
 
 LIBTAILSCALE=android/libs/libtailscale.aar
 LIBTAILSCALE_SOURCES=$(shell find libtailscale -name *.go) go.mod go.sum
@@ -179,23 +178,29 @@ tailscale-new-debug.apk: $(LIBTAILSCALE)
 	(cd android && ./gradlew test assemblePlayDebug)
 	mv android/build/outputs/apk/play/debug/android-play-debug.apk $@
 
-tailscale-new-debug: tailscale-new-debug.apk
+tailscale-new-debug: tailscale-new-debug.apk ## Build the new debug APK
 
-test: $(LIBTAILSCALE)
+test: $(LIBTAILSCALE) ## Run the Android tests
 	(cd android && ./gradlew test)
 
-install: tailscale-new-debug.apk
+install: tailscale-new-debug.apk ## Install the debug APK on a connected device
 	adb install -r $<
 
-run: install
+run: install ## Run the debug APK on a connected device
 	adb shell am start -n com.tailscale.ipn/com.tailscale.ipn.IPNActivity
 
-dockershell:
+dockershell: ## Run a shell in the Docker build container
 	docker build -t tailscale-android .
 	docker run -v $(CURDIR):/build/tailscale-android -it --rm tailscale-android
 
-clean:
+clean: ## Remove build artifacts
 	-rm -rf android/build android_legacy/build $(DEBUG_APK) $(RELEASE_AAB) $(AAR) $(LIBTAILSCALE) android/libs tailscale-fdroid.apk *.apk
 	-pkill -f gradle
 
-.PHONY: all clean install android_legacy/lib $(DEBUG_APK) $(RELEASE_AAB) $(AAR) release bump_version dockershell lib tailscale-new-debug
+help: ## Show this help
+	@echo "\nSpecify a command. The choices are:\n"
+	@grep -hE '^[0-9a-zA-Z_-]+:.*?## .*$$' ${MAKEFILE_LIST} | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-20s\033[m %s\n", $$1, $$2}'
+	@echo ""
+
+.PHONY: all clean install android_legacy/lib $(DEBUG_APK) $(RELEASE_AAB) $(AAR) release bump_version dockershell lib tailscale-new-debug help
+.DEFAULT_GOAL := help
