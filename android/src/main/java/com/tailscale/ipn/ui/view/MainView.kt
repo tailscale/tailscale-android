@@ -121,7 +121,9 @@ fun MainView(navigation: MainViewNavigation, viewModel: MainViewModel = viewMode
                   onSearch = { viewModel.searchPeers(it) })
             }
             Ipn.State.Starting -> StartingView()
-            else -> ConnectView(user.value, { viewModel.toggleVpn() }, { viewModel.login {} })
+            else ->
+                ConnectView(
+                    state.value, user.value, { viewModel.toggleVpn() }, { viewModel.login {} })
           }
         }
   }
@@ -219,7 +221,12 @@ fun StartingView() {
 }
 
 @Composable
-fun ConnectView(user: IpnLocal.LoginProfile?, connectAction: () -> Unit, loginAction: () -> Unit) {
+fun ConnectView(
+    state: Ipn.State,
+    user: IpnLocal.LoginProfile?,
+    connectAction: () -> Unit,
+    loginAction: () -> Unit
+) {
   Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -231,7 +238,7 @@ fun ConnectView(user: IpnLocal.LoginProfile?, connectAction: () -> Unit, loginAc
                   Arrangement.spacedBy(8.dp, alignment = Alignment.CenterVertically),
               horizontalAlignment = Alignment.CenterHorizontally,
           ) {
-            if (user != null && !user.isEmpty()) {
+            if (state != Ipn.State.NeedsLogin && user != null && !user.isEmpty()) {
               Icon(
                   painter = painterResource(id = R.drawable.power),
                   contentDescription = null,
