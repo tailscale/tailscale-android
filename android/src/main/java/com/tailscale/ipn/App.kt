@@ -23,12 +23,12 @@ import android.content.res.Configuration
 import android.net.ConnectivityManager
 import android.net.LinkProperties
 import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import android.net.Uri
 import android.net.VpnService
 import android.os.Build
 import android.os.Environment
-import android.os.Handler
-import android.os.Looper
 import android.provider.MediaStore
 import android.provider.Settings
 import android.util.Log
@@ -64,7 +64,6 @@ import java.util.Objects
 
 class App : Application(), libtailscale.AppContext {
   private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-  var dnsConfigObj = DnsConfig()
 
   companion object {
     const val STATUS_CHANNEL_ID = "tailscale-status"
@@ -75,10 +74,12 @@ class App : Application(), libtailscale.AppContext {
     private const val FILE_CHANNEL_ID = "tailscale-files"
     private const val FILE_NOTIFICATION_ID = 3
     private const val TAG = "App"
-    private val mainHandler = Handler(Looper.getMainLooper())
+    private val networkConnectivityRequest =
+        NetworkRequest.Builder()
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
+            .build()
     lateinit var appInstance: App
-
-    private fun isEmpty(str: String?) = str.isNullOrEmpty()
 
     @JvmStatic
     fun startActivityForResult(act: Activity, intent: Intent?, request: Int) {
@@ -143,33 +144,36 @@ class App : Application(), libtailscale.AppContext {
   }
 
   // requestNetwork attempts to find the best network that matches the passed NetworkRequest. It is
-  // possible that
-  // this might return an unusuable network, eg a captive portal.
+  // possible that this might return an unusuable network, eg a captive portal.
   private fun setAndRegisterNetworkCallbacks() {
     connectivityManager.requestNetwork(
-        dnsConfigObj.dnsConfigNetworkRequest,
+        networkConnectivityRequest,
         object : ConnectivityManager.NetworkCallback() {
           override fun onAvailable(network: Network) {
             super.onAvailable(network)
+
             val sb = StringBuilder()
             val linkProperties: LinkProperties? = connectivityManager.getLinkProperties(network)
-            val dnsList: MutableList<InetAddress> =
-                linkProperties?.getDnsServers() ?: mutableListOf()
+            val dnsList: MutableList<InetAddress> = linkProperties?.dnsServers ?: mutableListOf()
             for (ip in dnsList) {
-              sb.append(ip.getHostAddress()).append(" ")
+              sb.append(ip.hostAddress).append(" ")
             }
-            val searchDomains: String? = linkProperties?.getDomains()
+            val searchDomains: String? = linkProperties?.domains
             if (searchDomains != null) {
               sb.append("\n")
               sb.append(searchDomains)
             }
-            dnsConfigObj.updateDNSFromNetwork(sb.toString())
-            Libtailscale.onDnsConfigChanged()
+
+            if (dns.updateDNSFromNetwork(sb.toString())) {
+              Libtailscale.onDnsConfigChanged()
+            }
           }
 
           override fun onLost(network: Network) {
             super.onLost(network)
-            Libtailscale.onDnsConfigChanged()
+            if (dns.updateDNSFromNetwork("")) {
+              Libtailscale.onDnsConfigChanged()
+            }
           }
         })
   }
