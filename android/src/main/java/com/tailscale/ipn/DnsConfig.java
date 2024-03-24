@@ -3,9 +3,6 @@
 
 package com.tailscale.ipn;
 
-import android.net.NetworkCapabilities;
-import android.net.NetworkRequest;
-
 // Tailscale DNS Config retrieval
 //
 // Tailscale's DNS support can either override the local DNS servers with a set of servers
@@ -44,14 +41,14 @@ public class DnsConfig {
         }
     }
 
-    void updateDNSFromNetwork(String dnsConfigs) {
+    boolean updateDNSFromNetwork(String dnsConfigs) {
         synchronized (this) {
-            this.dnsConfigs = dnsConfigs;
+            if (!dnsConfigs.equals(this.dnsConfigs)) {
+                this.dnsConfigs = dnsConfigs;
+                return true;
+            } else {
+                return false;
+            }
         }
-    }
-
-    NetworkRequest getDNSConfigNetworkRequest() {
-        // Request networks that are able to reach the Internet.
-        return new NetworkRequest.Builder().addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET).build();
     }
 }
