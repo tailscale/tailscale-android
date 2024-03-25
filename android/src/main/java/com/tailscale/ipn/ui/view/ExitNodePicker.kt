@@ -109,6 +109,8 @@ fun ExitNodePicker(
                 })
           }
         }
+
+        item("allowLANAccessToggle") { SettingRow(model.allowLANAccessSetting) }
       }
     }
   }

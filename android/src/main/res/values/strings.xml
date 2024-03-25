@@ -124,5 +124,6 @@
     <string name="tailscale_is_not_running_this_device_is_using_the_system_dns_resolver">Tailscale is not running. This device is using the system\'s DNS resolver.</string>
     <string name="this_device_is_using_the_system_dns_resolver">This device is using the system DNS resolver.</string>
     <string name="not_using_tailscale_dns">Not Using Tailscale DNS</string>
+    <string name="allow_lan_access">Allow LAN Access</string>
 
 </resources>

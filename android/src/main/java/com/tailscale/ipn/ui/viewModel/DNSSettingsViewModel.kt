@@ -43,10 +43,7 @@ class DNSSettingsViewModel() : IpnViewModel() {
           isOn = MutableStateFlow(Notifier.prefs.value?.CorpDNS),
           onToggle = {
             LoadingIndicator.start()
-            toggleCorpDNS {
-              LoadingIndicator.stop()
-              // (jonathan) TODO: Error handling
-            }
+            toggleCorpDNS { LoadingIndicator.stop() }
           })
 
   init {
