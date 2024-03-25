@@ -22,7 +22,9 @@ import java.util.TreeMap
 
 data class ExitNodePickerNav(
     val onNavigateHome: () -> Unit,
+    val onNavigateBack: () -> Unit,
     val onNavigateToExitNodePicker: () -> Unit,
+    val onNavigateToMullvad: () -> Unit,
     val onNavigateToMullvadCountry: (String) -> Unit,
     val onNavigateToRunAsExitNode: () -> Unit,
 )
@@ -51,6 +53,7 @@ class ExitNodePickerViewModel(private val nav: ExitNodePickerNav) : IpnViewModel
   val mullvadExitNodesByCountryCode: StateFlow<Map<String, List<ExitNode>>> =
       MutableStateFlow(TreeMap())
   val mullvadBestAvailableByCountry: StateFlow<Map<String, ExitNode>> = MutableStateFlow(TreeMap())
+  val mullvadExitNodeCount: StateFlow<Int> = MutableStateFlow(0)
   val anyActive: StateFlow<Boolean> = MutableStateFlow(false)
   val isRunningExitNode: StateFlow<Boolean> = MutableStateFlow(false)
 
@@ -94,12 +97,13 @@ class ExitNodePickerViewModel(private val nav: ExitNodePickerNav) : IpnViewModel
               val tailnetNodes = allNodes.filter { !it.mullvad }
               tailnetExitNodes.set(tailnetNodes.sortedWith { a, b -> a.label.compareTo(b.label) })
 
+              val allMullvadExitNodes =
+                  allNodes.filter {
+                    // Pick all mullvad nodes that are online or the currently selected
+                    it.mullvad && (it.selected || it.online)
+                  }
               val mullvadExitNodes =
-                  allNodes
-                      .filter {
-                        // Pick all mullvad nodes that are online or the currently selected
-                        it.mullvad && (it.selected || it.online)
-                      }
+                  allMullvadExitNodes
                       .groupBy {
                         // Group by countryCode
                         it.countryCode
@@ -127,6 +131,7 @@ class ExitNodePickerViewModel(private val nav: ExitNodePickerNav) : IpnViewModel
                             .sortedBy { it.city.lowercase() }
                       }
               mullvadExitNodesByCountryCode.set(mullvadExitNodes)
+              mullvadExitNodeCount.set(mullvadExitNodes.size)
 
               val bestAvailableByCountry =
                   mullvadExitNodes.mapValues { (_, nodes) ->
@@ -150,7 +155,7 @@ class ExitNodePickerViewModel(private val nav: ExitNodePickerNav) : IpnViewModel
     }
   }
 
-  fun toggleAllowLANAccess(callback: (Result<Ipn.Prefs>) -> Unit) {
+  private fun toggleAllowLANAccess(callback: (Result<Ipn.Prefs>) -> Unit) {
     val prefs =
         Notifier.prefs.value
             ?: run {
@@ -163,3 +168,9 @@ class ExitNodePickerViewModel(private val nav: ExitNodePickerNav) : IpnViewModel
     Client(viewModelScope).editPrefs(prefsOut, callback)
   }
 }
+
+val List<ExitNodePickerViewModel.ExitNode>.selected
+  get() = this.any { it.selected }
+
+val Map<String, List<ExitNodePickerViewModel.ExitNode>>.selected
+  get() = this.any { it.value.selected }

@@ -12,6 +12,7 @@
     <string name="empty"> </string>
     <string name="template">%s</string>
     <string name="more">More</string>
+    <string name="selected">Selected</string>
     <string name="offline">Offline</string>
     <string name="ok">OK</string>
 
@@ -87,6 +88,7 @@
 
     <!-- Strings for ExitNode picker -->
     <string name="choose_exit_node">Choose Exit Node</string>
+    <string name="choose_mullvad_exit_node">Mullvad Exit Nodes</string>
     <string name="tailnet_exit_nodes">Tailnet Exit Nodes</string>
     <string name="mullvad_exit_nodes">Mullvad VPN</string>
     <string name="best_available">Best Available</string>
@@ -100,6 +102,7 @@
     <string name="run_exit_node_explainer_running">Other devices in your tailnet can now route their Internet traffic through this Android device. Make sure to approve this exit node in the admin console in order for other devices to see it.</string>
     <string name="enabled">Enabled</string>
     <string name="disabled">Disabled</string>
+    <string name="disable">Disable</string>
     <string name="tailnet_lock">Tailnet lock</string>
     <string name="tailnet_lock_explainer">Tailnet lock lets devices in your network verify public keys distributed by the coordination server before trusting them for connectivity. </string>
     <string name="tailnet_lock_enabled">Tailnet lock is currently enabled.</string>
@@ -125,5 +128,7 @@
     <string name="this_device_is_using_the_system_dns_resolver">This device is using the system DNS resolver.</string>
     <string name="not_using_tailscale_dns">Not Using Tailscale DNS</string>
     <string name="allow_lan_access">Allow LAN Access</string>
+    <string name="nodes_available">nodes available</string>
+    <string name="cities_available">cities available</string>
 
 </resources>

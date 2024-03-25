@@ -25,8 +25,8 @@ import androidx.compose.material.icons.outlined.Clear
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -55,8 +55,10 @@ import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.StableNodeID
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.theme.ts_color_light_green
+import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.PeerSet
 import com.tailscale.ipn.ui.util.flag
+import com.tailscale.ipn.ui.util.itemsWithDividers
 import com.tailscale.ipn.ui.viewModel.MainViewModel
 import kotlinx.coroutines.flow.StateFlow
 
@@ -69,64 +71,67 @@ data class MainViewNavigation(
 
 @Composable
 fun MainView(navigation: MainViewNavigation, viewModel: MainViewModel = viewModel()) {
-  Scaffold(contentWindowInsets = WindowInsets.Companion.statusBars) { paddingInsets ->
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(paddingInsets),
-        verticalArrangement = Arrangement.Center) {
-          val state = viewModel.ipnState.collectAsState(initial = Ipn.State.NoState)
-          val user = viewModel.loggedInUser.collectAsState(initial = null)
+  LoadingIndicator.Wrap {
+    Scaffold(contentWindowInsets = WindowInsets.Companion.statusBars) { paddingInsets ->
+      Column(
+          modifier = Modifier.fillMaxWidth().padding(paddingInsets),
+          verticalArrangement = Arrangement.Center) {
+            val state = viewModel.ipnState.collectAsState(initial = Ipn.State.NoState)
+            val user = viewModel.loggedInUser.collectAsState(initial = null)
 
-          Row(
-              modifier =
-                  Modifier.fillMaxWidth()
-                      .background(MaterialTheme.colorScheme.secondaryContainer)
-                      .padding(horizontal = 16.dp)
-                      .padding(top = 10.dp),
-              verticalAlignment = Alignment.CenterVertically) {
-                val isOn = viewModel.vpnToggleState.collectAsState(initial = false)
-                if (state.value != Ipn.State.NeedsLogin && state.value != Ipn.State.NoState) {
-                  TintedSwitch(onCheckedChange = { viewModel.toggleVpn() }, checked = isOn.value)
-                  Spacer(Modifier.size(3.dp))
+            Row(
+                modifier =
+                    Modifier.fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.secondaryContainer)
+                        .padding(horizontal = 16.dp)
+                        .padding(top = 10.dp),
+                verticalAlignment = Alignment.CenterVertically) {
+                  val isOn = viewModel.vpnToggleState.collectAsState(initial = false)
+                  if (state.value != Ipn.State.NeedsLogin && state.value != Ipn.State.NoState) {
+                    TintedSwitch(onCheckedChange = { viewModel.toggleVpn() }, checked = isOn.value)
+                    Spacer(Modifier.size(3.dp))
+                  }
+
+                  StateDisplay(viewModel.stateRes, viewModel.userName)
+
+                  Box(
+                      modifier =
+                          Modifier.weight(1f).clickable { navigation.onNavigateToSettings() },
+                      contentAlignment = Alignment.CenterEnd) {
+                        when (user.value) {
+                          null -> SettingsButton(user.value) { navigation.onNavigateToSettings() }
+                          else -> Avatar(profile = user.value, size = 36)
+                        }
+                      }
                 }
 
-                StateDisplay(viewModel.stateRes, viewModel.userName)
+            when (state.value) {
+              Ipn.State.Running -> {
 
-                Box(
-                    modifier = Modifier.weight(1f).clickable { navigation.onNavigateToSettings() },
-                    contentAlignment = Alignment.CenterEnd) {
-                      when (user.value) {
-                        null -> SettingsButton(user.value) { navigation.onNavigateToSettings() }
-                        else -> Avatar(profile = user.value, size = 36)
-                      }
+                val selfPeerId = viewModel.selfPeerId.collectAsState(initial = "")
+                Row(
+                    modifier =
+                        Modifier.background(MaterialTheme.colorScheme.secondaryContainer)
+                            .padding(top = 10.dp, bottom = 20.dp)) {
+                      ExitNodeStatus(
+                          navAction = navigation.onNavigateToExitNodes, viewModel = viewModel)
                     }
+                PeerList(
+                    searchTerm = viewModel.searchTerm,
+                    state = viewModel.ipnState,
+                    peers = viewModel.peers,
+                    selfPeer = selfPeerId.value,
+                    onNavigateToPeerDetails = navigation.onNavigateToPeerDetails,
+                    onSearch = { viewModel.searchPeers(it) })
               }
-
-          when (state.value) {
-            Ipn.State.Running -> {
-
-              val selfPeerId = viewModel.selfPeerId.collectAsState(initial = "")
-              Row(
-                  modifier =
-                      Modifier.background(MaterialTheme.colorScheme.secondaryContainer)
-                          .padding(top = 10.dp, bottom = 20.dp)) {
-                    ExitNodeStatus(
-                        navAction = navigation.onNavigateToExitNodes, viewModel = viewModel)
-                  }
-              PeerList(
-                  searchTerm = viewModel.searchTerm,
-                  state = viewModel.ipnState,
-                  peers = viewModel.peers,
-                  selfPeer = selfPeerId.value,
-                  onNavigateToPeerDetails = navigation.onNavigateToPeerDetails,
-                  onSearch = { viewModel.searchPeers(it) })
+              Ipn.State.NoState,
+              Ipn.State.Starting -> StartingView()
+              else ->
+                  ConnectView(
+                      state.value, user.value, { viewModel.toggleVpn() }, { viewModel.login {} })
             }
-            Ipn.State.NoState,
-            Ipn.State.Starting -> StartingView()
-            else ->
-                ConnectView(
-                    state.value, user.value, { viewModel.toggleVpn() }, { viewModel.login {} })
           }
-        }
+    }
   }
 }
 
@@ -135,17 +140,10 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
   val prefs = viewModel.prefs.collectAsState()
   val netmap = viewModel.netmap.collectAsState()
   val exitNodeId = prefs.value?.ExitNodeID
-  val exitNode =
-      exitNodeId?.let { id ->
-        netmap.value
-            ?.Peers
-            ?.find { it.StableID == id }
-            ?.let { peer ->
-              peer.Hostinfo.Location?.let { location ->
-                "${location.Country?.flag()} ${location.Country} - ${location.City}"
-              } ?: peer.Name
-            }
-      }
+  val peer = exitNodeId?.let { id -> netmap.value?.Peers?.find { it.StableID == id } }
+  val location = peer?.Hostinfo?.Location
+  val name = peer?.Name
+
   Box(
       modifier =
           Modifier.clickable { navAction() }
@@ -153,21 +151,34 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
               .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
               .background(MaterialTheme.colorScheme.background)
               .fillMaxWidth()) {
-        Column(modifier = Modifier.padding(vertical = 15.dp, horizontal = 18.dp)) {
-          Text(
-              text = stringResource(id = R.string.exit_node),
-              color = MaterialTheme.colorScheme.secondary,
-              style = MaterialTheme.typography.titleSmall)
-          Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = exitNode ?: stringResource(id = R.string.none),
-                style = MaterialTheme.typography.bodyLarge)
-            Icon(
-                Icons.Outlined.ArrowDropDown,
-                null,
-            )
-          }
-        }
+        ListItem(
+            headlineContent = {
+              Text(
+                  stringResource(R.string.exit_node),
+                  style = MaterialTheme.typography.titleMedium,
+              )
+            },
+            supportingContent = {
+              Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text =
+                        location?.let { "${it.Country?.flag()} ${it.Country} - ${it.City}" }
+                            ?: name
+                            ?: stringResource(id = R.string.none),
+                    style = MaterialTheme.typography.bodyLarge)
+                Icon(
+                    Icons.Outlined.ArrowDropDown,
+                    null,
+                )
+              }
+            },
+            trailingContent = {
+              if (peer != null) {
+                Button(onClick = { viewModel.disableExitNode() }) {
+                  Text(stringResource(R.string.disable))
+                }
+              }
+            })
       }
 }
 
@@ -349,39 +360,36 @@ fun PeerList(
                         fontWeight = FontWeight.SemiBold)
                   })
             }
-            peerSet.peers.forEach { peer ->
-              item {
-                ListItem(
-                    modifier = Modifier.clickable { onNavigateToPeerDetails(peer) },
-                    headlineContent = {
-                      Row(verticalAlignment = Alignment.CenterVertically) {
-                        // By definition, SelfPeer is online since we will not show the peer list
-                        // unless you're connected.
-                        val isSelfAndRunning =
-                            (peer.StableID == selfPeer && stateVal.value == Ipn.State.Running)
-                        val color: Color =
-                            if ((peer.Online == true) || isSelfAndRunning) {
-                              ts_color_light_green
-                            } else {
-                              Color.Gray
-                            }
-                        Box(
-                            modifier =
-                                Modifier.size(10.dp)
-                                    .background(
-                                        color = color, shape = RoundedCornerShape(percent = 50))) {}
-                        Spacer(modifier = Modifier.size(6.dp))
-                        Text(text = peer.ComputedName, style = MaterialTheme.typography.titleMedium)
-                      }
-                    },
-                    supportingContent = {
-                      Text(
-                          text = peer.Addresses?.first()?.split("/")?.first() ?: "",
-                          style = MaterialTheme.typography.bodyMedium,
-                          color = MaterialTheme.colorScheme.secondary)
-                    })
-                HorizontalDivider(color = MaterialTheme.colorScheme.secondaryContainer)
-              }
+            itemsWithDividers(peerSet.peers, key = { it.StableID }) { peer ->
+              ListItem(
+                  modifier = Modifier.clickable { onNavigateToPeerDetails(peer) },
+                  headlineContent = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                      // By definition, SelfPeer is online since we will not show the peer list
+                      // unless you're connected.
+                      val isSelfAndRunning =
+                          (peer.StableID == selfPeer && stateVal.value == Ipn.State.Running)
+                      val color: Color =
+                          if ((peer.Online == true) || isSelfAndRunning) {
+                            ts_color_light_green
+                          } else {
+                            Color.Gray
+                          }
+                      Box(
+                          modifier =
+                              Modifier.size(10.dp)
+                                  .background(
+                                      color = color, shape = RoundedCornerShape(percent = 50))) {}
+                      Spacer(modifier = Modifier.size(6.dp))
+                      Text(text = peer.ComputedName, style = MaterialTheme.typography.titleMedium)
+                    }
+                  },
+                  supportingContent = {
+                    Text(
+                        text = peer.Addresses?.first()?.split("/")?.first() ?: "",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.secondary)
+                  })
             }
           }
         }
