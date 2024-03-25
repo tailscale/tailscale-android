@@ -120,6 +120,7 @@ fun MainView(navigation: MainViewNavigation, viewModel: MainViewModel = viewMode
                   onNavigateToPeerDetails = navigation.onNavigateToPeerDetails,
                   onSearch = { viewModel.searchPeers(it) })
             }
+            Ipn.State.NoState,
             Ipn.State.Starting -> StartingView()
             else ->
                 ConnectView(
@@ -208,15 +209,11 @@ fun SettingsButton(user: IpnLocal.LoginProfile?, action: () -> Unit) {
 
 @Composable
 fun StartingView() {
-  // (jonathan) TODO: On iOS this is the game-of-life Tailscale animation.
   Column(
       modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.secondaryContainer),
       verticalArrangement = Arrangement.Center,
       horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = stringResource(id = R.string.starting),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary)
+        TailscaleLogoView(animated = true, Modifier.size(72.dp))
       }
 }
 
@@ -266,7 +263,7 @@ fun ConnectView(
                     fontSize = MaterialTheme.typography.titleMedium.fontSize)
               }
             } else {
-              TailscaleLogoView(Modifier.size(50.dp))
+              TailscaleLogoView(modifier = Modifier.size(50.dp))
               Spacer(modifier = Modifier.size(1.dp))
               Text(
                   text = stringResource(id = R.string.welcome_to_tailscale),
