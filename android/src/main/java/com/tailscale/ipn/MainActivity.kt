@@ -37,6 +37,7 @@ import com.tailscale.ipn.ui.view.MainView
 import com.tailscale.ipn.ui.view.MainViewNavigation
 import com.tailscale.ipn.ui.view.ManagedByView
 import com.tailscale.ipn.ui.view.MullvadExitNodePicker
+import com.tailscale.ipn.ui.view.MullvadExitNodePickerList
 import com.tailscale.ipn.ui.view.PeerDetails
 import com.tailscale.ipn.ui.view.RunExitNodeView
 import com.tailscale.ipn.ui.view.Settings
@@ -96,7 +97,9 @@ class MainActivity : ComponentActivity() {
                   onNavigateHome = {
                     navController.popBackStack(route = "main", inclusive = false)
                   },
+                  onNavigateBack = { navController.popBackStack() },
                   onNavigateToExitNodePicker = { navController.popBackStack() },
+                  onNavigateToMullvad = { navController.navigate("mullvad") },
                   onNavigateToMullvadCountry = { navController.navigate("mullvad/$it") },
                   onNavigateToRunAsExitNode = { navController.navigate("runExitNode") })
 
@@ -104,15 +107,14 @@ class MainActivity : ComponentActivity() {
           composable("settings") { Settings(settingsNav) }
           navigation(startDestination = "list", route = "exitNodes") {
             composable("list") { ExitNodePicker(exitNodePickerNav) }
+            composable("mullvad") { MullvadExitNodePickerList(exitNodePickerNav) }
             composable(
                 "mullvad/{countryCode}",
                 arguments = listOf(navArgument("countryCode") { type = NavType.StringType })) {
                   MullvadExitNodePicker(
                       it.arguments!!.getString("countryCode")!!, exitNodePickerNav)
                 }
-              composable("runExitNode") {
-                  RunExitNodeView(exitNodePickerNav)
-              }
+            composable("runExitNode") { RunExitNodeView(exitNodePickerNav) }
           }
           composable(
               "peerDetails/{nodeId}",

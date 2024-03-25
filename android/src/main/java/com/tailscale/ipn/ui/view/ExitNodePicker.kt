@@ -6,35 +6,29 @@ package com.tailscale.ipn.ui.view
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
+import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.LoadingIndicator
-import com.tailscale.ipn.ui.util.flag
+import com.tailscale.ipn.ui.util.clickableOrGrayedOut
+import com.tailscale.ipn.ui.util.itemsWithDividers
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerNav
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerViewModel
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerViewModelFactory
+import com.tailscale.ipn.ui.viewModel.selected
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,16 +37,17 @@ fun ExitNodePicker(
     model: ExitNodePickerViewModel = viewModel(factory = ExitNodePickerViewModelFactory(nav))
 ) {
   LoadingIndicator.Wrap {
-    Scaffold(topBar = { Header(R.string.choose_exit_node, onBack = nav.onNavigateHome) }) {
+    Scaffold(topBar = { Header(R.string.choose_exit_node, onBack = nav.onNavigateBack) }) {
         innerPadding ->
-      val tailnetExitNodes = model.tailnetExitNodes.collectAsState()
-      val mullvadExitNodes = model.mullvadExitNodesByCountryCode.collectAsState()
+      val tailnetExitNodes = model.tailnetExitNodes.collectAsState().value
+      val mullvadExitNodesByCountryCode = model.mullvadExitNodesByCountryCode.collectAsState().value
+      val mullvadExitNodeCount = model.mullvadExitNodeCount.collectAsState().value
       val anyActive = model.anyActive.collectAsState()
 
       LazyColumn(modifier = Modifier.padding(innerPadding)) {
         item(key = "runExitNode") {
           RunAsExitNodeItem(nav = nav, viewModel = model)
-          HorizontalDivider()
+          Lists.SectionDivider()
         }
 
         item(key = "none") {
@@ -65,48 +60,15 @@ fun ExitNodePicker(
               ))
         }
 
-        item { ListHeading(stringResource(R.string.tailnet_exit_nodes)) }
+        item { Lists.SectionDivider() }
 
-        items(tailnetExitNodes.value, key = { it.id!! }) { node ->
-          ExitNodeItem(model, node, indent = 16.dp)
-        }
+        itemsWithDividers(tailnetExitNodes, key = { it.id!! }) { node -> ExitNodeItem(model, node) }
 
-        item { ListHeading(stringResource(R.string.mullvad_exit_nodes)) }
+        item { Lists.SectionDivider() }
 
-        val sortedCountries =
-            mullvadExitNodes.value.entries.toList().sortedBy {
-              it.value.first().country.lowercase()
-            }
-        items(sortedCountries) { (countryCode, nodes) ->
-          val first = nodes.first()
-
-          // TODO(oxtoacart): the modifier on the ListItem occasionally causes a crash
-          // with java.lang.ClassCastException: androidx.compose.ui.ComposedModifier cannot be cast
-          // to androidx.compose.runtime.RecomposeScopeImpl
-          // Wrapping it in a Box eliminates this. It appears to be some kind of
-          // interaction between the LazyList and the modifier.
-          Box {
-            ListItem(
-                modifier =
-                    Modifier.padding(start = 16.dp).clickable {
-                      if (nodes.size > 1) {
-                        nav.onNavigateToMullvadCountry(countryCode)
-                      } else {
-                        model.setExitNode(first)
-                      }
-                    },
-                headlineContent = { Text("${countryCode.flag()} ${first.country}") },
-                trailingContent = {
-                  val text = if (nodes.size == 1) first.city else "${nodes.size}"
-                  val icon =
-                      if (nodes.size > 1) Icons.AutoMirrored.Outlined.KeyboardArrowRight
-                      else if (first.selected) Icons.Outlined.Check else null
-                  Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    icon?.let { Icon(it, contentDescription = stringResource(R.string.more)) }
-                  }
-                })
+        if (mullvadExitNodeCount > 0) {
+          item(key = "mullvad") {
+            MullvadItem(nav, mullvadExitNodeCount, mullvadExitNodesByCountryCode.selected)
           }
         }
 
@@ -117,30 +79,37 @@ fun ExitNodePicker(
 }
 
 @Composable
-fun ListHeading(label: String, indent: Dp = 0.dp) {
-  ListItem(
-      modifier = Modifier.padding(start = indent),
-      headlineContent = { Text(text = label, style = MaterialTheme.typography.titleMedium) })
-}
-
-@Composable
 fun ExitNodeItem(
     viewModel: ExitNodePickerViewModel,
     node: ExitNodePickerViewModel.ExitNode,
-    indent: Dp = 0.dp
 ) {
   Box {
+    // TODO: add disabled styling
     ListItem(
-        modifier = Modifier.padding(start = indent).clickable { viewModel.setExitNode(node) },
+        modifier =
+            Modifier.clickableOrGrayedOut(enabled = node.online) { viewModel.setExitNode(node) },
         headlineContent = { Text(node.city.ifEmpty { node.label }) },
+        supportingContent = { if (!node.online) Text(stringResource(R.string.offline)) },
         trailingContent = {
           Row {
             if (node.selected) {
-              Icon(Icons.Outlined.Check, contentDescription = stringResource(R.string.more))
-            } else if (!node.online) {
-              Spacer(modifier = Modifier.width(8.dp))
-              Text(stringResource(R.string.offline))
+              Icon(Icons.Outlined.Check, contentDescription = stringResource(R.string.selected))
             }
+          }
+        })
+  }
+}
+
+@Composable
+fun MullvadItem(nav: ExitNodePickerNav, count: Int, selected: Boolean) {
+  Box {
+    ListItem(
+        modifier = Modifier.clickable { nav.onNavigateToMullvad() },
+        headlineContent = { Text(stringResource(R.string.mullvad_exit_nodes)) },
+        supportingContent = { Text("$count ${stringResource(R.string.nodes_available)}") },
+        trailingContent = {
+          if (selected) {
+            Icon(Icons.Outlined.Check, contentDescription = stringResource(R.string.selected))
           }
         })
   }
