@@ -42,7 +42,7 @@ class Ipn {
       var LocalTCPPort: Int? = null,
       var IncomingFiles: List<PartialFile>? = null,
       var ClientVersion: Tailcfg.ClientVersion? = null,
-      var TailFSShares: Map<String, String>? = null,
+      var TailFSShares: List<String>? = null,
   )
 
   @Serializable

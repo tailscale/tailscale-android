@@ -210,7 +210,7 @@ fun SettingsButton(user: IpnLocal.LoginProfile?, action: () -> Unit) {
 fun StartingView() {
   // (jonathan) TODO: On iOS this is the game-of-life Tailscale animation.
   Column(
-      modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+      modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.secondaryContainer),
       verticalArrangement = Arrangement.Center,
       horizontalAlignment = Alignment.CenterHorizontally) {
         Text(

@@ -6,6 +6,7 @@ package com.tailscale.ipn.ui.viewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.localapi.Client
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.StableNodeID
@@ -51,7 +52,18 @@ class ExitNodePickerViewModel(private val nav: ExitNodePickerNav) : IpnViewModel
       MutableStateFlow(TreeMap())
   val mullvadBestAvailableByCountry: StateFlow<Map<String, ExitNode>> = MutableStateFlow(TreeMap())
   val anyActive: StateFlow<Boolean> = MutableStateFlow(false)
-    val isRunningExitNode: StateFlow<Boolean> = MutableStateFlow(false)
+  val isRunningExitNode: StateFlow<Boolean> = MutableStateFlow(false)
+
+  val allowLANAccessSetting =
+      Setting(
+          R.string.allow_lan_access,
+          SettingType.SWITCH,
+          isOn = MutableStateFlow(Notifier.prefs.value?.ExitNodeAllowLANAccess),
+          enabled = MutableStateFlow(true),
+          onToggle = {
+            LoadingIndicator.start()
+            toggleAllowLANAccess { LoadingIndicator.stop() }
+          })
 
   init {
     viewModelScope.launch {
@@ -59,7 +71,7 @@ class ExitNodePickerViewModel(private val nav: ExitNodePickerNav) : IpnViewModel
           .combine(Notifier.prefs) { netmap, prefs -> Pair(netmap, prefs) }
           .stateIn(viewModelScope)
           .collect { (netmap, prefs) ->
-              isRunningExitNode.set(prefs?.let { AdvertisedRoutesHelper.exitNodeOnFromPrefs(it) })
+            isRunningExitNode.set(prefs?.let { AdvertisedRoutesHelper.exitNodeOnFromPrefs(it) })
             val exitNodeId = prefs?.ExitNodeID
             netmap?.Peers?.let { peers ->
               val allNodes =
@@ -136,5 +148,18 @@ class ExitNodePickerViewModel(private val nav: ExitNodePickerNav) : IpnViewModel
       nav.onNavigateHome()
       LoadingIndicator.stop()
     }
+  }
+
+  fun toggleAllowLANAccess(callback: (Result<Ipn.Prefs>) -> Unit) {
+    val prefs =
+        Notifier.prefs.value
+            ?: run {
+              callback(Result.failure(Exception("no prefs")))
+              return@toggleAllowLANAccess
+            }
+
+    val prefsOut = Ipn.MaskedPrefs()
+    prefsOut.ExitNodeAllowLANAccess = !prefs.ExitNodeAllowLANAccess
+    Client(viewModelScope).editPrefs(prefsOut, callback)
   }
 }
