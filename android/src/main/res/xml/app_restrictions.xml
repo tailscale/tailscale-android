@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<restrictions xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <restriction
+        android:defaultValue="true"
+        android:description="@string/prevents_the_user_from_disconnecting_tailscale"
+        android:key="ForceEnabled"
+        android:restrictionType="bool"
+        android:title="@string/force_enabled_connection_toggle" />
+
+    <restriction
+        android:description="@string/forces_the_tailscale_client_to_always_use_the_exit_node_with_the_given_id"
+        android:key="ExitNodeID"
+        android:restrictionType="string"
+        android:title="@string/exit_node_id" />
+
+    <restriction
+        android:description="@string/shows_the_given_organization_name_in_the_client"
+        android:key="ManagedByOrganizationName"
+        android:restrictionType="string"
+        android:title="@string/managed_by_organization_name" />
+
+    <restriction
+        android:description="@string/shows_the_given_caption_next_to_the_organization_name_in_the_client"
+        android:key="ManagedByCaption"
+        android:restrictionType="string"
+        android:title="@string/managed_by_caption" />
+
+    <restriction
+        android:description="@string/shows_a_button_to_open_support_resources_next_to_the_organization_name"
+        android:key="ManagedByURL"
+        android:restrictionType="string"
+        android:title="@string/managed_by_url" />
+
+    <restriction
+        android:description="@string/the_tailnet_policy_allows_the_organization_to_specify_a_tailnet"
+        android:key="Tailnet"
+        android:restrictionType="string"
+        android:title="@string/required_suggested_tailnet" />
+
+    <restriction
+        android:description="@string/use_this_field_to_specify_a_custom_coordination_server_url_such_as_a_headscale_instance"
+        android:key="LoginURL"
+        android:restrictionType="string"
+        android:title="@string/custom_control_server_url" />
+
+    <restriction
+        android:description="@string/hides_the_specified_categories_of_network_devices_from_the_devices_list_in_the_client"
+        android:entries="@array/hidden_network_devices_labels"
+        android:entryValues="@array/hidden_network_devices"
+        android:key="HiddenNetworkDevices"
+        android:restrictionType="multi-select"
+        android:title="@string/hidden_network_devices" />
+
+    <restriction
+        android:entries="@array/always_never_userdecides_labels"
+        android:entryValues="@array/always_never_userdecides"
+        android:key="ExitNodeAllowLANAccess"
+        android:restrictionType="choice"
+        android:title="@string/allow_lan_access_when_using_an_exit_node" />
+
+    <restriction
+        android:entries="@array/always_never_userdecides_labels"
+        android:entryValues="@array/always_never_userdecides"
+        android:key="PostureChecking"
+        android:restrictionType="choice"
+        android:title="@string/enable_posture_checking" />
+
+    <restriction
+        android:entries="@array/always_never_userdecides_labels"
+        android:entryValues="@array/always_never_userdecides"
+        android:key="UseTailscaleDNSSettings"
+        android:restrictionType="choice"
+        android:title="@string/use_tailscale_dns_settings" />
+
+    <restriction
+        android:entries="@array/always_never_userdecides_labels"
+        android:entryValues="@array/always_never_userdecides"
+        android:key="UseTailscaleSubnets"
+        android:restrictionType="choice"
+        android:title="@string/use_tailscale_subnets" />
+
+    <restriction
+        android:entries="@array/always_never_userdecides_labels"
+        android:entryValues="@array/always_never_userdecides"
+        android:key="AllowIncomingConnections"
+        android:restrictionType="choice"
+        android:title="@string/allow_incoming_connections" />
+
+    <restriction
+        android:description="@string/shows_or_hides_the_exit_node_picker_in_the_main_view_of_the_app"
+        android:entries="@array/show_hide_labels"
+        android:entryValues="@array/show_hide"
+        android:key="ExitNodesPicker"
+        android:restrictionType="choice"
+        android:title="@string/exit_node_picker_visibility" />
+
+    <restriction
+        android:description="@string/shows_or_hides_the_tailnet_lock_configuration_ui"
+        android:entries="@array/show_hide_labels"
+        android:entryValues="@array/show_hide"
+        android:key="ManageTailnetLock"
+        android:restrictionType="choice"
+        android:title="@string/manage_tailnet_lock_visibility" />
+
+    <restriction
+        android:description="@string/shows_or_hides_the_ui_to_run_the_android_device_as_an_exit_node"
+        android:entries="@array/show_hide_labels"
+        android:entryValues="@array/show_hide"
+        android:key="RunExitNode"
+        android:restrictionType="choice"
+        android:title="@string/run_as_exit_node_visibility" />
+</restrictions>
