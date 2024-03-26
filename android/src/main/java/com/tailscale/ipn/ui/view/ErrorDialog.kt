@@ -37,7 +37,7 @@ fun ErrorDialog(type: ErrorDialogType, action: () -> Unit = {}) {
 
 @Composable
 fun ErrorDialog(
-    @StringRes title: Int,
+    @StringRes title: Int = R.string.error,
     @StringRes message: Int,
     @StringRes buttonText: Int = R.string.ok,
     onDismiss: () -> Unit = {}

@@ -87,6 +87,7 @@ dependencies {
     implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
     implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0'
     implementation 'androidx.activity:activity-compose:1.8.2'
+    implementation "com.google.accompanist:accompanist-permissions:0.34.0"
 
     // Navigation dependencies.
     def nav_version = "2.7.7"
