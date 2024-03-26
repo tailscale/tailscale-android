@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tailscale.ipn.App
 import com.tailscale.ipn.IPNReceiver
+import com.tailscale.ipn.mdm.BooleanSetting
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.localapi.Client
 import com.tailscale.ipn.ui.model.Ipn
@@ -95,6 +96,10 @@ open class IpnViewModel : ViewModel() {
 
   fun stopVPN() {
     val context = App.getApplication().applicationContext
+    if (mdmSettings.value.get(BooleanSetting.ForceEnabled)) {
+      Log.d(TAG, "Not stopping VPN due to ForceEnabled MDM setting.")
+      return
+    }
     val intent = Intent(context, IPNReceiver::class.java)
     intent.action = IPNReceiver.INTENT_DISCONNECT_VPN
     context.sendBroadcast(intent)

@@ -21,6 +21,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
+import com.tailscale.ipn.mdm.ShowHideSetting
+import com.tailscale.ipn.mdm.ShowHideValue
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.clickableOrGrayedOut
@@ -28,6 +30,7 @@ import com.tailscale.ipn.ui.util.itemsWithDividers
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerNav
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerViewModel
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerViewModelFactory
+import com.tailscale.ipn.ui.viewModel.IpnViewModel
 import com.tailscale.ipn.ui.viewModel.selected
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -45,9 +48,11 @@ fun ExitNodePicker(
       val anyActive = model.anyActive.collectAsState()
 
       LazyColumn(modifier = Modifier.padding(innerPadding)) {
-        item(key = "runExitNode") {
-          RunAsExitNodeItem(nav = nav, viewModel = model)
-          Lists.SectionDivider()
+        if (IpnViewModel.mdmSettings.value.get(ShowHideSetting.RunExitNode) == ShowHideValue.Show) {
+          item(key = "runExitNode") {
+            RunAsExitNodeItem(nav = nav, viewModel = model)
+            Lists.SectionDivider()
+          }
         }
 
         item(key = "none") {

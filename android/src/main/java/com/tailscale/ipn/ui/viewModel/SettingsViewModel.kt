@@ -11,7 +11,11 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.tailscale.ipn.BuildConfig
 import com.tailscale.ipn.R
+import com.tailscale.ipn.mdm.AlwaysNeverUserDecidesSetting
+import com.tailscale.ipn.mdm.AlwaysNeverUserDecidesValue
 import com.tailscale.ipn.mdm.MDMSettings
+import com.tailscale.ipn.mdm.ShowHideSetting
+import com.tailscale.ipn.mdm.ShowHideValue
 import com.tailscale.ipn.mdm.StringSetting
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.util.set
@@ -119,12 +123,20 @@ class SettingsViewModel(val navigation: SettingsNav) : IpnViewModel() {
               titleRes = R.string.dns_settings,
               SettingType.NAV,
               onClick = { navigation.onNavigateToDNSSettings() },
-              enabled = MutableStateFlow(true)),
+              enabled =
+                  MutableStateFlow(
+                      IpnViewModel.mdmSettings.value.get(
+                          AlwaysNeverUserDecidesSetting.UseTailscaleDNSSettings) ==
+                          AlwaysNeverUserDecidesValue.UserDecides)),
           Setting(
-              titleRes = R.string.tailnet_lock,
-              SettingType.NAV,
-              onClick = { navigation.onNavigateToTailnetLock() },
-              enabled = MutableStateFlow(true)),
+                  titleRes = R.string.tailnet_lock,
+                  SettingType.NAV,
+                  onClick = { navigation.onNavigateToTailnetLock() },
+                  enabled = MutableStateFlow(true))
+              .takeIf {
+                IpnViewModel.mdmSettings.value.get(ShowHideSetting.ManageTailnetLock) ==
+                    ShowHideValue.Show
+              },
           Setting(
               titleRes = R.string.about,
               SettingType.NAV,
