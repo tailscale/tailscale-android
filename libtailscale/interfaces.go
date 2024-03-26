@@ -7,8 +7,8 @@ import _ "golang.org/x/mobile/bind"
 
 // Start starts the application, storing state in the given dataDir and using
 // the given appCtx.
-func Start(dataDir string, appCtx AppContext) Application {
-	return start(dataDir, appCtx)
+func Start(dataDir, directFileRoot string, appCtx AppContext) Application {
+	return start(dataDir, directFileRoot, appCtx)
 }
 
 // AppContext provides a context within which the Application is running. This

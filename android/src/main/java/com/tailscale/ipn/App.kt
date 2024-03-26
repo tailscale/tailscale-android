@@ -109,7 +109,14 @@ class App : Application(), libtailscale.AppContext {
   override fun onCreate() {
     super.onCreate()
     val dataDir = this.filesDir.absolutePath
-    app = Libtailscale.start(dataDir, this)
+
+    // Set this to enable direct mode for taildrop whereby downloads will be saved directly
+    // to the given folder.  We will preferentially use <shared>/Downloads and fallback to
+    // an app local directory "Taildrop" if we cannot create that.  This mode does not support
+    // user notifications for incoming files.
+    val directFileDir = this.prepareDownloadsFolder()
+
+    app = Libtailscale.start(dataDir, directFileDir.absolutePath, this)
     Request.setApp(app)
     Notifier.setApp(app)
     connectivityManager = this.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -463,5 +470,28 @@ class App : Application(), libtailscale.AppContext {
         }
       }
     }
+  }
+
+  fun prepareDownloadsFolder(): File {
+    var downloads = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+
+    try {
+      if (!downloads.exists()) {
+        downloads.mkdirs()
+      }
+    } catch (e: Exception) {
+      Log.e(TAG, "Failed to create downloads folder: $e")
+      downloads = File(this.filesDir, "Taildrop")
+      try {
+        if (!downloads.exists()) {
+          downloads.mkdirs()
+        }
+      } catch (e: Exception) {
+        Log.e(TAG, "Failed to create Taildrop folder: $e")
+        downloads = File("")
+      }
+    }
+
+    return downloads
   }
 }

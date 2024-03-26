@@ -30,10 +30,11 @@ const (
 	customLoginServerPrefKey = "customloginserver"
 )
 
-func newApp(dataDir string, appCtx AppContext) Application {
+func newApp(dataDir, directFileRoot string, appCtx AppContext) Application {
 	a := &App{
-		dataDir: dataDir,
-		appCtx:  appCtx,
+		directFileRoot: directFileRoot,
+		dataDir:        dataDir,
+		appCtx:         appCtx,
 	}
 	a.ready.Add(1)
 

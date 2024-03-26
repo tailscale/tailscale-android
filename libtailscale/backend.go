@@ -35,6 +35,10 @@ import (
 
 type App struct {
 	dataDir string
+
+	// enables direct file mode for the taildrop manager
+	directFileRoot string
+
 	// appCtx is a global reference to the com.tailscale.ipn.App instance.
 	appCtx AppContext
 
@@ -46,7 +50,7 @@ type App struct {
 	ready           sync.WaitGroup
 }
 
-func start(dataDir string, appCtx AppContext) Application {
+func start(dataDir, directFileRoot string, appCtx AppContext) Application {
 	defer func() {
 		if p := recover(); p != nil {
 			log.Printf("panic in Start %s: %s", p, debug.Stack())
@@ -70,7 +74,7 @@ func start(dataDir string, appCtx AppContext) Application {
 		os.Setenv("HOME", dataDir)
 	}
 
-	return newApp(dataDir, appCtx)
+	return newApp(dataDir, directFileRoot, appCtx)
 }
 
 type backend struct {
@@ -113,7 +117,7 @@ func (a *App) runBackend(ctx context.Context) error {
 	}
 	configs := make(chan configPair)
 	configErrs := make(chan error)
-	b, err := newBackend(a.dataDir, a.appCtx, a.store, func(rcfg *router.Config, dcfg *dns.OSConfig) error {
+	b, err := newBackend(a.dataDir, a.directFileRoot, a.appCtx, a.store, func(rcfg *router.Config, dcfg *dns.OSConfig) error {
 		if rcfg == nil {
 			return nil
 		}
@@ -228,7 +232,7 @@ func (a *App) runBackend(ctx context.Context) error {
 	}
 }
 
-func newBackend(dataDir string, appCtx AppContext, store *stateStore,
+func newBackend(dataDir, directFileRoot string, appCtx AppContext, store *stateStore,
 	settings settingsFunc) (*backend, error) {
 
 	sys := new(tsd.System)
@@ -299,6 +303,8 @@ func newBackend(dataDir string, appCtx AppContext, store *stateStore,
 		engine.Close()
 		return nil, fmt.Errorf("runBackend: NewLocalBackend: %v", err)
 	}
+	lb.SetDirectFileRoot(directFileRoot)
+
 	if err := ns.Start(lb); err != nil {
 		return nil, fmt.Errorf("startNetstack: %w", err)
 	}
