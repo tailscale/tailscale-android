@@ -28,18 +28,20 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.tailscale.ipn.R
-import com.tailscale.ipn.ui.model.FileTransfer
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.viewModel.TaildropViewModel
 import com.tailscale.ipn.ui.viewModel.TaildropViewModelFactory
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
 
 @Composable
 fun TaildropView(
-    transfersIn: StateFlow<List<FileTransfer>>,
-    viewModel: TaildropViewModel = viewModel(factory = TaildropViewModelFactory(transfersIn))
+    requestedTransfers: StateFlow<List<Ipn.OutgoingFile>>,
+    applicationScope: CoroutineScope,
+    viewModel: TaildropViewModel =
+        viewModel(factory = TaildropViewModelFactory(requestedTransfers, applicationScope))
 ) {
   Scaffold(topBar = { Header(R.string.share) }) { paddingInsets ->
     val showDialog = viewModel.showDialog.collectAsState().value
@@ -48,13 +50,12 @@ fun TaildropView(
     showDialog?.let { ErrorDialog(type = it, action = { viewModel.showDialog.set(null) }) }
 
     Column(modifier = Modifier.padding(paddingInsets)) {
-      val transfers = viewModel.transfers.collectAsState().value
-      val state = viewModel.state.collectAsState().value
-
-      FileShareHeader(fileTransfers = transfers, totalSize = viewModel.totalSize)
+      FileShareHeader(
+          fileTransfers = requestedTransfers.collectAsState().value,
+          totalSize = viewModel.totalSize)
       Spacer(modifier = Modifier.size(8.dp))
 
-      when (state) {
+      when (viewModel.state.collectAsState().value) {
         Ipn.State.Running -> {
           val peers = viewModel.myPeers.collectAsState().value
           val context = LocalContext.current
@@ -129,7 +130,7 @@ fun FileShareConnectView(onToggle: () -> Unit) {
 }
 
 @Composable
-fun FileShareHeader(fileTransfers: List<FileTransfer>, totalSize: Long) {
+fun FileShareHeader(fileTransfers: List<Ipn.OutgoingFile>, totalSize: Long) {
   Column(modifier = Modifier.padding(horizontal = 8.dp)) {
     Row(verticalAlignment = Alignment.CenterVertically) {
       IconForTransfer(fileTransfers)
@@ -142,7 +143,7 @@ fun FileShareHeader(fileTransfers: List<FileTransfer>, totalSize: Long) {
           false -> {
 
             when (fileTransfers.size) {
-              1 -> Text(fileTransfers[0].filename, style = MaterialTheme.typography.titleMedium)
+              1 -> Text(fileTransfers[0].Name, style = MaterialTheme.typography.titleMedium)
               else ->
                   Text(
                       stringResource(R.string.file_count, fileTransfers.size),
@@ -159,7 +160,7 @@ fun FileShareHeader(fileTransfers: List<FileTransfer>, totalSize: Long) {
 }
 
 @Composable
-fun IconForTransfer(transfers: List<FileTransfer>) {
+fun IconForTransfer(transfers: List<Ipn.OutgoingFile>) {
   // (jonathan) TODO: Thumbnails?
   when (transfers.size) {
     0 ->
