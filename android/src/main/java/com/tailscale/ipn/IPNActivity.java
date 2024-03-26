@@ -5,7 +5,6 @@ package com.tailscale.ipn;
 
 import android.app.Activity;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.database.Cursor;
 import android.net.Uri;
@@ -14,11 +13,7 @@ import android.provider.OpenableColumns;
 
 import java.util.List;
 
-import libtailscale.Libtailscale;
-
 public final class IPNActivity extends Activity {
-    final static int WRITE_STORAGE_RESULT = 1000;
-
     @Override
     public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -86,15 +81,6 @@ public final class IPNActivity extends Activity {
         }
         // TODO(oxtoacart): actually implement this
 //        App.onShareIntent(nfiles, types, mimes, items, names, sizes);
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int reqCode, String[] perms, int[] grants) {
-        if (reqCode == WRITE_STORAGE_RESULT) {
-            if (grants.length > 0 && grants[0] == PackageManager.PERMISSION_GRANTED) {
-                Libtailscale.onWriteStorageGranted();
-            }
-        }
     }
 
     @Override

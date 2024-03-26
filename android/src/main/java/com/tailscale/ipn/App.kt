@@ -36,7 +36,6 @@ import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import androidx.core.content.ContextCompat
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.tailscale.ipn.mdm.AlwaysNeverUserDecidesSetting
@@ -313,20 +312,6 @@ class App : Application(), libtailscale.AppContext {
       }
       return null
     }
-
-  fun requestWriteStoragePermission(act: Activity) {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q ||
-        Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-      // We can write files without permission.
-      return
-    }
-    if (ContextCompat.checkSelfPermission(act, Manifest.permission.WRITE_EXTERNAL_STORAGE) ==
-        PackageManager.PERMISSION_GRANTED) {
-      return
-    }
-    act.requestPermissions(
-        arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), IPNActivity.WRITE_STORAGE_RESULT)
-  }
 
   @Throws(IOException::class)
   fun insertMedia(name: String?, mimeType: String): String {
