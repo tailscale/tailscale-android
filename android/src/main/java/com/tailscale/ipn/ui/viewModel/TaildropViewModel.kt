@@ -115,6 +115,7 @@ class TaildropViewModel(val transfers: StateFlow<List<FileTransfer>>) : IpnViewM
   private fun progress(transfers: List<Ipn.OutgoingFile>): Double {
     val total = transfers.sumOf { it.DeclaredSize }.toDouble()
     val sent = transfers.sumOf { it.Sent }.toDouble()
+    if (total < 0.1) return 0.0
     return (sent / total)
   }
 
