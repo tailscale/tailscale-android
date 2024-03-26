@@ -146,12 +146,12 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
 
   Box(
       modifier =
-          Modifier.clickable { navAction() }
-              .padding(horizontal = 16.dp)
+          Modifier.padding(horizontal = 16.dp)
               .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
               .background(MaterialTheme.colorScheme.background)
               .fillMaxWidth()) {
         ListItem(
+            modifier = Modifier.clickable { navAction() },
             headlineContent = {
               Text(
                   stringResource(R.string.exit_node),
