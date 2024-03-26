@@ -188,7 +188,7 @@
     <string name="connect_to_your_tailnet_to_share_files">Connect to your tailnet to share files</string>
     <string name="my_devices">My Devices</string>
     <string name="no_devices_to_share_with">There are no devices on your tailnet to share to</string>
-    <string name="taildrop_share_failed">Taildrop failed.  Some files were not shared.  Please try again.</string>
+    <string name="taildrop_share_failed">Taildrop failed. Some files were not shared. Please try again.</string>
     <string name="taildrop_sending">Sending</string>
     <string name="taildrop_share_failed_short">Failed</string>
 
