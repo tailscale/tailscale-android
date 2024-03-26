@@ -18,27 +18,33 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.localapi.Client
-import com.tailscale.ipn.ui.model.FileTransfer
 import com.tailscale.ipn.ui.model.Ipn
+import com.tailscale.ipn.ui.model.StableNodeID
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.view.ActivityIndicator
 import com.tailscale.ipn.ui.view.CheckedIndicator
 import com.tailscale.ipn.ui.view.ErrorDialogType
-import java.net.URLEncoder
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
-class TaildropViewModelFactory(private val transfers: StateFlow<List<FileTransfer>>) :
-    ViewModelProvider.Factory {
+class TaildropViewModelFactory(
+    private val requestedTransfers: StateFlow<List<Ipn.OutgoingFile>>,
+    private val applicationScope: CoroutineScope
+) : ViewModelProvider.Factory {
   override fun <T : ViewModel> create(modelClass: Class<T>): T {
-    return TaildropViewModel(transfers) as T
+    return TaildropViewModel(requestedTransfers, applicationScope) as T
   }
 }
 
-class TaildropViewModel(val transfers: StateFlow<List<FileTransfer>>) : IpnViewModel() {
+class TaildropViewModel(
+    val requestedTransfers: StateFlow<List<Ipn.OutgoingFile>>,
+    private val applicationScope: CoroutineScope
+) : IpnViewModel() {
 
   // Represents the state of a file transfer
   enum class TransferState {
@@ -50,18 +56,17 @@ class TaildropViewModel(val transfers: StateFlow<List<FileTransfer>>) : IpnViewM
   // The overall VPN state
   val state = Notifier.state
 
-  // Map of outgoing files to peer ID.  This is the full state of the outgoing files.
-  private val outgoing: StateFlow<Map<String, List<Ipn.OutgoingFile>>> =
-      MutableStateFlow(emptyMap())
-
-  // List of any nodes that have a file transfer pending FOR THE CURRENT SESSION
-  // This is used to filter outgoingFiles to ensure we only render the transfer state
-  // for things that are currently displayed.
-  private val pending: StateFlow<Set<String>> = MutableStateFlow(emptySet())
+  // Set of all nodes for which we've requested a file transfer. This is used to prevent us from
+  // request a transfer to the same peer twice.
+  private val selectedPeers: StateFlow<Set<StableNodeID>> = MutableStateFlow(emptySet())
+  // Set of OutgoingFile.IDs that we're currently transferring.
+  private val currentTransferIDs: StateFlow<Set<String>> = MutableStateFlow(emptySet())
+  // Flow of Ipn.OutgoingFiles with updated statuses for every entry in transferWithStatuses.
+  private val transfers: StateFlow<List<Ipn.OutgoingFile>> = MutableStateFlow(emptyList())
 
   // The total size of all pending files.
-  var totalSize: Long = 0
-    get() = transfers.value.sumOf { it.size }
+  val totalSize: Long
+    get() = requestedTransfers.value.sumOf { it.DeclaredSize }
 
   // The list of peers that we can share with.  This includes only the nodes belonging to the user
   // and excludes the current node.  Sorted by online devices first, and offline second,
@@ -83,35 +88,27 @@ class TaildropViewModel(val transfers: StateFlow<List<FileTransfer>>) : IpnViewM
     viewModelScope.launch {
       // Map the outgoing files by their PeerId since we need to display them for each peer
       // We only need to track files which are pending send, everything else is irrelevant.
-      Notifier.outgoingFiles.collect { outgoingFiles ->
-        val outgoingMap: MutableMap<String, List<Ipn.OutgoingFile>> = mutableMapOf()
-        val currentFiles = transfers.value.map { URLEncoder.encode(it.filename, "utf-8") }
-
-        outgoingFiles?.let { files ->
-          files
-              .filter { currentFiles.contains(it.Name) && pending.value.contains(it.PeerID) }
-              .forEach {
-                val list = outgoingMap.getOrDefault(it.PeerID, emptyList()).toMutableList()
-                list += it
-                outgoingMap[it.PeerID] = list
-              }
-          Log.d("TaildropViewModel", "Outgoing files: $outgoingMap")
-          outgoing.set(outgoingMap)
-        } ?: run { outgoing.set(emptyMap()) }
-      }
+      Notifier.outgoingFiles
+          .combine(currentTransferIDs) { outgoingFiles, ongoingIDs ->
+            Pair(outgoingFiles, ongoingIDs)
+          }
+          .collect { (outgoingFiles, ongoingIDs) ->
+            outgoingFiles?.let {
+              transfers.set(outgoingFiles.filter { ongoingIDs.contains(it.ID) })
+            } ?: run { transfers.set(emptyList()) }
+          }
     }
 
-    // Whenever our files list changes, we need to reset the outgoings files map and
-    // any pending requests.  The user has changed the files they're attempting to share.
     viewModelScope.launch {
-      transfers.collect {
-        pending.set(emptySet())
-        outgoing.set(emptyMap())
+      requestedTransfers.collect {
+        // This means that we're processing a new share intent, clear current state
+        selectedPeers.set(emptySet())
+        currentTransferIDs.set(emptySet())
       }
     }
   }
 
-  // Calculates the overall progress for a set of outoing files
+  // Calculates the overall progress for a set of outgoing files
   private fun progress(transfers: List<Ipn.OutgoingFile>): Double {
     val total = transfers.sumOf { it.DeclaredSize }.toDouble()
     val sent = transfers.sumOf { it.Sent }.toDouble()
@@ -122,14 +119,9 @@ class TaildropViewModel(val transfers: StateFlow<List<FileTransfer>>) : IpnViewM
   // Calculates the overall state of a set of file transfers.
   // peerId: The peer ID to check for transfers.
   // transfers: The list of outgoing file transfers for the peer.
-  private fun transferState(peerId: String, transfers: List<Ipn.OutgoingFile>): TransferState? {
+  private fun transferState(transfers: List<Ipn.OutgoingFile>): TransferState? {
     // No transfers? Nothing state
     if (transfers.isEmpty()) return null
-
-    // We may have transfers from a prior session for files the user selected and for peers
-    // in our list.. but we don't care about those.  We only care if the peerId is in teh pending
-    // list.
-    if (!pending.value.contains(peerId)) return null
 
     return if (transfers.all { it.Finished }) {
       // Everything done?  SENT if all succeeded, FAILED if any failed.
@@ -159,21 +151,11 @@ class TaildropViewModel(val transfers: StateFlow<List<FileTransfer>>) : IpnViewM
   // any requested transfers.
   @Composable
   fun TrailingContentForPeer(peerId: String) {
-    val outgoing = outgoing.collectAsState().value
-    val pending = pending.collectAsState().value
-
     // Check our outgoing files for the peer and determine the state of the transfer.
-    val transfers = outgoing[peerId] ?: emptyList()
-    var status = transferState(peerId, transfers)
-
-    // Check if we have a pending transfer for this peer.  We may not have an outgoing file
-    // yet, but we still want to show the sending state in the mean time.
-    if (status == null && pending.contains(peerId)) {
-      status = TransferState.SENDING
-    }
+    val transfers = this.transfers.collectAsState().value.filter { it.PeerID == peerId }
+    var status: TransferState = transferState(transfers) ?: return
 
     // Still no status? Nothing to render for this peer
-    if (status == null) return
 
     Column(modifier = Modifier.fillMaxHeight()) {
       when (status) {
@@ -197,20 +179,20 @@ class TaildropViewModel(val transfers: StateFlow<List<FileTransfer>>) : IpnViewM
       return
     }
 
-    // Ignore requests to resend a file (the backend will not overwrite anyway)
-    outgoing.value[node.StableID]?.let {
-      val status = transferState(node.StableID, it)
-      if (status == TransferState.SENDING || status == TransferState.SENT) {
-        return
-      }
+    if (selectedPeers.value.contains(node.StableID)) {
+      // We've already selected this peer, ignore
+      return
     }
+    selectedPeers.set(selectedPeers.value + node.StableID)
 
-    pending.set(pending.value + node.StableID)
-    Client(viewModelScope).putTaildropFiles(context, node.StableID, transfers.value) {
+    val preparedTransfers = requestedTransfers.value.map { it.prepare(node.StableID) }
+    currentTransferIDs.set(currentTransferIDs.value + preparedTransfers.map { it.ID })
+
+    Client(applicationScope).putTaildropFiles(context, node.StableID, preparedTransfers) {
       // This is an early API failure and will not get communicated back up to us via
       // outgoing files - things never made it that far.
       if (it.isFailure) {
-        pending.set(pending.value - node.StableID)
+        selectedPeers.set(selectedPeers.value - node.StableID)
         showDialog.set(ErrorDialogType.SHARE_FAILED)
       }
     }

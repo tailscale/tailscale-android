@@ -7,17 +7,11 @@ import android.content.Context
 import android.util.Log
 import com.tailscale.ipn.ui.model.BugReportID
 import com.tailscale.ipn.ui.model.Errors
-import com.tailscale.ipn.ui.model.FileTransfer
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.IpnState
 import com.tailscale.ipn.ui.model.StableNodeID
 import com.tailscale.ipn.ui.util.InputStreamAdapter
-import java.net.URLEncoder
-import java.nio.charset.Charset
-import java.nio.file.Files.delete
-import kotlin.reflect.KType
-import kotlin.reflect.typeOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -27,6 +21,9 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
 import kotlinx.serialization.serializer
 import libtailscale.FilePart
+import java.nio.charset.Charset
+import kotlin.reflect.KType
+import kotlin.reflect.typeOf
 
 private object Endpoint {
   const val DEBUG = "debug"
@@ -128,12 +125,10 @@ class Client(private val scope: CoroutineScope) {
   fun putTaildropFiles(
       context: Context,
       peerId: StableNodeID,
-      files: Collection<FileTransfer>,
+      files: Collection<Ipn.OutgoingFile>,
       responseHandler: (Result<String>) -> Unit
   ) {
-    val manifest =
-        Json.encodeToString(
-            files.map { URLEncoder.encode(it.filename, "utf-8") to it.size }.toMap())
+    val manifest = Json.encodeToString(files)
     val manifestPart = FilePart()
     manifestPart.body = InputStreamAdapter(manifest.byteInputStream(Charset.defaultCharset()))
     manifestPart.filename = "manifest.json"
@@ -143,14 +138,13 @@ class Client(private val scope: CoroutineScope) {
     try {
       parts.addAll(
           files.map { file ->
-            val stream = context.contentResolver.openInputStream(file.uri)
-            if (stream == null) {
-              throw Exception("Error opening file stream")
-            }
+            val stream =
+                context.contentResolver.openInputStream(file.uri)
+                    ?: throw Exception("Error opening file stream")
 
             val part = FilePart()
-            part.filename = URLEncoder.encode(file.filename, "utf-8")
-            part.contentLength = file.size
+            part.filename = file.Name
+            part.contentLength = file.DeclaredSize
             part.body = InputStreamAdapter(stream)
             part
           })

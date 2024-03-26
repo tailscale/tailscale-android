@@ -47,6 +47,12 @@ import com.tailscale.ipn.ui.localapi.Client
 import com.tailscale.ipn.ui.localapi.Request
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.notifier.Notifier
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import libtailscale.Libtailscale
 import java.io.File
 import java.io.IOException
 import java.net.InetAddress
@@ -54,15 +60,9 @@ import java.net.NetworkInterface
 import java.security.GeneralSecurityException
 import java.util.Locale
 import java.util.Objects
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
-import libtailscale.Libtailscale
 
 class App : Application(), libtailscale.AppContext {
-  private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+  val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
   companion object {
     const val STATUS_CHANNEL_ID = "tailscale-status"

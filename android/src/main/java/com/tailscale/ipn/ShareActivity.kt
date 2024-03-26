@@ -12,7 +12,7 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.lifecycle.lifecycleScope
-import com.tailscale.ipn.ui.model.FileTransfer
+import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.theme.AppTheme
 import com.tailscale.ipn.ui.util.set
@@ -24,11 +24,13 @@ import kotlinx.coroutines.flow.StateFlow
 class ShareActivity : ComponentActivity() {
   private val TAG = ShareActivity::class.simpleName
 
-  private val transfers: StateFlow<List<FileTransfer>> = MutableStateFlow(emptyList())
+  private val requestedTransfers: StateFlow<List<Ipn.OutgoingFile>> = MutableStateFlow(emptyList())
 
   override fun onCreate(state: Bundle?) {
     super.onCreate(state)
-    setContent { AppTheme { TaildropView(transfers) } }
+    setContent {
+      AppTheme { TaildropView(requestedTransfers, (application as App).applicationScope) }
+    }
   }
 
   override fun onStart() {
@@ -80,7 +82,7 @@ class ShareActivity : ComponentActivity() {
           }
         }
 
-    val pendingFiles: List<FileTransfer> =
+    val pendingFiles: List<Ipn.OutgoingFile> =
         uris?.filterNotNull()?.mapNotNull {
           contentResolver?.query(it, null, null, null, null)?.let { c ->
             val nameCol = c.getColumnIndex(OpenableColumns.DISPLAY_NAME)
@@ -89,7 +91,9 @@ class ShareActivity : ComponentActivity() {
             val name = c.getString(nameCol)
             val size = c.getLong(sizeCol)
             c.close()
-            FileTransfer(name, size, it)
+            val file = Ipn.OutgoingFile(Name = name, DeclaredSize = size)
+            file.uri = it
+            file
           }
         } ?: emptyList()
 
@@ -97,6 +101,6 @@ class ShareActivity : ComponentActivity() {
       Log.e(TAG, "Share failure - no files extracted from intent")
     }
 
-    transfers.set(pendingFiles)
+    requestedTransfers.set(pendingFiles)
   }
 }
