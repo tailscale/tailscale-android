@@ -80,6 +80,7 @@ data class SettingsNav(
     val onNavigateToMDMSettings: () -> Unit,
     val onNavigateToManagedBy: () -> Unit,
     val onNavigateToUserSwitcher: () -> Unit,
+    val onNavigateToPermissions: () -> Unit,
     val onBackPressed: () -> Unit,
 )
 
@@ -123,6 +124,11 @@ class SettingsViewModel(val navigation: SettingsNav) : IpnViewModel() {
               titleRes = R.string.tailnet_lock,
               SettingType.NAV,
               onClick = { navigation.onNavigateToTailnetLock() },
+              enabled = MutableStateFlow(true)),
+          Setting(
+              titleRes = R.string.permissions,
+              SettingType.NAV,
+              onClick = { navigation.onNavigateToPermissions() },
               enabled = MutableStateFlow(true)),
           Setting(
               titleRes = R.string.about,
