@@ -3,6 +3,7 @@
 
 package com.tailscale.ipn.ui.view
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -31,7 +32,7 @@ import com.tailscale.ipn.ui.viewModel.ExitNodePickerViewModel
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerViewModelFactory
 import com.tailscale.ipn.ui.viewModel.selected
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ExitNodePicker(
     nav: ExitNodePickerNav,
@@ -46,7 +47,11 @@ fun ExitNodePicker(
       val anyActive = model.anyActive.collectAsState()
 
       LazyColumn(modifier = Modifier.padding(innerPadding)) {
-        item("allowLANAccessToggle") { SettingRow(model.allowLANAccessSetting) }
+        stickyHeader {
+          RunAsExitNodeItem(nav = nav, viewModel = model)
+          Lists.ItemDivider()
+          SettingRow(model.allowLANAccessSetting)
+        }
 
         item(key = "none") {
           Lists.SectionDivider()
@@ -60,7 +65,7 @@ fun ExitNodePicker(
               ))
         }
 
-        item { Lists.SectionDivider() }
+        item { Lists.ItemDivider() }
 
         itemsWithDividers(tailnetExitNodes, key = { it.id!! }) { node -> ExitNodeItem(model, node) }
 
@@ -70,11 +75,6 @@ fun ExitNodePicker(
           item(key = "mullvad") {
             MullvadItem(nav, mullvadExitNodeCount, mullvadExitNodesByCountryCode.selected)
           }
-        }
-
-        item(key = "runExitNode") {
-          Lists.SectionDivider()
-          RunAsExitNodeItem(nav = nav, viewModel = model)
         }
       }
     }
@@ -124,7 +124,7 @@ fun MullvadItem(nav: ExitNodePickerNav, count: Int, selected: Boolean) {
         },
         supportingContent = {
           Text(
-              "$count ${stringResource(R.string.nodes_available)}",
+              "$count ${stringResource(R.string.exit_nodes_available)}",
               style = MaterialTheme.typography.bodyMedium)
         },
         trailingContent = {
@@ -145,7 +145,7 @@ fun RunAsExitNodeItem(nav: ExitNodePickerNav, viewModel: ExitNodePickerViewModel
         headlineContent = {
           Text(
               stringResource(id = R.string.run_as_exit_node),
-              style = MaterialTheme.typography.titleMedium)
+              style = MaterialTheme.typography.bodyMedium)
         },
         trailingContent = {
           if (isRunningExitNode) {

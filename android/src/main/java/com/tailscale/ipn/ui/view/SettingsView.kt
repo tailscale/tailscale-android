@@ -122,7 +122,12 @@ private fun SwitchRow(setting: Setting) {
   val swVal = setting.isOn?.collectAsState()?.value ?: false
   ListItem(
       modifier = Modifier.clickable { if (enabled) setting.onClick() },
-      headlineContent = { Text(setting.title ?: stringResource(setting.titleRes)) },
+      headlineContent = {
+        Text(
+            setting.title ?: stringResource(setting.titleRes),
+            style = MaterialTheme.typography.bodyMedium,
+        )
+      },
       trailingContent = {
         TintedSwitch(checked = swVal, onCheckedChange = setting.onToggle, enabled = enabled)
       })
