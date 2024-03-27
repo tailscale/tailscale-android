@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.dp
 object Lists {
   @Composable
   fun SectionDivider() {
-    Box(Modifier.size(0.dp, 24.dp))
+    Box(Modifier.size(0.dp, 8.dp))
   }
 
   @Composable
