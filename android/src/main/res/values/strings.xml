@@ -131,4 +131,33 @@
     <string name="nodes_available">nodes available</string>
     <string name="cities_available">cities available</string>
 
+    <!-- Strings for MDM Settings Manifest (app_restrictions.xml) -->
+    <string name="prevents_the_user_from_disconnecting_tailscale">Prevents the user from disconnecting Tailscale.</string>
+    <string name="force_enabled_connection_toggle">Force Enabled Connection Toggle</string>
+    <string name="exit_node_id">Exit Node ID</string>
+    <string name="forces_the_tailscale_client_to_always_use_the_exit_node_with_the_given_id">Forces the Tailscale client to always use the exit node with the given ID.</string>
+    <string name="managed_by_organization_name">Managed By - Organization Name</string>
+    <string name="managed_by_caption">Managed By - Caption</string>
+    <string name="managed_by_url">Managed By - URL</string>
+    <string name="shows_a_button_to_open_support_resources_next_to_the_organization_name">Shows a button to open support resources next to the organization name.</string>
+    <string name="shows_the_given_caption_next_to_the_organization_name_in_the_client">Shows the given caption next to the organization name in the client.</string>
+    <string name="shows_the_given_organization_name_in_the_client">Shows the given organization name in the client.</string>
+    <string name="the_tailnet_policy_allows_the_organization_to_specify_a_tailnet">The Tailnet policy allows the organization to specify a tailnet, its identity provider will be used on the login page. If the policy value is prefixed with required:, Tailscale will force that identity provider to be used and won’t allow logging in with anything else.</string>
+    <string name="required_suggested_tailnet">Required/Suggested Tailnet</string>
+    <string name="custom_control_server_url">Custom control server URL</string>
+    <string name="use_this_field_to_specify_a_custom_coordination_server_url_such_as_a_headscale_instance">Use this field to specify a custom coordination server URL, such as a Headscale instance.</string>
+    <string name="hidden_network_devices">Hidden Network Devices</string>
+    <string name="hides_the_specified_categories_of_network_devices_from_the_devices_list_in_the_client">Hides the specified categories of network devices from the devices list in the client.</string>
+    <string name="allow_lan_access_when_using_an_exit_node">Allow LAN Access when using an exit node</string>
+    <string name="enable_posture_checking">Enable Posture Checking</string>
+    <string name="use_tailscale_dns_settings">Use Tailscale DNS Settings</string>
+    <string name="use_tailscale_subnets">Use Tailscale Subnets</string>
+    <string name="allow_incoming_connections">Allow Incoming Connections</string>
+    <string name="exit_node_picker_visibility">Exit Node Picker Visibility</string>
+    <string name="shows_or_hides_the_exit_node_picker_in_the_main_view_of_the_app">Shows or hides the exit node picker in the main view of the app.</string>
+    <string name="shows_or_hides_the_tailnet_lock_configuration_ui">Shows or hides the Tailnet lock configuration UI.</string>
+    <string name="manage_tailnet_lock_visibility">Manage Tailnet lock visibility</string>
+    <string name="shows_or_hides_the_ui_to_run_the_android_device_as_an_exit_node">Shows or hides the UI to run the Android device as an exit node.</string>
+    <string name="run_as_exit_node_visibility">Run As Exit Node visibility</string>
+
 </resources>
