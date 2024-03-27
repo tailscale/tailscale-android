@@ -25,7 +25,11 @@ import com.tailscale.ipn.ui.viewModel.UserSwitcherViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun UserSwitcherView(nav: BackNavigation, viewModel: UserSwitcherViewModel = viewModel()) {
+fun UserSwitcherView(
+    nav: BackNavigation,
+    onNavigateHome: () -> Unit,
+    viewModel: UserSwitcherViewModel = viewModel()
+) {
 
   val users = viewModel.loginProfiles.collectAsState().value
   val currentUser = viewModel.loggedInUser.collectAsState().value
@@ -64,6 +68,8 @@ fun UserSwitcherView(nav: BackNavigation, viewModel: UserSwitcherViewModel = vie
                         if (it.isFailure) {
                           viewModel.showDialog.set(ErrorDialogType.LOGOUT_FAILED)
                           nextUserId.value = null
+                        } else {
+                          onNavigateHome()
                         }
                       }
                     })
