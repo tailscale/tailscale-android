@@ -3,7 +3,10 @@
 
 package com.tailscale.ipn.ui.model
 
+import android.net.Uri
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
+import java.util.UUID
 
 class Ipn {
 
@@ -158,16 +161,27 @@ class Ipn {
 
   @Serializable
   data class OutgoingFile(
+      val ID: String = "",
       val Name: String,
-      val PeerID: StableNodeID,
-      val Started: String,
+      val PeerID: StableNodeID = "",
+      val Started: String = "",
       val DeclaredSize: Long,
-      val Sent: Long,
+      val Sent: Long = 0L,
       val PartialPath: String? = null,
       var FinalPath: String? = null,
-      val Finished: Boolean,
-      val Succeeded: Boolean,
-  )
+      val Finished: Boolean = false,
+      val Succeeded: Boolean = false,
+  ) {
+    @Transient lateinit var uri: Uri // only used on client
+
+    fun prepare(peerId: StableNodeID): OutgoingFile {
+      val f = copy(ID = UUID.randomUUID().toString(), PeerID = peerId)
+      f.uri = uri
+      return f
+    }
+  }
+
+  @Serializable data class FileTarget(var Node: Tailcfg.Node, var PeerAPIURL: String)
 }
 
 class Persist {

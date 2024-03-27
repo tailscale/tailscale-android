@@ -62,7 +62,7 @@ import java.util.Locale
 import java.util.Objects
 
 class App : Application(), libtailscale.AppContext {
-  private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+  val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
   companion object {
     const val STATUS_CHANNEL_ID = "tailscale-status"
@@ -82,7 +82,7 @@ class App : Application(), libtailscale.AppContext {
 
     @JvmStatic
     fun startActivityForResult(act: Activity, intent: Intent?, request: Int) {
-      val f: Fragment = act.getFragmentManager().findFragmentByTag(PEER_TAG)
+      val f: Fragment = act.fragmentManager.findFragmentByTag(PEER_TAG)
       f.startActivityForResult(intent, request)
     }
 
@@ -245,7 +245,7 @@ class App : Application(), libtailscale.AppContext {
     val manu = Build.MANUFACTURER
     var model = Build.MODEL
     // Strip manufacturer from model.
-    val idx = model.toLowerCase(Locale.getDefault()).indexOf(manu.toLowerCase(Locale.getDefault()))
+    val idx = model.lowercase(Locale.getDefault()).indexOf(manu.lowercase(Locale.getDefault()))
     if (idx != -1) {
       model = model.substring(idx + manu.length).trim()
     }
@@ -267,10 +267,10 @@ class App : Application(), libtailscale.AppContext {
   fun attachPeer(act: Activity) {
     act.runOnUiThread(
         Runnable {
-          val ft: FragmentTransaction = act.getFragmentManager().beginTransaction()
+          val ft: FragmentTransaction = act.fragmentManager.beginTransaction()
           ft.add(Peer(), PEER_TAG)
           ft.commit()
-          act.getFragmentManager().executePendingTransactions()
+          act.fragmentManager.executePendingTransactions()
         })
   }
 
@@ -306,7 +306,7 @@ class App : Application(), libtailscale.AppContext {
     // getPackageSignatureFingerprint returns the first package signing certificate, if any.
     get() {
       val info: PackageInfo
-      info = getPackageManager().getPackageInfo(getPackageName(), PackageManager.GET_SIGNATURES)
+      info = packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNATURES)
       for (signature in info.signatures) {
         return signature.toByteArray()
       }
@@ -316,7 +316,7 @@ class App : Application(), libtailscale.AppContext {
   @Throws(IOException::class)
   fun insertMedia(name: String?, mimeType: String): String {
     return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-      val resolver: ContentResolver = getContentResolver()
+      val resolver: ContentResolver = contentResolver
       val contentValues = ContentValues()
       contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, name)
       if ("" != mimeType) {
@@ -334,12 +334,12 @@ class App : Application(), libtailscale.AppContext {
 
   @Throws(IOException::class)
   fun openUri(uri: String?, mode: String?): Int? {
-    val resolver: ContentResolver = getContentResolver()
+    val resolver: ContentResolver = contentResolver
     return mode?.let { resolver.openFileDescriptor(Uri.parse(uri), it)?.detachFd() }
   }
 
   fun deleteUri(uri: String?) {
-    val resolver: ContentResolver = getContentResolver()
+    val resolver: ContentResolver = contentResolver
     resolver.delete(Uri.parse(uri), null, null)
   }
 

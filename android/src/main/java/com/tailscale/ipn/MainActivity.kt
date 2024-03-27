@@ -62,6 +62,8 @@ class MainActivity : ComponentActivity() {
     @JvmStatic val requestSignin: Int = 1000
     // requestPrepareVPN is for when Android's VpnService.prepare completes.
     @JvmStatic val requestPrepareVPN: Int = 1001
+
+    const val WRITE_STORAGE_RESULT = 1000
   }
 
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -193,13 +195,9 @@ class MainActivity : ComponentActivity() {
       val contract = VpnPermissionContract()
       requestVpnPermission =
           registerForActivityResult(contract) { granted ->
-            Notifier.vpnPermissionGranted.set(granted)
             Log.i("VPN", "VPN permission ${if (granted) "granted" else "denied"}")
           }
       requestVpnPermission.launch(Unit)
-    } else {
-      Notifier.vpnPermissionGranted.set(true)
-      Log.i("VPN", "VPN permission granted")
     }
   }
 

@@ -10,8 +10,8 @@ import android.os.Build
 import android.system.OsConstants
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import libtailscale.Libtailscale
 import java.util.UUID
+import libtailscale.Libtailscale
 
 open class IPNService : VpnService(), libtailscale.IPNService {
   private val randomID: String = UUID.randomUUID().toString()
@@ -63,7 +63,7 @@ open class IPNService : VpnService(), libtailscale.IPNService {
     return PendingIntent.getActivity(
         this,
         0,
-        Intent(this, IPNActivity::class.java),
+        Intent(this, MainActivity::class.java),
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
   }
 

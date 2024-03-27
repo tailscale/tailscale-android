@@ -78,6 +78,8 @@
     <string name="in_x_days">in %d days</string>
     <string name="in_x_months">in %d months</string>
     <string name="in_x_years">in %.1f years</string>
+
+    <!-- Strings for the user switcher -->
     <string name="user_switcher">Accounts</string>
     <string name="logout_failed">Unable to logout at this time.  Please try again.</string>
     <string name="error">Error</string>
@@ -104,6 +106,8 @@
     <string name="enabled">Enabled</string>
     <string name="disabled">Disabled</string>
     <string name="disable">Disable</string>
+
+    <!-- Strings for the tailnet lock screen -->
     <string name="tailnet_lock">Tailnet lock</string>
     <string name="tailnet_lock_explainer">Tailnet lock lets devices in your network verify public keys distributed by the coordination server before trusting them for connectivity. </string>
     <string name="tailnet_lock_enabled">Tailnet lock is currently enabled.</string>
@@ -117,8 +121,12 @@
     <string name="tailnet_lock_key">Tailnet Lock Key</string>
     <string name="node_key_explainer">Used to sign this node from another signing device in your tailnet.</string>
     <string name="tailnet_lock_key_explainer">Used to authorize changes to the Tailnet lock configuration.</string>
+
+    <!-- Strings for the bug report screen -->
     <string name="bug_report_id">Bug Report ID</string>
     <string name="learn_more">Learn more…</string>
+
+    <!-- Strings for DNS settings -->
     <string name="dns_settings">DNS Settings</string>
     <string name="using_tailscale_dns">Using Tailscale DNS</string>
     <string name="this_device_is_using_tailscale_to_resolve_dns_names">This device is using Tailscale to resolve DNS names.</string>
@@ -171,5 +179,25 @@
     <string name="permission_post_notifications_needed">Please grant Tailscale the Notifications permission in order to receive important status notifications.</string>
     <string name="permission_post_notifications_granted">Thank you for granting Tailscale the Notifications permission.</string>
 
+
+    <!-- Strings for the share activity -->
+    <string name="share">Send via Tailscale</string>
+    <string name="share_device_not_connected">Unable to share files with this device.  This device is not currently connected to the tailnet.</string>
+    <string name="no_files_to_share">No files to share</string>
+    <string name="file_count">%1$s Files</string>
+    <string name="connect_to_your_tailnet_to_share_files">Connect to your tailnet to share files</string>
+    <string name="my_devices">My Devices</string>
+    <string name="no_devices_to_share_with">There are no devices on your tailnet to share to</string>
+    <string name="taildrop_share_failed">Taildrop failed. Some files were not shared. Please try again.</string>
+    <string name="taildrop_sending">Sending</string>
+    <string name="taildrop_share_failed_short">Failed</string>
+
+
+    <!-- Error Dialog Titles -->
+    <string name="logout_failed_title">Logout Failed</string>
+    <string name="switch_user_failed_title">Cannot Switch To User</string>
+    <string name="add_profile_failed_title">Unable to Add Profile</string>
+    <string name="share_device_not_connected_title">Not Connected</string>
+    <string name="taildrop_share_failed_title">Taildrop Failed</string>
 
 </resources>
