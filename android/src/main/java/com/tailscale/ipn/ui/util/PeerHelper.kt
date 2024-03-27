@@ -3,10 +3,13 @@
 
 package com.tailscale.ipn.ui.util
 
+import com.tailscale.ipn.mdm.HiddenNetworkDevices
+import com.tailscale.ipn.mdm.StringArraySetting
 import com.tailscale.ipn.ui.model.Netmap
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.model.UserID
 import com.tailscale.ipn.ui.notifier.Notifier
+import com.tailscale.ipn.ui.viewModel.IpnViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -35,14 +38,25 @@ class PeerCategorizer(scope: CoroutineScope) {
     }
   }
 
+  val mdmHiddenCategories =
+      IpnViewModel.mdmSettings.value.get(StringArraySetting.HiddenNetworkDevices)
+  val shouldHideCurrentUser =
+      mdmHiddenCategories?.contains(HiddenNetworkDevices.CurrentUser.value) ?: false
+  val shouldHideOtherUsers =
+      mdmHiddenCategories?.contains(HiddenNetworkDevices.OtherUsers.value) ?: false
+  val shouldHideTaggedDevices =
+      mdmHiddenCategories?.contains(HiddenNetworkDevices.TaggedDevices.value) ?: false
+
   private fun regenerateGroupedPeers(netmap: Netmap.NetworkMap): List<PeerSet> {
     val peers: List<Tailcfg.Node> = netmap.Peers ?: return emptyList()
     val selfNode = netmap.SelfNode
     var grouped = mutableMapOf<UserID, MutableList<Tailcfg.Node>>()
 
-    for (peer in (peers + selfNode)) {
-      // (jonathan) TODO: MDM -> There are a number of MDM settings to hide devices from the user
-      // (jonathan) TODO: MDM -> currentUser, otherUsers, taggedDevices
+    var peersToConsider: List<Tailcfg.Node> = peers
+    if (!shouldHideCurrentUser) {
+      peersToConsider = peers + selfNode
+    }
+    for (peer in peersToConsider) {
       val userId = peer.User
 
       if (!grouped.containsKey(userId)) {
@@ -55,9 +69,15 @@ class PeerCategorizer(scope: CoroutineScope) {
 
     val peerSets =
         grouped
-            .map { (userId, peers) ->
+            .mapNotNull { (userId, peers) ->
               val profile = netmap.userProfile(userId)
-              PeerSet(profile, peers.sortedBy { it.ComputedName })
+              if (shouldHideTaggedDevices && profile?.isTaggedDevice() == true) {
+                return@mapNotNull null
+              }
+              if (shouldHideCurrentUser && userId == selfNode.ID) {
+                return@mapNotNull null
+              }
+              return@mapNotNull PeerSet(profile, peers.sortedBy { it.ComputedName })
             }
             .sortedBy {
               if (it.user?.ID == me?.ID) {
@@ -85,25 +105,23 @@ class PeerCategorizer(scope: CoroutineScope) {
     this.searchTerm = searchTerm
 
     val matchingSets =
-        setsToSearch
-            .map { peerSet ->
-              val user = peerSet.user
-              val peers = peerSet.peers
+        setsToSearch.mapNotNull { peerSet ->
+          val user = peerSet.user
+          val peers = peerSet.peers
 
-              val userMatches = user?.DisplayName?.contains(searchTerm, ignoreCase = true) ?: false
-              if (userMatches) {
-                return@map peerSet
-              }
+          val userMatches = user?.DisplayName?.contains(searchTerm, ignoreCase = true) ?: false
+          if (userMatches) {
+            return@mapNotNull peerSet
+          }
 
-              val matchingPeers =
-                  peers.filter { it.ComputedName.contains(searchTerm, ignoreCase = true) }
-              if (matchingPeers.isNotEmpty()) {
-                PeerSet(user, matchingPeers)
-              } else {
-                null
-              }
-            }
-            .filterNotNull()
+          val matchingPeers =
+              peers.filter { it.ComputedName.contains(searchTerm, ignoreCase = true) }
+          if (matchingPeers.isNotEmpty()) {
+            PeerSet(user, matchingPeers)
+          } else {
+            null
+          }
+        }
 
     return matchingSets
   }

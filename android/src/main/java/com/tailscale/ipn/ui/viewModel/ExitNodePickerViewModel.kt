@@ -7,6 +7,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.tailscale.ipn.R
+import com.tailscale.ipn.mdm.AlwaysNeverUserDecidesSetting
+import com.tailscale.ipn.mdm.AlwaysNeverUserDecidesValue
 import com.tailscale.ipn.ui.localapi.Client
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.StableNodeID
@@ -62,7 +64,11 @@ class ExitNodePickerViewModel(private val nav: ExitNodePickerNav) : IpnViewModel
           R.string.allow_lan_access,
           SettingType.SWITCH,
           isOn = MutableStateFlow(Notifier.prefs.value?.ExitNodeAllowLANAccess),
-          enabled = MutableStateFlow(true),
+          enabled =
+              MutableStateFlow(
+                  IpnViewModel.mdmSettings.value.get(
+                      AlwaysNeverUserDecidesSetting.ExitNodeAllowLANAccess) ==
+                      AlwaysNeverUserDecidesValue.UserDecides),
           onToggle = {
             LoadingIndicator.start()
             toggleAllowLANAccess { LoadingIndicator.stop() }

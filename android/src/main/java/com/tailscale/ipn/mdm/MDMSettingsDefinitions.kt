@@ -53,8 +53,8 @@ enum class ShowHideValue(val value: String) {
   Hide("hide")
 }
 
-enum class NetworkDevices(val value: String) {
-  currentUser("current-user"),
-  otherUsers("other-users"),
-  taggedDevices("tagged-devices"),
+enum class HiddenNetworkDevices(val value: String) {
+  CurrentUser("current-user"),
+  OtherUsers("other-users"),
+  TaggedDevices("tagged-devices"),
 }

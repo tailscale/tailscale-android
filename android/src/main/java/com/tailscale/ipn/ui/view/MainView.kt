@@ -50,6 +50,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
+import com.tailscale.ipn.mdm.ShowHideSetting
+import com.tailscale.ipn.mdm.ShowHideValue
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.StableNodeID
@@ -59,6 +61,7 @@ import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.PeerSet
 import com.tailscale.ipn.ui.util.flag
 import com.tailscale.ipn.ui.util.itemsWithDividers
+import com.tailscale.ipn.ui.viewModel.IpnViewModel
 import com.tailscale.ipn.ui.viewModel.MainViewModel
 import kotlinx.coroutines.flow.StateFlow
 
@@ -107,15 +110,17 @@ fun MainView(navigation: MainViewNavigation, viewModel: MainViewModel = viewMode
 
             when (state.value) {
               Ipn.State.Running -> {
-
+                val mdmSettings = IpnViewModel.mdmSettings.collectAsState().value
                 val selfPeerId = viewModel.selfPeerId.collectAsState(initial = "")
-                Row(
-                    modifier =
-                        Modifier.background(MaterialTheme.colorScheme.secondaryContainer)
-                            .padding(top = 10.dp, bottom = 20.dp)) {
-                      ExitNodeStatus(
-                          navAction = navigation.onNavigateToExitNodes, viewModel = viewModel)
-                    }
+                if (mdmSettings.get(ShowHideSetting.ExitNodesPicker) != ShowHideValue.Hide) {
+                  Row(
+                      modifier =
+                          Modifier.background(MaterialTheme.colorScheme.secondaryContainer)
+                              .padding(top = 10.dp, bottom = 20.dp)) {
+                        ExitNodeStatus(
+                            navAction = navigation.onNavigateToExitNodes, viewModel = viewModel)
+                      }
+                }
                 PeerList(
                     searchTerm = viewModel.searchTerm,
                     state = viewModel.ipnState,
