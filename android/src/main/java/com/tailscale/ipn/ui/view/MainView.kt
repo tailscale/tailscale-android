@@ -3,9 +3,6 @@
 
 package com.tailscale.ipn.ui.view
 
-import android.Manifest
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -39,10 +36,8 @@ import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -61,6 +56,8 @@ import com.google.accompanist.permissions.shouldShowRationale
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.IpnLocal
+import com.tailscale.ipn.ui.model.Permission
+import com.tailscale.ipn.ui.model.Permissions
 import com.tailscale.ipn.ui.model.StableNodeID
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.theme.ts_color_light_green
@@ -69,7 +66,6 @@ import com.tailscale.ipn.ui.util.PeerSet
 import com.tailscale.ipn.ui.util.flag
 import com.tailscale.ipn.ui.util.itemsWithDividers
 import com.tailscale.ipn.ui.viewModel.MainViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 // Navigation actions for the MainView
@@ -119,7 +115,7 @@ fun MainView(navigation: MainViewNavigation, viewModel: MainViewModel = viewMode
             when (state.value) {
               Ipn.State.Running -> {
 
-                PromptWriteStoragePermissionsIfNecessary()
+                PromptPermissionsIfNecessary(permissions = Permissions.all)
 
                 val selfPeerId = viewModel.selfPeerId.collectAsState(initial = "")
                 Row(
@@ -411,31 +407,14 @@ fun PeerList(
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun PromptWriteStoragePermissionsIfNecessary() {
-  val writeStoragePermissionState =
-      rememberPermissionState(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-
-  val showDialog = remember { MutableStateFlow(false) }
-
-  val requestPermissionLauncher =
-      rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (!granted) {
-          showDialog.value = true
-        }
+fun PromptPermissionsIfNecessary(permissions: List<Permission>) {
+  permissions.forEach { permission ->
+    val state = rememberPermissionState(permission.name)
+    if (!state.status.isGranted && !state.status.shouldShowRationale) {
+      // We don't have the permission and can ask for it
+      ErrorDialog(title = permission.title, message = permission.neededDescription) {
+        state.launchPermissionRequest()
       }
-
-  LaunchedEffect(writeStoragePermissionState) {
-    if (!writeStoragePermissionState.status.isGranted &&
-        writeStoragePermissionState.status.shouldShowRationale) {
-      showDialog.value = true
-    } else {
-      requestPermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-    }
-  }
-
-  if (showDialog.collectAsState().value) {
-    ErrorDialog(title = R.string.permission_required, message = R.string.taildrop_requires_write) {
-      showDialog.value = false
     }
   }
 }

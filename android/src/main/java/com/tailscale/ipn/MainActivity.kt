@@ -10,6 +10,7 @@ import android.content.RestrictionsManager
 import android.net.Uri
 import android.net.VpnService
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -39,8 +40,9 @@ import com.tailscale.ipn.ui.view.ManagedByView
 import com.tailscale.ipn.ui.view.MullvadExitNodePicker
 import com.tailscale.ipn.ui.view.MullvadExitNodePickerList
 import com.tailscale.ipn.ui.view.PeerDetails
+import com.tailscale.ipn.ui.view.PermissionsView
 import com.tailscale.ipn.ui.view.RunExitNodeView
-import com.tailscale.ipn.ui.view.Settings
+import com.tailscale.ipn.ui.view.SettingsView
 import com.tailscale.ipn.ui.view.TailnetLockSetupView
 import com.tailscale.ipn.ui.view.UserSwitcherView
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerNav
@@ -87,6 +89,7 @@ class MainActivity : ComponentActivity() {
                   onNavigateToMDMSettings = { navController.navigate("mdmSettings") },
                   onNavigateToManagedBy = { navController.navigate("managedBy") },
                   onNavigateToUserSwitcher = { navController.navigate("userSwitcher") },
+                  onNavigateToPermissions = { navController.navigate("permissions") },
                   onBackPressed = { navController.popBackStack() },
               )
 
@@ -104,7 +107,7 @@ class MainActivity : ComponentActivity() {
                   onNavigateToRunAsExitNode = { navController.navigate("runExitNode") })
 
           composable("main") { MainView(navigation = mainViewNav) }
-          composable("settings") { Settings(settingsNav) }
+          composable("settings") { SettingsView(settingsNav) }
           navigation(startDestination = "list", route = "exitNodes") {
             composable("list") { ExitNodePicker(exitNodePickerNav) }
             composable("mullvad") { MullvadExitNodePickerList(exitNodePickerNav) }
@@ -128,6 +131,9 @@ class MainActivity : ComponentActivity() {
           composable("mdmSettings") { MDMSettingsDebugView(nav = backNav) }
           composable("managedBy") { ManagedByView(nav = backNav) }
           composable("userSwitcher") { UserSwitcherView(nav = backNav) }
+          composable("permissions") {
+            PermissionsView(nav = backNav, openApplicationSettings = ::openApplicationSettings)
+          }
         }
       }
     }
@@ -195,6 +201,15 @@ class MainActivity : ComponentActivity() {
       Notifier.vpnPermissionGranted.set(true)
       Log.i("VPN", "VPN permission granted")
     }
+  }
+
+  private fun openApplicationSettings() {
+    val intent =
+        Intent(
+            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+            Uri.fromParts("package", packageName, null))
+    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    startActivity(intent)
   }
 }
 

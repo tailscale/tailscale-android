@@ -38,7 +38,7 @@ import com.tailscale.ipn.ui.viewModel.SettingsViewModel
 import com.tailscale.ipn.ui.viewModel.SettingsViewModelFactory
 
 @Composable
-fun Settings(
+fun SettingsView(
     settingsNav: SettingsNav,
     viewModel: SettingsViewModel = viewModel(factory = SettingsViewModelFactory(settingsNav))
 ) {
