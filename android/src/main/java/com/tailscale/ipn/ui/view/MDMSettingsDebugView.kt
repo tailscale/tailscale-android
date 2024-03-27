@@ -32,37 +32,40 @@ fun MDMSettingsDebugView(nav: BackNavigation, model: IpnViewModel = viewModel())
     ->
     val mdmSettings = IpnViewModel.mdmSettings.collectAsState().value
     LazyColumn(modifier = Modifier.padding(innerPadding)) {
-      itemsWithDividers(enumValues<BooleanSetting>()) { booleanSetting ->
+      itemsWithDividers(enumValues<BooleanSetting>(), key = { it.key }) { booleanSetting ->
         MDMSettingView(
             title = booleanSetting.localizedTitle,
             caption = booleanSetting.key,
             valueDescription = mdmSettings.get(booleanSetting).toString())
       }
 
-      itemsWithDividers(enumValues<StringSetting>(), forceLeading = true) { stringSetting ->
+      itemsWithDividers(enumValues<StringSetting>(), key = { it.key }, forceLeading = true) {
+          stringSetting ->
         MDMSettingView(
             title = stringSetting.localizedTitle,
             caption = stringSetting.key,
             valueDescription = mdmSettings.get(stringSetting).toString())
       }
 
-      itemsWithDividers(enumValues<ShowHideSetting>(), forceLeading = true) { showHideSetting ->
+      itemsWithDividers(enumValues<ShowHideSetting>(), key = { it.key }, forceLeading = true) {
+          showHideSetting ->
         MDMSettingView(
             title = showHideSetting.localizedTitle,
             caption = showHideSetting.key,
             valueDescription = mdmSettings.get(showHideSetting).toString())
       }
 
-      itemsWithDividers(enumValues<AlwaysNeverUserDecidesSetting>(), forceLeading = true) {
-          anuSetting ->
-        MDMSettingView(
-            title = anuSetting.localizedTitle,
-            caption = anuSetting.key,
-            valueDescription = mdmSettings.get(anuSetting).toString())
-      }
+      itemsWithDividers(
+          enumValues<AlwaysNeverUserDecidesSetting>(), key = { it.key }, forceLeading = true) {
+              anuSetting ->
+            MDMSettingView(
+                title = anuSetting.localizedTitle,
+                caption = anuSetting.key,
+                valueDescription = mdmSettings.get(anuSetting).toString())
+          }
 
-      itemsWithDividers(enumValues<StringArraySetting>(), forceLeading = true) { stringArraySetting
-        ->
+      itemsWithDividers(enumValues<StringArraySetting>(), key = { it.key }, forceLeading = true) {
+          stringArraySetting ->
         MDMSettingView(
             title = stringArraySetting.localizedTitle,
             caption = stringArraySetting.key,

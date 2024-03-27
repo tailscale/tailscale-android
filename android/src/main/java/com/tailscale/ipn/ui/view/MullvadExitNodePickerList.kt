@@ -69,11 +69,14 @@ fun MullvadExitNodePickerList(
                       style = MaterialTheme.typography.titleLarge,
                   )
                 },
-                headlineContent = { Text(first.country) },
+                headlineContent = {
+                  Text(first.country, style = MaterialTheme.typography.titleMedium)
+                },
                 supportingContent = {
                   Text(
                       if (nodes.size == 1) first.city
-                      else "${nodes.size} ${stringResource(R.string.cities_available)}")
+                      else "${nodes.size} ${stringResource(R.string.cities_available)}",
+                      style = MaterialTheme.typography.bodyMedium)
                 },
                 trailingContent = {
                   if (nodes.size > 1 && nodes.selected || first.selected) {
