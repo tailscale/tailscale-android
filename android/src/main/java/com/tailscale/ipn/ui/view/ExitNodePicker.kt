@@ -13,6 +13,7 @@ import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -45,12 +46,11 @@ fun ExitNodePicker(
       val anyActive = model.anyActive.collectAsState()
 
       LazyColumn(modifier = Modifier.padding(innerPadding)) {
-        item(key = "runExitNode") {
-          RunAsExitNodeItem(nav = nav, viewModel = model)
-          Lists.SectionDivider()
-        }
+        item("allowLANAccessToggle") { SettingRow(model.allowLANAccessSetting) }
 
         item(key = "none") {
+          Lists.SectionDivider()
+
           ExitNodeItem(
               model,
               ExitNodePickerViewModel.ExitNode(
@@ -72,7 +72,10 @@ fun ExitNodePicker(
           }
         }
 
-        item("allowLANAccessToggle") { SettingRow(model.allowLANAccessSetting) }
+        item(key = "runExitNode") {
+          Lists.SectionDivider()
+          RunAsExitNodeItem(nav = nav, viewModel = model)
+        }
       }
     }
   }
@@ -88,8 +91,17 @@ fun ExitNodeItem(
     ListItem(
         modifier =
             Modifier.clickableOrGrayedOut(enabled = node.online) { viewModel.setExitNode(node) },
-        headlineContent = { Text(node.city.ifEmpty { node.label }) },
-        supportingContent = { if (!node.online) Text(stringResource(R.string.offline)) },
+        headlineContent = {
+          Text(
+              node.city.ifEmpty { node.label },
+              style =
+                  if (node.online) MaterialTheme.typography.titleMedium
+                  else MaterialTheme.typography.bodyMedium)
+        },
+        supportingContent = {
+          if (!node.online)
+              Text(stringResource(R.string.offline), style = MaterialTheme.typography.bodyMedium)
+        },
         trailingContent = {
           Row {
             if (node.selected) {
@@ -105,8 +117,16 @@ fun MullvadItem(nav: ExitNodePickerNav, count: Int, selected: Boolean) {
   Box {
     ListItem(
         modifier = Modifier.clickable { nav.onNavigateToMullvad() },
-        headlineContent = { Text(stringResource(R.string.mullvad_exit_nodes)) },
-        supportingContent = { Text("$count ${stringResource(R.string.nodes_available)}") },
+        headlineContent = {
+          Text(
+              stringResource(R.string.mullvad_exit_nodes),
+              style = MaterialTheme.typography.titleMedium)
+        },
+        supportingContent = {
+          Text(
+              "$count ${stringResource(R.string.nodes_available)}",
+              style = MaterialTheme.typography.bodyMedium)
+        },
         trailingContent = {
           if (selected) {
             Icon(Icons.Outlined.Check, contentDescription = stringResource(R.string.selected))
@@ -122,7 +142,11 @@ fun RunAsExitNodeItem(nav: ExitNodePickerNav, viewModel: ExitNodePickerViewModel
   Box {
     ListItem(
         modifier = Modifier.clickable { nav.onNavigateToRunAsExitNode() },
-        headlineContent = { Text(stringResource(id = R.string.run_as_exit_node)) },
+        headlineContent = {
+          Text(
+              stringResource(id = R.string.run_as_exit_node),
+              style = MaterialTheme.typography.titleMedium)
+        },
         trailingContent = {
           if (isRunningExitNode) {
             Text(stringResource(R.string.enabled))

@@ -4,12 +4,11 @@
 package com.tailscale.ipn.ui.view
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.ClickableText
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -24,12 +23,12 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.Links
 import com.tailscale.ipn.ui.theme.ts_color_light_blue
 import com.tailscale.ipn.ui.util.ClipboardValueView
+import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.viewModel.BugReportViewModel
 
 @Composable
@@ -38,26 +37,31 @@ fun BugReportView(nav: BackNavigation, model: BugReportViewModel = viewModel()) 
   val bugReportID = model.bugReportID.collectAsState().value
 
   Scaffold(topBar = { Header(R.string.bug_report_title, onBack = nav.onBack) }) { innerPadding ->
-    Column(
-        modifier = Modifier.padding(innerPadding).padding(24.dp).fillMaxWidth().fillMaxHeight()) {
-          ClickableText(
-              text = contactText(),
-              modifier = Modifier.fillMaxWidth(),
-              onClick = { handler.openUri(Links.SUPPORT_URL) })
+    Column(modifier = Modifier.padding(innerPadding).fillMaxWidth().fillMaxHeight()) {
+      ListItem(
+          headlineContent = {
+            ClickableText(
+                text = contactText(),
+                modifier = Modifier.fillMaxWidth(),
+                onClick = { handler.openUri(Links.SUPPORT_URL) })
+          })
 
-          Spacer(modifier = Modifier.height(16.dp))
+      Lists.SectionDivider()
 
-          ClipboardValueView(bugReportID, title = stringResource(R.string.bug_report_id))
+      ClipboardValueView(bugReportID, title = stringResource(R.string.bug_report_id))
 
-          Spacer(modifier = Modifier.height(16.dp))
-          
-          Text(
-              text = stringResource(id = R.string.bug_report_id_desc),
-              modifier = Modifier.fillMaxWidth(),
-              textAlign = TextAlign.Left,
-              color = MaterialTheme.colorScheme.secondary,
-              style = MaterialTheme.typography.bodySmall)
-        }
+      Lists.SectionDivider()
+
+      ListItem(
+          headlineContent = {
+            Text(
+                text = stringResource(id = R.string.bug_report_id_desc),
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Left,
+                color = MaterialTheme.colorScheme.secondary,
+                style = MaterialTheme.typography.bodySmall)
+          })
+    }
   }
 }
 
