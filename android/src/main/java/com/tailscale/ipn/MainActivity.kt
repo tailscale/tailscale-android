@@ -33,6 +33,7 @@ import com.tailscale.ipn.ui.view.BackNavigation
 import com.tailscale.ipn.ui.view.BugReportView
 import com.tailscale.ipn.ui.view.DNSSettingsView
 import com.tailscale.ipn.ui.view.ExitNodePicker
+import com.tailscale.ipn.ui.view.IntroView
 import com.tailscale.ipn.ui.view.MDMSettingsDebugView
 import com.tailscale.ipn.ui.view.MainView
 import com.tailscale.ipn.ui.view.MainViewNavigation
@@ -136,6 +137,13 @@ class MainActivity : ComponentActivity() {
           composable("permissions") {
             PermissionsView(nav = backNav, openApplicationSettings = ::openApplicationSettings)
           }
+          composable("intro") { IntroView { navController.popBackStack() } }
+        }
+
+        // Show the intro screen one time
+        if (!introScreenViewed()) {
+          navController.navigate("intro")
+          setIntroScreenViewed(true)
         }
       }
     }
@@ -208,6 +216,17 @@ class MainActivity : ComponentActivity() {
             Uri.fromParts("package", packageName, null))
     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     startActivity(intent)
+  }
+
+  private fun introScreenViewed(): Boolean {
+    return getSharedPreferences("introScreen", Context.MODE_PRIVATE).getBoolean("seen", false)
+  }
+
+  private fun setIntroScreenViewed(seen: Boolean) {
+    getSharedPreferences("introScreen", Context.MODE_PRIVATE)
+        .edit()
+        .putBoolean("seen", seen)
+        .apply()
   }
 }
 
