@@ -91,7 +91,7 @@ fun MainView(navigation: MainViewNavigation, viewModel: MainViewModel = viewMode
                         .padding(top = 10.dp),
                 verticalAlignment = Alignment.CenterVertically) {
                   val isOn = viewModel.vpnToggleState.collectAsState(initial = false)
-                  if (state.value != Ipn.State.NeedsLogin && state.value != Ipn.State.NoState) {
+                  if (state.value != Ipn.State.NoState) {
                     TintedSwitch(onCheckedChange = { viewModel.toggleVpn() }, checked = isOn.value)
                     Spacer(Modifier.size(3.dp))
                   }

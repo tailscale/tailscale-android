@@ -67,7 +67,7 @@
     <!-- State strings -->
     <string name="waiting">Loading…</string>
     <string name="placeholder">--</string>
-    <string name="please_login">Please Login</string>
+    <string name="please_login">Login Required</string>
     <string name="stopped">Stopped</string>
 
     <!-- Time conversion templates -->
