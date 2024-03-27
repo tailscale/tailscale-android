@@ -131,7 +131,11 @@ class MainActivity : ComponentActivity() {
           composable("about") { AboutView(nav = backNav) }
           composable("mdmSettings") { MDMSettingsDebugView(nav = backNav) }
           composable("managedBy") { ManagedByView(nav = backNav) }
-          composable("userSwitcher") { UserSwitcherView(nav = backNav) }
+          composable("userSwitcher") {
+            UserSwitcherView(
+                nav = backNav,
+                onNavigateHome = { navController.popBackStack(route = "main", inclusive = false) })
+          }
           composable("permissions") {
             PermissionsView(nav = backNav, openApplicationSettings = ::openApplicationSettings)
           }
