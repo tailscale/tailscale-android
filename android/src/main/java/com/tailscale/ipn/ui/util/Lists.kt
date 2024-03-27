@@ -44,7 +44,7 @@ inline fun <T> LazyListScope.itemsWithDividers(
         key = if (key != null) { index: Int -> key(items[index]) } else null,
         contentType = { index -> contentType(items[index]) }) {
           if (forceLeading && it == 0 ||
-              forceTrailing && it == items.size - 1 ||
+              forceTrailing && it == items.size ||
               it > 0 && it < items.size) {
             Lists.ItemDivider()
           }

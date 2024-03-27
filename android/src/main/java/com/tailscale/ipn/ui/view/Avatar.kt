@@ -36,7 +36,8 @@ fun Avatar(profile: IpnLocal.LoginProfile?, size: Int = 50) {
             modifier = Modifier.size((size * .8f).dp))
 
         profile?.UserProfile?.ProfilePicURL?.let { url ->
-          AsyncImage(model = url, contentDescription = null)
+          AsyncImage(
+              model = url, modifier = Modifier.size((size * 1.2f).dp), contentDescription = null)
         }
       }
 }
