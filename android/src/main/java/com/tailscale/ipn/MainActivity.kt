@@ -59,8 +59,6 @@ class MainActivity : ComponentActivity() {
 
   companion object {
     // Request codes for Android callbacks.
-    // requestSignin is for Google Sign-In.
-    @JvmStatic val requestSignin: Int = 1000
     // requestPrepareVPN is for when Android's VpnService.prepare completes.
     @JvmStatic val requestPrepareVPN: Int = 1001
 
