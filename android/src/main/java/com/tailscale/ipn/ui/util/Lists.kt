@@ -29,6 +29,8 @@ object Lists {
 inline fun <T> LazyListScope.itemsWithDividers(
     items: List<T>,
     noinline key: ((item: T) -> Any)? = null,
+    forceLeading: Boolean = false,
+    forceTrailing: Boolean = false,
     crossinline contentType: (item: T) -> Any? = { _ -> null },
     crossinline itemContent: @Composable LazyItemScope.(item: T) -> Unit
 ) =
@@ -36,8 +38,19 @@ inline fun <T> LazyListScope.itemsWithDividers(
         count = items.size,
         key = if (key != null) { index: Int -> key(items[index]) } else null,
         contentType = { index -> contentType(items[index]) }) {
-          if (it > 0 && it < items.size) {
+          if (forceLeading && it == 0 ||
+              forceTrailing && it == items.size - 1 ||
+              it > 0 && it < items.size) {
             Lists.ItemDivider()
           }
           itemContent(items[it])
         }
+
+inline fun <T> LazyListScope.itemsWithDividers(
+    items: Array<T>,
+    noinline key: ((item: T) -> Any)? = null,
+    forceLeading: Boolean = false,
+    forceTrailing: Boolean = false,
+    crossinline contentType: (item: T) -> Any? = { _ -> null },
+    crossinline itemContent: @Composable LazyItemScope.(item: T) -> Unit
+) = itemsWithDividers(items.toList(), key, forceLeading, forceTrailing, contentType, itemContent)
