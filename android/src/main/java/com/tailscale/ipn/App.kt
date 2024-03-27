@@ -112,6 +112,7 @@ class App : Application(), libtailscale.AppContext {
     app = Libtailscale.start(dataDir, this)
     Request.setApp(app)
     Notifier.setApp(app)
+    Notifier.start(applicationScope)
     connectivityManager = this.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     setAndRegisterNetworkCallbacks()
     createNotificationChannel(
@@ -134,9 +135,13 @@ class App : Application(), libtailscale.AppContext {
 
   fun setWantRunning(wantRunning: Boolean) {
     val callback: (Result<Ipn.Prefs>) -> Unit = { result ->
-      result.exceptionOrNull()?.let { error ->
-        Log.e(TAG, "Set want running: failed to update preferences: ${error.message}")
-      }
+      result.fold(
+          onSuccess = { _ ->
+            setTileStatus(wantRunning)
+          },
+          onFailure = { error ->
+            Log.d("TAG", "Set want running: failed to update preferences: ${error.message}")
+          })
     }
     Client(applicationScope)
         .editPrefs(Ipn.MaskedPrefs().apply { WantRunning = wantRunning }, callback)
