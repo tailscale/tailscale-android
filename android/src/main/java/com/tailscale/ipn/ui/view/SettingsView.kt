@@ -97,7 +97,12 @@ fun SettingRow(setting: Setting) {
       SettingType.SWITCH ->
           ListItem(
               modifier = Modifier.clickable { if (enabled) setting.onClick() },
-              headlineContent = { Text(setting.title.getString()) },
+              headlineContent = {
+                Text(
+                    setting.title.getString(),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+              },
               trailingContent = {
                 TintedSwitch(checked = swVal, onCheckedChange = setting.onToggle, enabled = enabled)
               })
