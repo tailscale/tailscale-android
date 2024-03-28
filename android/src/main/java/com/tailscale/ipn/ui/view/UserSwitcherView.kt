@@ -25,7 +25,7 @@ import com.tailscale.ipn.ui.viewModel.UserSwitcherViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun UserSwitcherView(
+fun UserSwitcherView( 
     nav: BackNavigation,
     onNavigateHome: () -> Unit,
     viewModel: UserSwitcherViewModel = viewModel()
@@ -81,8 +81,10 @@ fun UserSwitcherView(
               SettingRow(viewModel.addProfileSetting)
               Lists.ItemDivider()
               SettingRow(viewModel.loginSetting)
-              Lists.ItemDivider()
-              SettingRow(viewModel.logoutSetting)
+              if (currentUser != null){
+                Lists.ItemDivider()
+                SettingRow(viewModel.logoutSetting)
+              }
             }
           }
         }
