@@ -5,6 +5,7 @@ package com.tailscale.ipn.ui.view
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
@@ -29,15 +30,22 @@ data class BackNavigation(
 )
 
 // Header view for all secondary screens
+// @see TopAppBar actions for additional actions (usually a row of icons)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Header(@StringRes title: Int = 0, titleText: String? = null, onBack: (() -> Unit)? = null) {
+fun Header(
+    @StringRes title: Int = 0,
+    titleText: String? = null,
+    actions: @Composable RowScope.() -> Unit = {},
+    onBack: (() -> Unit)? = null
+) {
   TopAppBar(
       colors =
           TopAppBarDefaults.topAppBarColors(
               containerColor = MaterialTheme.colorScheme.surfaceContainer,
               titleContentColor = MaterialTheme.colorScheme.primary,
           ),
+      actions = actions,
       title = { Text(titleText ?: stringResource(title)) },
       navigationIcon = { onBack?.let { BackArrow(action = it) } },
   )
@@ -68,9 +76,9 @@ fun SimpleActivityIndicator(size: Int = 32) {
 @Composable
 fun ActivityIndicator(progress: Double, size: Int = 32) {
   LinearProgressIndicator(
-          progress = { progress.toFloat() },
-          modifier = Modifier.width(size.dp),
-          color = ts_color_light_blue,
-          trackColor = MaterialTheme.colorScheme.secondary,
+      progress = { progress.toFloat() },
+      modifier = Modifier.width(size.dp),
+      color = ts_color_light_blue,
+      trackColor = MaterialTheme.colorScheme.secondary,
   )
 }

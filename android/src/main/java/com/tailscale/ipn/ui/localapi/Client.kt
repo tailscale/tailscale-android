@@ -63,6 +63,11 @@ typealias PrefsHandler = (Result<Ipn.Prefs>) -> Unit
 class Client(private val scope: CoroutineScope) {
   private val TAG = Client::class.simpleName
 
+  fun start(options: Ipn.Options, responseHandler: (Result<Unit>) -> Unit) {
+    val body = Json.encodeToString(options).toByteArray()
+    return post(Endpoint.START, body, responseHandler = responseHandler)
+  }
+
   fun status(responseHandler: StatusResponseHandler) {
     get(Endpoint.STATUS, responseHandler = responseHandler)
   }

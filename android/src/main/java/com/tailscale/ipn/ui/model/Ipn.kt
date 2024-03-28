@@ -69,6 +69,7 @@ class Ipn {
 
   @Serializable
   data class MaskedPrefs(
+      var ControlURLSet: Boolean? = null,
       var RouteAllSet: Boolean? = null,
       var CorpDNSSet: Boolean? = null,
       var ExitNodeIDSet: Boolean? = null,
@@ -79,6 +80,13 @@ class Ipn {
       var ForceDaemonSet: Boolean? = null,
       var HostnameSet: Boolean? = null,
   ) {
+
+    var ControlURL: String? = null
+      set(value) {
+        field = value
+        ControlURLSet = true
+      }
+
     var RouteAll: Boolean? = null
       set(value) {
         field = value
@@ -182,6 +190,12 @@ class Ipn {
   }
 
   @Serializable data class FileTarget(var Node: Tailcfg.Node, var PeerAPIURL: String)
+
+  @Serializable
+  data class Options(
+      var FrontendLogID: String? = null,
+      var Prefs: Prefs? = null,
+  )
 }
 
 class Persist {

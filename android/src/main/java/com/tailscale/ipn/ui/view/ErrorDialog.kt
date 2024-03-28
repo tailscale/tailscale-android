@@ -10,7 +10,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import com.tailscale.ipn.R
 
+
 enum class ErrorDialogType {
+  INVALID_CUSTOM_URL,
   LOGOUT_FAILED,
   SWITCH_USER_FAILED,
   ADD_PROFILE_FAILED,
@@ -20,6 +22,7 @@ enum class ErrorDialogType {
   val message: Int
     get() {
       return when (this) {
+        INVALID_CUSTOM_URL -> R.string.invalidCustomUrl
         LOGOUT_FAILED -> R.string.logout_failed
         SWITCH_USER_FAILED -> R.string.switch_user_failed
         ADD_PROFILE_FAILED -> R.string.add_profile_failed
@@ -31,6 +34,7 @@ enum class ErrorDialogType {
   val title: Int
     get() {
       return when (this) {
+        INVALID_CUSTOM_URL -> R.string.invalidCustomURLTitle
         LOGOUT_FAILED -> R.string.logout_failed_title
         SWITCH_USER_FAILED -> R.string.switch_user_failed_title
         ADD_PROFILE_FAILED -> R.string.add_profile_failed_title
