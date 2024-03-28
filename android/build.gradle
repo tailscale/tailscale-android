@@ -30,6 +30,9 @@ apply plugin: 'com.android.application'
 apply plugin: 'org.jetbrains.kotlin.plugin.serialization'
 apply plugin: 'com.ncorti.ktfmt.gradle'
 
+def keystoreProperties = new Properties()
+file("local.properties").withInputStream { keystoreProperties.load(it) }
+
 android {
     ndkVersion "23.1.7779620"
     compileSdkVersion 34
@@ -60,6 +63,21 @@ android {
         }
     }
     namespace 'com.tailscale.ipn'
+
+    signingConfigs {
+        debug {
+            if (keystoreProperties.containsKey('debugKeystoreFile') &&
+                keystoreProperties.containsKey('debugKeystorePassword') &&
+                keystoreProperties.containsKey('debugKeyAlias') &&
+                keystoreProperties.containsKey('debugKeyPassword')) {
+                // Use the debug signing config if all required properties are present
+                keyAlias keystoreProperties['debugKeyAlias']
+                keyPassword keystoreProperties['debugKeyPassword']
+                storeFile file(keystoreProperties['debugKeystoreFile'])
+                storePassword keystoreProperties['debugKeystorePassword']
+            }
+        }
+    }
 }
 
 dependencies {

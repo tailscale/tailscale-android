@@ -4,6 +4,9 @@
 # Ignore Gradle build output directory
 build
 
+# Ignore Gradle configuration file
+shared-debug.keystore
+
 # The destination for the Go Android archive.
 android/libs
 android_legacy/libs
