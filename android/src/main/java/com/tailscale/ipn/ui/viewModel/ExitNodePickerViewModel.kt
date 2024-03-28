@@ -60,7 +60,7 @@ class ExitNodePickerViewModel(private val nav: ExitNodePickerNav) : IpnViewModel
   val allowLANAccessSetting =
       Setting(
           R.string.allow_lan_access,
-          SettingType.SWITCH,
+          type = SettingType.SWITCH,
           isOn = MutableStateFlow(Notifier.prefs.value?.ExitNodeAllowLANAccess),
           enabled = MutableStateFlow(true),
           onToggle = {

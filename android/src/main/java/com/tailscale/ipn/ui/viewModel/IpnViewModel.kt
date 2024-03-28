@@ -19,9 +19,17 @@ import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.UserID
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.util.set
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+
+// LaunchForInit should be used by any ViewModels that need to launch a coroutine in their init
+// block. It avoids blocking the main UI thread with view model initialization operations.
+fun ViewModel.launchForInit(block: suspend CoroutineScope.() -> Unit) {
+  viewModelScope.launch(Dispatchers.IO, block = block)
+}
 
 /**
  * Base model for most models in this application. Provides common facilities for watching IPN
@@ -41,7 +49,7 @@ open class IpnViewModel : ViewModel() {
   private var selfNodeUserId: UserID? = null
 
   init {
-    viewModelScope.launch {
+    launchForInit {
       Notifier.state.collect {
         // Refresh the user profiles if we're transitioning out of the
         // NeedsLogin state.
@@ -53,7 +61,7 @@ open class IpnViewModel : ViewModel() {
 
     // This will observe the userId of the current node and reload our user profiles if
     // we discover it has changed (e.g. due to a login or user switch)
-    viewModelScope.launch {
+    launchForInit {
       Notifier.netmap.collect {
         it?.SelfNode?.User.let {
           if (it != selfNodeUserId) {
@@ -64,7 +72,7 @@ open class IpnViewModel : ViewModel() {
       }
     }
 
-    viewModelScope.launch { loadUserProfiles() }
+    launchForInit { loadUserProfiles() }
     Log.d(TAG, "Created")
   }
 
@@ -147,7 +155,7 @@ open class IpnViewModel : ViewModel() {
 
   fun deleteProfile(profile: IpnLocal.LoginProfile, completionHandler: (Result<String>) -> Unit) {
     Client(viewModelScope).deleteProfile(profile) {
-      viewModelScope.launch { loadUserProfiles() }
+      launchForInit { loadUserProfiles() }
       completionHandler(it)
     }
   }
