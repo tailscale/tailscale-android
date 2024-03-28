@@ -33,8 +33,8 @@ val logoDotsMatrix: DotsMatrix =
 @Composable
 fun TailscaleLogoView(animated: Boolean = false, modifier: Modifier) {
 
-  val primaryColor: Color = MaterialTheme.colorScheme.secondary
-  val secondaryColor: Color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f)
+  val primaryColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+  val secondaryColor: Color = primaryColor.copy(alpha = 0.1f)
 
   val currentDotsMatrix: StateFlow<DotsMatrix> = MutableStateFlow(logoDotsMatrix)
   var currentDotsMatrixIndex = 0

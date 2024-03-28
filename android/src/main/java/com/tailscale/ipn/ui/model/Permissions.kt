@@ -25,7 +25,6 @@ object Permissions {
                 Manifest.permission.WRITE_EXTERNAL_STORAGE,
                 R.string.permission_write_external_storage,
                 R.string.permission_write_external_storage_needed,
-                R.string.permission_write_external_storage_granted,
             ))
       }
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -33,16 +32,10 @@ object Permissions {
             Permission(
                 Manifest.permission.POST_NOTIFICATIONS,
                 R.string.permission_post_notifications,
-                R.string.permission_post_notifications_needed,
-                R.string.permission_post_notifications_granted))
+                R.string.permission_post_notifications_needed))
       }
       return result
     }
 }
 
-data class Permission(
-    val name: String,
-    val title: Int,
-    val neededDescription: Int,
-    val grantedDescription: Int
-)
+data class Permission(val name: String, val title: Int, val description: Int)

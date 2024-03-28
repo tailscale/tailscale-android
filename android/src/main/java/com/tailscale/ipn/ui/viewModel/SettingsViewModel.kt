@@ -88,7 +88,7 @@ class SettingsViewModel(val navigation: SettingsNav) : IpnViewModel() {
 
   val about =
       Setting(
-          titleRes = R.string.about,
+          titleRes = R.string.about_tailscale,
           type = SettingType.NAV,
           onClick = { navigation.onNavigateToAbout() },
           enabled = MutableStateFlow(true))

@@ -59,7 +59,7 @@ fun TailnetLockSetupView(
                 Icon(
                     painter = painterResource(id = statusItem.icon),
                     contentDescription = null,
-                    tint = ts_color_light_blue)
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant)
               },
               headlineContent = { Text(stringResource(statusItem.title)) })
         }

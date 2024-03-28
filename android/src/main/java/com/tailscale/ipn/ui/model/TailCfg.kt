@@ -3,7 +3,17 @@
 
 package com.tailscale.ipn.ui.model
 
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import com.tailscale.ipn.R
+import com.tailscale.ipn.ui.theme.off
+import com.tailscale.ipn.ui.theme.on
+import com.tailscale.ipn.ui.util.ComposableStringFormatter
+import com.tailscale.ipn.ui.util.DisplayAddress
+import com.tailscale.ipn.ui.util.TimeUtil
+import com.tailscale.ipn.ui.viewModel.PeerSettingInfo
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 
 class Tailcfg {
   @Serializable
@@ -70,11 +80,14 @@ class Tailcfg {
       var LastSeen: Time? = null,
       var Online: Boolean? = null,
       var Capabilities: List<String>? = null,
+      var CapMap: Map<String, JsonElement?>? = null,
       var ComputedName: String,
       var ComputedNameWithHost: String
   ) {
     val isAdmin: Boolean
-      get() = (Capabilities ?: emptyList()).contains("https://tailscale.com/cap/is-admin")
+      get() =
+          Capabilities?.contains("https://tailscale.com/cap/is-admin") == true ||
+              CapMap?.contains("https://tailscale.com/cap/is-admin") == true
 
     // isExitNode reproduces the Go logic in local.go peerStatusFromNode
     val isExitNode: Boolean =
@@ -82,6 +95,41 @@ class Tailcfg {
 
     val isMullvadNode: Boolean
       get() = Name.endsWith(".mullvad.ts.net.")
+
+    val displayName: String
+      get() = ComputedName ?: ""
+
+    fun connectedOrSelfNode(nm: Netmap.NetworkMap?) =
+        Online == true || StableID == nm?.SelfNode?.StableID
+
+    fun connectedStrRes(nm: Netmap.NetworkMap?) =
+        if (connectedOrSelfNode(nm)) R.string.connected else R.string.not_connected
+
+    @Composable
+    fun connectedColor(nm: Netmap.NetworkMap?) =
+        if (connectedOrSelfNode(nm)) MaterialTheme.colorScheme.on else MaterialTheme.colorScheme.off
+
+    val nameWithoutTrailingDot = Name.trimEnd('.')
+
+    val displayAddresses: List<DisplayAddress>
+      get() {
+        var addresses = mutableListOf<DisplayAddress>()
+        addresses.add(DisplayAddress(nameWithoutTrailingDot))
+        Addresses?.let { addresses.addAll(it.map { addr -> DisplayAddress(addr) }) }
+        return addresses
+      }
+
+    val info: List<PeerSettingInfo>
+      get() {
+        val result = mutableListOf<PeerSettingInfo>()
+        if (Hostinfo.OS?.isNotEmpty() == true) {
+          result.add(
+              PeerSettingInfo(R.string.os, ComposableStringFormatter(Hostinfo.OS!!)),
+          )
+        }
+        result.add(PeerSettingInfo(R.string.key_expiry, TimeUtil().keyExpiryFromGoTime(KeyExpiry)))
+        return result
+      }
   }
 
   @Serializable

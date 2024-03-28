@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
@@ -37,7 +38,9 @@ fun MullvadExitNodePicker(
     LoadingIndicator.Wrap {
       Scaffold(
           topBar = {
-            Header(titleText = "${countryCode.flag()} ${any.country}", onBack = nav.onNavigateBack)
+            Header(
+                title = { Text("${countryCode.flag()} ${any.country}") },
+                onBack = nav.onNavigateBack)
           }) { innerPadding ->
             LazyColumn(modifier = Modifier.padding(innerPadding)) {
               if (nodes.size > 1) {
@@ -51,7 +54,7 @@ fun MullvadExitNodePicker(
                           online = bestAvailableNode.online,
                           selected = false,
                       ))
-                  Lists.ItemDivider()
+                  Lists.SectionDivider()
                 }
               }
 
