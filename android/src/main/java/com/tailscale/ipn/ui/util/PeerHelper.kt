@@ -6,37 +6,16 @@ package com.tailscale.ipn.ui.util
 import com.tailscale.ipn.ui.model.Netmap
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.model.UserID
-import com.tailscale.ipn.ui.notifier.Notifier
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 
 data class PeerSet(val user: Tailcfg.UserProfile?, val peers: List<Tailcfg.Node>)
 
-typealias GroupedPeers = MutableMap<UserID, MutableList<Tailcfg.Node>>
-
-class PeerCategorizer(scope: CoroutineScope) {
+class PeerCategorizer {
   var peerSets: List<PeerSet> = emptyList()
   var lastSearchResult: List<PeerSet> = emptyList()
-  var searchTerm: String = ""
+  var lastSearchTerm: String = ""
 
-  // Keep the peer sets current while the model is active
-  init {
-    scope.launch {
-      Notifier.netmap.collect { netmap ->
-        netmap?.let {
-          peerSets = regenerateGroupedPeers(netmap)
-          lastSearchResult = peerSets
-        }
-            ?: run {
-              peerSets = emptyList()
-              lastSearchResult = emptyList()
-            }
-      }
-    }
-  }
-
-  private fun regenerateGroupedPeers(netmap: Netmap.NetworkMap): List<PeerSet> {
-    val peers: List<Tailcfg.Node> = netmap.Peers ?: return emptyList()
+  fun regenerateGroupedPeers(netmap: Netmap.NetworkMap) {
+    val peers: List<Tailcfg.Node> = netmap.Peers ?: return
     val selfNode = netmap.SelfNode
     var grouped = mutableMapOf<UserID, MutableList<Tailcfg.Node>>()
 
@@ -56,7 +35,7 @@ class PeerCategorizer(scope: CoroutineScope) {
 
     val me = netmap.currentUserProfile()
 
-    val peerSets =
+    peerSets =
         grouped
             .map { (userId, peers) ->
               val profile = netmap.userProfile(userId)
@@ -66,11 +45,9 @@ class PeerCategorizer(scope: CoroutineScope) {
               if (it.user?.ID == me?.ID) {
                 ""
               } else {
-                it.user?.DisplayName ?: "Unknown User"
+                it.user?.DisplayName?.lowercase() ?: "unknown user"
               }
             }
-
-    return peerSets
   }
 
   fun groupedAndFilteredPeers(searchTerm: String = ""): List<PeerSet> {
@@ -78,14 +55,17 @@ class PeerCategorizer(scope: CoroutineScope) {
       return peerSets
     }
 
-    if (searchTerm == this.searchTerm) {
+    if (searchTerm == this.lastSearchTerm) {
       return lastSearchResult
     }
 
     // We can optimize out typing... If the search term starts with the last search term, we can
     // just search the last result
-    val setsToSearch = if (searchTerm.startsWith(this.searchTerm)) lastSearchResult else peerSets
-    this.searchTerm = searchTerm
+    val setsToSearch =
+        if (this.lastSearchTerm.isNotEmpty() && searchTerm.startsWith(this.lastSearchTerm))
+            lastSearchResult
+        else peerSets
+    this.lastSearchTerm = searchTerm
 
     val matchingSets =
         setsToSearch
@@ -107,7 +87,7 @@ class PeerCategorizer(scope: CoroutineScope) {
               }
             }
             .filterNotNull()
-
+    lastSearchResult = matchingSets
     return matchingSets
   }
 }

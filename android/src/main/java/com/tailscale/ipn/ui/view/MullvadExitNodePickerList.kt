@@ -70,7 +70,7 @@ fun MullvadExitNodePickerList(
                   )
                 },
                 headlineContent = {
-                  Text(first.country, style = MaterialTheme.typography.titleMedium)
+                  Text(first.country, style = MaterialTheme.typography.bodyMedium)
                 },
                 supportingContent = {
                   Text(

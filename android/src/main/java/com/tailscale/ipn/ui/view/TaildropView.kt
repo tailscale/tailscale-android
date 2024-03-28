@@ -96,12 +96,10 @@ fun FileSharePeerList(
     false -> {
       LazyColumn {
         peers.forEach { peer ->
-          val disabled = !(peer.Online ?: false)
           item {
             PeerView(
                 peer = peer,
                 onClick = { onShare(peer) },
-                disabled = disabled,
                 subtitle = { peer.Hostinfo.OS ?: "" },
                 trailingContent = { stateViewGenerator(peer.StableID) })
           }

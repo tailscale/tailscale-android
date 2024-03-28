@@ -20,19 +20,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.Tailcfg
-import com.tailscale.ipn.ui.theme.ts_color_light_green
+import com.tailscale.ipn.ui.theme.off
+import com.tailscale.ipn.ui.theme.on
 
 @Composable
 fun PeerView(
     peer: Tailcfg.Node,
     selfPeer: String? = null,
     stateVal: Ipn.State? = null,
-    disabled: Boolean = false,
     subtitle: () -> String = { peer.Addresses?.first()?.split("/")?.first() ?: "" },
     onClick: (Tailcfg.Node) -> Unit = {},
     trailingContent: @Composable () -> Unit = {}
 ) {
-  val textColor = if (disabled) Color.Gray else MaterialTheme.colorScheme.primary
+  val disabled = !(peer.Online ?: false)
+  val textColor = if (disabled) MaterialTheme.colorScheme.onSurfaceVariant else Color.Unspecified
 
   ListItem(
       modifier = Modifier.clickable { onClick(peer) },
@@ -43,9 +44,9 @@ fun PeerView(
           val isSelfAndRunning = (peer.StableID == selfPeer && stateVal == Ipn.State.Running)
           val color: Color =
               if ((peer.Online == true) || isSelfAndRunning) {
-                ts_color_light_green
+                MaterialTheme.colorScheme.on
               } else {
-                Color.Gray
+                MaterialTheme.colorScheme.off
               }
           Box(
               modifier =

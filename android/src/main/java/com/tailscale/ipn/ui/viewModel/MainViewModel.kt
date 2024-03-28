@@ -8,7 +8,6 @@ import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.localapi.Client
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.Ipn.State
-import com.tailscale.ipn.ui.model.StableNodeID
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.PeerCategorizer
@@ -38,10 +37,7 @@ class MainViewModel : IpnViewModel() {
   // The active search term for filtering peers
   val searchTerm: StateFlow<String> = MutableStateFlow("")
 
-  // The peerID of the local node
-  val selfPeerId: StateFlow<StableNodeID> = MutableStateFlow("")
-
-  private val peerCategorizer = PeerCategorizer(viewModelScope)
+  private val peerCategorizer = PeerCategorizer()
 
   val userName: String
     get() {
@@ -57,16 +53,21 @@ class MainViewModel : IpnViewModel() {
     }
 
     viewModelScope.launch {
-      Notifier.netmap.collect { netmap ->
-        peers.set(peerCategorizer.groupedAndFilteredPeers(searchTerm.value))
-        selfPeerId.set(netmap?.SelfNode?.StableID ?: "")
+      Notifier.netmap.collect { it ->
+        it?.let { netmap ->
+          peerCategorizer.regenerateGroupedPeers(netmap)
+          peers.set(peerCategorizer.groupedAndFilteredPeers(searchTerm.value))
+        }
       }
+    }
+
+    viewModelScope.launch {
+      searchTerm.collect { term -> peers.set(peerCategorizer.groupedAndFilteredPeers(term)) }
     }
   }
 
   fun searchPeers(searchTerm: String) {
     this.searchTerm.set(searchTerm)
-    viewModelScope.launch { peers.set(peerCategorizer.groupedAndFilteredPeers(searchTerm)) }
   }
 
   fun disableExitNode() {

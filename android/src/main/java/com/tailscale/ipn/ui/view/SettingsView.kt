@@ -6,8 +6,6 @@ package com.tailscale.ipn.ui.view
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material3.ListItem
@@ -22,13 +20,14 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.BuildConfig
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.Links
-import com.tailscale.ipn.ui.theme.ts_color_dark_desctrutive_text
+import com.tailscale.ipn.ui.theme.link
+import com.tailscale.ipn.ui.theme.listItem
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.viewModel.Setting
 import com.tailscale.ipn.ui.viewModel.SettingType
@@ -47,8 +46,9 @@ fun SettingsView(
   val managedBy = viewModel.managedBy.collectAsState().value
 
   Scaffold(
-      topBar = { Header(title = R.string.settings_title, onBack = settingsNav.onBackPressed) }) {
-          innerPadding ->
+      topBar = {
+        Header(titleRes = R.string.settings_title, onBack = settingsNav.onBackPressed)
+      }) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding)) {
           UserView(
               profile = user,
@@ -56,10 +56,10 @@ fun SettingsView(
               onClick = viewModel.navigation.onNavigateToUserSwitcher)
 
           if (isAdmin) {
-            Spacer(modifier = Modifier.height(4.dp))
             AdminTextView { handler.openUri(Links.ADMIN_URL) }
           }
 
+          Lists.SectionDivider()
           SettingRow(viewModel.dns)
 
           Lists.ItemDivider()
@@ -68,20 +68,21 @@ fun SettingsView(
           Lists.ItemDivider()
           SettingRow(viewModel.permissions)
 
-          Lists.ItemDivider()
-          SettingRow(viewModel.about)
-
-          Lists.ItemDivider()
-          SettingRow(viewModel.bugReport)
-
-          if (BuildConfig.DEBUG) {
-            Lists.ItemDivider()
-            SettingRow(viewModel.mdmDebug)
-          }
-
           managedBy?.let {
             Lists.ItemDivider()
             SettingRow(it)
+          }
+
+          Lists.SectionDivider()
+          SettingRow(viewModel.bugReport)
+
+          Lists.ItemDivider()
+          SettingRow(viewModel.about)
+
+          // TODO: put a heading for the debug section
+          if (BuildConfig.DEBUG) {
+            Lists.SectionDivider()
+            SettingRow(viewModel.mdmDebug)
           }
         }
       }
@@ -105,13 +106,12 @@ private fun TextRow(setting: Setting) {
   val enabled = setting.enabled.collectAsState().value
   ListItem(
       modifier = Modifier.clickable { if (enabled) setting.onClick() },
+      colors = MaterialTheme.colorScheme.listItem,
       headlineContent = {
         Text(
             setting.title ?: stringResource(setting.titleRes),
             style = MaterialTheme.typography.bodyMedium,
-            color =
-                if (setting.destructive) ts_color_dark_desctrutive_text
-                else MaterialTheme.colorScheme.primary)
+            color = if (setting.destructive) MaterialTheme.colorScheme.error else Color.Unspecified)
       },
   )
 }
@@ -122,6 +122,7 @@ private fun SwitchRow(setting: Setting) {
   val swVal = setting.isOn?.collectAsState()?.value ?: false
   ListItem(
       modifier = Modifier.clickable { if (enabled) setting.onClick() },
+      colors = MaterialTheme.colorScheme.listItem,
       headlineContent = {
         Text(
             setting.title ?: stringResource(setting.titleRes),
@@ -137,34 +138,37 @@ private fun SwitchRow(setting: Setting) {
 private fun NavRow(setting: Setting) {
   ListItem(
       modifier = Modifier.clickable { setting.onClick() },
+      colors = MaterialTheme.colorScheme.listItem,
       headlineContent = {
         Text(
             setting.title ?: stringResource(setting.titleRes),
-            style = MaterialTheme.typography.bodyMedium,
-            color =
-                if (setting.destructive) ts_color_dark_desctrutive_text
-                else MaterialTheme.colorScheme.primary)
+            style = MaterialTheme.typography.bodyMedium)
       })
 }
 
 @Composable
 fun AdminTextView(onNavigateToAdminConsole: () -> Unit) {
   val adminStr = buildAnnotatedString {
-    withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.primary)) {
+    withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.onSurfaceVariant)) {
       append(stringResource(id = R.string.settings_admin_prefix))
     }
 
     pushStringAnnotation(tag = "link", annotation = Links.ADMIN_URL)
-    withStyle(style = SpanStyle(color = Color.Blue)) {
-      append(stringResource(id = R.string.settings_admin_link))
-    }
+    withStyle(
+        style =
+            SpanStyle(
+                color = MaterialTheme.colorScheme.link,
+                textDecoration = TextDecoration.Underline)) {
+          append(stringResource(id = R.string.settings_admin_link))
+        }
     pop()
   }
 
-  Column(modifier = Modifier.padding(horizontal = 12.dp)) {
-    ClickableText(
-        text = adminStr,
-        style = MaterialTheme.typography.bodySmall,
-        onClick = { onNavigateToAdminConsole() })
-  }
+  ListItem(
+      headlineContent = {
+        ClickableText(
+            text = adminStr,
+            style = MaterialTheme.typography.bodyMedium,
+            onClick = { onNavigateToAdminConsole() })
+      })
 }

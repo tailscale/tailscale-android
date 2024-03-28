@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
@@ -30,7 +29,8 @@ import com.tailscale.ipn.ui.util.itemsWithDividers
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun PermissionsView(nav: BackNavigation, openApplicationSettings: () -> Unit) {
-  Scaffold(topBar = { Header(title = R.string.permissions, onBack = nav.onBack) }) { innerPadding ->
+  Scaffold(topBar = { Header(titleRes = R.string.permissions, onBack = nav.onBack) }) { innerPadding
+    ->
     val permissions = Permissions.all
     val permissionStates =
         rememberMultiplePermissionsState(permissions = permissions.map { it.name })
@@ -54,20 +54,7 @@ fun PermissionsView(nav: BackNavigation, openApplicationSettings: () -> Unit) {
             headlineContent = {
               Text(stringResource(permission.title), style = MaterialTheme.typography.titleMedium)
             },
-            supportingContent = {
-              Text(
-                  stringResource(
-                      if (state.status.isGranted) permission.grantedDescription
-                      else permission.neededDescription))
-            },
-            trailingContent = {
-              if (!state.status.isGranted) {
-                Icon(
-                    Icons.AutoMirrored.Outlined.KeyboardArrowRight,
-                    modifier = Modifier.size(24.dp),
-                    contentDescription = stringResource(R.string.more))
-              }
-            },
+            supportingContent = { Text(stringResource(permission.description)) },
         )
       }
     }

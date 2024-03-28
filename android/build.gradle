@@ -1,6 +1,7 @@
 buildscript {
     ext.kotlin_version = "1.9.22"
     ext.kotlin_compose_version = "1.5.10"
+    ext.accompanist_version = "0.34.0"
 
     repositories {
         google()
@@ -88,7 +89,8 @@ dependencies {
     implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
     implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0'
     implementation 'androidx.activity:activity-compose:1.8.2'
-    implementation "com.google.accompanist:accompanist-permissions:0.34.0"
+    implementation "com.google.accompanist:accompanist-permissions:$accompanist_version"
+    implementation "com.google.accompanist:accompanist-systemuicontroller:$accompanist_version"
 
     // Navigation dependencies.
     def nav_version = "2.7.7"
