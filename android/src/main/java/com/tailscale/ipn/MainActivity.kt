@@ -27,7 +27,6 @@ import com.tailscale.ipn.Peer.RequestCodes
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.theme.AppTheme
-import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.view.AboutView
 import com.tailscale.ipn.ui.view.BackNavigation
 import com.tailscale.ipn.ui.view.BugReportView
@@ -47,7 +46,6 @@ import com.tailscale.ipn.ui.view.SettingsView
 import com.tailscale.ipn.ui.view.TailnetLockSetupView
 import com.tailscale.ipn.ui.view.UserSwitcherView
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerNav
-import com.tailscale.ipn.ui.viewModel.IpnViewModel
 import com.tailscale.ipn.ui.viewModel.SettingsNav
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -177,7 +175,9 @@ class MainActivity : ComponentActivity() {
     super.onResume()
     val restrictionsManager =
         this.getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
-    IpnViewModel.mdmSettings.set(MDMSettings(restrictionsManager))
+    lifecycleScope.launch(Dispatchers.IO) {
+      MDMSettings.update(App.getApplication(), restrictionsManager)
+    }
   }
 
   override fun onStart() {
@@ -196,7 +196,9 @@ class MainActivity : ComponentActivity() {
     super.onStop()
     val restrictionsManager =
         this.getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
-    IpnViewModel.mdmSettings.set(MDMSettings(restrictionsManager))
+    lifecycleScope.launch(Dispatchers.IO) {
+      MDMSettings.update(App.getApplication(), restrictionsManager)
+    }
   }
 
   private fun requestVpnPermission() {

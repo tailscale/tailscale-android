@@ -3,58 +3,88 @@
 
 package com.tailscale.ipn.mdm
 
-enum class BooleanSetting(val key: String, val localizedTitle: String) {
-  ForceEnabled("ForceEnabled", "Force Enabled Connection Toggle")
+import android.os.Bundle
+import com.tailscale.ipn.App
+import com.tailscale.ipn.ui.util.set
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+
+abstract class MDMSetting<T>(defaultValue: T, val key: String, val localizedTitle: String) {
+  val flow: StateFlow<T> = MutableStateFlow<T>(defaultValue)
+
+  fun setFrom(bundle: Bundle?, app: App) {
+    val v = getFrom(bundle, app)
+    flow.set(v)
+  }
+
+  abstract fun getFrom(bundle: Bundle?, app: App): T
 }
 
-enum class StringSetting(val key: String, val localizedTitle: String) {
-  ExitNodeID("ExitNodeID", "Forced Exit Node: Stable ID"),
-  KeyExpirationNotice("KeyExpirationNotice", "Key Expiration Notice Period"),
-  LoginURL("LoginURL", "Custom control server URL"),
-  ManagedByCaption("ManagedByCaption", "Managed By - Caption"),
-  ManagedByOrganizationName("ManagedByOrganizationName", "Managed By - Organization Name"),
-  ManagedByURL("ManagedByURL", "Managed By - Support URL"),
-  Tailnet("Tailnet", "Recommended/Required Tailnet Name"),
+class BooleanMDMSetting(key: String, localizedTitle: String) :
+    MDMSetting<Boolean>(false, key, localizedTitle) {
+  override fun getFrom(bundle: Bundle?, app: App) =
+      bundle?.getBoolean(key) ?: app.getEncryptedPrefs().getBoolean(key, false)
 }
 
-enum class StringArraySetting(val key: String, val localizedTitle: String) {
-  HiddenNetworkDevices("HiddenNetworkDevices", "Hidden Network Device Categories")
+class StringMDMSetting(key: String, localizedTitle: String) :
+    MDMSetting<String?>(null, key, localizedTitle) {
+  override fun getFrom(bundle: Bundle?, app: App) =
+      bundle?.getString(key) ?: app.getEncryptedPrefs().getString(key, null)
 }
 
-// A setting representing a String value which is set to either `always`, `never` or `user-decides`.
-enum class AlwaysNeverUserDecidesSetting(val key: String, val localizedTitle: String) {
-  AllowIncomingConnections("AllowIncomingConnections", "Allow Incoming Connections"),
-  DetectThirdPartyAppConflicts(
-      "DetectThirdPartyAppConflicts", "Detect potentially problematic third-party apps"),
-  ExitNodeAllowLANAccess("ExitNodeAllowLANAccess", "Allow LAN Access when using an exit node"),
-  PostureChecking("PostureChecking", "Enable Posture Checking"),
-  UseTailscaleDNSSettings("UseTailscaleDNSSettings", "Use Tailscale DNS Settings"),
-  UseTailscaleSubnets("UseTailscaleSubnets", "Use Tailscale Subnets")
+class StringArrayListMDMSetting(key: String, localizedTitle: String) :
+    MDMSetting<List<String>?>(null, key, localizedTitle) {
+  override fun getFrom(bundle: Bundle?, app: App) =
+      bundle?.getStringArrayList(key)
+          ?: app.getEncryptedPrefs().getStringSet(key, HashSet<String>())?.toList()
 }
 
-enum class AlwaysNeverUserDecidesValue(val value: String) {
+class AlwaysNeverUserDecidesMDMSetting(key: String, localizedTitle: String) :
+    MDMSetting<AlwaysNeverUserDecides>(AlwaysNeverUserDecides.UserDecides, key, localizedTitle) {
+  override fun getFrom(bundle: Bundle?, app: App): AlwaysNeverUserDecides {
+    val storedString =
+        bundle?.getString(key)
+            ?: App.getApplication().getEncryptedPrefs().getString(key, null)
+            ?: "user-decides"
+    return when (storedString) {
+      "always" -> {
+        AlwaysNeverUserDecides.Always
+      }
+      "never" -> {
+        AlwaysNeverUserDecides.Never
+      }
+      else -> {
+        AlwaysNeverUserDecides.UserDecides
+      }
+    }
+  }
+}
+
+class ShowHideMDMSetting(key: String, localizedTitle: String) :
+    MDMSetting<ShowHide>(ShowHide.Show, key, localizedTitle) {
+  override fun getFrom(bundle: Bundle?, app: App): ShowHide {
+    val storedString =
+        bundle?.getString(key)
+            ?: App.getApplication().getEncryptedPrefs().getString(key, null)
+            ?: "show"
+    return when (storedString) {
+      "hide" -> {
+        ShowHide.Hide
+      }
+      else -> {
+        ShowHide.Show
+      }
+    }
+  }
+}
+
+enum class AlwaysNeverUserDecides(val value: String) {
   Always("always"),
   Never("never"),
   UserDecides("user-decides")
 }
 
-// A setting representing a String value which is set to either `show` or `hide`.
-enum class ShowHideSetting(val key: String, val localizedTitle: String) {
-  ExitNodesPicker("ExitNodesPicker", "Exit Nodes Picker"),
-  ManageTailnetLock("ManageTailnetLock", "“Manage Tailnet lock” menu item"),
-  ResetToDefaults("ResetToDefaults", "“Reset to Defaults” menu item"),
-  RunExitNode("RunExitNode", "Run as Exit Node"),
-  TestMenu("TestMenu", "Show Debug Menu"),
-  UpdateMenu("UpdateMenu", "“Update Available” menu item"),
-}
-
-enum class ShowHideValue(val value: String) {
+enum class ShowHide(val value: String) {
   Show("show"),
   Hide("hide")
-}
-
-enum class NetworkDevices(val value: String) {
-  currentUser("current-user"),
-  otherUsers("other-users"),
-  taggedDevices("tagged-devices"),
 }

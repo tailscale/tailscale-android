@@ -12,7 +12,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tailscale.ipn.App
 import com.tailscale.ipn.IPNReceiver
-import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.localapi.Client
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.IpnLocal
@@ -28,10 +27,6 @@ import kotlinx.coroutines.launch
  * notifications, managing login/logout, updating preferences, etc.
  */
 open class IpnViewModel : ViewModel() {
-  companion object {
-    val mdmSettings: StateFlow<MDMSettings> = MutableStateFlow(MDMSettings())
-  }
-
   protected val TAG = this::class.simpleName
 
   val loggedInUser: StateFlow<IpnLocal.LoginProfile?> = MutableStateFlow(null)

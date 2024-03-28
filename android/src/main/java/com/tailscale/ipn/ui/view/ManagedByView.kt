@@ -17,7 +17,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
-import com.tailscale.ipn.mdm.StringSetting
+import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.viewModel.IpnViewModel
 
 @Composable
@@ -28,18 +28,19 @@ fun ManagedByView(nav: BackNavigation, model: IpnViewModel = viewModel()) {
             Arrangement.spacedBy(space = 20.dp, alignment = Alignment.CenterVertically),
         horizontalAlignment = Alignment.Start,
         modifier = Modifier.fillMaxWidth().safeContentPadding()) {
-          val mdmSettings = IpnViewModel.mdmSettings.collectAsState().value
-          mdmSettings.get(StringSetting.ManagedByOrganizationName)?.let {
+          val managedByOrganization =
+              MDMSettings.managedByOrganizationName.flow.collectAsState().value
+          val managedByCaption = MDMSettings.managedByCaption.flow.collectAsState().value
+          val managedByURL = MDMSettings.managedByURL.flow.collectAsState().value
+          managedByOrganization?.let {
             Text(stringResource(R.string.managed_by_explainer_orgName, it))
           } ?: run { Text(stringResource(R.string.managed_by_explainer)) }
-          mdmSettings.get(StringSetting.ManagedByCaption)?.let {
+          managedByCaption?.let {
             if (it.isNotEmpty()) {
               Text(it)
             }
           }
-          mdmSettings.get(StringSetting.ManagedByURL)?.let {
-            OpenURLButton(stringResource(R.string.open_support), it)
-          }
+          managedByURL?.let { OpenURLButton(stringResource(R.string.open_support), it) }
         }
   }
 }

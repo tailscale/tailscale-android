@@ -17,11 +17,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
-import com.tailscale.ipn.mdm.AlwaysNeverUserDecidesSetting
-import com.tailscale.ipn.mdm.BooleanSetting
-import com.tailscale.ipn.mdm.ShowHideSetting
-import com.tailscale.ipn.mdm.StringArraySetting
-import com.tailscale.ipn.mdm.StringSetting
+import com.tailscale.ipn.mdm.MDMSetting
+import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.util.itemsWithDividers
 import com.tailscale.ipn.ui.viewModel.IpnViewModel
 
@@ -30,65 +27,30 @@ import com.tailscale.ipn.ui.viewModel.IpnViewModel
 fun MDMSettingsDebugView(nav: BackNavigation, model: IpnViewModel = viewModel()) {
   Scaffold(topBar = { Header(R.string.current_mdm_settings, onBack = nav.onBack) }) { innerPadding
     ->
-    val mdmSettings = IpnViewModel.mdmSettings.collectAsState().value
     LazyColumn(modifier = Modifier.padding(innerPadding)) {
-      itemsWithDividers(enumValues<BooleanSetting>(), key = { it.key }) { booleanSetting ->
-        MDMSettingView(
-            title = booleanSetting.localizedTitle,
-            caption = booleanSetting.key,
-            valueDescription = mdmSettings.get(booleanSetting).toString())
-      }
-
-      itemsWithDividers(enumValues<StringSetting>(), key = { it.key }, forceLeading = true) {
-          stringSetting ->
-        MDMSettingView(
-            title = stringSetting.localizedTitle,
-            caption = stringSetting.key,
-            valueDescription = mdmSettings.get(stringSetting).toString())
-      }
-
-      itemsWithDividers(enumValues<ShowHideSetting>(), key = { it.key }, forceLeading = true) {
-          showHideSetting ->
-        MDMSettingView(
-            title = showHideSetting.localizedTitle,
-            caption = showHideSetting.key,
-            valueDescription = mdmSettings.get(showHideSetting).toString())
-      }
-
-      itemsWithDividers(
-          enumValues<AlwaysNeverUserDecidesSetting>(), key = { it.key }, forceLeading = true) {
-              anuSetting ->
-            MDMSettingView(
-                title = anuSetting.localizedTitle,
-                caption = anuSetting.key,
-                valueDescription = mdmSettings.get(anuSetting).toString())
-          }
-
-      itemsWithDividers(enumValues<StringArraySetting>(), key = { it.key }, forceLeading = true) {
-          stringArraySetting ->
-        MDMSettingView(
-            title = stringArraySetting.localizedTitle,
-            caption = stringArraySetting.key,
-            valueDescription = mdmSettings.get(stringArraySetting).toString())
+      itemsWithDividers(MDMSettings.allSettings.sortedBy { "${it::class.java.name}|${it.key}" }) {
+          setting ->
+        MDMSettingView(setting)
       }
     }
   }
 }
 
 @Composable
-fun MDMSettingView(title: String, caption: String, valueDescription: String) {
+fun MDMSettingView(setting: MDMSetting<*>) {
+  val value = setting.flow.collectAsState().value
   ListItem(
-      headlineContent = { Text(title, maxLines = 3) },
+      headlineContent = { Text(setting.localizedTitle, maxLines = 3) },
       supportingContent = {
         Text(
-            caption,
+            setting.key,
             fontSize = MaterialTheme.typography.labelSmall.fontSize,
             color = MaterialTheme.colorScheme.tertiary,
             fontFamily = FontFamily.Monospace)
       },
       trailingContent = {
         Text(
-            valueDescription,
+            value.toString(),
             color = MaterialTheme.colorScheme.secondary,
             fontFamily = FontFamily.Monospace,
             maxLines = 1,
