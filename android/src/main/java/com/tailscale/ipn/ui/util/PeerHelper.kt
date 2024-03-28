@@ -45,10 +45,13 @@ class PeerCategorizer(scope: CoroutineScope) {
       // (jonathan) TODO: MDM -> currentUser, otherUsers, taggedDevices
       val userId = peer.User
 
-      if (!grouped.containsKey(userId)) {
-        grouped[userId] = mutableListOf()
+      // Mullvad based nodes should not be shown in the peer list
+      if (!peer.isMullvadNode) {
+        if (!grouped.containsKey(userId)) {
+          grouped[userId] = mutableListOf()
+        }
+        grouped[userId]?.add(peer)
       }
-      grouped[userId]?.add(peer)
     }
 
     val me = netmap.currentUserProfile()
