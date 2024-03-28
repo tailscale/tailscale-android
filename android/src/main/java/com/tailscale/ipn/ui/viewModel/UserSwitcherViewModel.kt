@@ -15,14 +15,11 @@ class UserSwitcherViewModel : IpnViewModel() {
   val showDialog: StateFlow<ErrorDialogType?> = MutableStateFlow(null)
 
   val loginSetting =
-      Setting(
-          title = ComposableStringFormatter(R.string.reauthenticate),
-          type = SettingType.NAV,
-          onClick = { login {} })
+      Setting(titleRes = R.string.reauthenticate, type = SettingType.NAV, onClick = { login {} })
 
   val logoutSetting =
       Setting(
-          title = ComposableStringFormatter(R.string.log_out),
+          titleRes = R.string.log_out,
           destructive = true,
           type = SettingType.TEXT,
           onClick = {
@@ -35,7 +32,7 @@ class UserSwitcherViewModel : IpnViewModel() {
 
   val addProfileSetting =
       Setting(
-          title = ComposableStringFormatter(R.string.add_account),
+          titleRes = R.string.add_account,
           type = SettingType.NAV,
           onClick = {
             addProfile {
