@@ -1148,10 +1148,17 @@ func (a *App) runUI() error {
 			}
 		case <-onVPNPrepared:
 			if state.backend.State > ipn.Stopped {
-				if err := a.callVoidMethod(a.appCtx, "startVPN", "()V"); err != nil {
-					return err
-				}
-				if activity != 0 {
+				// If there isn't a foreground activity start the VPN right away.
+				if activity == 0 {
+					if err := a.callVoidMethod(a.appCtx, "startVPN", "()V"); err != nil {
+						return err
+					}
+				} else {
+					// Otherwise, check for notification permission and let the result
+					// of that start the VPN service.
+					if err := a.callVoidMethod(a.appCtx, "requestNotificationPermission", "(Landroid/app/Activity;)V", jni.Value(activity)); err != nil {
+						return err
+					}
 					if err := a.callVoidMethod(a.appCtx, "requestWriteStoragePermission", "(Landroid/app/Activity;)V", jni.Value(activity)); err != nil {
 						return err
 					}
