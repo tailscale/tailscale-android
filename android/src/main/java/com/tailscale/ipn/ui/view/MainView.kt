@@ -168,7 +168,7 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
               Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text =
-                        location?.let { "${it.Country?.flag()} ${it.Country} - ${it.City}" }
+                        location?.let { "${it.CountryCode?.flag()} ${it.Country} - ${it.City}" }
                             ?: name
                             ?: stringResource(id = R.string.none),
                     style = MaterialTheme.typography.bodyLarge)
