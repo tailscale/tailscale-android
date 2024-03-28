@@ -19,7 +19,7 @@ object Permissions {
   val all: List<Permission>
     get() {
       val result = mutableListOf<Permission>()
-      if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+      if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
         result.add(
             Permission(
                 Manifest.permission.WRITE_EXTERNAL_STORAGE,
@@ -27,7 +27,8 @@ object Permissions {
                 R.string.permission_write_external_storage_needed,
                 R.string.permission_write_external_storage_granted,
             ))
-      } else {
+      }
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         result.add(
             Permission(
                 Manifest.permission.POST_NOTIFICATIONS,
