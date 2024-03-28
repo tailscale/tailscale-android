@@ -83,7 +83,7 @@ class ExitNodePickerViewModel(private val nav: ExitNodePickerNav) : IpnViewModel
                       .map {
                         ExitNode(
                             id = it.StableID,
-                            label = it.Name,
+                            label = it.ComputedName,
                             online = it.Online ?: false,
                             selected = it.StableID == exitNodeId,
                             mullvad = it.Name.endsWith(".mullvad.ts.net."),
@@ -131,7 +131,7 @@ class ExitNodePickerViewModel(private val nav: ExitNodePickerNav) : IpnViewModel
                             .sortedBy { it.city.lowercase() }
                       }
               mullvadExitNodesByCountryCode.set(mullvadExitNodes)
-              mullvadExitNodeCount.set(mullvadExitNodes.size)
+              mullvadExitNodeCount.set(allMullvadExitNodes.size)
 
               val bestAvailableByCountry =
                   mullvadExitNodes.mapValues { (_, nodes) ->
