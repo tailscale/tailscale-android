@@ -15,7 +15,6 @@ import android.content.ContentResolver
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
-import android.content.RestrictionsManager
 import android.content.SharedPreferences
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
@@ -38,11 +37,6 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
-import com.tailscale.ipn.mdm.AlwaysNeverUserDecidesSetting
-import com.tailscale.ipn.mdm.BooleanSetting
-import com.tailscale.ipn.mdm.MDMSettings
-import com.tailscale.ipn.mdm.ShowHideSetting
-import com.tailscale.ipn.mdm.StringSetting
 import com.tailscale.ipn.ui.localapi.Client
 import com.tailscale.ipn.ui.localapi.Request
 import com.tailscale.ipn.ui.model.Ipn
@@ -59,7 +53,6 @@ import java.net.InetAddress
 import java.net.NetworkInterface
 import java.security.GeneralSecurityException
 import java.util.Locale
-import java.util.Objects
 
 class App : Application(), libtailscale.AppContext {
   val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -143,9 +136,7 @@ class App : Application(), libtailscale.AppContext {
   fun setWantRunning(wantRunning: Boolean) {
     val callback: (Result<Ipn.Prefs>) -> Unit = { result ->
       result.fold(
-          onSuccess = { _ ->
-            setTileStatus(wantRunning)
-          },
+          onSuccess = { _ -> setTileStatus(wantRunning) },
           onFailure = { error ->
             Log.d("TAG", "Set want running: failed to update preferences: ${error.message}")
           })
@@ -436,45 +427,6 @@ class App : Application(), libtailscale.AppContext {
   fun isTV(): Boolean {
     val mm = getSystemService(Context.UI_MODE_SERVICE) as UiModeManager
     return mm.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION
-  }
-
-  /*
-  The following methods are called by the syspolicy handler from Go via JNI.
-   */
-  fun getSyspolicyBooleanValue(key: String?): Boolean? {
-    val manager: RestrictionsManager =
-        this.getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
-    val mdmSettings = MDMSettings(manager)
-    val setting: BooleanSetting? = key?.let { BooleanSetting.valueOf(it) }
-    return setting?.let { mdmSettings.get(it) }
-  }
-
-  fun getSyspolicyStringValue(key: String): String {
-    val manager: RestrictionsManager =
-        this.getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
-    val mdmSettings = MDMSettings(manager)
-
-    // Before looking for a StringSetting matching the given key, Go could also be
-    // asking us for either a AlwaysNeverUserDecidesSetting or a ShowHideSetting.
-    // Check the enum cases for these two before looking for a StringSetting.
-    return try {
-      val anuSetting: AlwaysNeverUserDecidesSetting = AlwaysNeverUserDecidesSetting.valueOf(key)
-      mdmSettings.get(anuSetting).value
-    } catch (eanu: IllegalArgumentException) { // AlwaysNeverUserDecidesSetting does not exist
-      try {
-        val showHideSetting: ShowHideSetting = ShowHideSetting.valueOf(key)
-        mdmSettings.get(showHideSetting).value
-      } catch (esh: IllegalArgumentException) {
-        try {
-          val stringSetting: StringSetting = StringSetting.valueOf(key)
-          val value: String? = mdmSettings.get(stringSetting)
-          Objects.requireNonNullElse<String>(value, "")
-        } catch (estr: IllegalArgumentException) {
-          Log.d("MDM", "$key is not defined on Android. Returning empty.")
-          ""
-        }
-      }
-    }
   }
 
   fun prepareDownloadsFolder(): File {

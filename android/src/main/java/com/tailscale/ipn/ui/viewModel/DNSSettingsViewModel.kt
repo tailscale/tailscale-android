@@ -39,7 +39,7 @@ class DNSSettingsViewModel() : IpnViewModel() {
   val useDNSSetting =
       Setting(
           R.string.use_ts_dns,
-          SettingType.SWITCH,
+          type = SettingType.SWITCH,
           isOn = MutableStateFlow(Notifier.prefs.value?.CorpDNS),
           onToggle = {
             LoadingIndicator.start()
