@@ -16,6 +16,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContract
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -69,76 +72,92 @@ class MainActivity : ComponentActivity() {
     setContent {
       AppTheme {
         val navController = rememberNavController()
-        NavHost(navController = navController, startDestination = "main") {
-          val mainViewNav =
-              MainViewNavigation(
-                  onNavigateToSettings = { navController.navigate("settings") },
-                  onNavigateToPeerDetails = {
-                    navController.navigate("peerDetails/${it.StableID}")
-                  },
-                  onNavigateToExitNodes = { navController.navigate("exitNodes") },
-              )
+        NavHost(
+            navController = navController,
+            startDestination = "main",
+            enterTransition = {
+              slideInHorizontally(animationSpec = tween(150), initialOffsetX = { it })
+            },
+            exitTransition = {
+              slideOutHorizontally(animationSpec = tween(150), targetOffsetX = { -it })
+            },
+            popEnterTransition = {
+              slideInHorizontally(animationSpec = tween(150), initialOffsetX = { -it })
+            },
+            popExitTransition = {
+              slideOutHorizontally(animationSpec = tween(150), targetOffsetX = { it })
+            }) {
+              val mainViewNav =
+                  MainViewNavigation(
+                      onNavigateToSettings = { navController.navigate("settings") },
+                      onNavigateToPeerDetails = {
+                        navController.navigate("peerDetails/${it.StableID}")
+                      },
+                      onNavigateToExitNodes = { navController.navigate("exitNodes") },
+                  )
 
-          val settingsNav =
-              SettingsNav(
-                  onNavigateToBugReport = { navController.navigate("bugReport") },
-                  onNavigateToAbout = { navController.navigate("about") },
-                  onNavigateToDNSSettings = { navController.navigate("dnsSettings") },
-                  onNavigateToTailnetLock = { navController.navigate("tailnetLock") },
-                  onNavigateToMDMSettings = { navController.navigate("mdmSettings") },
-                  onNavigateToManagedBy = { navController.navigate("managedBy") },
-                  onNavigateToUserSwitcher = { navController.navigate("userSwitcher") },
-                  onNavigateToPermissions = { navController.navigate("permissions") },
-                  onBackPressed = { navController.popBackStack() },
-              )
+              val settingsNav =
+                  SettingsNav(
+                      onNavigateToBugReport = { navController.navigate("bugReport") },
+                      onNavigateToAbout = { navController.navigate("about") },
+                      onNavigateToDNSSettings = { navController.navigate("dnsSettings") },
+                      onNavigateToTailnetLock = { navController.navigate("tailnetLock") },
+                      onNavigateToMDMSettings = { navController.navigate("mdmSettings") },
+                      onNavigateToManagedBy = { navController.navigate("managedBy") },
+                      onNavigateToUserSwitcher = { navController.navigate("userSwitcher") },
+                      onNavigateToPermissions = { navController.navigate("permissions") },
+                      onBackPressed = { navController.popBackStack() },
+                  )
 
-          val backNav = BackNavigation(onBack = { navController.popBackStack() })
+              val backNav = BackNavigation(onBack = { navController.popBackStack() })
 
-          val exitNodePickerNav =
-              ExitNodePickerNav(
-                  onNavigateHome = {
-                    navController.popBackStack(route = "main", inclusive = false)
-                  },
-                  onNavigateBack = { navController.popBackStack() },
-                  onNavigateToExitNodePicker = { navController.popBackStack() },
-                  onNavigateToMullvad = { navController.navigate("mullvad") },
-                  onNavigateToMullvadCountry = { navController.navigate("mullvad/$it") },
-                  onNavigateToRunAsExitNode = { navController.navigate("runExitNode") })
+              val exitNodePickerNav =
+                  ExitNodePickerNav(
+                      onNavigateHome = {
+                        navController.popBackStack(route = "main", inclusive = false)
+                      },
+                      onNavigateBack = { navController.popBackStack() },
+                      onNavigateToExitNodePicker = { navController.popBackStack() },
+                      onNavigateToMullvad = { navController.navigate("mullvad") },
+                      onNavigateToMullvadCountry = { navController.navigate("mullvad/$it") },
+                      onNavigateToRunAsExitNode = { navController.navigate("runExitNode") })
 
-          composable("main") { MainView(navigation = mainViewNav) }
-          composable("settings") { SettingsView(settingsNav) }
-          navigation(startDestination = "list", route = "exitNodes") {
-            composable("list") { ExitNodePicker(exitNodePickerNav) }
-            composable("mullvad") { MullvadExitNodePickerList(exitNodePickerNav) }
-            composable(
-                "mullvad/{countryCode}",
-                arguments = listOf(navArgument("countryCode") { type = NavType.StringType })) {
-                  MullvadExitNodePicker(
-                      it.arguments!!.getString("countryCode")!!, exitNodePickerNav)
-                }
-            composable("runExitNode") { RunExitNodeView(exitNodePickerNav) }
-          }
-          composable(
-              "peerDetails/{nodeId}",
-              arguments = listOf(navArgument("nodeId") { type = NavType.StringType })) {
-                PeerDetails(nav = backNav, it.arguments?.getString("nodeId") ?: "")
+              composable("main") { MainView(navigation = mainViewNav) }
+              composable("settings") { SettingsView(settingsNav) }
+              navigation(startDestination = "list", route = "exitNodes") {
+                composable("list") { ExitNodePicker(exitNodePickerNav) }
+                composable("mullvad") { MullvadExitNodePickerList(exitNodePickerNav) }
+                composable(
+                    "mullvad/{countryCode}",
+                    arguments = listOf(navArgument("countryCode") { type = NavType.StringType })) {
+                      MullvadExitNodePicker(
+                          it.arguments!!.getString("countryCode")!!, exitNodePickerNav)
+                    }
+                composable("runExitNode") { RunExitNodeView(exitNodePickerNav) }
               }
-          composable("bugReport") { BugReportView(nav = backNav) }
-          composable("dnsSettings") { DNSSettingsView(nav = backNav) }
-          composable("tailnetLock") { TailnetLockSetupView(nav = backNav) }
-          composable("about") { AboutView(nav = backNav) }
-          composable("mdmSettings") { MDMSettingsDebugView(nav = backNav) }
-          composable("managedBy") { ManagedByView(nav = backNav) }
-          composable("userSwitcher") {
-            UserSwitcherView(
-                nav = backNav,
-                onNavigateHome = { navController.popBackStack(route = "main", inclusive = false) })
-          }
-          composable("permissions") {
-            PermissionsView(nav = backNav, openApplicationSettings = ::openApplicationSettings)
-          }
-          composable("intro") { IntroView { navController.popBackStack() } }
-        }
+              composable(
+                  "peerDetails/{nodeId}",
+                  arguments = listOf(navArgument("nodeId") { type = NavType.StringType })) {
+                    PeerDetails(nav = backNav, it.arguments?.getString("nodeId") ?: "")
+                  }
+              composable("bugReport") { BugReportView(nav = backNav) }
+              composable("dnsSettings") { DNSSettingsView(nav = backNav) }
+              composable("tailnetLock") { TailnetLockSetupView(nav = backNav) }
+              composable("about") { AboutView(nav = backNav) }
+              composable("mdmSettings") { MDMSettingsDebugView(nav = backNav) }
+              composable("managedBy") { ManagedByView(nav = backNav) }
+              composable("userSwitcher") {
+                UserSwitcherView(
+                    nav = backNav,
+                    onNavigateHome = {
+                      navController.popBackStack(route = "main", inclusive = false)
+                    })
+              }
+              composable("permissions") {
+                PermissionsView(nav = backNav, openApplicationSettings = ::openApplicationSettings)
+              }
+              composable("intro") { IntroView { navController.popBackStack() } }
+            }
 
         // Show the intro screen one time
         if (!introScreenViewed()) {
