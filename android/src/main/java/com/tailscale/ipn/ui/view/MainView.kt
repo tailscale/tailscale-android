@@ -326,9 +326,7 @@ fun PeerList(
       onActiveChange = {},
       shape = RoundedCornerShape(10.dp),
       leadingIcon = { Icon(Icons.Outlined.Search, null) },
-      trailingIcon = {
-        if (searchTermStr.isNotEmpty()) ClearButton({ onSearch("") }) else CloseButton()
-      },
+      trailingIcon = { if (searchTermStr.isNotEmpty()) ClearButton({ onSearch("") }) },
       tonalElevation = 0.dp,
       shadowElevation = 0.dp,
       colors =
