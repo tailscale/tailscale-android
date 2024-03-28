@@ -13,6 +13,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
 
 object Lists {
@@ -26,7 +27,7 @@ object Lists {
 
   @Composable
   fun ItemDivider() {
-    HorizontalDivider(color = MaterialTheme.colorScheme.secondaryContainer)
+    HorizontalDivider(modifier = Modifier.alpha(0f))
   }
 }
 

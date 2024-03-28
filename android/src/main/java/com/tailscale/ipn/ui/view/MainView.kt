@@ -82,22 +82,36 @@ fun MainView(navigation: MainViewNavigation, viewModel: MainViewModel = viewMode
           verticalArrangement = Arrangement.Center) {
             val state = viewModel.ipnState.collectAsState(initial = Ipn.State.NoState)
             val user = viewModel.loggedInUser.collectAsState(initial = null)
+            val stateVal = viewModel.stateRes.collectAsState(initial = R.string.placeholder)
+            val stateStr = stringResource(id = stateVal.value)
+            val username = viewModel.userName
 
-            Row(
-                modifier =
-                    Modifier.fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.secondaryContainer)
-                        .padding(horizontal = 16.dp)
-                        .padding(top = 10.dp),
-                verticalAlignment = Alignment.CenterVertically) {
+            ListItem(
+                leadingContent = {
                   val isOn = viewModel.vpnToggleState.collectAsState(initial = false)
                   if (state.value != Ipn.State.NoState) {
                     TintedSwitch(onCheckedChange = { viewModel.toggleVpn() }, checked = isOn.value)
-                    Spacer(Modifier.size(3.dp))
                   }
-
-                  StateDisplay(viewModel.stateRes, viewModel.userName)
-
+                },
+                headlineContent = {
+                  if (username.isNotEmpty()) {
+                    Text(text = username, style = MaterialTheme.typography.titleMedium)
+                  }
+                },
+                supportingContent = {
+                  if (username.isNotEmpty()) {
+                    Text(
+                        text = stateStr,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.secondary)
+                  } else {
+                    Text(
+                        text = stateStr,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.secondary)
+                  }
+                },
+                trailingContent = {
                   Box(
                       modifier =
                           Modifier.weight(1f).clickable { navigation.onNavigateToSettings() },
@@ -107,7 +121,7 @@ fun MainView(navigation: MainViewNavigation, viewModel: MainViewModel = viewMode
                           else -> Avatar(profile = user.value, size = 36)
                         }
                       }
-                }
+                })
 
             when (state.value) {
               Ipn.State.Running -> {
@@ -186,30 +200,6 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
               }
             })
       }
-}
-
-@Composable
-fun StateDisplay(state: StateFlow<Int>, tailnet: String) {
-  val stateVal = state.collectAsState(initial = R.string.placeholder)
-  val stateStr = stringResource(id = stateVal.value)
-
-  Column(modifier = Modifier.padding(7.dp)) {
-    when (tailnet.isEmpty()) {
-      false -> {
-        Text(text = tailnet, style = MaterialTheme.typography.titleMedium)
-        Text(
-            text = stateStr,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.secondary)
-      }
-      true -> {
-        Text(
-            text = stateStr,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.primary)
-      }
-    }
-  }
 }
 
 @Composable
@@ -365,12 +355,14 @@ fun PeerList(
                           } else {
                             Color.Gray
                           }
-                      Box(
-                          modifier =
-                              Modifier.size(10.dp)
-                                  .background(
-                                      color = color, shape = RoundedCornerShape(percent = 50))) {}
-                      Spacer(modifier = Modifier.size(6.dp))
+                      Box(modifier = Modifier.padding(top = 3.dp)) {
+                        Box(
+                            modifier =
+                                Modifier.size(10.dp)
+                                    .background(
+                                        color = color, shape = RoundedCornerShape(percent = 50))) {}
+                      }
+                      Spacer(modifier = Modifier.size(8.dp))
                       Text(text = peer.ComputedName, style = MaterialTheme.typography.titleMedium)
                     }
                   },
