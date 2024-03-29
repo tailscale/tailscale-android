@@ -3,6 +3,7 @@
 
 package com.tailscale.ipn.ui.view
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -20,12 +21,11 @@ import com.tailscale.ipn.ui.model.IpnLocal
 
 @OptIn(ExperimentalCoilApi::class)
 @Composable
-fun Avatar(profile: IpnLocal.LoginProfile?, size: Int = 50) {
+fun Avatar(profile: IpnLocal.LoginProfile?, size: Int = 50, action: (() -> Unit)? = null) {
   Box(contentAlignment = Alignment.Center, modifier = Modifier.size(size.dp).clip(CircleShape)) {
-    Icon(
-        imageVector = Icons.Default.Person,
-        contentDescription = null,
-        modifier = Modifier.size((size * .8f).dp))
+    var modifier = Modifier.size((size * .8f).dp)
+    action?.let { modifier = modifier.clickable { action() } }
+    Icon(imageVector = Icons.Default.Person, contentDescription = null, modifier = modifier)
 
     profile?.UserProfile?.ProfilePicURL?.let { url ->
       AsyncImage(model = url, modifier = Modifier.size((size * 1.2f).dp), contentDescription = null)

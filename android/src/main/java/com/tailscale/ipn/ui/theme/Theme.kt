@@ -46,8 +46,10 @@ private val LightColors =
     lightColorScheme(
         primary = Color(0xFF4B70CC), // blue-500
         onPrimary = Color(0xFFFFFFFF), // white
-        primaryContainer = Color(0xFFF0F5FF), // blue-0
-        onPrimaryContainer = Color(0xFF3E5DB3), // blue-600
+        //        primaryContainer = Color(0xFFF0F5FF), // blue-0
+        primaryContainer = Color(0xFF6D94EC), // blue-400
+        //        onPrimaryContainer = Color(0xFF3E5DB3), // blue-600
+        onPrimaryContainer = Color(0xFFFFFFFF), // white,
         error = Color(0xFFB22C30), // red-500
         onError = Color(0xFFFFFFFF), // white
         errorContainer = Color(0xFFFEF6F3), // red-0
@@ -150,7 +152,7 @@ val ColorScheme.primaryListItem: ListItemColors
         containerColor = MaterialTheme.colorScheme.primary,
         headlineColor = MaterialTheme.colorScheme.onPrimary,
         leadingIconColor = MaterialTheme.colorScheme.onPrimary,
-        overlineColor = MaterialTheme.colorScheme.onPrimary,
+        overlineColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
         supportingTextColor = MaterialTheme.colorScheme.onPrimary,
         trailingIconColor = MaterialTheme.colorScheme.onPrimary,
         disabledHeadlineColor = default.disabledHeadlineColor,

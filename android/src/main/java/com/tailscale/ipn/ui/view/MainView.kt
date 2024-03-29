@@ -47,6 +47,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
@@ -100,26 +101,32 @@ fun MainView(navigation: MainViewNavigation, viewModel: MainViewModel = viewMode
                 },
                 headlineContent = {
                   if (username.isNotEmpty()) {
-                    Text(text = username, style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        text = username,
+                        style = MaterialTheme.typography.titleMedium.copy(lineHeight = 20.sp))
                   }
                 },
                 supportingContent = {
                   if (username.isNotEmpty()) {
-                    Text(text = stateStr, style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        text = stateStr,
+                        style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp))
                   } else {
-                    Text(text = stateStr, style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        text = stateStr,
+                        style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp))
                   }
                 },
                 trailingContent = {
-                  Box(
-                      modifier =
-                          Modifier.weight(1f).clickable { navigation.onNavigateToSettings() },
-                      contentAlignment = Alignment.CenterEnd) {
-                        when (user.value) {
-                          null -> SettingsButton(user.value) { navigation.onNavigateToSettings() }
-                          else -> Avatar(profile = user.value, size = 36)
-                        }
-                      }
+                  Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
+                    when (user.value) {
+                      null -> SettingsButton(user.value) { navigation.onNavigateToSettings() }
+                      else ->
+                          Avatar(profile = user.value, size = 36) {
+                            navigation.onNavigateToSettings()
+                          }
+                    }
+                  }
                 })
 
             when (state.value) {
@@ -169,7 +176,7 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
               overlineContent = {
                 Text(
                     stringResource(R.string.exit_node),
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodySmall,
                 )
               },
               headlineContent = {
@@ -179,12 +186,15 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
                           location?.let { "${it.CountryCode?.flag()} ${it.Country} - ${it.City}" }
                               ?: name
                               ?: stringResource(id = R.string.none),
-                      style = MaterialTheme.typography.titleMedium,
+                      style = MaterialTheme.typography.bodyMedium,
                       maxLines = 1,
                       overflow = TextOverflow.Ellipsis)
                   Icon(
-                      Icons.Outlined.ArrowDropDown,
-                      null,
+                      imageVector = Icons.Outlined.ArrowDropDown,
+                      contentDescription = null,
+                      tint =
+                          if (active) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
+                          else MaterialTheme.colorScheme.onSurfaceVariant,
                   )
                 }
               },
@@ -336,7 +346,8 @@ fun PeerList(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                       Box(
                           modifier =
-                              Modifier.size(10.dp)
+                              Modifier.padding(top = 2.dp)
+                                  .size(10.dp)
                                   .background(
                                       color = peer.connectedColor(netmap.value),
                                       shape = RoundedCornerShape(percent = 50))) {}

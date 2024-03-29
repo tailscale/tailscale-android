@@ -5,6 +5,7 @@ package com.tailscale.ipn.ui.view
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
@@ -41,10 +42,9 @@ fun Header(@StringRes title: Int = 0, titleText: String? = null, onBack: (() -> 
 
 @Composable
 fun BackArrow(action: () -> Unit) {
-  Icon(
-      Icons.AutoMirrored.Filled.ArrowBack,
-      null,
-      modifier = Modifier.clickable { action() }.padding(start = 15.dp, end = 20.dp))
+  Box(modifier = Modifier.padding(start = 15.dp, end = 20.dp)) {
+    Icon(Icons.AutoMirrored.Filled.ArrowBack, null, modifier = Modifier.clickable { action() })
+  }
 }
 
 @Composable
