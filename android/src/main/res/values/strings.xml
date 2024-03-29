@@ -46,7 +46,8 @@
     <!-- Strings for the main screen -->
     <string name="exit_node">EXIT NODE</string>
     <string name="starting">Starting…</string>
-    <string name="connect_to_tailnet">"Connect again to talk to the other devices in the %1$s tailnet."</string>
+    <string name="connect_to_tailnet_prefix">"Connect again to talk to the other devices in the "</string>
+    <string name="connect_to_tailnet_suffix">" tailnet."</string>
     <string name="welcome_to_tailscale">Welcome to Tailscale</string>
     <string name="login_to_join_your_tailnet">Log in to join your tailnet and connect your devices.</string>
 

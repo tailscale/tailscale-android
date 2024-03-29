@@ -23,9 +23,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
+import com.tailscale.ipn.ui.theme.disabledListItem
+import com.tailscale.ipn.ui.theme.listItem
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.LoadingIndicator
-import com.tailscale.ipn.ui.util.clickableOrGrayedOut
 import com.tailscale.ipn.ui.util.itemsWithDividers
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerNav
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerViewModel
@@ -39,45 +40,42 @@ fun ExitNodePicker(
     model: ExitNodePickerViewModel = viewModel(factory = ExitNodePickerViewModelFactory(nav))
 ) {
   LoadingIndicator.Wrap {
-    Scaffold(topBar = { Header(R.string.choose_exit_node, onBack = nav.onNavigateBack) }) {
-        innerPadding ->
-      val tailnetExitNodes = model.tailnetExitNodes.collectAsState().value
-      val mullvadExitNodesByCountryCode = model.mullvadExitNodesByCountryCode.collectAsState().value
-      val mullvadExitNodeCount = model.mullvadExitNodeCount.collectAsState().value
-      val anyActive = model.anyActive.collectAsState()
+    Scaffold(
+        topBar = { Header(R.string.choose_exit_node, onBack = nav.onNavigateBack) },
+        bottomBar = { SettingRow(model.allowLANAccessSetting) }) { innerPadding ->
+          val tailnetExitNodes = model.tailnetExitNodes.collectAsState().value
+          val mullvadExitNodesByCountryCode =
+              model.mullvadExitNodesByCountryCode.collectAsState().value
+          val mullvadExitNodeCount = model.mullvadExitNodeCount.collectAsState().value
+          val anyActive = model.anyActive.collectAsState()
 
-      LazyColumn(modifier = Modifier.padding(innerPadding)) {
-        stickyHeader {
-          RunAsExitNodeItem(nav = nav, viewModel = model)
-          Lists.ItemDivider()
-          SettingRow(model.allowLANAccessSetting)
-        }
+          LazyColumn(modifier = Modifier.padding(innerPadding)) {
+            stickyHeader {
+              ExitNodeItem(
+                  model,
+                  ExitNodePickerViewModel.ExitNode(
+                      label = stringResource(R.string.none),
+                      online = true,
+                      selected = !anyActive.value,
+                  ))
+              Lists.ItemDivider()
+              RunAsExitNodeItem(nav = nav, viewModel = model)
+            }
 
-        item(key = "none") {
-          Lists.SectionDivider()
+            item(key = "divider1") { Lists.SectionDivider() }
 
-          ExitNodeItem(
-              model,
-              ExitNodePickerViewModel.ExitNode(
-                  label = stringResource(R.string.none),
-                  online = true,
-                  selected = !anyActive.value,
-              ))
-        }
+            itemsWithDividers(tailnetExitNodes, key = { it.id!! }) { node ->
+              ExitNodeItem(model, node)
+            }
 
-        item { Lists.ItemDivider() }
-
-        itemsWithDividers(tailnetExitNodes, key = { it.id!! }) { node -> ExitNodeItem(model, node) }
-
-        item { Lists.SectionDivider() }
-
-        if (mullvadExitNodeCount > 0) {
-          item(key = "mullvad") {
-            MullvadItem(nav, mullvadExitNodeCount, mullvadExitNodesByCountryCode.selected)
+            if (mullvadExitNodeCount > 0) {
+              item(key = "mullvad") {
+                Lists.SectionDivider()
+                MullvadItem(nav, mullvadExitNodeCount, mullvadExitNodesByCountryCode.selected)
+              }
+            }
           }
         }
-      }
-    }
   }
 }
 
@@ -87,16 +85,17 @@ fun ExitNodeItem(
     node: ExitNodePickerViewModel.ExitNode,
 ) {
   Box {
-    // TODO: add disabled styling
+    var modifier: Modifier = Modifier
+    if (node.online) {
+      modifier = modifier.clickable { viewModel.setExitNode(node) }
+    }
     ListItem(
-        modifier =
-            Modifier.clickableOrGrayedOut(enabled = node.online) { viewModel.setExitNode(node) },
+        modifier = modifier,
+        colors =
+            if (node.online) MaterialTheme.colorScheme.listItem
+            else MaterialTheme.colorScheme.disabledListItem,
         headlineContent = {
-          Text(
-              node.city.ifEmpty { node.label },
-              style =
-                  if (node.online) MaterialTheme.typography.titleMedium
-                  else MaterialTheme.typography.bodyMedium)
+          Text(node.city.ifEmpty { node.label }, style = MaterialTheme.typography.bodyMedium)
         },
         supportingContent = {
           if (!node.online)
@@ -120,7 +119,7 @@ fun MullvadItem(nav: ExitNodePickerNav, count: Int, selected: Boolean) {
         headlineContent = {
           Text(
               stringResource(R.string.mullvad_exit_nodes),
-              style = MaterialTheme.typography.titleMedium)
+              style = MaterialTheme.typography.bodyMedium)
         },
         supportingContent = {
           Text(

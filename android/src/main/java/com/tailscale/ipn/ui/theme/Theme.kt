@@ -141,6 +141,23 @@ val ColorScheme.listItem: ListItemColors
         disabledTrailingIconColor = default.disabledTrailingIconColor)
   }
 
+/** Color scheme for disabled list items. */
+val ColorScheme.disabledListItem: ListItemColors
+  @Composable
+  get() {
+    val default = ListItemDefaults.colors()
+    return ListItemColors(
+        containerColor = default.containerColor,
+        headlineColor = MaterialTheme.colorScheme.disabled,
+        leadingIconColor = default.leadingIconColor,
+        overlineColor = default.overlineColor,
+        supportingTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        trailingIconColor = default.trailingIconColor,
+        disabledHeadlineColor = default.disabledHeadlineColor,
+        disabledLeadingIconColor = default.disabledLeadingIconColor,
+        disabledTrailingIconColor = default.disabledTrailingIconColor)
+  }
+
 /** Color scheme for list items that should be styled as a surface container. */
 val ColorScheme.surfaceContainerListItem: ListItemColors
   @Composable
@@ -197,3 +214,6 @@ val ColorScheme.secondaryButton: ButtonColors
         disabledContainerColor = defaults.disabledContainerColor,
         disabledContentColor = defaults.disabledContentColor)
   }
+
+val ColorScheme.disabled: Color
+  get() = Color(0xFFAFACAB) // gray-400

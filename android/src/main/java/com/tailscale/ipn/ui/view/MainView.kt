@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -43,6 +45,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -59,6 +63,7 @@ import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.Permission
 import com.tailscale.ipn.ui.model.Permissions
 import com.tailscale.ipn.ui.model.Tailcfg
+import com.tailscale.ipn.ui.theme.disabled
 import com.tailscale.ipn.ui.theme.listItem
 import com.tailscale.ipn.ui.theme.primaryListItem
 import com.tailscale.ipn.ui.theme.secondaryButton
@@ -252,7 +257,7 @@ fun ConnectView(
               painter = painterResource(id = R.drawable.power),
               contentDescription = null,
               modifier = Modifier.size(40.dp),
-              tint = MaterialTheme.colorScheme.onSurfaceVariant)
+              tint = MaterialTheme.colorScheme.disabled)
           Text(
               text = stringResource(id = R.string.not_connected),
               fontSize = MaterialTheme.typography.titleMedium.fontSize,
@@ -261,7 +266,13 @@ fun ConnectView(
               fontFamily = MaterialTheme.typography.titleMedium.fontFamily)
           val tailnetName = user.NetworkProfile?.DomainName ?: ""
           Text(
-              stringResource(id = R.string.connect_to_tailnet, tailnetName),
+              buildAnnotatedString {
+                append(stringResource(id = R.string.connect_to_tailnet_prefix))
+                pushStyle(SpanStyle(fontWeight = FontWeight.Bold))
+                append(tailnetName)
+                pop()
+                append(stringResource(id = R.string.connect_to_tailnet_suffix))
+              },
               fontSize = MaterialTheme.typography.titleMedium.fontSize,
               fontWeight = FontWeight.Normal,
               textAlign = TextAlign.Center,
@@ -327,9 +338,16 @@ fun PeerList(
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
         ) {
+          var first = true
           peerList.value.forEach { peerSet ->
+            if (!first) {
+              item(key = "spacer_${peerSet.user?.DisplayName}") { Spacer(Modifier.height(24.dp)) }
+            }
+            first = false
+
             stickyHeader {
               ListItem(
+                  modifier = Modifier.heightIn(max = 48.dp),
                   headlineContent = {
                     Text(
                         text =
@@ -338,6 +356,7 @@ fun PeerList(
                         fontWeight = FontWeight.SemiBold)
                   })
             }
+
             itemsWithDividers(peerSet.peers, key = { it.StableID }) { peer ->
               ListItem(
                   modifier = Modifier.clickable { onNavigateToPeerDetails(peer) },
