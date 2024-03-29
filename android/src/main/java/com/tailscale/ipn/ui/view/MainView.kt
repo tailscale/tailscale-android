@@ -41,7 +41,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -63,7 +62,6 @@ import com.tailscale.ipn.ui.theme.listItem
 import com.tailscale.ipn.ui.theme.primaryListItem
 import com.tailscale.ipn.ui.theme.secondaryButton
 import com.tailscale.ipn.ui.theme.surfaceContainerListItem
-import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.PeerSet
 import com.tailscale.ipn.ui.util.flag
@@ -221,7 +219,7 @@ fun StartingView() {
       modifier = Modifier.fillMaxSize(),
       verticalArrangement = Arrangement.Center,
       horizontalAlignment = Alignment.CenterHorizontally) {
-        TailscaleLogoView(animated = true, Modifier.size(72.dp))
+        TailscaleLogoView(animated = true, Modifier.size(40.dp))
       }
 }
 
@@ -243,7 +241,8 @@ fun ConnectView(
           Icon(
               painter = painterResource(id = R.drawable.power),
               contentDescription = null,
-              modifier = Modifier.size(48.dp))
+              modifier = Modifier.size(40.dp),
+              tint = MaterialTheme.colorScheme.onSurfaceVariant)
           Text(
               text = stringResource(id = R.string.not_connected),
               fontSize = MaterialTheme.typography.titleMedium.fontSize,
@@ -312,9 +311,9 @@ fun PeerList(
       shadowElevation = 0.dp,
       colors =
           SearchBarDefaults.colors(
-              containerColor = Color.Transparent, dividerColor = Color.Transparent),
+              containerColor = MaterialTheme.colorScheme.surface,
+              dividerColor = MaterialTheme.colorScheme.outline),
       modifier = Modifier.fillMaxWidth()) {
-        Lists.ItemDivider()
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
         ) {
