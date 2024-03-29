@@ -5,9 +5,9 @@ package com.tailscale.ipn.ui.model
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import com.tailscale.ipn.R
-import com.tailscale.ipn.ui.theme.success
+import com.tailscale.ipn.ui.theme.off
+import com.tailscale.ipn.ui.theme.on
 import com.tailscale.ipn.ui.util.ComposableStringFormatter
 import com.tailscale.ipn.ui.util.DisplayAddress
 import com.tailscale.ipn.ui.util.TimeUtil
@@ -103,7 +103,7 @@ class Tailcfg {
 
     @Composable
     fun connectedColor(nm: Netmap.NetworkMap?) =
-        if (connectedOrSelfNode(nm)) MaterialTheme.colorScheme.success else Color.Gray
+        if (connectedOrSelfNode(nm)) MaterialTheme.colorScheme.on else MaterialTheme.colorScheme.off
 
     val displayAddresses: List<DisplayAddress>
       get() {

@@ -65,10 +65,10 @@
     <string name="open_support">Open Support</string>
 
     <!-- State strings -->
-    <string name="waiting">Loading…</string>
+    <string name="waiting">Starting…</string>
     <string name="placeholder">--</string>
     <string name="please_login">Login Required</string>
-    <string name="stopped">Stopped</string>
+    <string name="stopped">Not Connected</string>
 
     <!-- Time conversion templates -->
     <string name="expired">expired</string>

@@ -116,6 +116,12 @@ val ColorScheme.successContainer: Color
 val ColorScheme.onSuccessContainer: Color
   get() = Color(0xFF0E4B3B) // green-600
 
+val ColorScheme.on: Color
+  get() = Color(0xFF84D996) // green-100
+
+val ColorScheme.off: Color
+  get() = Color(0xFFD9D6D5) // gray-300
+
 /**
  * Main color scheme for list items, uses onPrimaryContainer color for leading and trailing icons.
  */
