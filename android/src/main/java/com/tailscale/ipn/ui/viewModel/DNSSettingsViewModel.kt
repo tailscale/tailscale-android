@@ -5,6 +5,8 @@ package com.tailscale.ipn.ui.viewModel
 
 import android.util.Log
 import androidx.annotation.StringRes
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -14,8 +16,7 @@ import com.tailscale.ipn.ui.localapi.Client
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.notifier.Notifier
-import com.tailscale.ipn.ui.theme.ts_color_light_desctrutive_text
-import com.tailscale.ipn.ui.theme.ts_color_light_green
+import com.tailscale.ipn.ui.theme.success
 import com.tailscale.ipn.ui.util.FeatureStateRepresentation
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.set
@@ -96,7 +97,7 @@ enum class DNSEnablementState : FeatureStateRepresentation {
       get() = R.string.tailscale_is_not_running_this_device_is_using_the_system_dns_resolver
 
     override val tint: Color
-      get() = Color.Gray
+      @Composable get() = Color.Gray
 
     override val symbolDrawable: Int
       get() = R.drawable.xmark_circle
@@ -109,7 +110,7 @@ enum class DNSEnablementState : FeatureStateRepresentation {
       @StringRes get() = R.string.this_device_is_using_tailscale_to_resolve_dns_names
 
     override val tint: Color
-      get() = ts_color_light_green
+      @Composable get() = MaterialTheme.colorScheme.success
 
     override val symbolDrawable: Int
       get() = R.drawable.check_circle
@@ -122,7 +123,7 @@ enum class DNSEnablementState : FeatureStateRepresentation {
       @StringRes get() = R.string.this_device_is_using_the_system_dns_resolver
 
     override val tint: Color
-      get() = ts_color_light_desctrutive_text
+      @Composable get() = MaterialTheme.colorScheme.success
 
     override val symbolDrawable: Int
       get() = R.drawable.xmark_circle

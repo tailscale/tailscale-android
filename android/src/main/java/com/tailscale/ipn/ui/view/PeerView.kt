@@ -20,7 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.Tailcfg
-import com.tailscale.ipn.ui.theme.ts_color_light_green
+import com.tailscale.ipn.ui.theme.success
 
 @Composable
 fun PeerView(
@@ -43,7 +43,7 @@ fun PeerView(
           val isSelfAndRunning = (peer.StableID == selfPeer && stateVal == Ipn.State.Running)
           val color: Color =
               if ((peer.Online == true) || isSelfAndRunning) {
-                ts_color_light_green
+                MaterialTheme.colorScheme.success
               } else {
                 Color.Gray
               }

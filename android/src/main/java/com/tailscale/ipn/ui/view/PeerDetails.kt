@@ -19,6 +19,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -50,32 +51,39 @@ fun PeerDetails(
                 .padding(horizontal = 16.dp)
                 .padding(top = 22.dp),
     ) {
-      Text(text = model.nodeName, style = MaterialTheme.typography.titleLarge)
-      Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier =
-                Modifier.size(8.dp)
-                    .background(
-                        color = model.connectedColor, shape = RoundedCornerShape(percent = 50))) {}
-        Spacer(modifier = Modifier.size(8.dp))
-        Text(
-            text = stringResource(id = model.connectedStrRes),
-            style = MaterialTheme.typography.bodyMedium)
-      }
-      Column(modifier = Modifier.fillMaxHeight()) {
-        Text(
-            text = stringResource(id = R.string.addresses_section),
-            style = MaterialTheme.typography.titleMedium)
+      model.netmap.collectAsState().value?.let { netmap ->
+        model.node.collectAsState().value?.let { node ->
+          Text(text = node.displayName, style = MaterialTheme.typography.titleLarge)
+          Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier =
+                    Modifier.size(8.dp)
+                        .background(
+                            color = node.connectedColor(netmap),
+                            shape = RoundedCornerShape(percent = 50))) {}
+            Spacer(modifier = Modifier.size(8.dp))
+            Text(
+                text = stringResource(id = node.connectedStrRes(netmap)),
+                style = MaterialTheme.typography.bodyMedium)
+          }
+          Column(modifier = Modifier.fillMaxHeight()) {
+            Text(
+                text = stringResource(id = R.string.addresses_section),
+                style = MaterialTheme.typography.titleMedium)
 
-        Column(modifier = settingsRowModifier()) {
-          model.addresses.forEach { AddressRow(address = it.address, type = it.typeString) }
-        }
+            Column(modifier = settingsRowModifier()) {
+              node.displayAddresses.forEach {
+                AddressRow(address = it.address, type = it.typeString)
+              }
+            }
 
-        Spacer(modifier = Modifier.size(16.dp))
+            Spacer(modifier = Modifier.size(16.dp))
 
-        Column(modifier = settingsRowModifier()) {
-          model.info.forEach {
-            ValueRow(title = stringResource(id = it.titleRes), value = it.value.getString())
+            Column(modifier = settingsRowModifier()) {
+              node.info.forEach {
+                ValueRow(title = stringResource(id = it.titleRes), value = it.value.getString())
+              }
+            }
           }
         }
       }

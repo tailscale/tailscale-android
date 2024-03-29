@@ -55,15 +55,12 @@ import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.Permission
 import com.tailscale.ipn.ui.model.Permissions
-import com.tailscale.ipn.ui.model.StableNodeID
 import com.tailscale.ipn.ui.model.Tailcfg
-import com.tailscale.ipn.ui.theme.ts_color_light_green
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.PeerSet
 import com.tailscale.ipn.ui.util.flag
 import com.tailscale.ipn.ui.util.itemsWithDividers
 import com.tailscale.ipn.ui.viewModel.MainViewModel
-import kotlinx.coroutines.flow.StateFlow
 
 // Navigation actions for the MainView
 data class MainViewNavigation(
@@ -122,16 +119,12 @@ fun MainView(navigation: MainViewNavigation, viewModel: MainViewModel = viewMode
 
                 PromptPermissionsIfNecessary(permissions = Permissions.all)
 
-                val selfPeerId = viewModel.selfPeerId.collectAsState(initial = "")
                 Row(modifier = Modifier.padding(top = 10.dp, bottom = 20.dp)) {
                   ExitNodeStatus(
                       navAction = navigation.onNavigateToExitNodes, viewModel = viewModel)
                 }
                 PeerList(
-                    searchTerm = viewModel.searchTerm,
-                    state = viewModel.ipnState,
-                    peers = viewModel.peers,
-                    selfPeer = selfPeerId.value,
+                    viewModel = viewModel,
                     onNavigateToPeerDetails = navigation.onNavigateToPeerDetails,
                     onSearch = { viewModel.searchPeers(it) })
               }
@@ -279,16 +272,14 @@ fun ConnectView(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PeerList(
-    searchTerm: StateFlow<String>,
-    peers: StateFlow<List<PeerSet>>,
-    state: StateFlow<Ipn.State>,
-    selfPeer: StableNodeID,
+    viewModel: MainViewModel,
     onNavigateToPeerDetails: (Tailcfg.Node) -> Unit,
     onSearch: (String) -> Unit
 ) {
-  val peerList = peers.collectAsState(initial = emptyList<PeerSet>())
-  val searchTermStr by searchTerm.collectAsState(initial = "")
-  val stateVal = state.collectAsState(initial = Ipn.State.NoState)
+  val peerList = viewModel.peers.collectAsState(initial = emptyList<PeerSet>())
+  val searchTermStr by viewModel.searchTerm.collectAsState(initial = "")
+  val stateVal = viewModel.ipnState.collectAsState(initial = Ipn.State.NoState)
+  val netmap = viewModel.netmap.collectAsState()
 
   SearchBar(
       query = searchTermStr,
@@ -328,21 +319,12 @@ fun PeerList(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                       // By definition, SelfPeer is online since we will not show the peer list
                       // unless you're connected.
-                      val isSelfAndRunning =
-                          (peer.StableID == selfPeer && stateVal.value == Ipn.State.Running)
-                      val color: Color =
-                          if ((peer.Online == true) || isSelfAndRunning) {
-                            ts_color_light_green
-                          } else {
-                            Color.Gray
-                          }
-                      Box(modifier = Modifier.padding(top = 3.dp)) {
-                        Box(
-                            modifier =
-                                Modifier.size(10.dp)
-                                    .background(
-                                        color = color, shape = RoundedCornerShape(percent = 50))) {}
-                      }
+                      Box(
+                          modifier =
+                              Modifier.size(10.dp)
+                                  .background(
+                                      color = peer.connectedColor(netmap.value),
+                                      shape = RoundedCornerShape(percent = 50))) {}
                       Spacer(modifier = Modifier.size(8.dp))
                       Text(text = peer.ComputedName, style = MaterialTheme.typography.titleMedium)
                     }

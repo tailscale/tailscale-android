@@ -3,16 +3,18 @@
 
 package com.tailscale.ipn.ui.viewModel
 
-import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.tailscale.ipn.R
+import androidx.lifecycle.viewModelScope
+import com.tailscale.ipn.ui.model.Netmap
 import com.tailscale.ipn.ui.model.StableNodeID
+import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.notifier.Notifier
-import com.tailscale.ipn.ui.theme.ts_color_light_green
 import com.tailscale.ipn.ui.util.ComposableStringFormatter
-import com.tailscale.ipn.ui.util.DisplayAddress
-import com.tailscale.ipn.ui.util.TimeUtil
+import com.tailscale.ipn.ui.util.set
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 import java.io.File
 
 data class PeerSettingInfo(val titleRes: Int, val value: ComposableStringFormatter)
@@ -25,29 +27,15 @@ class PeerDetailsViewModelFactory(private val nodeId: StableNodeID, private val 
 }
 
 class PeerDetailsViewModel(val nodeId: StableNodeID, val filesDir: File) : IpnViewModel() {
-
-  var addresses: List<DisplayAddress> = emptyList()
-  var info: List<PeerSettingInfo> = emptyList()
-
-  val nodeName: String
-  val connectedStrRes: Int
-  val connectedColor: Color
+  val netmap: StateFlow<Netmap.NetworkMap?> = MutableStateFlow(null)
+  val node: StateFlow<Tailcfg.Node?> = MutableStateFlow(null)
 
   init {
-    val peer = Notifier.netmap.value?.getPeer(nodeId)
-    peer?.Addresses?.let { addresses = it.map { addr -> DisplayAddress(addr) } }
-
-    peer?.Name?.let { addresses = listOf(DisplayAddress(it)) + addresses }
-
-    peer?.let { p ->
-      info =
-          listOf(
-              PeerSettingInfo(R.string.os, ComposableStringFormatter(p.Hostinfo.OS ?: "")),
-              PeerSettingInfo(R.string.key_expiry, TimeUtil().keyExpiryFromGoTime(p.KeyExpiry)))
+    viewModelScope.launch {
+      Notifier.netmap.collect { nm ->
+        netmap.set(nm)
+        nm?.getPeer(nodeId)?.let { peer -> node.set(peer) }
+      }
     }
-
-    nodeName = peer?.ComputedName ?: ""
-    connectedStrRes = if (peer?.Online == true) R.string.connected else R.string.not_connected
-    connectedColor = if (peer?.Online == true) ts_color_light_green else Color.Gray
   }
 }

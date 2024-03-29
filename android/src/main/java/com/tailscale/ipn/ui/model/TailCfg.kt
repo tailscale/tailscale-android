@@ -3,6 +3,15 @@
 
 package com.tailscale.ipn.ui.model
 
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
+import com.tailscale.ipn.R
+import com.tailscale.ipn.ui.theme.success
+import com.tailscale.ipn.ui.util.ComposableStringFormatter
+import com.tailscale.ipn.ui.util.DisplayAddress
+import com.tailscale.ipn.ui.util.TimeUtil
+import com.tailscale.ipn.ui.viewModel.PeerSettingInfo
 import kotlinx.serialization.Serializable
 
 class Tailcfg {
@@ -82,6 +91,33 @@ class Tailcfg {
 
     val isMullvadNode: Boolean
       get() = Name.endsWith(".mullvad.ts.net.")
+
+    val displayName: String
+      get() = ComputedName ?: ""
+
+    fun connectedOrSelfNode(nm: Netmap.NetworkMap?) =
+        Online == true || StableID == nm?.SelfNode?.StableID
+
+    fun connectedStrRes(nm: Netmap.NetworkMap?) =
+        if (connectedOrSelfNode(nm)) R.string.connected else R.string.not_connected
+
+    @Composable
+    fun connectedColor(nm: Netmap.NetworkMap?) =
+        if (connectedOrSelfNode(nm)) MaterialTheme.colorScheme.success else Color.Gray
+
+    val displayAddresses: List<DisplayAddress>
+      get() {
+        var addresses = mutableListOf<DisplayAddress>()
+        Addresses?.let { addresses.addAll(it.map { addr -> DisplayAddress(addr) }) }
+        addresses.add(DisplayAddress(Name))
+        return addresses
+      }
+
+    val info: List<PeerSettingInfo>
+      get() =
+          listOf(
+              PeerSettingInfo(R.string.os, ComposableStringFormatter(Hostinfo.OS ?: "")),
+              PeerSettingInfo(R.string.key_expiry, TimeUtil().keyExpiryFromGoTime(KeyExpiry)))
   }
 
   @Serializable

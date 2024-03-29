@@ -5,6 +5,7 @@ package com.tailscale.ipn.ui.util
 
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 // FeatureStateRepresentation represents the status of a feature
@@ -12,7 +13,7 @@ import androidx.compose.ui.graphics.Color
 // It is typically implemented as an enumeration.
 interface FeatureStateRepresentation {
   @get:DrawableRes val symbolDrawable: Int
-  val tint: Color
+  @get:Composable val tint: Color
   @get:StringRes val title: Int
   @get:StringRes val caption: Int
 }
