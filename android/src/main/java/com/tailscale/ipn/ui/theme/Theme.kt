@@ -17,8 +17,10 @@ import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.sp
+import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
 @Composable
 fun AppTheme(useDarkTheme: Boolean = isSystemInDarkTheme(), content: @Composable() () -> Unit) {
@@ -38,6 +40,13 @@ fun AppTheme(useDarkTheme: Boolean = isSystemInDarkTheme(), content: @Composable
           // margins in list items.
           bodyMedium =
               MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp, lineHeight = 26.sp))
+
+  val systemUiController = rememberSystemUiController()
+
+  DisposableEffect(systemUiController, useDarkTheme) {
+    systemUiController.setSystemBarsColor(color = colors.surfaceContainer)
+    onDispose {}
+  }
 
   MaterialTheme(colorScheme = colors, typography = typography, content = content)
 }
