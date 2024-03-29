@@ -22,7 +22,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.tailscale.ipn.R
-import com.tailscale.ipn.ui.theme.ts_color_light_blue
 
 @Composable
 fun ClipboardValueView(
@@ -56,8 +55,7 @@ fun ClipboardValueView(
           Icon(
               painterResource(R.drawable.clipboard),
               stringResource(R.string.copy_to_clipboard),
-              modifier = Modifier.width(24.dp).height(24.dp),
-              tint = ts_color_light_blue)
+              modifier = Modifier.width(24.dp).height(24.dp))
         })
   }
 }

@@ -26,7 +26,7 @@ object Lists {
 
   @Composable
   fun ItemDivider() {
-    HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+    HorizontalDivider(color = MaterialTheme.colorScheme.surfaceContainer)
   }
 }
 

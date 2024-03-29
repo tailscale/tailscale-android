@@ -5,7 +5,12 @@ package com.tailscale.ipn.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ListItemColors
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TopAppBarColors
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -24,8 +29,11 @@ fun AppTheme(useDarkTheme: Boolean = isSystemInDarkTheme(), content: @Composable
 
   val typography =
       Typography(
+          // titleMedium is styled to be slightly larger than bodyMedium for emphasis
           titleMedium =
               MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, lineHeight = 26.sp),
+          // bodyMedium is styled to use same line height as titleMedium to ensure even vertical
+          // margins in list items.
           bodyMedium =
               MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp, lineHeight = 26.sp))
 
@@ -43,8 +51,10 @@ private val LightColors =
         errorContainer = Color(0xFFFEF6F3), // red-0
         onErrorContainer = Color(0xFF930921), // red-600
         surfaceDim = Color(0xFFF7F5F4), // gray-100
-        surface = Color(0xFFF7F5F4), // gray-100
-        background = Color(0xFFF7F5F4), // gray-100
+        //        surface = Color(0xFFF7F5F4), // gray-100
+        surface = Color(0xFFFFFFFF), // white,
+        //        background = Color(0xFFF7F5F4), // gray-100
+        background = Color(0xFFFFFFFF), // white
         surfaceBright = Color(0xFFFFFFFF), // white
         surfaceContainerLowest = Color(0xFFFFFFFF), // white
         surfaceContainerLow = Color(0xFFF7F5F4), // gray-100
@@ -93,3 +103,51 @@ val ColorScheme.successContainer: Color
 
 val ColorScheme.onSuccessContainer: Color
   get() = Color(0xFF0E4B3B) // green-600
+
+/**
+ * Main color scheme for list items, uses onPrimaryContainer color for leading and trailing icons.
+ */
+val ColorScheme.listItem: ListItemColors
+  @Composable
+  get() {
+    val default = ListItemDefaults.colors()
+    return ListItemColors(
+        containerColor = default.containerColor,
+        headlineColor = default.headlineColor,
+        leadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        overlineColor = default.overlineColor,
+        supportingTextColor = default.supportingTextColor,
+        trailingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        disabledHeadlineColor = default.disabledHeadlineColor,
+        disabledLeadingIconColor = default.disabledLeadingIconColor,
+        disabledTrailingIconColor = default.disabledTrailingIconColor)
+  }
+
+/** Color scheme for list items that should be styled as a surface container. */
+val ColorScheme.containerListItem: ListItemColors
+  @Composable
+  get() {
+    val default = ListItemDefaults.colors()
+    return ListItemColors(
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        headlineColor = MaterialTheme.colorScheme.onSurface,
+        leadingIconColor = MaterialTheme.colorScheme.onSurface,
+        overlineColor = MaterialTheme.colorScheme.onSurface,
+        supportingTextColor = MaterialTheme.colorScheme.onSurface,
+        trailingIconColor = MaterialTheme.colorScheme.onSurface,
+        disabledHeadlineColor = default.disabledHeadlineColor,
+        disabledLeadingIconColor = default.disabledLeadingIconColor,
+        disabledTrailingIconColor = default.disabledTrailingIconColor)
+  }
+
+/** Main color scheme for top app bar, styles it as a surface container. */
+@OptIn(ExperimentalMaterial3Api::class)
+val ColorScheme.topAppBar: TopAppBarColors
+  @Composable
+  get() =
+      TopAppBarDefaults.topAppBarColors()
+          .copy(
+              containerColor = MaterialTheme.colorScheme.surfaceContainer,
+              navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
+              titleContentColor = MaterialTheme.colorScheme.onSurface,
+          )

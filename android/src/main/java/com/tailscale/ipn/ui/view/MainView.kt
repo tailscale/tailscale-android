@@ -44,6 +44,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -56,6 +57,9 @@ import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.Permission
 import com.tailscale.ipn.ui.model.Permissions
 import com.tailscale.ipn.ui.model.Tailcfg
+import com.tailscale.ipn.ui.theme.containerListItem
+import com.tailscale.ipn.ui.theme.listItem
+import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.PeerSet
 import com.tailscale.ipn.ui.util.flag
@@ -84,11 +88,13 @@ fun MainView(navigation: MainViewNavigation, viewModel: MainViewModel = viewMode
             val username = viewModel.userName
 
             ListItem(
+                colors = MaterialTheme.colorScheme.containerListItem,
                 leadingContent = {
                   val isOn = viewModel.vpnToggleState.collectAsState(initial = false)
-                  if (state.value != Ipn.State.NoState) {
-                    TintedSwitch(onCheckedChange = { viewModel.toggleVpn() }, checked = isOn.value)
-                  }
+                  TintedSwitch(
+                      onCheckedChange = { viewModel.toggleVpn() },
+                      checked = isOn.value,
+                      enabled = state.value != Ipn.State.NoState)
                 },
                 headlineContent = {
                   if (username.isNotEmpty()) {
@@ -119,10 +125,8 @@ fun MainView(navigation: MainViewNavigation, viewModel: MainViewModel = viewMode
 
                 PromptPermissionsIfNecessary(permissions = Permissions.all)
 
-                Row(modifier = Modifier.padding(top = 10.dp, bottom = 20.dp)) {
-                  ExitNodeStatus(
-                      navAction = navigation.onNavigateToExitNodes, viewModel = viewModel)
-                }
+                ExitNodeStatus(navAction = navigation.onNavigateToExitNodes, viewModel = viewModel)
+
                 PeerList(
                     viewModel = viewModel,
                     onNavigateToPeerDetails = navigation.onNavigateToPeerDetails,
@@ -146,44 +150,47 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
   val exitNodeId = prefs.value?.ExitNodeID
   val peer = exitNodeId?.let { id -> netmap.value?.Peers?.find { it.StableID == id } }
   val location = peer?.Hostinfo?.Location
-  val name = peer?.Name
+  val name = peer?.ComputedName
 
-  Box(
-      modifier =
-          Modifier.padding(horizontal = 16.dp)
-              .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
-              .background(MaterialTheme.colorScheme.background)
-              .fillMaxWidth()) {
-        ListItem(
-            modifier = Modifier.clickable { navAction() },
-            headlineContent = {
-              Text(
-                  stringResource(R.string.exit_node),
-                  style = MaterialTheme.typography.titleMedium,
-              )
-            },
-            supportingContent = {
-              Row(verticalAlignment = Alignment.CenterVertically) {
+  Box(modifier = Modifier.background(color = MaterialTheme.colorScheme.surfaceContainer)) {
+    Box(
+        modifier =
+            Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp)
+                .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
+                .fillMaxWidth()) {
+          ListItem(
+              modifier = Modifier.clickable { navAction() },
+              overlineContent = {
                 Text(
-                    text =
-                        location?.let { "${it.CountryCode?.flag()} ${it.Country} - ${it.City}" }
-                            ?: name
-                            ?: stringResource(id = R.string.none),
-                    style = MaterialTheme.typography.bodyLarge)
-                Icon(
-                    Icons.Outlined.ArrowDropDown,
-                    null,
+                    stringResource(R.string.exit_node),
+                    style = MaterialTheme.typography.bodyMedium,
                 )
-              }
-            },
-            trailingContent = {
-              if (peer != null) {
-                Button(onClick = { viewModel.disableExitNode() }) {
-                  Text(stringResource(R.string.disable))
+              },
+              headlineContent = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                  Text(
+                      text =
+                          location?.let { "${it.CountryCode?.flag()} ${it.Country} - ${it.City}" }
+                              ?: name
+                              ?: stringResource(id = R.string.none),
+                      style = MaterialTheme.typography.titleMedium,
+                      maxLines = 1,
+                      overflow = TextOverflow.Ellipsis)
+                  Icon(
+                      Icons.Outlined.ArrowDropDown,
+                      null,
+                  )
                 }
-              }
-            })
-      }
+              },
+              trailingContent = {
+                if (peer != null) {
+                  Button(onClick = { viewModel.disableExitNode() }) {
+                    Text(stringResource(R.string.disable))
+                  }
+                }
+              })
+        }
+  }
 }
 
 @Composable
@@ -278,7 +285,6 @@ fun PeerList(
 ) {
   val peerList = viewModel.peers.collectAsState(initial = emptyList<PeerSet>())
   val searchTermStr by viewModel.searchTerm.collectAsState(initial = "")
-  val stateVal = viewModel.ipnState.collectAsState(initial = Ipn.State.NoState)
   val netmap = viewModel.netmap.collectAsState()
 
   SearchBar(
@@ -298,6 +304,7 @@ fun PeerList(
           SearchBarDefaults.colors(
               containerColor = Color.Transparent, dividerColor = Color.Transparent),
       modifier = Modifier.fillMaxWidth()) {
+        Lists.ItemDivider()
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
         ) {
@@ -315,10 +322,9 @@ fun PeerList(
             itemsWithDividers(peerSet.peers, key = { it.StableID }) { peer ->
               ListItem(
                   modifier = Modifier.clickable { onNavigateToPeerDetails(peer) },
+                  colors = MaterialTheme.colorScheme.listItem,
                   headlineContent = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                      // By definition, SelfPeer is online since we will not show the peer list
-                      // unless you're connected.
                       Box(
                           modifier =
                               Modifier.size(10.dp)

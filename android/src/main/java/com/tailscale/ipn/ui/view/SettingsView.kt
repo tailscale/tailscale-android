@@ -28,6 +28,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.BuildConfig
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.Links
+import com.tailscale.ipn.ui.theme.listItem
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.viewModel.Setting
 import com.tailscale.ipn.ui.viewModel.SettingType
@@ -104,6 +105,7 @@ private fun TextRow(setting: Setting) {
   val enabled = setting.enabled.collectAsState().value
   ListItem(
       modifier = Modifier.clickable { if (enabled) setting.onClick() },
+      colors = MaterialTheme.colorScheme.listItem,
       headlineContent = {
         Text(
             setting.title ?: stringResource(setting.titleRes),
@@ -119,6 +121,7 @@ private fun SwitchRow(setting: Setting) {
   val swVal = setting.isOn?.collectAsState()?.value ?: false
   ListItem(
       modifier = Modifier.clickable { if (enabled) setting.onClick() },
+      colors = MaterialTheme.colorScheme.listItem,
       headlineContent = {
         Text(
             setting.title ?: stringResource(setting.titleRes),
@@ -134,6 +137,7 @@ private fun SwitchRow(setting: Setting) {
 private fun NavRow(setting: Setting) {
   ListItem(
       modifier = Modifier.clickable { setting.onClick() },
+      colors = MaterialTheme.colorScheme.listItem,
       headlineContent = {
         Text(
             setting.title ?: stringResource(setting.titleRes),
