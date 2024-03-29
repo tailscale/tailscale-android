@@ -45,8 +45,7 @@ fun RunExitNodeView(
         LoadingIndicator.Wrap {
           Column(
               horizontalAlignment = Alignment.CenterHorizontally,
-              verticalArrangement =
-                  Arrangement.spacedBy(16.dp, alignment = Alignment.Top),
+              verticalArrangement = Arrangement.spacedBy(16.dp, alignment = Alignment.Top),
               modifier = Modifier.padding(innerPadding).padding(16.dp).fillMaxHeight()) {
                 RunExitNodeGraphic()
 
@@ -83,11 +82,7 @@ fun RunExitNodeView(
 fun RunExitNodeGraphic() {
   @Composable
   fun ArrowForward() {
-    Icon(
-        Icons.AutoMirrored.Outlined.ArrowForward,
-        "Arrow Forward",
-        tint = MaterialTheme.colorScheme.secondary,
-        modifier = Modifier.size(24.dp))
+    Icon(Icons.AutoMirrored.Outlined.ArrowForward, "Arrow Forward", modifier = Modifier.size(24.dp))
   }
 
   Row(

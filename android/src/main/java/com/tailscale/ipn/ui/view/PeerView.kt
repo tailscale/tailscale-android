@@ -32,7 +32,7 @@ fun PeerView(
     onClick: (Tailcfg.Node) -> Unit = {},
     trailingContent: @Composable () -> Unit = {}
 ) {
-  val textColor = if (disabled) Color.Gray else MaterialTheme.colorScheme.primary
+  val textColor = if (disabled) Color.Gray else Color.Unspecified
 
   ListItem(
       modifier = Modifier.clickable { onClick(peer) },

@@ -58,7 +58,6 @@ fun BugReportView(nav: BackNavigation, model: BugReportViewModel = viewModel()) 
                 text = stringResource(id = R.string.bug_report_id_desc),
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Left,
-                color = MaterialTheme.colorScheme.secondary,
                 style = MaterialTheme.typography.bodySmall)
           })
     }

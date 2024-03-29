@@ -100,15 +100,9 @@ fun MainView(navigation: MainViewNavigation, viewModel: MainViewModel = viewMode
                 },
                 supportingContent = {
                   if (username.isNotEmpty()) {
-                    Text(
-                        text = stateStr,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.secondary)
+                    Text(text = stateStr, style = MaterialTheme.typography.bodyMedium)
                   } else {
-                    Text(
-                        text = stateStr,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.secondary)
+                    Text(text = stateStr, style = MaterialTheme.typography.bodyMedium)
                   }
                 },
                 trailingContent = {
@@ -129,13 +123,10 @@ fun MainView(navigation: MainViewNavigation, viewModel: MainViewModel = viewMode
                 PromptPermissionsIfNecessary(permissions = Permissions.all)
 
                 val selfPeerId = viewModel.selfPeerId.collectAsState(initial = "")
-                Row(
-                    modifier =
-                        Modifier.background(MaterialTheme.colorScheme.secondaryContainer)
-                            .padding(top = 10.dp, bottom = 20.dp)) {
-                      ExitNodeStatus(
-                          navAction = navigation.onNavigateToExitNodes, viewModel = viewModel)
-                    }
+                Row(modifier = Modifier.padding(top = 10.dp, bottom = 20.dp)) {
+                  ExitNodeStatus(
+                      navAction = navigation.onNavigateToExitNodes, viewModel = viewModel)
+                }
                 PeerList(
                     searchTerm = viewModel.searchTerm,
                     state = viewModel.ipnState,
@@ -217,7 +208,7 @@ fun SettingsButton(user: IpnLocal.LoginProfile?, action: () -> Unit) {
 @Composable
 fun StartingView() {
   Column(
-      modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.secondaryContainer),
+      modifier = Modifier.fillMaxSize(),
       verticalArrangement = Arrangement.Center,
       horizontalAlignment = Alignment.CenterHorizontally) {
         TailscaleLogoView(animated = true, Modifier.size(72.dp))
@@ -232,65 +223,56 @@ fun ConnectView(
     loginAction: () -> Unit
 ) {
   Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier =
-            Modifier.background(MaterialTheme.colorScheme.secondaryContainer).fillMaxWidth()) {
-          Column(
-              modifier = Modifier.padding(8.dp).fillMaxWidth(0.7f).fillMaxHeight(),
-              verticalArrangement =
-                  Arrangement.spacedBy(8.dp, alignment = Alignment.CenterVertically),
-              horizontalAlignment = Alignment.CenterHorizontally,
-          ) {
-            if (state != Ipn.State.NeedsLogin && user != null && !user.isEmpty()) {
-              Icon(
-                  painter = painterResource(id = R.drawable.power),
-                  contentDescription = null,
-                  modifier = Modifier.size(48.dp),
-                  tint = MaterialTheme.colorScheme.secondary)
-              Text(
-                  text = stringResource(id = R.string.not_connected),
-                  fontSize = MaterialTheme.typography.titleMedium.fontSize,
-                  fontWeight = FontWeight.SemiBold,
-                  color = MaterialTheme.colorScheme.primary,
-                  textAlign = TextAlign.Center,
-                  fontFamily = MaterialTheme.typography.titleMedium.fontFamily)
-              val tailnetName = user.NetworkProfile?.DomainName ?: ""
-              Text(
-                  stringResource(id = R.string.connect_to_tailnet, tailnetName),
-                  fontSize = MaterialTheme.typography.titleMedium.fontSize,
-                  fontWeight = FontWeight.Normal,
-                  color = MaterialTheme.colorScheme.secondary,
-                  textAlign = TextAlign.Center,
-              )
-              Spacer(modifier = Modifier.size(1.dp))
-              PrimaryActionButton(onClick = connectAction) {
-                Text(
-                    text = stringResource(id = R.string.connect),
-                    fontSize = MaterialTheme.typography.titleMedium.fontSize)
-              }
-            } else {
-              TailscaleLogoView(modifier = Modifier.size(50.dp))
-              Spacer(modifier = Modifier.size(1.dp))
-              Text(
-                  text = stringResource(id = R.string.welcome_to_tailscale),
-                  style = MaterialTheme.typography.titleMedium,
-                  color = MaterialTheme.colorScheme.primary,
-                  textAlign = TextAlign.Center)
-              Text(
-                  stringResource(R.string.login_to_join_your_tailnet),
-                  style = MaterialTheme.typography.titleSmall,
-                  color = MaterialTheme.colorScheme.secondary,
-                  textAlign = TextAlign.Center)
-              Spacer(modifier = Modifier.size(1.dp))
-              PrimaryActionButton(onClick = loginAction) {
-                Text(
-                    text = stringResource(id = R.string.log_in),
-                    fontSize = MaterialTheme.typography.titleMedium.fontSize)
-              }
-            }
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+      Column(
+          modifier = Modifier.padding(8.dp).fillMaxWidth(0.7f).fillMaxHeight(),
+          verticalArrangement = Arrangement.spacedBy(8.dp, alignment = Alignment.CenterVertically),
+          horizontalAlignment = Alignment.CenterHorizontally,
+      ) {
+        if (state != Ipn.State.NeedsLogin && user != null && !user.isEmpty()) {
+          Icon(
+              painter = painterResource(id = R.drawable.power),
+              contentDescription = null,
+              modifier = Modifier.size(48.dp))
+          Text(
+              text = stringResource(id = R.string.not_connected),
+              fontSize = MaterialTheme.typography.titleMedium.fontSize,
+              fontWeight = FontWeight.SemiBold,
+              textAlign = TextAlign.Center,
+              fontFamily = MaterialTheme.typography.titleMedium.fontFamily)
+          val tailnetName = user.NetworkProfile?.DomainName ?: ""
+          Text(
+              stringResource(id = R.string.connect_to_tailnet, tailnetName),
+              fontSize = MaterialTheme.typography.titleMedium.fontSize,
+              fontWeight = FontWeight.Normal,
+              textAlign = TextAlign.Center,
+          )
+          Spacer(modifier = Modifier.size(1.dp))
+          PrimaryActionButton(onClick = connectAction) {
+            Text(
+                text = stringResource(id = R.string.connect),
+                fontSize = MaterialTheme.typography.titleMedium.fontSize)
+          }
+        } else {
+          TailscaleLogoView(modifier = Modifier.size(50.dp))
+          Spacer(modifier = Modifier.size(1.dp))
+          Text(
+              text = stringResource(id = R.string.welcome_to_tailscale),
+              style = MaterialTheme.typography.titleMedium,
+              textAlign = TextAlign.Center)
+          Text(
+              stringResource(R.string.login_to_join_your_tailnet),
+              style = MaterialTheme.typography.titleSmall,
+              textAlign = TextAlign.Center)
+          Spacer(modifier = Modifier.size(1.dp))
+          PrimaryActionButton(onClick = loginAction) {
+            Text(
+                text = stringResource(id = R.string.log_in),
+                fontSize = MaterialTheme.typography.titleMedium.fontSize)
           }
         }
+      }
+    }
   }
 }
 
@@ -326,8 +308,7 @@ fun PeerList(
               containerColor = Color.Transparent, dividerColor = Color.Transparent),
       modifier = Modifier.fillMaxWidth()) {
         LazyColumn(
-            modifier =
-                Modifier.fillMaxSize().background(MaterialTheme.colorScheme.secondaryContainer),
+            modifier = Modifier.fillMaxSize(),
         ) {
           peerList.value.forEach { peerSet ->
             item {
@@ -369,8 +350,7 @@ fun PeerList(
                   supportingContent = {
                     Text(
                         text = peer.Addresses?.first()?.split("/")?.first() ?: "",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.secondary)
+                        style = MaterialTheme.typography.bodyMedium)
                   })
             }
           }

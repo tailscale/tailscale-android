@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
@@ -33,8 +32,8 @@ val logoDotsMatrix: DotsMatrix =
 @Composable
 fun TailscaleLogoView(animated: Boolean = false, modifier: Modifier) {
 
-  val primaryColor: Color = MaterialTheme.colorScheme.secondary
-  val secondaryColor: Color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f)
+  val primaryColor: Color = Color(0xFF706E6D)
+  val secondaryColor: Color = primaryColor.copy(alpha = 0.3f)
 
   val currentDotsMatrix: StateFlow<DotsMatrix> = MutableStateFlow(logoDotsMatrix)
   var currentDotsMatrixIndex = 0

@@ -109,9 +109,7 @@ private fun TextRow(setting: Setting) {
         Text(
             setting.title ?: stringResource(setting.titleRes),
             style = MaterialTheme.typography.bodyMedium,
-            color =
-                if (setting.destructive) ts_color_dark_desctrutive_text
-                else MaterialTheme.colorScheme.primary)
+            color = if (setting.destructive) MaterialTheme.colorScheme.error else Color.Unspecified)
       },
   )
 }
@@ -141,9 +139,7 @@ private fun NavRow(setting: Setting) {
         Text(
             setting.title ?: stringResource(setting.titleRes),
             style = MaterialTheme.typography.bodyMedium,
-            color =
-                if (setting.destructive) ts_color_dark_desctrutive_text
-                else MaterialTheme.colorScheme.primary)
+            color = if (setting.destructive) ts_color_dark_desctrutive_text else Color.Unspecified)
       })
 }
 

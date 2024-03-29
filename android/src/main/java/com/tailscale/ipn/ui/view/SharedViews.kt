@@ -14,10 +14,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -33,11 +31,6 @@ data class BackNavigation(
 @Composable
 fun Header(@StringRes title: Int = 0, titleText: String? = null, onBack: (() -> Unit)? = null) {
   TopAppBar(
-      colors =
-          TopAppBarDefaults.topAppBarColors(
-              containerColor = MaterialTheme.colorScheme.surfaceContainer,
-              titleContentColor = MaterialTheme.colorScheme.primary,
-          ),
       title = { Text(titleText ?: stringResource(title)) },
       navigationIcon = { onBack?.let { BackArrow(action = it) } },
   )
@@ -60,17 +53,14 @@ fun CheckedIndicator() {
 fun SimpleActivityIndicator(size: Int = 32) {
   CircularProgressIndicator(
       modifier = Modifier.width(size.dp),
-      color = ts_color_light_blue,
-      trackColor = MaterialTheme.colorScheme.secondary,
   )
 }
 
 @Composable
 fun ActivityIndicator(progress: Double, size: Int = 32) {
   LinearProgressIndicator(
-          progress = { progress.toFloat() },
-          modifier = Modifier.width(size.dp),
-          color = ts_color_light_blue,
-          trackColor = MaterialTheme.colorScheme.secondary,
+      progress = { progress.toFloat() },
+      modifier = Modifier.width(size.dp),
+      color = ts_color_light_blue,
   )
 }

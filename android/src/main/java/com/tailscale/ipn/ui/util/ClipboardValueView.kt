@@ -49,8 +49,7 @@ fun ClipboardValueView(
             Text(
                 subtitle,
                 modifier = Modifier.padding(top = 8.dp),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.secondary)
+                style = MaterialTheme.typography.bodyMedium)
           }
         },
         trailingContent = {

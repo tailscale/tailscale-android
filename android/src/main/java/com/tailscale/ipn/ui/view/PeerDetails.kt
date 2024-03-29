@@ -50,10 +50,7 @@ fun PeerDetails(
                 .padding(horizontal = 16.dp)
                 .padding(top = 22.dp),
     ) {
-      Text(
-          text = model.nodeName,
-          style = MaterialTheme.typography.titleLarge,
-          color = MaterialTheme.colorScheme.primary)
+      Text(text = model.nodeName, style = MaterialTheme.typography.titleLarge)
       Row(verticalAlignment = Alignment.CenterVertically) {
         Box(
             modifier =
@@ -63,14 +60,12 @@ fun PeerDetails(
         Spacer(modifier = Modifier.size(8.dp))
         Text(
             text = stringResource(id = model.connectedStrRes),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.primary)
+            style = MaterialTheme.typography.bodyMedium)
       }
       Column(modifier = Modifier.fillMaxHeight()) {
         Text(
             text = stringResource(id = R.string.addresses_section),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary)
+            style = MaterialTheme.typography.titleMedium)
 
         Column(modifier = settingsRowModifier()) {
           model.addresses.forEach { AddressRow(address = it.address, type = it.typeString) }
@@ -99,10 +94,7 @@ fun AddressRow(address: String, type: String) {
               .clickable(onClick = { localClipboardManager.setText(AnnotatedString(address)) })) {
         Column {
           Text(text = address)
-          Text(
-              text = type,
-              fontSize = MaterialTheme.typography.labelLarge.fontSize,
-              color = MaterialTheme.colorScheme.secondary)
+          Text(text = type, fontSize = MaterialTheme.typography.labelLarge.fontSize)
         }
         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
           Icon(
@@ -118,7 +110,7 @@ fun ValueRow(title: String, value: String) {
   Row(modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp).fillMaxWidth()) {
     Text(text = title)
     Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
-      Text(text = value, color = MaterialTheme.colorScheme.secondary)
+      Text(text = value)
     }
   }
 }

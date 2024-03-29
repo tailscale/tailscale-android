@@ -54,13 +54,11 @@ fun AboutView(nav: BackNavigation) {
                 Text(
                     stringResource(R.string.about_view_title),
                     fontWeight = FontWeight.SemiBold,
-                    fontSize = MaterialTheme.typography.titleLarge.fontSize,
-                    color = MaterialTheme.colorScheme.primary)
+                    fontSize = MaterialTheme.typography.titleLarge.fontSize)
                 Text(
                     text = BuildConfig.VERSION_NAME,
                     fontWeight = MaterialTheme.typography.bodyMedium.fontWeight,
-                    fontSize = MaterialTheme.typography.bodyMedium.fontSize,
-                    color = MaterialTheme.colorScheme.secondary)
+                    fontSize = MaterialTheme.typography.bodyMedium.fontSize)
               }
           Column(
               verticalArrangement =
@@ -75,7 +73,6 @@ fun AboutView(nav: BackNavigation) {
               stringResource(R.string.about_view_footnotes),
               fontWeight = FontWeight.Normal,
               fontSize = MaterialTheme.typography.labelMedium.fontSize,
-              color = MaterialTheme.colorScheme.tertiary,
               textAlign = TextAlign.Center)
         }
   }

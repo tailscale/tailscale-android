@@ -45,13 +45,11 @@ fun MDMSettingView(setting: MDMSetting<*>) {
         Text(
             setting.key,
             fontSize = MaterialTheme.typography.labelSmall.fontSize,
-            color = MaterialTheme.colorScheme.tertiary,
             fontFamily = FontFamily.Monospace)
       },
       trailingContent = {
         Text(
             value.toString(),
-            color = MaterialTheme.colorScheme.secondary,
             fontFamily = FontFamily.Monospace,
             maxLines = 1,
             fontWeight = FontWeight.SemiBold)
