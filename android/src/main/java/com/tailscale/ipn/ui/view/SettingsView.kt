@@ -28,7 +28,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.BuildConfig
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.Links
-import com.tailscale.ipn.ui.theme.ts_color_dark_desctrutive_text
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.viewModel.Setting
 import com.tailscale.ipn.ui.viewModel.SettingType
@@ -138,8 +137,7 @@ private fun NavRow(setting: Setting) {
       headlineContent = {
         Text(
             setting.title ?: stringResource(setting.titleRes),
-            style = MaterialTheme.typography.bodyMedium,
-            color = if (setting.destructive) ts_color_dark_desctrutive_text else Color.Unspecified)
+            style = MaterialTheme.typography.bodyMedium)
       })
 }
 

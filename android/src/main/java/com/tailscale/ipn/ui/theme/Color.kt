@@ -7,5 +7,3 @@ import androidx.compose.ui.graphics.Color
 
 // TODO: replace references to these with references to material theme
 val ts_color_light_blue = Color(0xFF4B70CC)
-
-var ts_color_dark_desctrutive_text = Color(0xFFFF0000)
