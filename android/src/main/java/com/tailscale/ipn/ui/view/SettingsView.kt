@@ -6,8 +6,6 @@ package com.tailscale.ipn.ui.view
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material3.ListItem
@@ -22,8 +20,8 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.BuildConfig
 import com.tailscale.ipn.R
@@ -56,10 +54,10 @@ fun SettingsView(
               onClick = viewModel.navigation.onNavigateToUserSwitcher)
 
           if (isAdmin) {
-            Spacer(modifier = Modifier.height(4.dp))
             AdminTextView { handler.openUri(Links.ADMIN_URL) }
           }
 
+          Lists.SectionDivider()
           SettingRow(viewModel.dns)
 
           Lists.ItemDivider()
@@ -68,20 +66,21 @@ fun SettingsView(
           Lists.ItemDivider()
           SettingRow(viewModel.permissions)
 
-          Lists.ItemDivider()
-          SettingRow(viewModel.about)
-
-          Lists.ItemDivider()
-          SettingRow(viewModel.bugReport)
-
-          if (BuildConfig.DEBUG) {
-            Lists.ItemDivider()
-            SettingRow(viewModel.mdmDebug)
-          }
-
           managedBy?.let {
             Lists.ItemDivider()
             SettingRow(it)
+          }
+
+          Lists.SectionDivider()
+          SettingRow(viewModel.bugReport)
+
+          Lists.ItemDivider()
+          SettingRow(viewModel.about)
+
+          // TODO: put a heading for the debug section
+          if (BuildConfig.DEBUG) {
+            Lists.SectionDivider()
+            SettingRow(viewModel.mdmDebug)
           }
         }
       }
@@ -148,21 +147,26 @@ private fun NavRow(setting: Setting) {
 @Composable
 fun AdminTextView(onNavigateToAdminConsole: () -> Unit) {
   val adminStr = buildAnnotatedString {
-    withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.primary)) {
+    withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.onSurfaceVariant)) {
       append(stringResource(id = R.string.settings_admin_prefix))
     }
 
     pushStringAnnotation(tag = "link", annotation = Links.ADMIN_URL)
-    withStyle(style = SpanStyle(color = Color.Blue)) {
-      append(stringResource(id = R.string.settings_admin_link))
-    }
+    withStyle(
+        style =
+            SpanStyle(
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                textDecoration = TextDecoration.Underline)) {
+          append(stringResource(id = R.string.settings_admin_link))
+        }
     pop()
   }
 
-  Column(modifier = Modifier.padding(horizontal = 12.dp)) {
-    ClickableText(
-        text = adminStr,
-        style = MaterialTheme.typography.bodySmall,
-        onClick = { onNavigateToAdminConsole() })
-  }
+  ListItem(
+      headlineContent = {
+        ClickableText(
+            text = adminStr,
+            style = MaterialTheme.typography.bodyMedium,
+            onClick = { onNavigateToAdminConsole() })
+      })
 }

@@ -79,11 +79,14 @@ class Tailcfg {
       var LastSeen: Time? = null,
       var Online: Boolean? = null,
       var Capabilities: List<String>? = null,
+      var CapMap: Map<String, List<String>?>? = null,
       var ComputedName: String,
       var ComputedNameWithHost: String
   ) {
     val isAdmin: Boolean
-      get() = (Capabilities ?: emptyList()).contains("https://tailscale.com/cap/is-admin")
+      get() =
+          Capabilities?.contains("https://tailscale.com/cap/is-admin") == true ||
+              CapMap?.contains("https://tailscale.com/cap/is-admin") == true
 
     // isExitNode reproduces the Go logic in local.go peerStatusFromNode
     val isExitNode: Boolean =
@@ -110,7 +113,7 @@ class Tailcfg {
     val displayAddresses: List<DisplayAddress>
       get() {
         var addresses = mutableListOf<DisplayAddress>()
-        addresses.add(DisplayAddress(NameWithoutTrailingDot))
+        addresses.add(DisplayAddress(nameWithoutTrailingDot))
         Addresses?.let { addresses.addAll(it.map { addr -> DisplayAddress(addr) }) }
         return addresses
       }

@@ -38,9 +38,9 @@
     <!-- Strings for the settings screen -->
     <string name="settings_title">Settings</string>
     <string name="settings_admin_prefix">You can manage your account from the admin console.&#160;</string>
-    <string name="settings_admin_link">View admin console…</string>
-    <string name="about">About</string>
-    <string name="bug_report">Bug Report</string>
+    <string name="settings_admin_link">View admin console</string>
+    <string name="about_tailscale">About Tailscale</string>
+    <string name="bug_report">Bug report</string>
     <string name="use_ts_dns">Use Tailscale DNS</string>
 
     <!-- Strings for the main screen -->
