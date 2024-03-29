@@ -3,6 +3,7 @@
 
 package com.tailscale.ipn.ui.view
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -285,7 +286,7 @@ fun ConnectView(
   }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun PeerList(
     viewModel: MainViewModel,
@@ -318,7 +319,7 @@ fun PeerList(
             modifier = Modifier.fillMaxSize(),
         ) {
           peerList.value.forEach { peerSet ->
-            item {
+            stickyHeader {
               ListItem(
                   headlineContent = {
                     Text(
