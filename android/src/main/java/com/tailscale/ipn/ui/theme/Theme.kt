@@ -55,10 +55,10 @@ private val LightColors =
     lightColorScheme(
         primary = Color(0xFF4B70CC), // blue-500
         onPrimary = Color(0xFFFFFFFF), // white
-        //        primaryContainer = Color(0xFFF0F5FF), // blue-0
-        primaryContainer = Color(0xFF6D94EC), // blue-400
-        //        onPrimaryContainer = Color(0xFF3E5DB3), // blue-600
-        onPrimaryContainer = Color(0xFFFFFFFF), // white,
+        primaryContainer = Color(0xFFF0F5FF), // blue-0
+        //        primaryContainer = Color(0xFF6D94EC), // blue-400
+        onPrimaryContainer = Color(0xFF3E5DB3), // blue-600
+        //        onPrimaryContainer = Color(0xFFFFFFFF), // white,
         error = Color(0xFFB22C30), // red-500
         onError = Color(0xFFFFFFFF), // white
         errorContainer = Color(0xFFFEF6F3), // red-0
@@ -209,8 +209,8 @@ val ColorScheme.secondaryButton: ButtonColors
   get() {
     val defaults = ButtonDefaults.buttonColors()
     return ButtonColors(
-        containerColor = MaterialTheme.colorScheme.primaryContainer,
-        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        containerColor = Color(0xFF6D94EC), // blue-400
+        contentColor = Color(0xFFFFFFFF), // white
         disabledContainerColor = defaults.disabledContainerColor,
         disabledContentColor = defaults.disabledContentColor)
   }

@@ -3,7 +3,6 @@
 
 package com.tailscale.ipn.ui.view
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -11,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
@@ -33,49 +31,50 @@ import com.tailscale.ipn.ui.viewModel.ExitNodePickerViewModel
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerViewModelFactory
 import com.tailscale.ipn.ui.viewModel.selected
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ExitNodePicker(
     nav: ExitNodePickerNav,
     model: ExitNodePickerViewModel = viewModel(factory = ExitNodePickerViewModelFactory(nav))
 ) {
   LoadingIndicator.Wrap {
-    Scaffold(
-        topBar = { Header(R.string.choose_exit_node, onBack = nav.onNavigateBack) },
-        bottomBar = { SettingRow(model.allowLANAccessSetting) }) { innerPadding ->
-          val tailnetExitNodes = model.tailnetExitNodes.collectAsState().value
-          val mullvadExitNodesByCountryCode =
-              model.mullvadExitNodesByCountryCode.collectAsState().value
-          val mullvadExitNodeCount = model.mullvadExitNodeCount.collectAsState().value
-          val anyActive = model.anyActive.collectAsState()
+    Scaffold(topBar = { Header(R.string.choose_exit_node, onBack = nav.onNavigateBack) }) {
+        innerPadding ->
+      val tailnetExitNodes = model.tailnetExitNodes.collectAsState().value
+      val mullvadExitNodesByCountryCode = model.mullvadExitNodesByCountryCode.collectAsState().value
+      val mullvadExitNodeCount = model.mullvadExitNodeCount.collectAsState().value
+      val anyActive = model.anyActive.collectAsState()
 
-          LazyColumn(modifier = Modifier.padding(innerPadding)) {
-            stickyHeader {
-              ExitNodeItem(
-                  model,
-                  ExitNodePickerViewModel.ExitNode(
-                      label = stringResource(R.string.none),
-                      online = true,
-                      selected = !anyActive.value,
-                  ))
-              Lists.ItemDivider()
-              RunAsExitNodeItem(nav = nav, viewModel = model)
-            }
+      LazyColumn(modifier = Modifier.padding(innerPadding)) {
+        item(key = "header") {
+          ExitNodeItem(
+              model,
+              ExitNodePickerViewModel.ExitNode(
+                  label = stringResource(R.string.none),
+                  online = true,
+                  selected = !anyActive.value,
+              ))
+          Lists.ItemDivider()
+          RunAsExitNodeItem(nav = nav, viewModel = model)
+        }
 
-            item(key = "divider1") { Lists.SectionDivider() }
+        item(key = "divider1") { Lists.SectionDivider() }
 
-            itemsWithDividers(tailnetExitNodes, key = { it.id!! }) { node ->
-              ExitNodeItem(model, node)
-            }
+        itemsWithDividers(tailnetExitNodes, key = { it.id!! }) { node -> ExitNodeItem(model, node) }
 
-            if (mullvadExitNodeCount > 0) {
-              item(key = "mullvad") {
-                Lists.SectionDivider()
-                MullvadItem(nav, mullvadExitNodeCount, mullvadExitNodesByCountryCode.selected)
-              }
-            }
+        if (mullvadExitNodeCount > 0) {
+          item(key = "mullvad") {
+            Lists.SectionDivider()
+            MullvadItem(nav, mullvadExitNodeCount, mullvadExitNodesByCountryCode.selected)
           }
         }
+
+        // TODO: make sure this actually works, and if not, leave it out for now
+        item(key = "allowLANAccess") {
+          Lists.SectionDivider()
+          SettingRow(model.allowLANAccessSetting)
+        }
+      }
+    }
   }
 }
 
@@ -146,7 +145,7 @@ fun RunAsExitNodeItem(nav: ExitNodePickerNav, viewModel: ExitNodePickerViewModel
               stringResource(id = R.string.run_as_exit_node),
               style = MaterialTheme.typography.bodyMedium)
         },
-        trailingContent = {
+        supportingContent = {
           if (isRunningExitNode) {
             Text(stringResource(R.string.enabled))
           } else {

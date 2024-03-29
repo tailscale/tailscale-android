@@ -42,7 +42,7 @@ fun Header(@StringRes title: Int = 0, titleText: String? = null, onBack: (() -> 
 
 @Composable
 fun BackArrow(action: () -> Unit) {
-  Box(modifier = Modifier.padding(start = 15.dp, end = 20.dp)) {
+  Box(modifier = Modifier.padding(start = 8.dp, end = 8.dp)) {
     Icon(Icons.AutoMirrored.Filled.ArrowBack, null, modifier = Modifier.clickable { action() })
   }
 }

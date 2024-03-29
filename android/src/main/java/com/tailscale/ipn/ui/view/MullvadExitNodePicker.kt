@@ -51,7 +51,7 @@ fun MullvadExitNodePicker(
                           online = bestAvailableNode.online,
                           selected = false,
                       ))
-                  Lists.ItemDivider()
+                  Lists.SectionDivider()
                 }
               }
 
