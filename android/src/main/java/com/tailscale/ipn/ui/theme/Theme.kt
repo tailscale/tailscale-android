@@ -4,6 +4,8 @@
 package com.tailscale.ipn.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ButtonColors
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ListItemColors
@@ -124,7 +126,7 @@ val ColorScheme.listItem: ListItemColors
   }
 
 /** Color scheme for list items that should be styled as a surface container. */
-val ColorScheme.containerListItem: ListItemColors
+val ColorScheme.surfaceContainerListItem: ListItemColors
   @Composable
   get() {
     val default = ListItemDefaults.colors()
@@ -135,6 +137,23 @@ val ColorScheme.containerListItem: ListItemColors
         overlineColor = MaterialTheme.colorScheme.onSurface,
         supportingTextColor = MaterialTheme.colorScheme.onSurface,
         trailingIconColor = MaterialTheme.colorScheme.onSurface,
+        disabledHeadlineColor = default.disabledHeadlineColor,
+        disabledLeadingIconColor = default.disabledLeadingIconColor,
+        disabledTrailingIconColor = default.disabledTrailingIconColor)
+  }
+
+/** Color scheme for list items that should be styled as a primary item. */
+val ColorScheme.primaryListItem: ListItemColors
+  @Composable
+  get() {
+    val default = ListItemDefaults.colors()
+    return ListItemColors(
+        containerColor = MaterialTheme.colorScheme.primary,
+        headlineColor = MaterialTheme.colorScheme.onPrimary,
+        leadingIconColor = MaterialTheme.colorScheme.onPrimary,
+        overlineColor = MaterialTheme.colorScheme.onPrimary,
+        supportingTextColor = MaterialTheme.colorScheme.onPrimary,
+        trailingIconColor = MaterialTheme.colorScheme.onPrimary,
         disabledHeadlineColor = default.disabledHeadlineColor,
         disabledLeadingIconColor = default.disabledLeadingIconColor,
         disabledTrailingIconColor = default.disabledTrailingIconColor)
@@ -151,3 +170,14 @@ val ColorScheme.topAppBar: TopAppBarColors
               navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
               titleContentColor = MaterialTheme.colorScheme.onSurface,
           )
+
+val ColorScheme.secondaryButton: ButtonColors
+  @Composable
+  get() {
+    val defaults = ButtonDefaults.buttonColors()
+    return ButtonColors(
+        containerColor = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        disabledContainerColor = defaults.disabledContainerColor,
+        disabledContentColor = defaults.disabledContentColor)
+  }

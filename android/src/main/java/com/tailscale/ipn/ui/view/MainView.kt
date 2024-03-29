@@ -28,6 +28,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SearchBar
@@ -57,8 +58,10 @@ import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.Permission
 import com.tailscale.ipn.ui.model.Permissions
 import com.tailscale.ipn.ui.model.Tailcfg
-import com.tailscale.ipn.ui.theme.containerListItem
 import com.tailscale.ipn.ui.theme.listItem
+import com.tailscale.ipn.ui.theme.primaryListItem
+import com.tailscale.ipn.ui.theme.secondaryButton
+import com.tailscale.ipn.ui.theme.surfaceContainerListItem
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.PeerSet
@@ -88,7 +91,7 @@ fun MainView(navigation: MainViewNavigation, viewModel: MainViewModel = viewMode
             val username = viewModel.userName
 
             ListItem(
-                colors = MaterialTheme.colorScheme.containerListItem,
+                colors = MaterialTheme.colorScheme.surfaceContainerListItem,
                 leadingContent = {
                   val isOn = viewModel.vpnToggleState.collectAsState(initial = false)
                   TintedSwitch(
@@ -151,6 +154,7 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
   val peer = exitNodeId?.let { id -> netmap.value?.Peers?.find { it.StableID == id } }
   val location = peer?.Hostinfo?.Location
   val name = peer?.ComputedName
+  val active = peer != null
 
   Box(modifier = Modifier.background(color = MaterialTheme.colorScheme.surfaceContainer)) {
     Box(
@@ -160,6 +164,9 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
                 .fillMaxWidth()) {
           ListItem(
               modifier = Modifier.clickable { navAction() },
+              colors =
+                  if (active) MaterialTheme.colorScheme.primaryListItem
+                  else ListItemDefaults.colors(),
               overlineContent = {
                 Text(
                     stringResource(R.string.exit_node),
@@ -184,9 +191,11 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
               },
               trailingContent = {
                 if (peer != null) {
-                  Button(onClick = { viewModel.disableExitNode() }) {
-                    Text(stringResource(R.string.disable))
-                  }
+                  Button(
+                      colors = MaterialTheme.colorScheme.secondaryButton,
+                      onClick = { viewModel.disableExitNode() }) {
+                        Text(stringResource(R.string.disable))
+                      }
                 }
               })
         }
