@@ -45,7 +45,7 @@ class PeerCategorizer {
               if (it.user?.ID == me?.ID) {
                 ""
               } else {
-                it.user?.DisplayName ?: "Unknown User"
+                it.user?.DisplayName?.lowercase() ?: "unknown user"
               }
             }
   }

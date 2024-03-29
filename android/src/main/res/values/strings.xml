@@ -52,10 +52,9 @@
     <string name="login_to_join_your_tailnet">Log in to join your tailnet and connect your devices.</string>
 
     <!-- Strings for peer details -->
-    <string name="addresses_section"></string>
     <string name="os">OS</string>
-    <string name="key_expiry">Key Expiry</string>
-    <string name="peer_details">Tailscale Addresses</string>
+    <string name="key_expiry">Key expiry</string>
+    <string name="tailscale_addresses">Tailscale addresses</string>
 
     <!-- Strings for MDM settings -->
     <string name="current_mdm_settings">Current MDM Settings</string>

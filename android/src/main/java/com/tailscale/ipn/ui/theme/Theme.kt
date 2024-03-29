@@ -44,7 +44,8 @@ fun AppTheme(useDarkTheme: Boolean = isSystemInDarkTheme(), content: @Composable
   val systemUiController = rememberSystemUiController()
 
   DisposableEffect(systemUiController, useDarkTheme) {
-    systemUiController.setSystemBarsColor(color = colors.surfaceContainer)
+    systemUiController.setStatusBarColor(color = colors.surfaceContainer)
+    systemUiController.setNavigationBarColor(color = Color.Black)
     onDispose {}
   }
 
@@ -117,7 +118,7 @@ val ColorScheme.onSuccessContainer: Color
   get() = Color(0xFF0E4B3B) // green-600
 
 val ColorScheme.on: Color
-  get() = Color(0xFF84D996) // green-100
+  get() = Color(0xFF1CA672) // green-300
 
 val ColorScheme.off: Color
   get() = Color(0xFFD9D6D5) // gray-300

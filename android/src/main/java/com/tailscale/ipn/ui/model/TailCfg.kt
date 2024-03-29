@@ -105,11 +105,13 @@ class Tailcfg {
     fun connectedColor(nm: Netmap.NetworkMap?) =
         if (connectedOrSelfNode(nm)) MaterialTheme.colorScheme.on else MaterialTheme.colorScheme.off
 
+    val nameWithoutTrailingDot = Name.trimEnd('.')
+
     val displayAddresses: List<DisplayAddress>
       get() {
         var addresses = mutableListOf<DisplayAddress>()
+        addresses.add(DisplayAddress(NameWithoutTrailingDot))
         Addresses?.let { addresses.addAll(it.map { addr -> DisplayAddress(addr) }) }
-        addresses.add(DisplayAddress(Name))
         return addresses
       }
 

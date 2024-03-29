@@ -68,6 +68,7 @@ import com.tailscale.ipn.ui.theme.listItem
 import com.tailscale.ipn.ui.theme.primaryListItem
 import com.tailscale.ipn.ui.theme.secondaryButton
 import com.tailscale.ipn.ui.theme.surfaceContainerListItem
+import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.PeerSet
 import com.tailscale.ipn.ui.util.flag
@@ -341,7 +342,10 @@ fun PeerList(
           var first = true
           peerList.value.forEach { peerSet ->
             if (!first) {
-              item(key = "spacer_${peerSet.user?.DisplayName}") { Spacer(Modifier.height(24.dp)) }
+              item(key = "spacer_${peerSet.user?.DisplayName}") {
+                Lists.ItemDivider()
+                Spacer(Modifier.height(24.dp))
+              }
             }
             first = false
 
