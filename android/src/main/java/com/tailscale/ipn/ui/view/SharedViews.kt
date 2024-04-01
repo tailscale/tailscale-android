@@ -5,12 +5,14 @@ package com.tailscale.ipn.ui.view
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -19,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -53,7 +56,16 @@ fun Header(
 @Composable
 fun BackArrow(action: () -> Unit) {
   Box(modifier = Modifier.padding(start = 8.dp, end = 8.dp)) {
-    Icon(Icons.AutoMirrored.Filled.ArrowBack, null, modifier = Modifier.clickable { action() })
+    Icon(
+        Icons.AutoMirrored.Filled.ArrowBack,
+        null,
+        modifier =
+            Modifier.clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication =
+                    rememberRipple(
+                        bounded = false), // You can also change the color and radius of the ripple
+                onClick = { action() }))
   }
 }
 
