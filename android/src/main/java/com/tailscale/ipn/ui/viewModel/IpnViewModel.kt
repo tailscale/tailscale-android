@@ -12,12 +12,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tailscale.ipn.App
 import com.tailscale.ipn.IPNReceiver
+import com.tailscale.ipn.MainActivity
 import com.tailscale.ipn.ui.localapi.Client
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.UserID
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.util.set
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -106,6 +108,29 @@ open class IpnViewModel : ViewModel() {
   }
 
   fun login(completionHandler: (Result<Unit>) -> Unit = {}) {
+    lateinit var job: Job
+    job =
+        App.getApplication().applicationScope.launch {
+          // Wait for login to finish and then foreground activity again
+          Notifier.state.collect { state ->
+            if (state > Ipn.State.NeedsMachineAuth) {
+              val context = App.getApplication().applicationContext
+              val intent = Intent(context, MainActivity::class.java)
+              intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+              intent.setAction(Intent.ACTION_MAIN)
+              intent.addCategory(Intent.CATEGORY_LAUNCHER)
+              try {
+                context.startActivity(intent)
+              } catch (e: Throwable) {
+                Log.e(TAG, "failed to start activity: $e")
+                throw e
+              } finally {
+                job.cancel(null)
+              }
+            }
+          }
+        }
+
     Client(viewModelScope).startLoginInteractive { result ->
       result
           .onSuccess { Log.d(TAG, "Login started: $it") }
