@@ -17,7 +17,6 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
-import java.nio.charset.Charset
 
 // Notifier is a wrapper around the IPN Bus notifier.  It provides a way to watch
 // for changes in various parts of the Tailscale engine.  You will typically only use
@@ -68,7 +67,6 @@ object Notifier {
               NotifyWatchOpt.InitialState.value
       manager =
           app.watchNotifications(mask.toLong()) { notification ->
-            Log.d("ZZZZ", notification.toString(Charset.defaultCharset()))
             val notify = decoder.decodeFromStream<Notify>(notification.inputStream())
             notify.State?.let { state.set(Ipn.State.fromInt(it)) }
             notify.NetMap?.let(netmap::set)

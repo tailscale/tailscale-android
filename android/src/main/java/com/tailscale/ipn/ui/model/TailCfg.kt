@@ -13,6 +13,7 @@ import com.tailscale.ipn.ui.util.DisplayAddress
 import com.tailscale.ipn.ui.util.TimeUtil
 import com.tailscale.ipn.ui.viewModel.PeerSettingInfo
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 
 class Tailcfg {
   @Serializable
@@ -79,7 +80,7 @@ class Tailcfg {
       var LastSeen: Time? = null,
       var Online: Boolean? = null,
       var Capabilities: List<String>? = null,
-      var CapMap: Map<String, List<String>?>? = null,
+      var CapMap: Map<String, JsonElement?>? = null,
       var ComputedName: String,
       var ComputedNameWithHost: String
   ) {
