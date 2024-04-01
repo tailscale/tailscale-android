@@ -14,7 +14,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TopAppBarColors
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.Typography
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -24,12 +23,7 @@ import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
 @Composable
 fun AppTheme(useDarkTheme: Boolean = isSystemInDarkTheme(), content: @Composable() () -> Unit) {
-  val colors =
-      if (!useDarkTheme) {
-        LightColors
-      } else {
-        DarkColors
-      }
+  val colors = LightColors
 
   val typography =
       Typography(
@@ -81,16 +75,6 @@ private val LightColors =
         inverseSurface = Color(0xFF232222), // gray-800
         inverseOnSurface = Color(0xFFFFFFFF), // white
         scrim = Color(0xFF000000), // black
-    )
-
-private val DarkColors =
-    darkColorScheme(
-        primary = Color(0xFFFAF9F8),
-        onPrimary = Color(0xFFAFACAB),
-        secondary = Color(0xFF232222),
-        onSecondary = Color(0xFF2E2D2D),
-        secondaryContainer = Color(0xFF4B70CC),
-        surface = Color(0xFF33C27F),
     )
 
 val ColorScheme.warning: Color
