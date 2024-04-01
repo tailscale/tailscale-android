@@ -120,10 +120,16 @@ class Tailcfg {
       }
 
     val info: List<PeerSettingInfo>
-      get() =
-          listOf(
-              PeerSettingInfo(R.string.os, ComposableStringFormatter(Hostinfo.OS ?: "")),
-              PeerSettingInfo(R.string.key_expiry, TimeUtil().keyExpiryFromGoTime(KeyExpiry)))
+      get() {
+        val result = mutableListOf<PeerSettingInfo>()
+        if (Hostinfo.OS?.isNotEmpty() == true) {
+          result.add(
+              PeerSettingInfo(R.string.os, ComposableStringFormatter(Hostinfo.OS!!)),
+          )
+        }
+        result.add(PeerSettingInfo(R.string.key_expiry, TimeUtil().keyExpiryFromGoTime(KeyExpiry)))
+        return result
+      }
   }
 
   @Serializable
