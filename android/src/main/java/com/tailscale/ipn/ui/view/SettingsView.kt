@@ -26,6 +26,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.BuildConfig
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.Links
+import com.tailscale.ipn.ui.theme.link
 import com.tailscale.ipn.ui.theme.listItem
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.viewModel.Setting
@@ -156,7 +157,7 @@ fun AdminTextView(onNavigateToAdminConsole: () -> Unit) {
     withStyle(
         style =
             SpanStyle(
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                color = MaterialTheme.colorScheme.link,
                 textDecoration = TextDecoration.Underline)) {
           append(stringResource(id = R.string.settings_admin_link))
         }

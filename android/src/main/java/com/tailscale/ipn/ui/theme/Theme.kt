@@ -123,6 +123,9 @@ val ColorScheme.on: Color
 val ColorScheme.off: Color
   get() = Color(0xFFD9D6D5) // gray-300
 
+val ColorScheme.link: Color
+  get() = onPrimaryContainer
+
 /**
  * Main color scheme for list items, uses onPrimaryContainer color for leading and trailing icons.
  */
