@@ -30,7 +30,8 @@ import com.tailscale.ipn.ui.util.itemsWithDividers
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun PermissionsView(nav: BackNavigation, openApplicationSettings: () -> Unit) {
-  Scaffold(topBar = { Header(title = R.string.permissions, onBack = nav.onBack) }) { innerPadding ->
+  Scaffold(topBar = { Header(titleRes = R.string.permissions, onBack = nav.onBack) }) { innerPadding
+    ->
     val permissions = Permissions.all
     val permissionStates =
         rememberMultiplePermissionsState(permissions = permissions.map { it.name })

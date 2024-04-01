@@ -32,9 +32,19 @@ data class BackNavigation(
 // Header view for all secondary screens
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Header(@StringRes title: Int = 0, titleText: String? = null, onBack: (() -> Unit)? = null) {
+fun Header(
+    @StringRes titleRes: Int = 0,
+    title: (@Composable () -> Unit)? = null,
+    onBack: (() -> Unit)? = null
+) {
   TopAppBar(
-      title = { Text(titleText ?: stringResource(title)) },
+      title = {
+        title?.let { title() }
+            ?: Text(
+                stringResource(titleRes),
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface)
+      },
       colors = MaterialTheme.colorScheme.topAppBar,
       navigationIcon = { onBack?.let { BackArrow(action = it) } },
   )

@@ -6,6 +6,7 @@ package com.tailscale.ipn.ui.view
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,7 +20,6 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
@@ -35,8 +35,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.theme.listItem
-import com.tailscale.ipn.ui.theme.surfaceContainerListItem
-import com.tailscale.ipn.ui.theme.topAppBar
 import com.tailscale.ipn.ui.theme.ts_color_light_blue
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.itemsWithDividers
@@ -55,64 +53,59 @@ fun PeerDetails(
     model.node.collectAsState().value?.let { node ->
       Scaffold(
           topBar = {
-            TopAppBar(
+            Header(
                 title = {
-                  ListItem(
-                      colors = MaterialTheme.colorScheme.surfaceContainerListItem,
-                      headlineContent = {
-                        Text(
-                            text = node.displayName,
-                            style = MaterialTheme.typography.titleMedium.copy(lineHeight = 20.sp))
-                      },
-                      supportingContent = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                          Box(
-                              modifier =
-                                  Modifier.size(8.dp)
-                                      .background(
-                                          color = node.connectedColor(netmap),
-                                          shape = RoundedCornerShape(percent = 50))) {}
-                          Spacer(modifier = Modifier.size(8.dp))
-                          Text(
-                              text = stringResource(id = node.connectedStrRes(netmap)),
-                              style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp))
-                        }
-                      },
-                  )
-                },
-                colors = MaterialTheme.colorScheme.topAppBar,
-                navigationIcon = { BackArrow(action = { nav.onBack() }) },
-            )
-          }) { innerPadding ->
-            LazyColumn(
-                modifier = Modifier.padding(innerPadding),
-            ) {
-              item(key = "tailscaleAddresses") {
-                Box(
-                    modifier =
-                        Modifier.fillMaxWidth()
-                            .background(
-                                color = MaterialTheme.colorScheme.surface,
-                                shape = RectangleShape)) {
+                  Column {
+                    Text(
+                        text = node.displayName,
+                        style = MaterialTheme.typography.titleMedium.copy(lineHeight = 20.sp),
+                        color = MaterialTheme.colorScheme.onSurface)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                      Box(
+                          modifier =
+                              Modifier.size(8.dp)
+                                  .background(
+                                      color = node.connectedColor(netmap),
+                                      shape = RoundedCornerShape(percent = 50))) {}
+                      Spacer(modifier = Modifier.size(8.dp))
                       Text(
-                          modifier = Modifier.padding(start = 16.dp, top = 16.dp),
-                          text = stringResource(R.string.tailscale_addresses),
-                          style = MaterialTheme.typography.titleSmall,
+                          text = stringResource(id = node.connectedStrRes(netmap)),
+                          style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp),
                           color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-              }
-
-              itemsWithDividers(node.displayAddresses, key = { it.address }) {
-                AddressRow(address = it.address, type = it.typeString)
-              }
-
-              item(key = "infoDivider") { Lists.SectionDivider() }
-
-              itemsWithDividers(node.info, key = { "info_${it.titleRes}" }) {
-                ValueRow(title = stringResource(id = it.titleRes), value = it.value.getString())
-              }
-            }
+                  }
+                },
+                onBack = { nav.onBack() })
+          },
+      ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier.padding(innerPadding),
+        ) {
+          item(key = "tailscaleAddresses") {
+            Box(
+                modifier =
+                    Modifier.fillMaxWidth()
+                        .background(
+                            color = MaterialTheme.colorScheme.surface, shape = RectangleShape)) {
+                  Text(
+                      modifier = Modifier.padding(start = 16.dp, top = 16.dp),
+                      text = stringResource(R.string.tailscale_addresses),
+                      style = MaterialTheme.typography.titleSmall,
+                      color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
           }
+
+          itemsWithDividers(node.displayAddresses, key = { it.address }) {
+            AddressRow(address = it.address, type = it.typeString)
+          }
+
+          item(key = "infoDivider") { Lists.SectionDivider() }
+
+          itemsWithDividers(node.info, key = { "info_${it.titleRes}" }) {
+            ValueRow(title = stringResource(id = it.titleRes), value = it.value.getString())
+          }
+        }
+      }
     }
   }
 }

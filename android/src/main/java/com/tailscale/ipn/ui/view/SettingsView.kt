@@ -45,8 +45,9 @@ fun SettingsView(
   val managedBy = viewModel.managedBy.collectAsState().value
 
   Scaffold(
-      topBar = { Header(title = R.string.settings_title, onBack = settingsNav.onBackPressed) }) {
-          innerPadding ->
+      topBar = {
+        Header(titleRes = R.string.settings_title, onBack = settingsNav.onBackPressed)
+      }) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding)) {
           UserView(
               profile = user,
