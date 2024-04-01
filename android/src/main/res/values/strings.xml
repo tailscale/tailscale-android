@@ -16,6 +16,7 @@
     <string name="offline">Offline</string>
     <string name="ok">OK</string>
     <string name="warning">Warning</string>
+    <string name="search">Search\n</string>
 
     <!-- Strings for the about screen -->
     <string name="app_name">Tailscale</string>
