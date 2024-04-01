@@ -396,7 +396,7 @@ fun PromptPermissionsIfNecessary(permissions: List<Permission>) {
     val state = rememberPermissionState(permission.name)
     if (!state.status.isGranted && !state.status.shouldShowRationale) {
       // We don't have the permission and can ask for it
-      ErrorDialog(title = permission.title, message = permission.neededDescription) {
+      ErrorDialog(title = permission.title, message = permission.description) {
         state.launchPermissionRequest()
       }
     }

@@ -174,11 +174,9 @@
     <string name="permissions">Permissions</string>
     <string name="permission_required">Permission required</string>
     <string name="permission_write_external_storage">Storage</string>
-    <string name="permission_write_external_storage_needed">Please grant Tailscale the Storage permission in order to receive files with Taildrop.</string>
-    <string name="permission_write_external_storage_granted">Thank you for granting Tailscale the Storage permission.</string>
+    <string name="permission_write_external_storage_needed">We use storage in order to receive files with Taildrop.</string>
     <string name="permission_post_notifications">Notifications</string>
-    <string name="permission_post_notifications_needed">Please grant Tailscale the Notifications permission in order to receive important status notifications.</string>
-    <string name="permission_post_notifications_granted">Thank you for granting Tailscale the Notifications permission.</string>
+    <string name="permission_post_notifications_needed">We use notifications to help you troubleshoot broken connections, or notify you before you need to reauthenticate to your network.</string>
 
 
     <!-- Strings for the share activity -->

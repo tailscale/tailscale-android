@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
@@ -55,20 +54,7 @@ fun PermissionsView(nav: BackNavigation, openApplicationSettings: () -> Unit) {
             headlineContent = {
               Text(stringResource(permission.title), style = MaterialTheme.typography.titleMedium)
             },
-            supportingContent = {
-              Text(
-                  stringResource(
-                      if (state.status.isGranted) permission.grantedDescription
-                      else permission.neededDescription))
-            },
-            trailingContent = {
-              if (!state.status.isGranted) {
-                Icon(
-                    Icons.AutoMirrored.Outlined.KeyboardArrowRight,
-                    modifier = Modifier.size(24.dp),
-                    contentDescription = stringResource(R.string.more))
-              }
-            },
+            supportingContent = { Text(stringResource(permission.description)) },
         )
       }
     }
