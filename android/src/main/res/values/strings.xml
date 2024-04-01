@@ -84,10 +84,16 @@
     <string name="logout_failed">Unable to logout at this time.  Please try again.</string>
     <string name="error">Error</string>
     <string name="accounts">Accounts</string>
-    <string name="add_account">Add Another Account…</string>
+    <string name="add_account">Add Another Account</string>
+    <string name="add_account_short">Add Account</string>
     <string name="reauthenticate">Reauthenticate</string>
     <string name="switch_user_failed">Unable to switch users.  Please try again.</string>
     <string name="add_profile_failed">Unable to add a new profile.  Please try again.</string>
+    <string name="invalidCustomUrl">Please enter a valid URL in the form https://server.com</string>
+    <string name="invalidCustomURLTitle">Invalid URL</string>
+    <string name="custom_control_menu">Add account using alternate server</string>
+    <string name="custom_control_menu_desc">Enter the URL of an alternate Tailscale server or your self-hosted Headscale server.</string>
+    <string name="custom_control_placeholder">https://my.custom.server.com</string>
 
     <!-- Strings for ExitNode picker -->
     <string name="choose_exit_node">Choose Exit Node</string>
@@ -204,5 +210,6 @@
     <string name="tailscale">Tailscale</string>
     <string name="getStarted">Get Started</string>
     <string name="welcome1">Tailscale is a mesh VPN for securely connecting your devices. All connections are device-to-device, so we never see your data.\n\nWe collect and use your email address and name, as well as your device name, OS version, and IP address in order to help you to connect your devices and manage your settings. We log when you are connected to your network.\n</string>
+
 
 </resources>
