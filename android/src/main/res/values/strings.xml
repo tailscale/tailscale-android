@@ -124,7 +124,7 @@
 
     <!-- Strings for the bug report screen -->
     <string name="bug_report_id">Bug report ID</string>
-    <string name="learn_more">Learn more…</string>
+    <string name="learn_more">Learn more</string>
 
     <!-- Strings for DNS settings -->
     <string name="dns_settings">DNS settings</string>
