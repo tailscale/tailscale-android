@@ -4,7 +4,6 @@
 package com.tailscale.ipn.ui.util
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -31,31 +30,29 @@ fun ClipboardValueView(
     fontFamily: FontFamily = FontFamily.Monospace
 ) {
   val localClipboardManager = LocalClipboardManager.current
-  Row {
-    ListItem(
-        modifier = Modifier.clickable { localClipboardManager.setText(AnnotatedString(value)) },
-        overlineContent = { title?.let { Text(it, style = MaterialTheme.typography.titleMedium) } },
-        headlineContent = {
+  ListItem(
+      modifier = Modifier.clickable { localClipboardManager.setText(AnnotatedString(value)) },
+      overlineContent = { title?.let { Text(it, style = MaterialTheme.typography.titleMedium) } },
+      headlineContent = {
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontFamily = fontFamily,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis)
+      },
+      supportingContent = {
+        subtitle?.let { subtitle ->
           Text(
-              text = value,
-              style = MaterialTheme.typography.bodyMedium,
-              fontFamily = fontFamily,
-              maxLines = 2,
-              overflow = TextOverflow.Ellipsis)
-        },
-        supportingContent = {
-          subtitle?.let { subtitle ->
-            Text(
-                subtitle,
-                modifier = Modifier.padding(top = 8.dp),
-                style = MaterialTheme.typography.bodyMedium)
-          }
-        },
-        trailingContent = {
-          Icon(
-              painterResource(R.drawable.clipboard),
-              stringResource(R.string.copy_to_clipboard),
-              modifier = Modifier.width(24.dp).height(24.dp))
-        })
-  }
+              subtitle,
+              modifier = Modifier.padding(top = 8.dp),
+              style = MaterialTheme.typography.bodyMedium)
+        }
+      },
+      trailingContent = {
+        Icon(
+            painterResource(R.drawable.clipboard),
+            stringResource(R.string.copy_to_clipboard),
+            modifier = Modifier.width(24.dp).height(24.dp))
+      })
 }
