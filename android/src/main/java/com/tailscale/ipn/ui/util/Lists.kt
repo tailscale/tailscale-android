@@ -3,30 +3,54 @@
 
 package com.tailscale.ipn.ui.util
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 object Lists {
   @Composable
   fun SectionDivider(title: String? = null) {
     Box(Modifier.size(0.dp, 16.dp))
-    title?.let {
-      ListItem(headlineContent = { Text(title, style = MaterialTheme.typography.titleMedium) })
-    }
+    title?.let { SectionTitle(title) }
   }
 
   @Composable
   fun ItemDivider() {
     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+  }
+
+  @Composable
+  fun SectionTitle(
+      title: String,
+      bottomPadding: Dp = 0.dp,
+      style: TextStyle = MaterialTheme.typography.titleMedium,
+      fontWeight: FontWeight? = null
+  ) {
+    Box(
+        modifier =
+            Modifier.fillMaxWidth()
+                .background(color = MaterialTheme.colorScheme.surface, shape = RectangleShape)) {
+          Text(
+              title,
+              modifier =
+                  Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = bottomPadding),
+              style = style,
+              fontWeight = fontWeight)
+        }
   }
 }
 
