@@ -24,6 +24,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowDropDown
+import androidx.compose.material.icons.outlined.Clear
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Button
@@ -33,16 +35,20 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SearchBar
-import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
@@ -66,6 +72,7 @@ import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.theme.disabled
 import com.tailscale.ipn.ui.theme.listItem
 import com.tailscale.ipn.ui.theme.primaryListItem
+import com.tailscale.ipn.ui.theme.searchBarColors
 import com.tailscale.ipn.ui.theme.secondaryButton
 import com.tailscale.ipn.ui.theme.surfaceContainerListItem
 import com.tailscale.ipn.ui.util.Lists
@@ -318,75 +325,94 @@ fun PeerList(
   val searchTermStr by viewModel.searchTerm.collectAsState(initial = "")
   val netmap = viewModel.netmap.collectAsState()
 
-  SearchBar(
-      query = searchTermStr,
-      onQueryChange = onSearch,
-      onSearch = onSearch,
-      active = true,
-      onActiveChange = {},
-      shape = RoundedCornerShape(10.dp),
-      leadingIcon = { Icon(Icons.Outlined.Search, null) },
-      trailingIcon = {
-        if (searchTermStr.isNotEmpty()) ClearButton({ onSearch("") }) else CloseButton()
-      },
-      tonalElevation = 0.dp,
-      shadowElevation = 0.dp,
-      colors =
-          SearchBarDefaults.colors(
-              containerColor = MaterialTheme.colorScheme.surface,
-              dividerColor = MaterialTheme.colorScheme.outline),
-      modifier = Modifier.fillMaxWidth()) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-        ) {
-          var first = true
-          peerList.value.forEach { peerSet ->
-            if (!first) {
-              item(key = "spacer_${peerSet.user?.DisplayName}") {
-                Lists.ItemDivider()
-                Spacer(Modifier.height(24.dp))
-              }
-            }
-            first = false
+  val focusManager = LocalFocusManager.current
+  var isFocussed by remember { mutableStateOf(false) }
 
-            stickyHeader {
-              ListItem(
-                  modifier = Modifier.heightIn(max = 48.dp),
-                  headlineContent = {
-                    Text(
-                        text =
-                            peerSet.user?.DisplayName ?: stringResource(id = R.string.unknown_user),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold)
-                  })
-            }
-
-            itemsWithDividers(peerSet.peers, key = { it.StableID }) { peer ->
-              ListItem(
-                  modifier = Modifier.clickable { onNavigateToPeerDetails(peer) },
-                  colors = MaterialTheme.colorScheme.listItem,
-                  headlineContent = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                      Box(
-                          modifier =
-                              Modifier.padding(top = 2.dp)
-                                  .size(10.dp)
-                                  .background(
-                                      color = peer.connectedColor(netmap.value),
-                                      shape = RoundedCornerShape(percent = 50))) {}
-                      Spacer(modifier = Modifier.size(8.dp))
-                      Text(text = peer.ComputedName, style = MaterialTheme.typography.titleMedium)
-                    }
-                  },
-                  supportingContent = {
-                    Text(
-                        text = peer.Addresses?.first()?.split("/")?.first() ?: "",
-                        style = MaterialTheme.typography.bodyMedium)
-                  })
-            }
+  Box(modifier = Modifier.fillMaxWidth().background(color = MaterialTheme.colorScheme.surface)) {
+    OutlinedTextField(
+        modifier =
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).onFocusChanged {
+              isFocussed = it.isFocused
+            },
+        singleLine = true,
+        shape = MaterialTheme.shapes.large,
+        colors = MaterialTheme.colorScheme.searchBarColors,
+        leadingIcon = { Icon(imageVector = Icons.Outlined.Search, contentDescription = "search") },
+        trailingIcon = {
+          if (isFocussed) {
+            IconButton(
+                onClick = {
+                  focusManager.clearFocus()
+                  onSearch("")
+                }) {
+                  Icon(
+                      imageVector =
+                          if (searchTermStr.isEmpty()) Icons.Outlined.Close
+                          else Icons.Outlined.Clear,
+                      contentDescription = "clear search",
+                      tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
           }
+        },
+        placeholder = {
+          Text(
+              text = stringResource(id = R.string.search),
+              style = MaterialTheme.typography.bodyLarge,
+              maxLines = 1)
+        },
+        value = searchTermStr,
+        onValueChange = { onSearch(it) })
+  }
+
+  LazyColumn(
+      modifier = Modifier.fillMaxSize(),
+  ) {
+    var first = true
+    peerList.value.forEach { peerSet ->
+      if (!first) {
+        item(key = "spacer_${peerSet.user?.DisplayName}") {
+          Lists.ItemDivider()
+          Spacer(Modifier.height(24.dp))
         }
       }
+      first = false
+
+      stickyHeader {
+        ListItem(
+            modifier = Modifier.heightIn(max = 48.dp),
+            headlineContent = {
+              Text(
+                  text = peerSet.user?.DisplayName ?: stringResource(id = R.string.unknown_user),
+                  style = MaterialTheme.typography.titleLarge,
+                  fontWeight = FontWeight.SemiBold)
+            })
+      }
+
+      itemsWithDividers(peerSet.peers, key = { it.StableID }) { peer ->
+        ListItem(
+            modifier = Modifier.clickable { onNavigateToPeerDetails(peer) },
+            colors = MaterialTheme.colorScheme.listItem,
+            headlineContent = {
+              Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier =
+                        Modifier.padding(top = 2.dp)
+                            .size(10.dp)
+                            .background(
+                                color = peer.connectedColor(netmap.value),
+                                shape = RoundedCornerShape(percent = 50))) {}
+                Spacer(modifier = Modifier.size(8.dp))
+                Text(text = peer.ComputedName, style = MaterialTheme.typography.titleMedium)
+              }
+            },
+            supportingContent = {
+              Text(
+                  text = peer.Addresses?.first()?.split("/")?.first() ?: "",
+                  style = MaterialTheme.typography.bodyMedium)
+            })
+      }
+    }
+  }
 }
 
 @OptIn(ExperimentalPermissionsApi::class)

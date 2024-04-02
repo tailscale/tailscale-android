@@ -11,6 +11,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ListItemColors
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TopAppBarColors
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.Typography
@@ -205,3 +207,21 @@ val ColorScheme.secondaryButton: ButtonColors
 
 val ColorScheme.disabled: Color
   get() = Color(0xFFAFACAB) // gray-400
+
+@OptIn(ExperimentalMaterial3Api::class)
+val ColorScheme.searchBarColors: TextFieldColors
+  @Composable
+  get() {
+    val defaults = OutlinedTextFieldDefaults.colors()
+    return OutlinedTextFieldDefaults.colors(
+        focusedLeadingIconColor = MaterialTheme.colorScheme.onSurface,
+        unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurface,
+        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+        unfocusedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        disabledTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        focusedContainerColor = MaterialTheme.colorScheme.background,
+        unfocusedContainerColor = MaterialTheme.colorScheme.background,
+        disabledContainerColor = MaterialTheme.colorScheme.background,
+        focusedBorderColor = Color.Transparent,
+        unfocusedBorderColor = Color.Transparent)
+  }
