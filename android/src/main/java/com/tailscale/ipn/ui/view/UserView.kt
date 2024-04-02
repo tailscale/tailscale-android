@@ -11,9 +11,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.model.IpnLocal
+import com.tailscale.ipn.ui.theme.minTextSize
 import com.tailscale.ipn.ui.theme.short
+import com.tailscale.ipn.ui.util.AutoResizingText
 
 // Used to decorate UserViews.
 // NONE indicates no decoration
@@ -39,14 +42,18 @@ fun UserView(
           modifier = Modifier.clickable { onClick() },
           leadingContent = { Avatar(profile = profile, size = 36) },
           headlineContent = {
-            Text(
+            AutoResizingText(
                 text = profile.UserProfile.DisplayName,
-                style = MaterialTheme.typography.titleMedium.short)
+                style = MaterialTheme.typography.titleMedium.short,
+                minFontSize = MaterialTheme.typography.minTextSize,
+                overflow = TextOverflow.Ellipsis)
           },
           supportingContent = {
-            Text(
+            AutoResizingText(
                 text = profile.NetworkProfile?.DomainName ?: "",
-                style = MaterialTheme.typography.bodyMedium.short)
+                style = MaterialTheme.typography.bodyMedium.short,
+                minFontSize = MaterialTheme.typography.minTextSize,
+                overflow = TextOverflow.Ellipsis)
           },
           trailingContent = {
             when (actionState) {
