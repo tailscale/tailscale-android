@@ -79,7 +79,7 @@ class PeerCategorizer {
               }
 
               val matchingPeers =
-                  peers.filter { it.ComputedName.contains(searchTerm, ignoreCase = true) }
+                  peers.filter { it.displayName.contains(searchTerm, ignoreCase = true) }
               if (matchingPeers.isNotEmpty()) {
                 PeerSet(user, matchingPeers)
               } else {

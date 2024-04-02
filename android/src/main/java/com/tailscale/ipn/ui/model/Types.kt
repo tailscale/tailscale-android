@@ -23,6 +23,8 @@ typealias StableNodeID = String
 
 typealias BugReportID = String
 
+val GoZeroTimeString = "0001-01-01T00:00:00Z"
+
 // Represents and empty message with a single 'property' field.
 class Empty {
   @Serializable data class Message(val property: String = "")

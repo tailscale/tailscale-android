@@ -54,7 +54,7 @@ fun PeerView(
                       .background(color = color, shape = RoundedCornerShape(percent = 50))) {}
           Spacer(modifier = Modifier.size(8.dp))
           Text(
-              text = peer.ComputedName,
+              text = peer.displayName,
               style = MaterialTheme.typography.titleMedium,
               color = textColor)
         }

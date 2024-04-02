@@ -200,6 +200,23 @@ val ColorScheme.primaryListItem: ListItemColors
         disabledTrailingIconColor = default.disabledTrailingIconColor)
   }
 
+/** Color scheme for list items that should be styled as a warning item. */
+val ColorScheme.warningListItem: ListItemColors
+  @Composable
+  get() {
+    val default = ListItemDefaults.colors()
+    return ListItemColors(
+        containerColor = MaterialTheme.colorScheme.warning,
+        headlineColor = MaterialTheme.colorScheme.onPrimary,
+        leadingIconColor = MaterialTheme.colorScheme.onPrimary,
+        overlineColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
+        supportingTextColor = MaterialTheme.colorScheme.onPrimary,
+        trailingIconColor = MaterialTheme.colorScheme.onPrimary,
+        disabledHeadlineColor = default.disabledHeadlineColor,
+        disabledLeadingIconColor = default.disabledLeadingIconColor,
+        disabledTrailingIconColor = default.disabledTrailingIconColor)
+  }
+
 /** Main color scheme for top app bar, styles it as a surface container. */
 @OptIn(ExperimentalMaterial3Api::class)
 val ColorScheme.topAppBar: TopAppBarColors
