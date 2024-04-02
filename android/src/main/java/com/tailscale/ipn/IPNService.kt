@@ -10,8 +10,8 @@ import android.os.Build
 import android.system.OsConstants
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import java.util.UUID
 import libtailscale.Libtailscale
+import java.util.UUID
 
 open class IPNService : VpnService(), libtailscale.IPNService {
   private val randomID: String = UUID.randomUUID().toString()
@@ -44,9 +44,11 @@ open class IPNService : VpnService(), libtailscale.IPNService {
     return START_STICKY
   }
 
-  private fun close() {
+  override public fun close() {
     stopForeground(true)
     Libtailscale.serviceDisconnect(this)
+    val app = applicationContext as App
+    app.setWantRunning(false)
   }
 
   override fun onDestroy() {
