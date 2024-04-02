@@ -3,9 +3,8 @@
 
 package com.tailscale.ipn.ui.view
 
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.ClickableText
@@ -29,7 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.Links
-import com.tailscale.ipn.ui.theme.ts_color_light_blue
+import com.tailscale.ipn.ui.theme.link
 import com.tailscale.ipn.ui.util.ClipboardValueView
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.LoadingIndicator
@@ -48,12 +47,11 @@ fun TailnetLockSetupView(
   Scaffold(topBar = { Header(R.string.tailnet_lock, onBack = nav.onBack) }) { innerPadding ->
     LoadingIndicator.Wrap {
       LazyColumn(modifier = Modifier.padding(innerPadding)) {
-        item(key = "header") {
-          ExplainerView()
-          Spacer(Modifier.size(4.dp))
-        }
+        item(key = "header") { ExplainerView() }
 
         items(items = statusItems, key = { "status_${it.title}" }) { statusItem ->
+          Lists.ItemDivider()
+
           ListItem(
               leadingContent = {
                 Icon(
@@ -74,6 +72,8 @@ fun TailnetLockSetupView(
         }
 
         item(key = "tailnetLockKey") {
+          Lists.SectionDivider()
+
           ClipboardValueView(
               value = tailnetLockKey,
               title = stringResource(R.string.tailnet_lock_key),
@@ -88,22 +88,29 @@ fun TailnetLockSetupView(
 private fun ExplainerView() {
   val handler = LocalUriHandler.current
 
-  ClickableText(
-      explainerText(),
-      modifier = Modifier.padding(16.dp),
-      onClick = { handler.openUri(Links.TAILNET_LOCK_KB_URL) })
+  ListItem(
+      headlineContent = {
+        Box(modifier = Modifier.padding(vertical = 8.dp)) {
+          ClickableText(
+              explainerText(),
+              onClick = { handler.openUri(Links.TAILNET_LOCK_KB_URL) },
+              style = MaterialTheme.typography.bodyMedium)
+        }
+      })
 }
 
 @Composable
 fun explainerText(): AnnotatedString {
   val annotatedString = buildAnnotatedString {
-    withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.primary)) {
-      append(stringResource(id = R.string.tailnet_lock_explainer))
-    }
+    append(stringResource(id = R.string.tailnet_lock_explainer))
 
     pushStringAnnotation(tag = "tailnetLockSupportURL", annotation = Links.TAILNET_LOCK_KB_URL)
+
     withStyle(
-        style = SpanStyle(color = ts_color_light_blue, textDecoration = TextDecoration.Underline)) {
+        style =
+            SpanStyle(
+                color = MaterialTheme.colorScheme.link,
+                textDecoration = TextDecoration.Underline)) {
           append(stringResource(id = R.string.learn_more))
         }
     pop()

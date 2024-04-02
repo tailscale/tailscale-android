@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -185,7 +184,7 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                   Text(
                       text =
-                          location?.let { "${it.CountryCode?.flag()} ${it.Country} - ${it.City}" }
+                          location?.let { "${it.CountryCode?.flag()} ${it.Country}: ${it.City}" }
                               ?: name
                               ?: stringResource(id = R.string.none),
                       style = MaterialTheme.typography.bodyMedium,
@@ -320,9 +319,9 @@ fun PeerList(
   Box(modifier = Modifier.fillMaxWidth().background(color = MaterialTheme.colorScheme.surface)) {
     OutlinedTextField(
         modifier =
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).onFocusChanged {
-              isFocussed = it.isFocused
-            },
+            Modifier.fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 0.dp)
+                .onFocusChanged { isFocussed = it.isFocused },
         singleLine = true,
         shape = MaterialTheme.shapes.large,
         colors = MaterialTheme.colorScheme.searchBarColors,
@@ -354,54 +353,54 @@ fun PeerList(
   }
 
   LazyColumn(
-      modifier = Modifier.fillMaxSize(),
-  ) {
-    var first = true
-    peerList.value.forEach { peerSet ->
-      if (!first) {
-        item(key = "spacer_${peerSet.user?.DisplayName}") {
-          Lists.ItemDivider()
-          Spacer(Modifier.height(24.dp))
+      modifier = Modifier.fillMaxSize().background(color = MaterialTheme.colorScheme.surface)) {
+        var first = true
+        peerList.value.forEach { peerSet ->
+          if (!first) {
+            item(key = "user_divider_${peerSet.user?.ID ?: 0L}") { Lists.ItemDivider() }
+          }
+          first = false
+
+          stickyHeader {
+            Spacer(
+                Modifier.height(16.dp)
+                    .fillMaxSize()
+                    .background(color = MaterialTheme.colorScheme.surface))
+
+            Lists.SectionTitle(
+                peerSet.user?.DisplayName ?: stringResource(id = R.string.unknown_user),
+                bottomPadding = 8.dp,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold)
+          }
+
+          itemsWithDividers(peerSet.peers, key = { it.StableID }) { peer ->
+            ListItem(
+                modifier = Modifier.clickable { onNavigateToPeerDetails(peer) },
+                colors = MaterialTheme.colorScheme.listItem,
+                headlineContent = {
+                  Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier =
+                            Modifier.padding(top = 2.dp)
+                                .size(10.dp)
+                                .background(
+                                    color = peer.connectedColor(netmap.value),
+                                    shape = RoundedCornerShape(percent = 50))) {}
+                    Spacer(modifier = Modifier.size(8.dp))
+                    Text(text = peer.ComputedName, style = MaterialTheme.typography.titleMedium)
+                  }
+                },
+                supportingContent = {
+                  Text(
+                      text = peer.Addresses?.first()?.split("/")?.first() ?: "",
+                      style =
+                          MaterialTheme.typography.bodyMedium.copy(
+                              lineHeight = MaterialTheme.typography.titleMedium.lineHeight))
+                })
+          }
         }
       }
-      first = false
-
-      stickyHeader {
-        ListItem(
-            modifier = Modifier.heightIn(max = 48.dp),
-            headlineContent = {
-              Text(
-                  text = peerSet.user?.DisplayName ?: stringResource(id = R.string.unknown_user),
-                  style = MaterialTheme.typography.titleLarge,
-                  fontWeight = FontWeight.SemiBold)
-            })
-      }
-
-      itemsWithDividers(peerSet.peers, key = { it.StableID }) { peer ->
-        ListItem(
-            modifier = Modifier.clickable { onNavigateToPeerDetails(peer) },
-            colors = MaterialTheme.colorScheme.listItem,
-            headlineContent = {
-              Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier =
-                        Modifier.padding(top = 2.dp)
-                            .size(10.dp)
-                            .background(
-                                color = peer.connectedColor(netmap.value),
-                                shape = RoundedCornerShape(percent = 50))) {}
-                Spacer(modifier = Modifier.size(8.dp))
-                Text(text = peer.ComputedName, style = MaterialTheme.typography.titleMedium)
-              }
-            },
-            supportingContent = {
-              Text(
-                  text = peer.Addresses?.first()?.split("/")?.first() ?: "",
-                  style = MaterialTheme.typography.bodyMedium)
-            })
-      }
-    }
-  }
 }
 
 @OptIn(ExperimentalPermissionsApi::class)

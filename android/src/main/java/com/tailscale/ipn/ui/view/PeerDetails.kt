@@ -35,7 +35,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.theme.listItem
 import com.tailscale.ipn.ui.theme.short
-import com.tailscale.ipn.ui.theme.ts_color_light_blue
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.itemsWithDividers
 import com.tailscale.ipn.ui.viewModel.PeerDetailsViewModel
@@ -121,7 +120,7 @@ fun AddressRow(address: String, type: String) {
       supportingContent = { Text(text = type) },
       trailingContent = {
         // TODO: there is some overlap with other uses of clipboard, DRY
-        Icon(painter = painterResource(id = R.drawable.clipboard), null, tint = ts_color_light_blue)
+        Icon(painter = painterResource(id = R.drawable.clipboard), null)
       })
 }
 

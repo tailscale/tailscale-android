@@ -25,7 +25,7 @@ fun FeatureStateView(state: FeatureStateRepresentation) {
             painter = painterResource(state.symbolDrawable),
             contentDescription = null,
             tint = state.tint,
-            modifier = Modifier.size(64.dp))
+            modifier = Modifier.size(36.dp))
       },
       headlineContent = {
         Text(stringResource(state.title), style = MaterialTheme.typography.titleMedium)

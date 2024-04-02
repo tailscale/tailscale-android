@@ -7,9 +7,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
@@ -17,6 +14,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -24,6 +22,7 @@ import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.model.Permissions
+import com.tailscale.ipn.ui.theme.success
 import com.tailscale.ipn.ui.util.itemsWithDividers
 
 @OptIn(ExperimentalPermissionsApi::class)
@@ -46,7 +45,11 @@ fun PermissionsView(nav: BackNavigation, openApplicationSettings: () -> Unit) {
             modifier = modifier,
             leadingContent = {
               Icon(
-                  if (state.status.isGranted) Icons.Filled.CheckCircle else Icons.Filled.Warning,
+                  if (state.status.isGranted) painterResource(R.drawable.check_circle)
+                  else painterResource(R.drawable.xmark_circle),
+                  tint =
+                      if (state.status.isGranted) MaterialTheme.colorScheme.success
+                      else MaterialTheme.colorScheme.onSurfaceVariant,
                   modifier = Modifier.size(24.dp),
                   contentDescription =
                       stringResource(if (state.status.isGranted) R.string.ok else R.string.warning))

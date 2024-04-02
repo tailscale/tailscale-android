@@ -35,8 +35,7 @@ fun AppTheme(useDarkTheme: Boolean = isSystemInDarkTheme(), content: @Composable
               MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, lineHeight = 26.sp),
           // bodyMedium is styled to use same line height as titleMedium to ensure even vertical
           // margins in list items.
-          bodyMedium =
-              MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp, lineHeight = 26.sp))
+          bodyMedium = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp))
 
   val systemUiController = rememberSystemUiController()
 
@@ -127,6 +126,23 @@ val ColorScheme.listItem: ListItemColors
         overlineColor = default.overlineColor,
         supportingTextColor = default.supportingTextColor,
         trailingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        disabledHeadlineColor = default.disabledHeadlineColor,
+        disabledLeadingIconColor = default.disabledLeadingIconColor,
+        disabledTrailingIconColor = default.disabledTrailingIconColor)
+  }
+
+/** Like listItem, but with the overline content using the onSurface color. */
+val ColorScheme.titledListItem: ListItemColors
+  @Composable
+  get() {
+    val default = listItem
+    return ListItemColors(
+        containerColor = default.containerColor,
+        headlineColor = default.headlineColor,
+        leadingIconColor = default.leadingIconColor,
+        overlineColor = MaterialTheme.colorScheme.onSurface,
+        supportingTextColor = default.supportingTextColor,
+        trailingIconColor = default.trailingIconColor,
         disabledHeadlineColor = default.disabledHeadlineColor,
         disabledLeadingIconColor = default.disabledLeadingIconColor,
         disabledTrailingIconColor = default.disabledTrailingIconColor)

@@ -43,7 +43,10 @@ fun DNSSettingsView(
       LazyColumn(Modifier.padding(innerPadding)) {
         item("state") { FeatureStateView(state) }
 
-        item("toggle") { SettingRow(model.useDNSSetting) }
+        item("toggle") {
+          Lists.SectionDivider()
+          SettingRow(model.useDNSSetting)
+        }
 
         if (resolvers.isNotEmpty()) {
           item("resolversHeader") { Lists.SectionDivider(stringResource(R.string.resolvers)) }
