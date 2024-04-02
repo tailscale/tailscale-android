@@ -64,6 +64,7 @@ import com.google.accompanist.permissions.shouldShowRationale
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.IpnLocal
+import com.tailscale.ipn.ui.model.Netmap
 import com.tailscale.ipn.ui.model.Permission
 import com.tailscale.ipn.ui.model.Permissions
 import com.tailscale.ipn.ui.model.Tailcfg
@@ -75,10 +76,12 @@ import com.tailscale.ipn.ui.theme.searchBarColors
 import com.tailscale.ipn.ui.theme.secondaryButton
 import com.tailscale.ipn.ui.theme.short
 import com.tailscale.ipn.ui.theme.surfaceContainerListItem
+import com.tailscale.ipn.ui.theme.warningListItem
 import com.tailscale.ipn.ui.util.AutoResizingText
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.PeerSet
+import com.tailscale.ipn.ui.util.TimeUtil
 import com.tailscale.ipn.ui.util.flag
 import com.tailscale.ipn.ui.util.itemsWithDividers
 import com.tailscale.ipn.ui.viewModel.MainViewModel
@@ -102,6 +105,7 @@ fun MainView(navigation: MainViewNavigation, viewModel: MainViewModel = viewMode
             val user = viewModel.loggedInUser.collectAsState(initial = null).value
             val stateVal = viewModel.stateRes.collectAsState(initial = R.string.placeholder).value
             val stateStr = stringResource(id = stateVal)
+            val netmap = viewModel.netmap.collectAsState(initial = null)
 
             ListItem(
                 colors = MaterialTheme.colorScheme.surfaceContainerListItem,
@@ -138,6 +142,9 @@ fun MainView(navigation: MainViewNavigation, viewModel: MainViewModel = viewMode
               Ipn.State.Running -> {
 
                 PromptPermissionsIfNecessary(permissions = Permissions.all)
+
+                ExpiryNotificationIfNeccessary(
+                    netmap = netmap.value, action = { viewModel.login {} })
 
                 ExitNodeStatus(navAction = navigation.onNavigateToExitNodes, viewModel = viewModel)
 
@@ -322,10 +329,10 @@ fun PeerList(
     OutlinedTextField(
         modifier =
             Modifier.fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 0.dp)
+                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 0.dp)
                 .onFocusChanged { isFocussed = it.isFocused },
         singleLine = true,
-        shape = MaterialTheme.shapes.large,
+        shape = MaterialTheme.shapes.extraLarge,
         colors = MaterialTheme.colorScheme.searchBarColors,
         leadingIcon = { Icon(imageVector = Icons.Outlined.Search, contentDescription = "search") },
         trailingIcon = {
@@ -390,7 +397,7 @@ fun PeerList(
                                     color = peer.connectedColor(netmap.value),
                                     shape = RoundedCornerShape(percent = 50))) {}
                     Spacer(modifier = Modifier.size(8.dp))
-                    Text(text = peer.ComputedName, style = MaterialTheme.typography.titleMedium)
+                    Text(text = peer.displayName, style = MaterialTheme.typography.titleMedium)
                   }
                 },
                 supportingContent = {
@@ -403,6 +410,38 @@ fun PeerList(
           }
         }
       }
+}
+
+@Composable
+fun ExpiryNotificationIfNeccessary(netmap: Netmap.NetworkMap?, action: () -> Unit = {}) {
+  // Key expiry warning shown only if the key is expiring within 24 hours (or has already expired)
+  val networkMap = netmap ?: return
+  if (!TimeUtil.isWithin24Hours(networkMap.SelfNode.KeyExpiry)) {
+    return
+  }
+
+  Box(modifier = Modifier.background(color = MaterialTheme.colorScheme.surfaceContainer)) {
+    Box(
+        modifier =
+            Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp)
+                .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
+                .fillMaxWidth()) {
+          ListItem(
+              modifier = Modifier.clickable { action() },
+              colors = MaterialTheme.colorScheme.warningListItem,
+              headlineContent = {
+                Text(
+                    networkMap.SelfNode.expiryLabel(),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+              },
+              supportingContent = {
+                Text(
+                    stringResource(id = R.string.keyExpiryExplainer),
+                    style = MaterialTheme.typography.bodyMedium)
+              })
+        }
+  }
 }
 
 @OptIn(ExperimentalPermissionsApi::class)

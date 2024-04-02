@@ -5,6 +5,7 @@ package com.tailscale.ipn.ui.model
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.theme.off
 import com.tailscale.ipn.ui.theme.on
@@ -14,6 +15,7 @@ import com.tailscale.ipn.ui.util.TimeUtil
 import com.tailscale.ipn.ui.viewModel.PeerSettingInfo
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
+import java.util.Date
 
 class Tailcfg {
   @Serializable
@@ -81,8 +83,8 @@ class Tailcfg {
       var Online: Boolean? = null,
       var Capabilities: List<String>? = null,
       var CapMap: Map<String, JsonElement?>? = null,
-      var ComputedName: String,
-      var ComputedNameWithHost: String
+      var ComputedName: String?,
+      var ComputedNameWithHost: String?
   ) {
     val isAdmin: Boolean
       get() =
@@ -97,7 +99,7 @@ class Tailcfg {
       get() = Name.endsWith(".mullvad.ts.net.")
 
     val displayName: String
-      get() = ComputedName ?: ""
+      get() = ComputedName ?: Name
 
     fun connectedOrSelfNode(nm: Netmap.NetworkMap?) =
         Online == true || StableID == nm?.SelfNode?.StableID
@@ -127,9 +129,20 @@ class Tailcfg {
               PeerSettingInfo(R.string.os, ComposableStringFormatter(Hostinfo.OS!!)),
           )
         }
-        result.add(PeerSettingInfo(R.string.key_expiry, TimeUtil().keyExpiryFromGoTime(KeyExpiry)))
+        result.add(PeerSettingInfo(R.string.key_expiry, TimeUtil.keyExpiryFromGoTime(KeyExpiry)))
         return result
       }
+
+    @Composable
+    fun expiryLabel(): String {
+      if (KeyExpiry == GoZeroTimeString) {
+        return stringResource(R.string.deviceKeyNeverExpires)
+      }
+
+      val expDate = TimeUtil.dateFromGoString(KeyExpiry)
+      val template = if (expDate > Date()) R.string.deviceKeyExpires else R.string.deviceKeyExpired
+      return stringResource(template, TimeUtil.keyExpiryFromGoTime(KeyExpiry).getString())
+    }
   }
 
   @Serializable

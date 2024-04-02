@@ -83,7 +83,7 @@ class ExitNodePickerViewModel(private val nav: ExitNodePickerNav) : IpnViewModel
                       .map {
                         ExitNode(
                             id = it.StableID,
-                            label = it.ComputedName,
+                            label = it.displayName,
                             online = it.Online ?: false,
                             selected = it.StableID == exitNodeId,
                             mullvad = it.Name.endsWith(".mullvad.ts.net."),

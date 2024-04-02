@@ -52,6 +52,11 @@
     <string name="connect_to_tailnet_suffix">" tailnet."</string>
     <string name="welcome_to_tailscale">Welcome to Tailscale</string>
     <string name="login_to_join_your_tailnet">Log in to join your tailnet and connect your devices.</string>
+    <string name="keyExpiryExplainer">Reauthenticate to remain connected to Tailscale.</string>
+    <string name="deviceKeyNeverExpires">Device key does not expire</string>
+    <string name="deviceKeyExpires">Device key expires %s</string>
+    <string name="deviceKeyExpired">Device key expired %s</string>
+
 
     <!-- Strings for peer details -->
     <string name="os">OS</string>
@@ -80,6 +85,12 @@
     <string name="in_x_days">in %d days</string>
     <string name="in_x_months">in %d months</string>
     <string name="in_x_years">in %.1f years</string>
+
+    <string name="ago_x_minutes">%d minutes ago</string>
+    <string name="ago_x_hours">%d hours ago</string>
+    <string name="ago_x_days">%d days ago</string>
+    <string name="ago_x_months">%d months ago</string>
+    <string name="ago_x_years">.1f years ago</string>
 
     <!-- Strings for the user switcher -->
     <string name="user_switcher">Accounts</string>
@@ -210,6 +221,5 @@
     <string name="tailscale">Tailscale</string>
     <string name="getStarted">Get started</string>
     <string name="welcome1">Tailscale is a mesh VPN for securely connecting your devices. All connections are device-to-device, so we never see your data.\n\nWe collect and use your email address and name, as well as your device name, OS version, and IP address in order to help you to connect your devices and manage your settings. We log when you are connected to your network.\n</string>
-
 
 </resources>
