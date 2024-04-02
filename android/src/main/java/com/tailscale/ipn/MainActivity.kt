@@ -16,9 +16,11 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContract
+import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -28,6 +30,7 @@ import androidx.navigation.navArgument
 import androidx.navigation.navigation
 import com.tailscale.ipn.Peer.RequestCodes
 import com.tailscale.ipn.mdm.MDMSettings
+import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.theme.AppTheme
 import com.tailscale.ipn.ui.view.AboutView
@@ -52,6 +55,7 @@ import com.tailscale.ipn.ui.viewModel.ExitNodePickerNav
 import com.tailscale.ipn.ui.viewModel.SettingsNav
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -64,6 +68,7 @@ class MainActivity : ComponentActivity() {
     @JvmStatic val requestPrepareVPN: Int = 1001
 
     const val WRITE_STORAGE_RESULT = 1000
+    private const val TAG = "Main Activity"
   }
 
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -182,12 +187,43 @@ class MainActivity : ComponentActivity() {
     }
   }
 
-  private fun login(url: String) {
-    // (jonathan) TODO: This is functional, but the navigation doesn't quite work
-    // as expected.  There's probably a better built in way to do this.  This will
-    // unblock in dev for the time being though.
-    val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-    startActivity(browserIntent)
+  private fun login(urlString: String) {
+    // Launch coroutine to listen for state changes. When the user completes login, relaunch
+    // MainActivity to bring the app back to focus.
+    App.getApplication().applicationScope.launch {
+      try {
+        Notifier.state.collect { state ->
+          if (state > Ipn.State.NeedsMachineAuth) {
+            val intent =
+                Intent(applicationContext, MainActivity::class.java).apply {
+                  addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                  action = Intent.ACTION_MAIN
+                  addCategory(Intent.CATEGORY_LAUNCHER)
+                }
+            startActivity(intent)
+
+            // Cancel coroutine once we've logged in
+            this@launch.cancel()
+          }
+        }
+      } catch (e: Exception) {
+        Log.e(TAG, "Login: failed to start MainActivity: $e")
+      }
+    }
+
+    val url = urlString.toUri()
+    try {
+      val customTabsIntent = CustomTabsIntent.Builder().build()
+      customTabsIntent.launchUrl(this, url)
+    } catch (e: Exception) {
+      // Fallback to a regular browser if CustomTabsIntent fails
+      try {
+        val fallbackIntent = Intent(Intent.ACTION_VIEW, url)
+        startActivity(fallbackIntent)
+      } catch (e: Exception) {
+        Log.e(TAG, "Login: failed to open browser: $e")
+      }
+    }
   }
 
   override fun onResume() {
