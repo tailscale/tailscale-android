@@ -69,11 +69,13 @@ import com.tailscale.ipn.ui.model.Permissions
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.theme.disabled
 import com.tailscale.ipn.ui.theme.listItem
+import com.tailscale.ipn.ui.theme.minTextSize
 import com.tailscale.ipn.ui.theme.primaryListItem
 import com.tailscale.ipn.ui.theme.searchBarColors
 import com.tailscale.ipn.ui.theme.secondaryButton
 import com.tailscale.ipn.ui.theme.short
 import com.tailscale.ipn.ui.theme.surfaceContainerListItem
+import com.tailscale.ipn.ui.util.AutoResizingText
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.PeerSet
@@ -112,11 +114,11 @@ fun MainView(navigation: MainViewNavigation, viewModel: MainViewModel = viewMode
                 },
                 headlineContent = {
                   user?.NetworkProfile?.DomainName?.let { domain ->
-                    Text(
+                    AutoResizingText(
                         text = domain,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        style = MaterialTheme.typography.titleMedium.short)
+                        style = MaterialTheme.typography.titleMedium.short,
+                        minFontSize = MaterialTheme.typography.minTextSize,
+                        overflow = TextOverflow.Ellipsis)
                   }
                 },
                 supportingContent = {

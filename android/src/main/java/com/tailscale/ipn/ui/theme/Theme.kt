@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
@@ -245,3 +246,6 @@ val ColorScheme.searchBarColors: TextFieldColors
 
 val TextStyle.short: TextStyle
   get() = copy(lineHeight = 20.sp)
+
+val Typography.minTextSize: TextUnit
+  get() = 10.sp
