@@ -7,6 +7,9 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.RestrictionsManager
+import android.content.pm.ActivityInfo
+import android.content.res.Configuration.SCREENLAYOUT_SIZE_LARGE
+import android.content.res.Configuration.SCREENLAYOUT_SIZE_MASK
 import android.net.Uri
 import android.net.VpnService
 import android.os.Bundle
@@ -71,8 +74,19 @@ class MainActivity : ComponentActivity() {
     private const val TAG = "Main Activity"
   }
 
+  private fun Context.isLandscapeCapable(): Boolean {
+    return (resources.configuration.screenLayout and SCREENLAYOUT_SIZE_MASK) >=
+        SCREENLAYOUT_SIZE_LARGE
+  }
+
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
+
+    // (jonathan) TODO: Force the app to be portrait on small screens until we have
+    // proper landscape layout support
+    if (!isLandscapeCapable()) {
+      requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+    }
 
     setContent {
       AppTheme {
