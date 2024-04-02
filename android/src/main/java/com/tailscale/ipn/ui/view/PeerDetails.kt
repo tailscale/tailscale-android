@@ -31,10 +31,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.theme.listItem
+import com.tailscale.ipn.ui.theme.short
 import com.tailscale.ipn.ui.theme.ts_color_light_blue
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.itemsWithDividers
@@ -58,7 +58,7 @@ fun PeerDetails(
                   Column {
                     Text(
                         text = node.displayName,
-                        style = MaterialTheme.typography.titleMedium.copy(lineHeight = 20.sp),
+                        style = MaterialTheme.typography.titleMedium.short,
                         color = MaterialTheme.colorScheme.onSurface)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                       Box(
@@ -70,7 +70,7 @@ fun PeerDetails(
                       Spacer(modifier = Modifier.size(8.dp))
                       Text(
                           text = stringResource(id = node.connectedStrRes(netmap)),
-                          style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp),
+                          style = MaterialTheme.typography.bodyMedium.short,
                           color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                   }

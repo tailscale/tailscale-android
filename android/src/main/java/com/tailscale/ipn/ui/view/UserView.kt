@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.model.IpnLocal
+import com.tailscale.ipn.ui.theme.short
 
 // Used to decorate UserViews.
 // NONE indicates no decoration
@@ -40,10 +41,12 @@ fun UserView(
           headlineContent = {
             Text(
                 text = profile.UserProfile.DisplayName,
-                style = MaterialTheme.typography.titleMedium)
+                style = MaterialTheme.typography.titleMedium.short)
           },
           supportingContent = {
-            Text(text = profile.Name, style = MaterialTheme.typography.bodyMedium)
+            Text(
+                text = profile.NetworkProfile?.DomainName ?: "",
+                style = MaterialTheme.typography.bodyMedium.short)
           },
           trailingContent = {
             when (actionState) {

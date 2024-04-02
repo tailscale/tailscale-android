@@ -39,11 +39,6 @@ class MainViewModel : IpnViewModel() {
 
   private val peerCategorizer = PeerCategorizer()
 
-  val userName: String
-    get() {
-      return loggedInUser.value?.Name ?: ""
-    }
-
   init {
     viewModelScope.launch {
       Notifier.state.collect { state ->
