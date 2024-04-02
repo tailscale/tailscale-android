@@ -20,6 +20,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.sp
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
@@ -225,3 +226,6 @@ val ColorScheme.searchBarColors: TextFieldColors
         focusedBorderColor = Color.Transparent,
         unfocusedBorderColor = Color.Transparent)
   }
+
+val TextStyle.short: TextStyle
+  get() = copy(lineHeight = 20.sp)

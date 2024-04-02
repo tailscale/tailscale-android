@@ -57,7 +57,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
@@ -74,6 +73,7 @@ import com.tailscale.ipn.ui.theme.listItem
 import com.tailscale.ipn.ui.theme.primaryListItem
 import com.tailscale.ipn.ui.theme.searchBarColors
 import com.tailscale.ipn.ui.theme.secondaryButton
+import com.tailscale.ipn.ui.theme.short
 import com.tailscale.ipn.ui.theme.surfaceContainerListItem
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.LoadingIndicator
@@ -97,11 +97,10 @@ fun MainView(navigation: MainViewNavigation, viewModel: MainViewModel = viewMode
       Column(
           modifier = Modifier.fillMaxWidth().padding(paddingInsets),
           verticalArrangement = Arrangement.Center) {
-            val state = viewModel.ipnState.collectAsState(initial = Ipn.State.NoState)
-            val user = viewModel.loggedInUser.collectAsState(initial = null)
-            val stateVal = viewModel.stateRes.collectAsState(initial = R.string.placeholder)
-            val stateStr = stringResource(id = stateVal.value)
-            val username = viewModel.userName
+            val state = viewModel.ipnState.collectAsState(initial = Ipn.State.NoState).value
+            val user = viewModel.loggedInUser.collectAsState(initial = null).value
+            val stateVal = viewModel.stateRes.collectAsState(initial = R.string.placeholder).value
+            val stateStr = stringResource(id = stateVal)
 
             ListItem(
                 colors = MaterialTheme.colorScheme.surfaceContainerListItem,
@@ -110,39 +109,31 @@ fun MainView(navigation: MainViewNavigation, viewModel: MainViewModel = viewMode
                   TintedSwitch(
                       onCheckedChange = { viewModel.toggleVpn() },
                       checked = isOn.value,
-                      enabled = state.value != Ipn.State.NoState)
+                      enabled = state != Ipn.State.NoState)
                 },
                 headlineContent = {
-                  if (username.isNotEmpty()) {
+                  user?.NetworkProfile?.DomainName?.let { domain ->
                     Text(
-                        text = username,
-                        style = MaterialTheme.typography.titleMedium.copy(lineHeight = 20.sp))
+                        text = domain,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.titleMedium.short)
                   }
                 },
                 supportingContent = {
-                  if (username.isNotEmpty()) {
-                    Text(
-                        text = stateStr,
-                        style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp))
-                  } else {
-                    Text(
-                        text = stateStr,
-                        style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp))
-                  }
+                  Text(text = stateStr, style = MaterialTheme.typography.bodyMedium.short)
                 },
                 trailingContent = {
                   Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
-                    when (user.value) {
-                      null -> SettingsButton(user.value) { navigation.onNavigateToSettings() }
+                    when (user) {
+                      null -> SettingsButton { navigation.onNavigateToSettings() }
                       else ->
-                          Avatar(profile = user.value, size = 36) {
-                            navigation.onNavigateToSettings()
-                          }
+                          Avatar(profile = user, size = 36) { navigation.onNavigateToSettings() }
                     }
                   }
                 })
 
-            when (state.value) {
+            when (state) {
               Ipn.State.Running -> {
 
                 PromptPermissionsIfNecessary(permissions = Permissions.all)
@@ -156,9 +147,7 @@ fun MainView(navigation: MainViewNavigation, viewModel: MainViewModel = viewMode
               }
               Ipn.State.NoState,
               Ipn.State.Starting -> StartingView()
-              else ->
-                  ConnectView(
-                      state.value, user.value, { viewModel.toggleVpn() }, { viewModel.login {} })
+              else -> ConnectView(state, user, { viewModel.toggleVpn() }, { viewModel.login {} })
             }
           }
     }
@@ -225,7 +214,7 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
 }
 
 @Composable
-fun SettingsButton(user: IpnLocal.LoginProfile?, action: () -> Unit) {
+fun SettingsButton(action: () -> Unit) {
   // (jonathan) TODO: On iOS this is the users avatar or a letter avatar.
 
   IconButton(modifier = Modifier.size(24.dp), onClick = { action() }) {
