@@ -91,6 +91,7 @@ dependencies {
     implementation 'androidx.activity:activity-compose:1.8.2'
     implementation "com.google.accompanist:accompanist-permissions:$accompanist_version"
     implementation "com.google.accompanist:accompanist-systemuicontroller:$accompanist_version"
+    implementation "androidx.core:core-splashscreen:1.1.0-alpha02"
 
     // Navigation dependencies.
     def nav_version = "2.7.7"
