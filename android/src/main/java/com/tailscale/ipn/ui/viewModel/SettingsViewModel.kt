@@ -26,8 +26,9 @@ enum class SettingType {
 // enabled: Whether the setting is enabled
 // value: The value of the setting for textual settings
 // isOn: The value of the setting for switch settings
-// onClick: The action to take when the setting is clicked (typicall for navigation)
+// onClick: The action to take when the setting is clicked (typically for navigation)
 // onToggle: The action to take when the setting is toggled (typically for switches)
+// icon: An optional Composable that draws a trailing icon to display with nav settings
 //
 // Behavior is undefined if you mix the types here. Switch settings should supply an
 // isOn and onToggle, while navigation settings should supply an onClick and an optional
@@ -40,7 +41,7 @@ data class Setting(
     val enabled: StateFlow<Boolean> = MutableStateFlow(true),
     val isOn: StateFlow<Boolean?>? = null,
     val onClick: () -> Unit = {},
-    val onToggle: (Boolean) -> Unit = {}
+    val onToggle: (Boolean) -> Unit = {},
 )
 
 data class SettingsNav(

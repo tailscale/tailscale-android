@@ -58,14 +58,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.isGranted
-import com.google.accompanist.permissions.rememberPermissionState
-import com.google.accompanist.permissions.shouldShowRationale
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.Netmap
-import com.tailscale.ipn.ui.model.Permission
 import com.tailscale.ipn.ui.model.Permissions
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.theme.disabled
@@ -141,9 +137,9 @@ fun MainView(navigation: MainViewNavigation, viewModel: MainViewModel = viewMode
             when (state) {
               Ipn.State.Running -> {
 
-                PromptPermissionsIfNecessary(permissions = Permissions.all)
+                PromptPermissionsIfNecessary()
 
-                ExpiryNotificationIfNeccessary(
+                ExpiryNotificationIfNecessary(
                     netmap = netmap.value, action = { viewModel.login {} })
 
                 ExitNodeStatus(navAction = navigation.onNavigateToExitNodes, viewModel = viewModel)
@@ -413,7 +409,7 @@ fun PeerList(
 }
 
 @Composable
-fun ExpiryNotificationIfNeccessary(netmap: Netmap.NetworkMap?, action: () -> Unit = {}) {
+fun ExpiryNotificationIfNecessary(netmap: Netmap.NetworkMap?, action: () -> Unit = {}) {
   // Key expiry warning shown only if the key is expiring within 24 hours (or has already expired)
   val networkMap = netmap ?: return
   if (!TimeUtil.isWithin24Hours(networkMap.SelfNode.KeyExpiry)) {
@@ -446,14 +442,13 @@ fun ExpiryNotificationIfNeccessary(netmap: Netmap.NetworkMap?, action: () -> Uni
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun PromptPermissionsIfNecessary(permissions: List<Permission>) {
-  permissions.forEach { permission ->
-    val state = rememberPermissionState(permission.name)
-    if (!state.status.isGranted && !state.status.shouldShowRationale) {
-      // We don't have the permission and can ask for it
-      ErrorDialog(title = permission.title, message = permission.description) {
-        state.launchPermissionRequest()
-      }
-    }
+fun PromptPermissionsIfNecessary() {
+  Permissions.prompt.forEach { (permission, state) ->
+    ErrorDialog(
+        title = permission.title,
+        message = permission.description,
+        buttonText = R.string._continue) {
+          state.launchPermissionRequest()
+        }
   }
 }
