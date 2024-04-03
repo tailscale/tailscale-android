@@ -213,7 +213,7 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
                   Button(
                       colors = MaterialTheme.colorScheme.secondaryButton,
                       onClick = { viewModel.disableExitNode() }) {
-                        Text(stringResource(R.string.disable))
+                        Text(stringResource(R.string.stop))
                       }
                 }
               })
