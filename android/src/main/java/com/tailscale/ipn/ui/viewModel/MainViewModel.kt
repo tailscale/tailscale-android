@@ -43,7 +43,8 @@ class MainViewModel : IpnViewModel() {
     viewModelScope.launch {
       Notifier.state.collect { state ->
         stateRes.set(state.userStringRes())
-        vpnToggleState.set((state == State.Running || state == State.Starting))
+        vpnToggleState.set(
+            (state == State.Running || state == State.Starting || state == State.NoState))
       }
     }
 
