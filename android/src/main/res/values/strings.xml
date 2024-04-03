@@ -124,7 +124,7 @@
     <string name="run_exit_node_explainer_running">Other devices in your tailnet can now route their internet traffic through this Android device. Make sure to approve this exit node in the admin console in order for other devices to see it.</string>
     <string name="enabled">Enabled</string>
     <string name="disabled">Disabled</string>
-    <string name="disable">Disable</string>
+    <string name="stop">Stop</string>
 
     <!-- Strings for the tailnet lock screen -->
     <string name="tailnet_lock">Tailnet lock</string>
