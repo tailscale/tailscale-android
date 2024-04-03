@@ -10,12 +10,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.tailscale.ipn.ui.view.TailscaleLogoView
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 
 object LoadingIndicator {
@@ -40,11 +43,19 @@ object LoadingIndicator {
       if (isLoading) {
         Box(Modifier.clickable {}.matchParentSize().background(Color.Gray.copy(alpha = 0.0f)))
 
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally) {
-              TailscaleLogoView(true, Modifier.size(72.dp))
+        val showSpinner: State<Boolean> =
+            produceState(initialValue = false) {
+              delay(300)
+              value = true
             }
+
+        if (showSpinner.value) {
+          Column(
+              modifier = Modifier.fillMaxWidth(),
+              horizontalAlignment = Alignment.CenterHorizontally) {
+                TailscaleLogoView(true, Modifier.size(72.dp))
+              }
+        }
       }
     }
   }
