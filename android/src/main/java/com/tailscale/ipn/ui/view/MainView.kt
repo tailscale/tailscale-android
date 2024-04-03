@@ -107,10 +107,7 @@ fun MainView(navigation: MainViewNavigation, viewModel: MainViewModel = viewMode
                 colors = MaterialTheme.colorScheme.surfaceContainerListItem,
                 leadingContent = {
                   val isOn = viewModel.vpnToggleState.collectAsState(initial = false)
-                  TintedSwitch(
-                      onCheckedChange = { viewModel.toggleVpn() },
-                      checked = isOn.value,
-                      enabled = state != Ipn.State.NoState)
+                  TintedSwitch(onCheckedChange = { viewModel.toggleVpn() }, checked = isOn.value)
                 },
                 headlineContent = {
                   user?.NetworkProfile?.DomainName?.let { domain ->
