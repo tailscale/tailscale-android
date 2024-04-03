@@ -38,11 +38,8 @@ open class IpnViewModel : ViewModel() {
   init {
     viewModelScope.launch {
       Notifier.state.collect {
-        // Refresh the user profiles if we're transitioning out of the
-        // NeedsLogin state.
-        if (it == Ipn.State.NeedsLogin) {
-          viewModelScope.launch { loadUserProfiles() }
-        }
+        // Reload the user profiles on all state transitions to ensure loggedInUser is correct
+        viewModelScope.launch { loadUserProfiles() }
       }
     }
 
