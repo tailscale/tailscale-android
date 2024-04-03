@@ -18,8 +18,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.isGranted
-import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.model.Permissions
 import com.tailscale.ipn.ui.theme.success
@@ -28,31 +26,23 @@ import com.tailscale.ipn.ui.util.itemsWithDividers
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun PermissionsView(nav: BackNavigation, openApplicationSettings: () -> Unit) {
+  val permissions = Permissions.withGrantedStatus
   Scaffold(topBar = { Header(titleRes = R.string.permissions, onBack = nav.onBack) }) { innerPadding
     ->
-    val permissions = Permissions.all
-    val permissionStates =
-        rememberMultiplePermissionsState(permissions = permissions.map { it.name })
-    val permissionsWithStates = permissions.zip(permissionStates.permissions)
-
     LazyColumn(modifier = Modifier.padding(innerPadding)) {
-      itemsWithDividers(permissionsWithStates) { (permission, state) ->
-        var modifier: Modifier = Modifier
-        if (!state.status.isGranted) {
-          modifier = modifier.clickable { openApplicationSettings() }
-        }
+      itemsWithDividers(permissions) { (permission, granted) ->
         ListItem(
-            modifier = modifier,
+            modifier = Modifier.clickable { openApplicationSettings() },
             leadingContent = {
               Icon(
-                  if (state.status.isGranted) painterResource(R.drawable.check_circle)
+                  if (granted) painterResource(R.drawable.check_circle)
                   else painterResource(R.drawable.xmark_circle),
                   tint =
-                      if (state.status.isGranted) MaterialTheme.colorScheme.success
+                      if (granted) MaterialTheme.colorScheme.success
                       else MaterialTheme.colorScheme.onSurfaceVariant,
                   modifier = Modifier.size(24.dp),
                   contentDescription =
-                      stringResource(if (state.status.isGranted) R.string.ok else R.string.warning))
+                      stringResource(if (granted) R.string.ok else R.string.warning))
             },
             headlineContent = {
               Text(stringResource(permission.title), style = MaterialTheme.typography.titleMedium)
