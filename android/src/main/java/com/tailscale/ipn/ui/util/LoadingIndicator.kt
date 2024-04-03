@@ -38,7 +38,7 @@ object LoadingIndicator {
       content()
       val isLoading = loading.collectAsState().value
       if (isLoading) {
-        Box(Modifier.clickable {}.matchParentSize().background(Color.Gray.copy(alpha = 0.5f)))
+        Box(Modifier.clickable {}.matchParentSize().background(Color.Gray.copy(alpha = 0.0f)))
 
         Column(
             modifier = Modifier.fillMaxWidth(),

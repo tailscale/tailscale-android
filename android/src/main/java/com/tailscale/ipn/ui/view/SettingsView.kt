@@ -104,8 +104,12 @@ fun SettingRow(setting: Setting) {
 @Composable
 private fun TextRow(setting: Setting) {
   val enabled = setting.enabled.collectAsState().value
+  var modifier: Modifier = Modifier
+  if (enabled) {
+    setting.onClick?.let { modifier = modifier.clickable(onClick = it) }
+  }
   ListItem(
-      modifier = Modifier.clickable { if (enabled) setting.onClick() },
+      modifier = modifier,
       colors = MaterialTheme.colorScheme.listItem,
       headlineContent = {
         Text(
@@ -120,8 +124,12 @@ private fun TextRow(setting: Setting) {
 private fun SwitchRow(setting: Setting) {
   val enabled = setting.enabled.collectAsState().value
   val swVal = setting.isOn?.collectAsState()?.value ?: false
+  var modifier: Modifier = Modifier
+  if (enabled) {
+    setting.onClick?.let { modifier = modifier.clickable(onClick = it) }
+  }
   ListItem(
-      modifier = Modifier.clickable { if (enabled) setting.onClick() },
+      modifier = modifier,
       colors = MaterialTheme.colorScheme.listItem,
       headlineContent = {
         Text(
@@ -136,8 +144,10 @@ private fun SwitchRow(setting: Setting) {
 
 @Composable
 private fun NavRow(setting: Setting) {
+  var modifier: Modifier = Modifier
+  setting.onClick?.let { modifier = modifier.clickable(onClick = it) }
   ListItem(
-      modifier = Modifier.clickable { setting.onClick() },
+      modifier = modifier,
       colors = MaterialTheme.colorScheme.listItem,
       headlineContent = {
         Text(

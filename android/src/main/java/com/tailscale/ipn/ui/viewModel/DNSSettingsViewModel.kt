@@ -18,7 +18,6 @@ import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.theme.off
 import com.tailscale.ipn.ui.theme.success
-import com.tailscale.ipn.ui.util.FeatureStateRepresentation
 import com.tailscale.ipn.ui.util.set
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -84,45 +83,25 @@ class DNSSettingsViewModel() : IpnViewModel() {
   }
 }
 
-enum class DNSEnablementState : FeatureStateRepresentation {
-  NOT_RUNNING {
-    override val title: Int
-      @StringRes get() = R.string.not_running
-
-    override val caption: Int
-      @StringRes
-      get() = R.string.tailscale_is_not_running_this_device_is_using_the_system_dns_resolver
-
-    override val tint: Color
-      @Composable get() = MaterialTheme.colorScheme.off
-
-    override val symbolDrawable: Int
-      get() = R.drawable.xmark_circle
-  },
-  ENABLED {
-    override val title: Int
-      @StringRes get() = R.string.using_tailscale_dns
-
-    override val caption: Int
-      @StringRes get() = R.string.this_device_is_using_tailscale_to_resolve_dns_names
-
-    override val tint: Color
-      @Composable get() = MaterialTheme.colorScheme.success
-
-    override val symbolDrawable: Int
-      get() = R.drawable.check_circle
-  },
-  DISABLED {
-    override val title: Int
-      @StringRes get() = R.string.not_using_tailscale_dns
-
-    override val caption: Int
-      @StringRes get() = R.string.this_device_is_using_the_system_dns_resolver
-
-    override val tint: Color
-      @Composable get() = MaterialTheme.colorScheme.error
-
-    override val symbolDrawable: Int
-      get() = R.drawable.xmark_circle
-  }
+enum class DNSEnablementState(
+    @StringRes val title: Int,
+    @StringRes val caption: Int,
+    val symbolDrawable: Int,
+    val tint: @Composable () -> Color
+) {
+  NOT_RUNNING(
+      R.string.not_running,
+      R.string.tailscale_is_not_running_this_device_is_using_the_system_dns_resolver,
+      R.drawable.xmark_circle,
+      { MaterialTheme.colorScheme.off }),
+  ENABLED(
+      R.string.using_tailscale_dns,
+      R.string.this_device_is_using_tailscale_to_resolve_dns_names,
+      R.drawable.check_circle,
+      { MaterialTheme.colorScheme.success }),
+  DISABLED(
+      R.string.not_using_tailscale_dns,
+      R.string.this_device_is_using_the_system_dns_resolver,
+      R.drawable.xmark_circle,
+      { MaterialTheme.colorScheme.error })
 }

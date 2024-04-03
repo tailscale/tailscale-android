@@ -39,7 +39,7 @@ data class Setting(
     val destructive: Boolean = false,
     val enabled: StateFlow<Boolean> = MutableStateFlow(true),
     val isOn: StateFlow<Boolean?>? = null,
-    val onClick: () -> Unit = {},
+    val onClick: (() -> Unit)? = null,
     val onToggle: (Boolean) -> Unit = {}
 )
 

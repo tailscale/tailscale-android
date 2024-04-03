@@ -5,12 +5,19 @@ package com.tailscale.ipn.ui.view
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.model.DnsType
@@ -41,10 +48,22 @@ fun DNSSettingsView(
   Scaffold(topBar = { Header(R.string.dns_settings, onBack = nav.onBack) }) { innerPadding ->
     LoadingIndicator.Wrap {
       LazyColumn(Modifier.padding(innerPadding)) {
-        item("state") { FeatureStateView(state) }
+        item("state") {
+          ListItem(
+              leadingContent = {
+                Icon(
+                    painter = painterResource(state.symbolDrawable),
+                    contentDescription = null,
+                    tint = state.tint(),
+                    modifier = Modifier.size(36.dp))
+              },
+              headlineContent = {
+                Text(stringResource(state.title), style = MaterialTheme.typography.titleMedium)
+              },
+              supportingContent = { Text(stringResource(state.caption)) })
 
-        item("toggle") {
-          Lists.SectionDivider()
+          Lists.ItemDivider()
+
           SettingRow(model.useDNSSetting)
         }
 
