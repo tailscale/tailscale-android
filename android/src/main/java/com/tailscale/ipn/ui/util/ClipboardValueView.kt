@@ -17,26 +17,18 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.theme.titledListItem
 
 @Composable
-fun ClipboardValueView(
-    value: String,
-    title: String? = null,
-    subtitle: String? = null,
-    fontFamily: FontFamily = FontFamily.Monospace
-) {
+fun ClipboardValueView(value: String, title: String? = null, subtitle: String? = null) {
   val localClipboardManager = LocalClipboardManager.current
   ListItem(
       colors = MaterialTheme.colorScheme.titledListItem,
       modifier = Modifier.clickable { localClipboardManager.setText(AnnotatedString(value)) },
       overlineContent = { title?.let { Text(it, style = MaterialTheme.typography.titleMedium) } },
-      headlineContent = {
-        Text(text = value, style = MaterialTheme.typography.bodyMedium, fontFamily = fontFamily)
-      },
+      headlineContent = { Text(text = value, style = MaterialTheme.typography.bodyMedium) },
       supportingContent = {
         subtitle?.let { subtitle ->
           Text(
