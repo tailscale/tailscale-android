@@ -31,7 +31,7 @@
         android:icon="@mipmap/ic_launcher"
         android:label="Tailscale"
         android:roundIcon="@mipmap/ic_launcher_round"
-        android:theme="@style/Theme.AppCompat">
+        android:theme="@style/Theme.App.SplashScreen">
         <activity
             android:name="MainActivity"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"

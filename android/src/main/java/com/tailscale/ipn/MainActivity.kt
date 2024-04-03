@@ -24,6 +24,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.core.net.toUri
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -87,6 +88,8 @@ class MainActivity : ComponentActivity() {
     if (!isLandscapeCapable()) {
       requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
     }
+
+    installSplashScreen()
 
     setContent {
       AppTheme {
