@@ -21,7 +21,8 @@ TAILSCALE_COMMIT=$(shell echo $(TAILSCALE_VERSION) | cut -d - -f 2 | cut -d t -f
 # Extract the version code from build.gradle.
 VERSIONCODE=$(lastword $(shell grep versionCode android_legacy/build.gradle))
 VERSIONCODE_PLUSONE=$(shell expr $(VERSIONCODE) + 1)
-VERSION_LDFLAGS="-X tailscale.com/version.longStamp=$(VERSIONNAME) -X tailscale.com/version.shortStamp=$(VERSIONNAME_SHORT) -X tailscale.com/version.gitCommitStamp=$(TAILSCALE_COMMIT) -X tailscale.com/version.extraGitCommitStamp=$(OUR_VERSION)"
+VERSION_LDFLAGS=-X tailscale.com/version.longStamp=$(VERSIONNAME) -X tailscale.com/version.shortStamp=$(VERSIONNAME_SHORT) -X tailscale.com/version.gitCommitStamp=$(TAILSCALE_COMMIT) -X tailscale.com/version.extraGitCommitStamp=$(OUR_VERSION)
+FULL_LDFLAGS=$(VERSION_LDFLAGS) -w
 ifeq ($(shell uname),Linux)
 	ANDROID_TOOLS_URL="https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip"
 	ANDROID_TOOLS_SUM="bd1aa17c7ef10066949c88dc6c9c8d536be27f992a1f3b5a584f9bd2ba5646a0  commandlinetools-linux-9477386_latest.zip"
@@ -125,7 +126,7 @@ androidpath:
 $(AAR): checkandroidsdk
 	@mkdir -p android_legacy/libs && \
 	go run gioui.org/cmd/gogio \
-		-ldflags $(VERSION_LDFLAGS) \
+		-ldflags "$(VERSION_LDFLAGS)" \
 		-buildmode archive -target android -appid $(APPID) -tags novulkan,tailscale_go -o $@ github.com/tailscale/tailscale-android/cmd/tailscale
 
 # tailscale-debug.apk builds a debuggable APK with the Google Play SDK.
@@ -165,7 +166,7 @@ $(GOBIN)/gobind: go.mod go.sum
 # though hopefully they won't substantially differ for now.
 $(LIBTAILSCALE): Makefile android/libs $(LIBTAILSCALE_SOURCES) $(GOBIN)/gomobile
 	gomobile bind -target android -androidapi 26 \
-		-ldflags $(VERSION_LDFLAGS) \
+		-ldflags "$(FULL_LDFLAGS)" \
 		-o $@ ./libtailscale
 
 libtailscale: $(LIBTAILSCALE)
