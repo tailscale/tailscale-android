@@ -266,18 +266,18 @@ func newBackend(dataDir, directFileRoot string, appCtx AppContext, store *stateS
 	b.netMon = netMon
 	b.setupLogs(dataDir, logID, logf)
 	dialer := new(tsdial.Dialer)
-	cb := &router.CallbackRouter{
+	vf := &VPNFacade{
 		SetBoth:           b.setCfg,
-		SplitDNS:          false,
 		GetBaseConfigFunc: b.getDNSBaseConfig,
 	}
 	engine, err := wgengine.NewUserspaceEngine(logf, wgengine.Config{
-		Tun:          b.devices,
-		Router:       cb,
-		DNS:          cb,
-		Dialer:       dialer,
-		SetSubsystem: sys.Set,
-		NetMon:       b.netMon,
+		Tun:            b.devices,
+		Router:         vf,
+		DNS:            vf,
+		ReconfigureVPN: vf.ReconfigureVPN,
+		Dialer:         dialer,
+		SetSubsystem:   sys.Set,
+		NetMon:         b.netMon,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("runBackend: NewUserspaceEngine: %v", err)
