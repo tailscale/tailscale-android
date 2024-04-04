@@ -63,7 +63,6 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
-  private var notifierScope: CoroutineScope? = null
   private lateinit var requestVpnPermission: ActivityResultLauncher<Unit>
 
   companion object {
@@ -254,9 +253,6 @@ class MainActivity : ComponentActivity() {
 
   override fun onStart() {
     super.onStart()
-    val scope = CoroutineScope(Dispatchers.IO)
-    notifierScope = scope
-    Notifier.start(lifecycleScope)
 
     // (jonathan) TODO: Requesting VPN permissions onStart is a bit aggressive.  This should
     // be done when the user initiall starts the VPN
@@ -264,7 +260,6 @@ class MainActivity : ComponentActivity() {
   }
 
   override fun onStop() {
-    Notifier.stop()
     super.onStop()
     val restrictionsManager =
         this.getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
