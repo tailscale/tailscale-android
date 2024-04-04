@@ -44,7 +44,7 @@ open class IPNService : VpnService(), libtailscale.IPNService {
     return START_STICKY
   }
 
-  override public fun close() {
+  override fun close() {
     stopForeground(true)
     Libtailscale.serviceDisconnect(this)
     val app = applicationContext as App
@@ -72,7 +72,7 @@ open class IPNService : VpnService(), libtailscale.IPNService {
   private fun disallowApp(b: Builder, name: String) {
     try {
       b.addDisallowedApplication(name)
-    } catch (e: PackageManager.NameNotFoundException) {}
+    } catch (_: PackageManager.NameNotFoundException) {}
   }
 
   override fun newBuilder(): VPNServiceBuilder {
@@ -83,27 +83,10 @@ open class IPNService : VpnService(), libtailscale.IPNService {
             .allowFamily(OsConstants.AF_INET6)
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
         b.setMetered(false) // Inherit the metered status from the underlying networks.
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
-        b.setUnderlyingNetworks(null) // Use all available networks.
+    b.setUnderlyingNetworks(null) // Use all available networks.
 
-    // RCS/Jibe https://github.com/tailscale/tailscale/issues/2322
-    disallowApp(b, "com.google.android.apps.messaging")
+    DisallowedApps.apps.forEach { disallowApp(b, it) }
 
-    // Stadia https://github.com/tailscale/tailscale/issues/3460
-    disallowApp(b, "com.google.stadia.android")
-
-    // Android Auto https://github.com/tailscale/tailscale/issues/3828
-    disallowApp(b, "com.google.android.projection.gearhead")
-
-    // GoPro https://github.com/tailscale/tailscale/issues/2554
-    disallowApp(b, "com.gopro.smarty")
-
-    // Sonos https://github.com/tailscale/tailscale/issues/2548
-    disallowApp(b, "com.sonos.acr")
-    disallowApp(b, "com.sonos.acr2")
-
-    // Google Chromecast https://github.com/tailscale/tailscale/issues/3636
-    disallowApp(b, "com.google.android.apps.chromecast.app")
     return VPNServiceBuilder(b)
   }
 

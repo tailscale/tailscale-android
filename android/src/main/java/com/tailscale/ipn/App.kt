@@ -1,39 +1,25 @@
 // Copyright (c) Tailscale Inc & AUTHORS
 // SPDX-License-Identifier: BSD-3-Clause
+
 package com.tailscale.ipn
 
-import android.Manifest
 import android.app.Activity
 import android.app.Application
-import android.app.DownloadManager
-import android.app.Fragment
-import android.app.FragmentTransaction
 import android.app.NotificationChannel
-import android.app.PendingIntent
-import android.app.UiModeManager
-import android.content.ContentResolver
-import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
-import android.content.pm.PackageInfo
-import android.content.pm.PackageManager
-import android.content.res.Configuration
 import android.net.ConnectivityManager
 import android.net.LinkProperties
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
-import android.net.Uri
 import android.net.VpnService
 import android.os.Build
 import android.os.Environment
-import android.provider.MediaStore
 import android.provider.Settings
 import android.util.Log
-import androidx.browser.customtabs.CustomTabsIntent
-import androidx.core.app.ActivityCompat
-import androidx.core.app.NotificationCompat
+import androidx.core.app.ActivityCompat.startActivityForResult
 import androidx.core.app.NotificationManagerCompat
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
@@ -62,22 +48,17 @@ class App : Application(), libtailscale.AppContext {
     const val STATUS_NOTIFICATION_ID = 1
     const val NOTIFY_CHANNEL_ID = "tailscale-notify"
     const val NOTIFY_NOTIFICATION_ID = 2
-    private const val PEER_TAG = "peer"
     private const val FILE_CHANNEL_ID = "tailscale-files"
     private const val FILE_NOTIFICATION_ID = 3
     private const val TAG = "App"
+
     private val networkConnectivityRequest =
         NetworkRequest.Builder()
             .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
             .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
             .build()
-    lateinit var appInstance: App
 
-    @JvmStatic
-    fun startActivityForResult(act: Activity, intent: Intent?, request: Int) {
-      val f: Fragment = act.fragmentManager.findFragmentByTag(PEER_TAG)
-      f.startActivityForResult(intent, request)
-    }
+    lateinit var appInstance: App
 
     @JvmStatic
     fun getApplication(): App {
@@ -88,6 +69,7 @@ class App : Application(), libtailscale.AppContext {
   val dns = DnsConfig()
   var autoConnect = false
   var vpnReady = false
+
   private lateinit var connectivityManager: ConnectivityManager
   private lateinit var app: libtailscale.Application
 
@@ -107,12 +89,13 @@ class App : Application(), libtailscale.AppContext {
     // to the given folder.  We will preferentially use <shared>/Downloads and fallback to
     // an app local directory "Taildrop" if we cannot create that.  This mode does not support
     // user notifications for incoming files.
-    val directFileDir = this.prepareDownloadsFolder()
+    val directFileDir = this.prepareDownloadsFolder().absolutePath
 
-    app = Libtailscale.start(dataDir, directFileDir.absolutePath, this)
+    app = Libtailscale.start(dataDir, directFileDir, this)
     Request.setApp(app)
     Notifier.setApp(app)
     Notifier.start(applicationScope)
+
     connectivityManager = this.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     setAndRegisterNetworkCallbacks()
     createNotificationChannel(
@@ -121,6 +104,7 @@ class App : Application(), libtailscale.AppContext {
         STATUS_CHANNEL_ID, "VPN Status", NotificationManagerCompat.IMPORTANCE_LOW)
     createNotificationChannel(
         FILE_CHANNEL_ID, "File transfers", NotificationManagerCompat.IMPORTANCE_DEFAULT)
+
     appInstance = this
     applicationScope.launch {
       Notifier.tileReady.collect { isTileReady -> setTileReady(isTileReady) }
@@ -219,9 +203,6 @@ class App : Application(), libtailscale.AppContext {
   }
 
   fun setTileReady(ready: Boolean) {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
-      return
-    }
     QuickToggleService.setReady(this, ready)
     Log.d("App", "Set Tile Ready: $ready $autoConnect")
     vpnReady = ready
@@ -231,9 +212,6 @@ class App : Application(), libtailscale.AppContext {
   }
 
   fun setTileStatus(status: Boolean) {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
-      return
-    }
     QuickToggleService.setStatus(this, status)
   }
 
@@ -265,18 +243,6 @@ class App : Application(), libtailscale.AppContext {
     return null
   }
 
-  // attachPeer adds a Peer fragment for tracking the Activity
-  // lifecycle.
-  fun attachPeer(act: Activity) {
-    act.runOnUiThread(
-        Runnable {
-          val ft: FragmentTransaction = act.fragmentManager.beginTransaction()
-          ft.add(Peer(), PEER_TAG)
-          ft.commit()
-          act.fragmentManager.executePendingTransactions()
-        })
-  }
-
   override fun isChromeOS(): Boolean {
     return packageManager.hasSystemFeature("android.hardware.type.pc")
   }
@@ -288,102 +254,12 @@ class App : Application(), libtailscale.AppContext {
           if (intent == null) {
             startVPN()
           } else {
-            startActivityForResult(act, intent, reqCode)
+            startActivityForResult(act, intent, reqCode, null)
           }
         })
   }
 
-  fun showURL(act: Activity, url: String?) {
-    act.runOnUiThread(
-        Runnable {
-          val builder: CustomTabsIntent.Builder = CustomTabsIntent.Builder()
-          val headerColor = -0xb69b6b
-          builder.setToolbarColor(headerColor)
-          val intent: CustomTabsIntent = builder.build()
-          intent.launchUrl(act, Uri.parse(url))
-        })
-  }
-
-  @get:Throws(Exception::class)
-  val packageCertificate: ByteArray?
-    // getPackageSignatureFingerprint returns the first package signing certificate, if any.
-    get() {
-      val info: PackageInfo
-      info = packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNATURES)
-      for (signature in info.signatures) {
-        return signature.toByteArray()
-      }
-      return null
-    }
-
-  @Throws(IOException::class)
-  fun insertMedia(name: String?, mimeType: String): String {
-    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-      val resolver: ContentResolver = contentResolver
-      val contentValues = ContentValues()
-      contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, name)
-      if ("" != mimeType) {
-        contentValues.put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
-      }
-      val root: Uri = MediaStore.Files.getContentUri("external")
-      resolver.insert(root, contentValues).toString()
-    } else {
-      val dir: File = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-      dir.mkdirs()
-      val f = File(dir, name)
-      Uri.fromFile(f).toString()
-    }
-  }
-
-  @Throws(IOException::class)
-  fun openUri(uri: String?, mode: String?): Int? {
-    val resolver: ContentResolver = contentResolver
-    return mode?.let { resolver.openFileDescriptor(Uri.parse(uri), it)?.detachFd() }
-  }
-
-  fun deleteUri(uri: String?) {
-    val resolver: ContentResolver = contentResolver
-    resolver.delete(Uri.parse(uri), null, null)
-  }
-
-  fun notifyFile(uri: String?, msg: String?) {
-    val viewIntent: Intent
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-      viewIntent = Intent(Intent.ACTION_VIEW, Uri.parse(uri))
-    } else {
-      // uri is a file:// which is not allowed to be shared outside the app.
-      viewIntent = Intent(DownloadManager.ACTION_VIEW_DOWNLOADS)
-    }
-    val pending: PendingIntent =
-        PendingIntent.getActivity(this, 0, viewIntent, PendingIntent.FLAG_UPDATE_CURRENT)
-    val builder: NotificationCompat.Builder =
-        NotificationCompat.Builder(this, FILE_CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle("File received")
-            .setContentText(msg)
-            .setContentIntent(pending)
-            .setAutoCancel(true)
-            .setOnlyAlertOnce(true)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-    val nm: NotificationManagerCompat = NotificationManagerCompat.from(this)
-    if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
-        PackageManager.PERMISSION_GRANTED) {
-      // TODO: Consider calling
-      //    ActivityCompat#requestPermissions
-      // here to request the missing permissions, and then overriding
-      //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-      //                                          int[] grantResults)
-      // to handle the case where the user grants the permission. See the documentation
-      // for ActivityCompat#requestPermissions for more details.
-      return
-    }
-    nm.notify(FILE_NOTIFICATION_ID, builder.build())
-  }
-
   fun createNotificationChannel(id: String?, name: String?, importance: Int) {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-      return
-    }
     val channel = NotificationChannel(id, name, importance)
     val nm: NotificationManagerCompat = NotificationManagerCompat.from(this)
     nm.createNotificationChannel(channel)
@@ -424,12 +300,7 @@ class App : Application(), libtailscale.AppContext {
     return sb.toString()
   }
 
-  fun isTV(): Boolean {
-    val mm = getSystemService(Context.UI_MODE_SERVICE) as UiModeManager
-    return mm.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION
-  }
-
-  fun prepareDownloadsFolder(): File {
+  private fun prepareDownloadsFolder(): File {
     var downloads = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
 
     try {

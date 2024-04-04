@@ -28,7 +28,6 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -276,7 +275,7 @@ fun ConnectView(
               textAlign = TextAlign.Center,
           )
           Spacer(modifier = Modifier.size(1.dp))
-          PrimaryActionButton(onClick = connectAction) {
+          FullWidthButton(onClick = connectAction) {
             Text(
                 text = stringResource(id = R.string.connect),
                 fontSize = MaterialTheme.typography.titleMedium.fontSize)
@@ -293,7 +292,7 @@ fun ConnectView(
               style = MaterialTheme.typography.titleSmall,
               textAlign = TextAlign.Center)
           Spacer(modifier = Modifier.size(1.dp))
-          PrimaryActionButton(onClick = loginAction) {
+          FullWidthButton(onClick = loginAction) {
             Text(
                 text = stringResource(id = R.string.log_in),
                 fontSize = MaterialTheme.typography.titleMedium.fontSize)
@@ -304,7 +303,7 @@ fun ConnectView(
   }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PeerList(
     viewModel: MainViewModel,

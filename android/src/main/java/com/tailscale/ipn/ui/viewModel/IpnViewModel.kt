@@ -3,9 +3,6 @@
 
 package com.tailscale.ipn.ui.viewModel
 
-import android.app.Activity
-import android.content.Context
-import android.content.ContextWrapper
 import android.content.Intent
 import android.util.Log
 import androidx.lifecycle.ViewModel
@@ -59,13 +56,6 @@ open class IpnViewModel : ViewModel() {
     viewModelScope.launch { loadUserProfiles() }
     Log.d(TAG, "Created")
   }
-
-  protected fun Context.findActivity(): Activity? =
-      when (this) {
-        is Activity -> this
-        is ContextWrapper -> baseContext.findActivity()
-        else -> null
-      }
 
   private fun loadUserProfiles() {
     Client(viewModelScope).profiles { result ->
@@ -135,60 +125,5 @@ open class IpnViewModel : ViewModel() {
       startVPN()
       completionHandler(it)
     }
-  }
-
-  fun deleteProfile(profile: IpnLocal.LoginProfile, completionHandler: (Result<String>) -> Unit) {
-    Client(viewModelScope).deleteProfile(profile) {
-      viewModelScope.launch { loadUserProfiles() }
-      completionHandler(it)
-    }
-  }
-
-  // The below handle all types of preference modifications typically invoked by the UI.
-  // Callers generally shouldn't care about the returned prefs value - the source of
-  // truth is the IPNModel, who's prefs flow will change in value to reflect the true
-  // value of the pref setting in the back end (and will match the value returned here).
-  // Generally, you will want to inspect the returned value in the callback for errors
-  // to indicate why a particular setting did not change in the interface.
-  //
-  // Usage:
-  // - User/Interface changed to new value.  Render the new value.
-  // - Submit the new value to the PrefsEditor
-  // - Observe the prefs on the IpnModel and update the UI when/if the value changes.
-  //   For a typical flow, the changed value should reflect the value already shown.
-  // - Inform the user of any error which may have occurred
-  //
-  // The "toggle' functions here will attempt to set the pref value to the inverse of
-  // what is currently known in the IpnModel.prefs.  If IpnModel.prefs is not available,
-  // the callback will be called with a NO_PREFS error
-  fun setWantRunning(wantRunning: Boolean, callback: (Result<Ipn.Prefs>) -> Unit) {
-    Ipn.MaskedPrefs().WantRunning = wantRunning
-    Client(viewModelScope).editPrefs(Ipn.MaskedPrefs(), callback)
-  }
-
-  fun toggleShieldsUp(callback: (Result<Ipn.Prefs>) -> Unit) {
-    val prefs =
-        Notifier.prefs.value
-            ?: run {
-              callback(Result.failure(Exception("no prefs")))
-              return@toggleShieldsUp
-            }
-
-    val prefsOut = Ipn.MaskedPrefs()
-    prefsOut.ShieldsUp = !prefs.ShieldsUp
-    Client(viewModelScope).editPrefs(prefsOut, callback)
-  }
-
-  fun toggleRouteAll(callback: (Result<Ipn.Prefs>) -> Unit) {
-    val prefs =
-        Notifier.prefs.value
-            ?: run {
-              callback(Result.failure(Exception("no prefs")))
-              return@toggleRouteAll
-            }
-
-    val prefsOut = Ipn.MaskedPrefs()
-    prefsOut.RouteAll = !prefs.RouteAll
-    Client(viewModelScope).editPrefs(prefsOut, callback)
   }
 }

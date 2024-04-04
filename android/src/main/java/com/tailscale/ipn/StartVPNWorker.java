@@ -11,6 +11,7 @@ import android.content.Intent;
 import android.net.VpnService;
 import android.os.Build;
 
+import androidx.annotation.NonNull;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
@@ -22,6 +23,7 @@ public final class StartVPNWorker extends Worker {
         super(appContext, workerParams);
     }
 
+    @NonNull
     @Override
     public Result doWork() {
         App app = ((App) getApplicationContext());

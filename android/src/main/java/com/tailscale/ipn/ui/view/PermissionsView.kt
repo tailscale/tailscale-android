@@ -23,7 +23,6 @@ import com.tailscale.ipn.ui.model.Permissions
 import com.tailscale.ipn.ui.theme.success
 import com.tailscale.ipn.ui.util.itemsWithDividers
 
-@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun PermissionsView(nav: BackNavigation, openApplicationSettings: () -> Unit) {
   val permissions = Permissions.withGrantedStatus

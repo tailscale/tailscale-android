@@ -10,7 +10,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import com.tailscale.ipn.R
 
-
+// Defines the different types of error dialogs.
+// Provides a message and title for each error type.
 enum class ErrorDialogType {
   INVALID_CUSTOM_URL,
   LOGOUT_FAILED,
@@ -64,6 +65,6 @@ fun ErrorDialog(
       title = { Text(text = stringResource(id = title)) },
       text = { Text(text = stringResource(id = message)) },
       confirmButton = {
-        PrimaryActionButton(onClick = onDismiss) { Text(text = stringResource(id = buttonText)) }
+        FullWidthButton(onClick = onDismiss) { Text(text = stringResource(id = buttonText)) }
       })
 }

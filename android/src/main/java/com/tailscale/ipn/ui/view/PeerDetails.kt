@@ -40,7 +40,6 @@ import com.tailscale.ipn.ui.util.itemsWithDividers
 import com.tailscale.ipn.ui.viewModel.PeerDetailsViewModel
 import com.tailscale.ipn.ui.viewModel.PeerDetailsViewModelFactory
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PeerDetails(
     nav: BackNavigation,

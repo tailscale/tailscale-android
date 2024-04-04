@@ -20,14 +20,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlin.concurrent.timer
 
 // DotsMatrix represents the state of the progress indicator.
-typealias DotsMatrix = List<List<Boolean>>
+typealias DotsMatrix = Array<Array<Boolean>>
 
 // The initial DotsMatrix that represents the Tailscale logo (T-shaped).
 val logoDotsMatrix: DotsMatrix =
-    listOf(
-        listOf(false, false, false),
-        listOf(true, true, true),
-        listOf(false, true, false),
+    arrayOf(
+        arrayOf(false, false, false),
+        arrayOf(true, true, true),
+        arrayOf(false, true, false),
     )
 
 @Composable
@@ -81,56 +81,56 @@ fun TailscaleLogoView(animated: Boolean = false, modifier: Modifier) {
   }
 }
 
-val gameOfLife: List<DotsMatrix> =
-    listOf(
-        listOf(
-            listOf(false, true, true),
-            listOf(true, false, true),
-            listOf(false, false, true),
+val gameOfLife: Array<DotsMatrix> =
+    arrayOf(
+        arrayOf(
+            arrayOf(false, true, true),
+            arrayOf(true, false, true),
+            arrayOf(false, false, true),
         ),
-        listOf(
-            listOf(false, true, true),
-            listOf(false, false, true),
-            listOf(false, true, false),
+        arrayOf(
+            arrayOf(false, true, true),
+            arrayOf(false, false, true),
+            arrayOf(false, true, false),
         ),
-        listOf(
-            listOf(false, true, true),
-            listOf(false, false, false),
-            listOf(false, false, true),
+        arrayOf(
+            arrayOf(false, true, true),
+            arrayOf(false, false, false),
+            arrayOf(false, false, true),
         ),
-        listOf(
-            listOf(false, false, true),
-            listOf(false, true, false),
-            listOf(false, false, false),
+        arrayOf(
+            arrayOf(false, false, true),
+            arrayOf(false, true, false),
+            arrayOf(false, false, false),
         ),
-        listOf(
-            listOf(false, true, false),
-            listOf(false, false, false),
-            listOf(false, false, false),
+        arrayOf(
+            arrayOf(false, true, false),
+            arrayOf(false, false, false),
+            arrayOf(false, false, false),
         ),
-        listOf(
-            listOf(false, false, false),
-            listOf(false, false, true),
-            listOf(false, false, false),
+        arrayOf(
+            arrayOf(false, false, false),
+            arrayOf(false, false, true),
+            arrayOf(false, false, false),
         ),
-        listOf(
-            listOf(false, false, false),
-            listOf(false, false, false),
-            listOf(false, false, false),
+        arrayOf(
+            arrayOf(false, false, true),
+            arrayOf(false, false, false),
+            arrayOf(false, false, false),
         ),
-        listOf(
-            listOf(false, false, true),
-            listOf(false, false, false),
-            listOf(false, false, false),
+        arrayOf(
+            arrayOf(false, false, false),
+            arrayOf(false, false, false),
+            arrayOf(true, false, false),
         ),
-        listOf(
-            listOf(false, false, false),
-            listOf(false, false, false),
-            listOf(true, false, false),
-        ),
-        listOf(listOf(false, false, false), listOf(false, false, false), listOf(true, true, false)),
-        listOf(listOf(false, false, false), listOf(true, false, false), listOf(true, true, false)),
-        listOf(listOf(false, false, false), listOf(true, true, false), listOf(false, true, false)),
-        listOf(listOf(false, false, false), listOf(true, true, false), listOf(false, true, true)),
-        listOf(listOf(false, false, false), listOf(true, true, true), listOf(false, false, true)),
-        listOf(listOf(false, true, false), listOf(true, true, true), listOf(true, false, true)))
+        arrayOf(
+            arrayOf(false, false, false), arrayOf(false, false, false), arrayOf(true, true, false)),
+        arrayOf(
+            arrayOf(false, false, false), arrayOf(true, false, false), arrayOf(true, true, false)),
+        arrayOf(
+            arrayOf(false, false, false), arrayOf(true, true, false), arrayOf(false, true, false)),
+        arrayOf(
+            arrayOf(false, false, false), arrayOf(true, true, false), arrayOf(false, true, true)),
+        arrayOf(
+            arrayOf(false, false, false), arrayOf(true, true, true), arrayOf(false, false, true)),
+        arrayOf(arrayOf(false, true, false), arrayOf(true, true, true), arrayOf(true, false, true)))

@@ -77,11 +77,8 @@ fun UserSwitcherView(
               }
 
               // When switch is invoked, this stores the ID of the user we're trying to switch to
-              // so we can decorate it with a spinner.  The actual logged in user will not change
-              // until
-              // we get our first netmap update back with the new userId for SelfNode.
-              // (jonathan) TODO: This user switch is not immediate.  We may need to represent the
-              // "switching users" state globally (if ipnState is insufficient)
+              // so we can decorate it with a spinner.  The actual logged in user will get updated
+              // as soon as we switch states.
               val nextUserId = remember { mutableStateOf<String?>(null) }
 
               LazyColumn {
@@ -165,7 +162,7 @@ fun FusMenu(viewModel: UserSwitcherViewModel) {
 
                 Spacer(modifier = Modifier.padding(8.dp))
 
-                PrimaryActionButton(onClick = { viewModel.setControlURL(url) }) {
+                FullWidthButton(onClick = { viewModel.setControlURL(url) }) {
                   Text(stringResource(id = R.string.add_account_short))
                 }
               }

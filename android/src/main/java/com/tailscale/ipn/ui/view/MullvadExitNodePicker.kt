@@ -22,7 +22,6 @@ import com.tailscale.ipn.ui.viewModel.ExitNodePickerNav
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerViewModel
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerViewModelFactory
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MullvadExitNodePicker(
     countryCode: String,

@@ -119,7 +119,7 @@ fun FileShareConnectView(onToggle: () -> Unit) {
             stringResource(R.string.connect_to_your_tailnet_to_share_files),
             style = MaterialTheme.typography.titleMedium)
         Spacer(modifier = Modifier.size(1.dp))
-        PrimaryActionButton(onClick = onToggle) {
+        FullWidthButton(onClick = onToggle) {
           Text(
               text = stringResource(id = R.string.connect),
               fontSize = MaterialTheme.typography.titleMedium.fontSize)

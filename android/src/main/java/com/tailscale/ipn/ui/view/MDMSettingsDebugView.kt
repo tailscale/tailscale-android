@@ -22,7 +22,6 @@ import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.util.itemsWithDividers
 import com.tailscale.ipn.ui.viewModel.IpnViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MDMSettingsDebugView(nav: BackNavigation, model: IpnViewModel = viewModel()) {
   Scaffold(topBar = { Header(R.string.current_mdm_settings, onBack = nav.onBack) }) { innerPadding

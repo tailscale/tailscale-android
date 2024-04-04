@@ -51,16 +51,15 @@ class ShareActivity : ComponentActivity() {
   }
 
   // Loads the files from the intent.
-  fun loadFiles() {
+  private fun loadFiles() {
     if (intent == null) {
       Log.e(TAG, "Share failure - No intent found")
       return
     }
 
     val act = intent.action
-    val uris: List<Uri?>?
 
-    uris =
+    val uris: List<Uri?>? =
         when (act) {
           Intent.ACTION_SEND -> {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
