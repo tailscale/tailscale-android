@@ -15,11 +15,9 @@ import (
 	"tailscale.com/logtail"
 	"tailscale.com/logtail/filch"
 	"tailscale.com/net/interfaces"
-	"tailscale.com/smallzstd"
 	"tailscale.com/types/logger"
 	"tailscale.com/types/logid"
 	"tailscale.com/util/clientmetric"
-	"tailscale.com/util/must"
 )
 
 const defaultMTU = 1280 // minimalMTU from wgengine/userspace.go
@@ -104,10 +102,8 @@ func (b *backend) setupLogs(logDir string, logID logid.PrivateID, logf logger.Lo
 		MetricsDelta:        clientmetric.EncodeLogTailMetricsDelta,
 		IncludeProcID:       true,
 		IncludeProcSequence: true,
-		NewZstdEncoder: func() logtail.Encoder {
-			return must.Get(smallzstd.NewEncoder(nil))
-		},
-		HTTPC: &http.Client{Transport: transport},
+		HTTPC:               &http.Client{Transport: transport},
+		CompressLogs:        true,
 	}
 	logcfg.FlushDelayFn = func() time.Duration { return 2 * time.Minute }
 

@@ -118,8 +118,12 @@ var googleDNSServers = []netip.Addr{
 
 func (b *backend) updateTUN(service IPNService, rcfg *router.Config, dcfg *dns.OSConfig) error {
 	if reflect.DeepEqual(rcfg, b.lastCfg) && reflect.DeepEqual(dcfg, b.lastDNSCfg) {
+		b.logger.Logf("updateTUN: no change to Routes or DNS, ignore")
 		return nil
 	}
+
+	b.logger.Logf("updateTUN: changed")
+	defer b.logger.Logf("updateTUN: finished")
 
 	// Close previous tunnel(s).
 	// This is necessary for ChromeOS, native Android devices
@@ -127,16 +131,20 @@ func (b *backend) updateTUN(service IPNService, rcfg *router.Config, dcfg *dns.O
 	//
 	// TODO(eliasnaur): If seamless handover becomes a desirable feature, skip
 	// the closing on ChromeOS.
+	b.logger.Logf("updateTUN: closing old TUNs")
 	b.CloseTUNs()
+	b.logger.Logf("updateTUN: closed old TUNs")
 
 	if len(rcfg.LocalAddrs) == 0 {
 		return nil
 	}
 	builder := service.NewBuilder()
+	b.logger.Logf("updateTUN: got new builder")
 
 	if err := builder.SetMTU(defaultMTU); err != nil {
 		return err
 	}
+	b.logger.Logf("updateTUN: set MTU")
 	if dcfg != nil {
 		nameservers := dcfg.Nameservers
 		if b.avoidEmptyDNS && len(nameservers) == 0 {
@@ -152,6 +160,7 @@ func (b *backend) updateTUN(service IPNService, rcfg *router.Config, dcfg *dns.O
 				return err
 			}
 		}
+		b.logger.Logf("updateTUN: set nameservers")
 	}
 
 	for _, route := range rcfg.Routes {
@@ -161,12 +170,14 @@ func (b *backend) updateTUN(service IPNService, rcfg *router.Config, dcfg *dns.O
 			return err
 		}
 	}
+	b.logger.Logf("updateTUN: added %d routes", len(rcfg.Routes))
 
 	for _, addr := range rcfg.LocalAddrs {
 		if err := builder.AddAddress(addr.Addr().String(), int32(addr.Bits())); err != nil {
 			return err
 		}
 	}
+	b.logger.Logf("updateTUN: added %d local addrs", len(rcfg.LocalAddrs))
 
 	parcelFD, err := builder.Establish()
 	if err != nil {
@@ -175,6 +186,7 @@ func (b *backend) updateTUN(service IPNService, rcfg *router.Config, dcfg *dns.O
 		}
 		return fmt.Errorf("VpnService.Builder.establish: %v", err)
 	}
+	b.logger.Logf("updateTUN: established VPN")
 
 	if parcelFD == nil {
 		return errVPNNotPrepared
@@ -185,6 +197,7 @@ func (b *backend) updateTUN(service IPNService, rcfg *router.Config, dcfg *dns.O
 	if err != nil {
 		return fmt.Errorf("detachFd: %v", err)
 	}
+	b.logger.Logf("updateTUN: detached FD")
 
 	// Create TUN device.
 	tunDev, _, err := tun.CreateUnmonitoredTUNFromFD(int(tunFD))
@@ -192,8 +205,10 @@ func (b *backend) updateTUN(service IPNService, rcfg *router.Config, dcfg *dns.O
 		unix.Close(int(tunFD))
 		return err
 	}
+	b.logger.Logf("updateTUN: created TUN device")
 
 	b.devices.add(tunDev)
+	b.logger.Logf("updateTUN: added TUN device")
 
 	// TODO(oxtoacart): figure out what to do with this
 	// if err != nil {

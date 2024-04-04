@@ -26,13 +26,11 @@ import (
 	"tailscale.com/net/dns"
 	"tailscale.com/net/netmon"
 	"tailscale.com/net/tsdial"
-	"tailscale.com/smallzstd"
 	"tailscale.com/tsd"
 	"tailscale.com/types/logger"
 	"tailscale.com/types/logid"
 	"tailscale.com/util/clientmetric"
 	"tailscale.com/util/dnsname"
-	"tailscale.com/util/must"
 	"tailscale.com/wgengine"
 	"tailscale.com/wgengine/netstack"
 	"tailscale.com/wgengine/router"
@@ -356,10 +354,8 @@ func (b *backend) SetupLogs(logDir string, logID logid.PrivateID, logf logger.Lo
 		MetricsDelta:        clientmetric.EncodeLogTailMetricsDelta,
 		IncludeProcID:       true,
 		IncludeProcSequence: true,
-		NewZstdEncoder: func() logtail.Encoder {
-			return must.Get(smallzstd.NewEncoder(nil))
-		},
-		HTTPC: &http.Client{Transport: transport},
+		HTTPC:               &http.Client{Transport: transport},
+		CompressLogs:        true,
 	}
 	logcfg.FlushDelayFn = func() time.Duration { return 2 * time.Minute }
 
