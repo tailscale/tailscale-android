@@ -61,6 +61,8 @@ type IPNService interface {
 	// NewBuilder creates a new VPNServiceBuilder in preparation for starting
 	// the Android VPN.
 	NewBuilder() VPNServiceBuilder
+
+	Close()
 }
 
 // VPNServiceBuilder corresponds to Android's VpnService.Builder.

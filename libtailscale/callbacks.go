@@ -10,9 +10,6 @@ import (
 var (
 	// onVPNPrepared is notified when VpnService.prepare succeeds.
 	onVPNPrepared = make(chan struct{}, 1)
-	// onVPNClosed is notified when VpnService.prepare fails, or when
-	// the a running VPN connection is closed.
-	onVPNClosed = make(chan struct{}, 1)
 	// onVPNRevoked is notified whenever the VPN service is revoked.
 	onVPNRevoked = make(chan struct{}, 1)
 
@@ -47,13 +44,6 @@ func notifyVPNPrepared() {
 func notifyVPNRevoked() {
 	select {
 	case onVPNRevoked <- struct{}{}:
-	default:
-	}
-}
-
-func notifyVPNClosed() {
-	select {
-	case onVPNClosed <- struct{}{}:
 	default:
 	}
 }

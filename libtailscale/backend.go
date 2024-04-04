@@ -212,7 +212,7 @@ func (a *App) runBackend(ctx context.Context) error {
 			if cfg.rcfg != nil && state >= ipn.Starting {
 				if err := b.updateTUN(service, cfg.rcfg, cfg.dcfg); err != nil {
 					log.Printf("VPN update failed: %v", err)
-					notifyVPNClosed()
+					service.Close()
 				}
 			}
 		case s := <-onDisconnect:
@@ -220,9 +220,6 @@ func (a *App) runBackend(ctx context.Context) error {
 			if service != nil && service.ID() == s.ID() {
 				netns.SetAndroidProtectFunc(nil)
 				service = nil
-			}
-			if state >= ipn.Starting {
-				notifyVPNClosed()
 			}
 		case <-onDNSConfigChanged:
 			if b != nil {
