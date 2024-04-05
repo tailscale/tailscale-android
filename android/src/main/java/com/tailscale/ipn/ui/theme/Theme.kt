@@ -75,7 +75,7 @@ private val LightColors =
         outlineVariant = Color(0xFFEDEBEA), // gray-200
         inverseSurface = Color(0xFF232222), // gray-800
         inverseOnSurface = Color(0xFFFFFFFF), // white
-        scrim = Color(0xFF000000), // black
+        scrim = Color(0xAA000000), // black
     )
 
 val ColorScheme.warning: Color

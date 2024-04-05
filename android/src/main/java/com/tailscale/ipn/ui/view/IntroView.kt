@@ -9,12 +9,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -27,38 +27,36 @@ import com.tailscale.ipn.R
 
 @Composable
 fun IntroView(onContinue: () -> Unit) {
-  Surface {
-    Column(
-        modifier = Modifier.fillMaxHeight(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center) {
-          Image(
-              modifier = Modifier.width(80.dp).height(80.dp),
-              painter = painterResource(id = R.drawable.androidicon_light),
-              contentDescription = stringResource(R.string.app_icon_content_description))
-          Spacer(modifier = Modifier.height(40.dp))
-          Text(
-              modifier = Modifier.padding(start = 40.dp, end = 40.dp, bottom = 40.dp),
-              text = stringResource(R.string.welcome1),
-              style = MaterialTheme.typography.bodyLarge,
-              textAlign = TextAlign.Center)
+  Column(
+      modifier = Modifier.fillMaxHeight().fillMaxWidth(),
+      horizontalAlignment = Alignment.CenterHorizontally,
+      verticalArrangement = Arrangement.Center) {
+        Image(
+            modifier = Modifier.width(80.dp).height(80.dp),
+            painter = painterResource(id = R.drawable.androidicon_light),
+            contentDescription = stringResource(R.string.app_icon_content_description))
+        Spacer(modifier = Modifier.height(40.dp))
+        Text(
+            modifier = Modifier.padding(start = 40.dp, end = 40.dp, bottom = 40.dp),
+            text = stringResource(R.string.welcome1),
+            style = MaterialTheme.typography.bodyLarge,
+            textAlign = TextAlign.Center)
 
-          Button(onClick = onContinue) {
-            Text(
-                text = stringResource(id = R.string.getStarted),
-                fontSize = MaterialTheme.typography.titleMedium.fontSize)
-          }
-          Spacer(modifier = Modifier.height(40.dp))
-        }
-
-    Box(
-        modifier = Modifier.fillMaxHeight().padding(start = 20.dp, end = 20.dp, bottom = 40.dp),
-        contentAlignment = Alignment.BottomCenter) {
+        Button(onClick = onContinue) {
           Text(
-              text = stringResource(R.string.welcome2),
-              style = MaterialTheme.typography.bodyMedium,
-              color = MaterialTheme.colorScheme.onSurfaceVariant,
-              textAlign = TextAlign.Center)
+              text = stringResource(id = R.string.getStarted),
+              fontSize = MaterialTheme.typography.titleMedium.fontSize)
         }
-  }
+        Spacer(modifier = Modifier.height(40.dp))
+      }
+
+  Box(
+      modifier = Modifier.fillMaxHeight().padding(start = 20.dp, end = 20.dp, bottom = 40.dp),
+      contentAlignment = Alignment.BottomCenter) {
+        Text(
+            text = stringResource(R.string.welcome2),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center)
+      }
 }

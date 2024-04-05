@@ -11,11 +11,15 @@ import android.provider.OpenableColumns
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.ui.Modifier
 import androidx.lifecycle.lifecycleScope
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.theme.AppTheme
 import com.tailscale.ipn.ui.util.set
+import com.tailscale.ipn.ui.util.universalFit
 import com.tailscale.ipn.ui.view.TaildropView
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,7 +33,13 @@ class ShareActivity : ComponentActivity() {
   override fun onCreate(state: Bundle?) {
     super.onCreate(state)
     setContent {
-      AppTheme { TaildropView(requestedTransfers, (application as App).applicationScope) }
+      AppTheme {
+        Surface(color = MaterialTheme.colorScheme.inverseSurface) { // Background for the letterbox
+          Surface(modifier = Modifier.universalFit()) {
+            TaildropView(requestedTransfers, (application as App).applicationScope)
+          }
+        }
+      }
     }
   }
 

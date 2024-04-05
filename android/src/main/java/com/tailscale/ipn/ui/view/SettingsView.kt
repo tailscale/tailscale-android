@@ -6,7 +6,9 @@ package com.tailscale.ipn.ui.view
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.ClickableText
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -38,11 +40,10 @@ fun SettingsView(settingsNav: SettingsNav, viewModel: SettingsViewModel = viewMo
   val isAdmin = viewModel.isAdmin.collectAsState().value
   val managedByOrganization = viewModel.managedByOrganization.collectAsState().value
 
-  Scaffold(
-      topBar = {
+  Scaffold(topBar = {
         Header(titleRes = R.string.settings_title, onBack = settingsNav.onBackPressed)
       }) { innerPadding ->
-        Column(modifier = Modifier.padding(innerPadding)) {
+        Column(modifier = Modifier.padding(innerPadding).verticalScroll(rememberScrollState())) {
           UserView(
               profile = user,
               actionState = UserActionState.NAV,
