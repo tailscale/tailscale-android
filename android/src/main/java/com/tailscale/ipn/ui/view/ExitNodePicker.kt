@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
+import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.theme.disabledListItem
 import com.tailscale.ipn.ui.theme.listItem
 import com.tailscale.ipn.ui.util.Lists
@@ -43,6 +44,7 @@ fun ExitNodePicker(
       val mullvadExitNodesByCountryCode = model.mullvadExitNodesByCountryCode.collectAsState().value
       val mullvadExitNodeCount = model.mullvadExitNodeCount.collectAsState().value
       val anyActive = model.anyActive.collectAsState()
+      val allowLANAccess = Notifier.prefs.collectAsState().value?.ExitNodeAllowLANAccess == true
 
       LazyColumn(modifier = Modifier.padding(innerPadding)) {
         item(key = "header") {
@@ -71,7 +73,11 @@ fun ExitNodePicker(
         // TODO: make sure this actually works, and if not, leave it out for now
         item(key = "allowLANAccess") {
           Lists.SectionDivider()
-          SettingRow(model.allowLANAccessSetting)
+
+          Setting.Switch(R.string.allow_lan_access, isOn = allowLANAccess) {
+            LoadingIndicator.start()
+            model.toggleAllowLANAccess { LoadingIndicator.stop() }
+          }
         }
       }
     }

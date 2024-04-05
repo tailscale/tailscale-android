@@ -6,7 +6,6 @@ package com.tailscale.ipn.ui.viewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.localapi.Client
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.StableNodeID
@@ -56,17 +55,6 @@ class ExitNodePickerViewModel(private val nav: ExitNodePickerNav) : IpnViewModel
   val mullvadExitNodeCount: StateFlow<Int> = MutableStateFlow(0)
   val anyActive: StateFlow<Boolean> = MutableStateFlow(false)
   val isRunningExitNode: StateFlow<Boolean> = MutableStateFlow(false)
-
-  val allowLANAccessSetting =
-      Setting(
-          R.string.allow_lan_access,
-          type = SettingType.SWITCH,
-          isOn = MutableStateFlow(Notifier.prefs.value?.ExitNodeAllowLANAccess),
-          enabled = MutableStateFlow(true),
-          onToggle = {
-            LoadingIndicator.start()
-            toggleAllowLANAccess { LoadingIndicator.stop() }
-          })
 
   init {
     viewModelScope.launch {
@@ -155,7 +143,7 @@ class ExitNodePickerViewModel(private val nav: ExitNodePickerNav) : IpnViewModel
     }
   }
 
-  private fun toggleAllowLANAccess(callback: (Result<Ipn.Prefs>) -> Unit) {
+  fun toggleAllowLANAccess(callback: (Result<Ipn.Prefs>) -> Unit) {
     val prefs =
         Notifier.prefs.value
             ?: run {

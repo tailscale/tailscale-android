@@ -4,7 +4,6 @@
 package com.tailscale.ipn.ui.view
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.ClickableText
@@ -29,21 +28,15 @@ import com.tailscale.ipn.ui.Links
 import com.tailscale.ipn.ui.theme.link
 import com.tailscale.ipn.ui.theme.listItem
 import com.tailscale.ipn.ui.util.Lists
-import com.tailscale.ipn.ui.viewModel.Setting
-import com.tailscale.ipn.ui.viewModel.SettingType
 import com.tailscale.ipn.ui.viewModel.SettingsNav
 import com.tailscale.ipn.ui.viewModel.SettingsViewModel
-import com.tailscale.ipn.ui.viewModel.SettingsViewModelFactory
 
 @Composable
-fun SettingsView(
-    settingsNav: SettingsNav,
-    viewModel: SettingsViewModel = viewModel(factory = SettingsViewModelFactory(settingsNav))
-) {
+fun SettingsView(settingsNav: SettingsNav, viewModel: SettingsViewModel = viewModel()) {
   val handler = LocalUriHandler.current
   val user = viewModel.loggedInUser.collectAsState().value
   val isAdmin = viewModel.isAdmin.collectAsState().value
-  val managedBy = viewModel.managedBy.collectAsState().value
+  val managedByOrganization = viewModel.managedByOrganization.collectAsState().value
 
   Scaffold(
       topBar = {
@@ -53,107 +46,88 @@ fun SettingsView(
           UserView(
               profile = user,
               actionState = UserActionState.NAV,
-              onClick = viewModel.navigation.onNavigateToUserSwitcher)
+              onClick = settingsNav.onNavigateToUserSwitcher)
 
           if (isAdmin) {
             AdminTextView { handler.openUri(Links.ADMIN_URL) }
           }
 
           Lists.SectionDivider()
-          SettingRow(viewModel.dns)
+          Setting.Text(R.string.dns_settings, onClick = settingsNav.onNavigateToDNSSettings)
 
           Lists.ItemDivider()
-          SettingRow(viewModel.tailnetLock)
+          Setting.Text(R.string.tailnet_lock, onClick = settingsNav.onNavigateToTailnetLock)
 
           Lists.ItemDivider()
-          SettingRow(viewModel.permissions)
+          Setting.Text(R.string.permissions, onClick = settingsNav.onNavigateToPermissions)
 
-          managedBy?.let {
+          managedByOrganization?.let {
             Lists.ItemDivider()
-            SettingRow(it)
+            Setting.Text(
+                title = stringResource(R.string.managed_by_orgName, it),
+                onClick = settingsNav.onNavigateToManagedBy)
           }
 
           Lists.SectionDivider()
-          SettingRow(viewModel.bugReport)
+          Setting.Text(R.string.bug_report, onClick = settingsNav.onNavigateToBugReport)
 
           Lists.ItemDivider()
-          SettingRow(viewModel.about)
+          Setting.Text(R.string.about_tailscale, onClick = settingsNav.onNavigateToAbout)
 
           // TODO: put a heading for the debug section
           if (BuildConfig.DEBUG) {
             Lists.SectionDivider()
-            SettingRow(viewModel.mdmDebug)
+            Setting.Text(R.string.mdm_settings, onClick = settingsNav.onNavigateToMDMSettings)
           }
         }
       }
 }
 
-@Composable
-fun SettingRow(setting: Setting) {
-  Box {
-    when (setting.type) {
-      SettingType.TEXT -> TextRow(setting)
-      SettingType.SWITCH -> SwitchRow(setting)
-      SettingType.NAV -> {
-        NavRow(setting)
-      }
+object Setting {
+  @Composable
+  fun Text(
+      titleRes: Int = 0,
+      title: String? = null,
+      destructive: Boolean = false,
+      enabled: Boolean = true,
+      onClick: (() -> Unit)? = null
+  ) {
+    var modifier: Modifier = Modifier
+    if (enabled) {
+      onClick?.let { modifier = modifier.clickable(onClick = it) }
     }
+    ListItem(
+        modifier = modifier,
+        colors = MaterialTheme.colorScheme.listItem,
+        headlineContent = {
+          Text(
+              title ?: stringResource(titleRes),
+              style = MaterialTheme.typography.bodyMedium,
+              color = if (destructive) MaterialTheme.colorScheme.error else Color.Unspecified)
+        },
+    )
   }
-}
 
-@Composable
-private fun TextRow(setting: Setting) {
-  val enabled = setting.enabled.collectAsState().value
-  var modifier: Modifier = Modifier
-  if (enabled) {
-    setting.onClick?.let { modifier = modifier.clickable(onClick = it) }
+  @Composable
+  fun Switch(
+      titleRes: Int = 0,
+      title: String? = null,
+      isOn: Boolean,
+      enabled: Boolean = true,
+      onToggle: (Boolean) -> Unit = {}
+  ) {
+    ListItem(
+        colors = MaterialTheme.colorScheme.listItem,
+        headlineContent = {
+          Text(
+              title ?: stringResource(titleRes),
+              style = MaterialTheme.typography.bodyMedium,
+          )
+        },
+        trailingContent = {
+          TintedSwitch(checked = isOn, onCheckedChange = onToggle, enabled = enabled)
+        })
   }
-  ListItem(
-      modifier = modifier,
-      colors = MaterialTheme.colorScheme.listItem,
-      headlineContent = {
-        Text(
-            setting.title ?: stringResource(setting.titleRes),
-            style = MaterialTheme.typography.bodyMedium,
-            color = if (setting.destructive) MaterialTheme.colorScheme.error else Color.Unspecified)
-      },
-  )
-}
-
-@Composable
-private fun SwitchRow(setting: Setting) {
-  val enabled = setting.enabled.collectAsState().value
-  val swVal = setting.isOn?.collectAsState()?.value ?: false
-  var modifier: Modifier = Modifier
-  if (enabled) {
-    setting.onClick?.let { modifier = modifier.clickable(onClick = it) }
-  }
-  ListItem(
-      modifier = modifier,
-      colors = MaterialTheme.colorScheme.listItem,
-      headlineContent = {
-        Text(
-            setting.title ?: stringResource(setting.titleRes),
-            style = MaterialTheme.typography.bodyMedium,
-        )
-      },
-      trailingContent = {
-        TintedSwitch(checked = swVal, onCheckedChange = setting.onToggle, enabled = enabled)
-      })
-}
-
-@Composable
-private fun NavRow(setting: Setting) {
-  var modifier: Modifier = Modifier
-  setting.onClick?.let { modifier = modifier.clickable(onClick = it) }
-  ListItem(
-      modifier = modifier,
-      colors = MaterialTheme.colorScheme.listItem,
-      headlineContent = {
-        Text(
-            setting.title ?: stringResource(setting.titleRes),
-            style = MaterialTheme.typography.bodyMedium)
-      })
 }
 
 @Composable

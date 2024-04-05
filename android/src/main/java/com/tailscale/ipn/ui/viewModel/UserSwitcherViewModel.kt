@@ -4,7 +4,6 @@
 package com.tailscale.ipn.ui.viewModel
 
 import androidx.lifecycle.viewModelScope
-import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.localapi.Client
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.notifier.Notifier
@@ -20,34 +19,6 @@ class UserSwitcherViewModel : IpnViewModel() {
 
   // True if we should render the kebab menu
   val showHeaderMenu: StateFlow<Boolean> = MutableStateFlow(false)
-
-  val loginSetting =
-      Setting(titleRes = R.string.reauthenticate, type = SettingType.NAV, onClick = { login {} })
-
-  val logoutSetting =
-      Setting(
-          titleRes = R.string.log_out,
-          destructive = true,
-          type = SettingType.TEXT,
-          onClick = {
-            logout {
-              if (it.isFailure) {
-                errorDialog.set(ErrorDialogType.LOGOUT_FAILED)
-              }
-            }
-          })
-
-  val addProfileSetting =
-      Setting(
-          titleRes = R.string.add_account,
-          type = SettingType.NAV,
-          onClick = {
-            addProfile {
-              if (it.isFailure) {
-                errorDialog.set(ErrorDialogType.ADD_PROFILE_FAILED)
-              }
-            }
-          })
 
   // Sets the custom control URL and immediatly invokes the login flow
   fun setControlURL(urlStr: String) {
