@@ -21,6 +21,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.BuildConfig
 import com.tailscale.ipn.R
@@ -49,6 +50,7 @@ fun SettingsView(settingsNav: SettingsNav, viewModel: SettingsViewModel = viewMo
               onClick = settingsNav.onNavigateToUserSwitcher)
 
           if (isAdmin) {
+            Lists.ItemDivider()
             AdminTextView { handler.openUri(Links.ADMIN_URL) }
           }
 
@@ -150,9 +152,11 @@ fun AdminTextView(onNavigateToAdminConsole: () -> Unit) {
 
   ListItem(
       headlineContent = {
-        ClickableText(
-            text = adminStr,
-            style = MaterialTheme.typography.bodyMedium,
-            onClick = { onNavigateToAdminConsole() })
+        Box(modifier = Modifier.padding(vertical = 4.dp)) {
+          ClickableText(
+              text = adminStr,
+              style = MaterialTheme.typography.bodyMedium,
+              onClick = { onNavigateToAdminConsole() })
+        }
       })
 }
