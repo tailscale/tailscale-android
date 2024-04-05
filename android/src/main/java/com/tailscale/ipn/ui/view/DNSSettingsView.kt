@@ -65,7 +65,7 @@ fun DNSSettingsView(
               supportingContent = { Text(stringResource(state.caption)) })
 
           Lists.ItemDivider()
-          SettingsRow.Switch(
+          Setting.Switch(
               R.string.use_ts_dns,
               isOn = useCorpDNS,
               onToggle = {

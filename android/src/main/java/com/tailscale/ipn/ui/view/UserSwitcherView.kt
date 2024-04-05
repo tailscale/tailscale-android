@@ -111,12 +111,29 @@ fun UserSwitcherView(
 
                 item {
                   Lists.SectionDivider()
-                  SettingRow(viewModel.addProfileSetting)
+                  Setting.Text(R.string.add_account) {
+                    viewModel.addProfile {
+                      if (it.isFailure) {
+                        viewModel.errorDialog.set(ErrorDialogType.ADD_PROFILE_FAILED)
+                      }
+                    }
+                  }
+
                   Lists.ItemDivider()
-                  SettingRow(viewModel.loginSetting)
+                  Setting.Text(R.string.reauthenticate) { viewModel.login {} }
+
                   if (currentUser != null) {
                     Lists.ItemDivider()
-                    SettingRow(viewModel.logoutSetting)
+                    Setting.Text(
+                        R.string.log_out,
+                        destructive = true,
+                        onClick = {
+                          viewModel.logout {
+                            if (it.isFailure) {
+                              viewModel.errorDialog.set(ErrorDialogType.LOGOUT_FAILED)
+                            }
+                          }
+                        })
                   }
                 }
               }

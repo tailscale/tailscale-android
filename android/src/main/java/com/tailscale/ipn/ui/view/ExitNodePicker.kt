@@ -74,7 +74,7 @@ fun ExitNodePicker(
         item(key = "allowLANAccess") {
           Lists.SectionDivider()
 
-          SettingsRow.Switch(R.string.allow_lan_access, isOn = allowLANAccess) {
+          Setting.Switch(R.string.allow_lan_access, isOn = allowLANAccess) {
             LoadingIndicator.start()
             model.toggleAllowLANAccess { LoadingIndicator.stop() }
           }
