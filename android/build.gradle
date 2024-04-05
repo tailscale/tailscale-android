@@ -51,15 +51,6 @@ android {
         kotlinCompilerExtensionVersion = "$kotlin_compose_version"
     }
     flavorDimensions "version"
-    productFlavors {
-        fdroid {
-            // The fdroid flavor contains only free dependencies and is suitable
-            // for the F-Droid app store.
-        }
-        play {
-            // The play flavor contains all features and is for the Play Store.
-        }
-    }
     namespace 'com.tailscale.ipn'
 }
 
