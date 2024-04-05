@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.model.DnsType
+import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.util.ClipboardValueView
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.LoadingIndicator
@@ -44,6 +45,7 @@ fun DNSSettingsView(
       model.dnsConfig.collectAsState().value?.Routes?.mapNotNull { entry ->
         entry.value?.let { resolvers -> ViewableRoute(name = entry.key, resolvers) } ?: run { null }
       } ?: emptyList()
+  val useCorpDNS = Notifier.prefs.collectAsState().value?.CorpDNS == true
 
   Scaffold(topBar = { Header(R.string.dns_settings, onBack = nav.onBack) }) { innerPadding ->
     LoadingIndicator.Wrap {
@@ -63,8 +65,13 @@ fun DNSSettingsView(
               supportingContent = { Text(stringResource(state.caption)) })
 
           Lists.ItemDivider()
-
-          SettingRow(model.useDNSSetting)
+          SettingsRow.Switch(
+              R.string.use_ts_dns,
+              isOn = useCorpDNS,
+              onToggle = {
+                LoadingIndicator.start()
+                model.toggleCorpDNS { LoadingIndicator.stop() }
+              })
         }
 
         if (resolvers.isNotEmpty()) {

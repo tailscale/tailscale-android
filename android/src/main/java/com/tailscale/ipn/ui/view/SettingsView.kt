@@ -93,7 +93,6 @@ fun SettingRow(setting: Setting) {
   Box {
     when (setting.type) {
       SettingType.TEXT -> TextRow(setting)
-      SettingType.SWITCH -> SwitchRow(setting)
       SettingType.NAV -> {
         NavRow(setting)
       }
@@ -120,26 +119,27 @@ private fun TextRow(setting: Setting) {
   )
 }
 
-@Composable
-private fun SwitchRow(setting: Setting) {
-  val enabled = setting.enabled.collectAsState().value
-  val swVal = setting.isOn?.collectAsState()?.value ?: false
-  var modifier: Modifier = Modifier
-  if (enabled) {
-    setting.onClick?.let { modifier = modifier.clickable(onClick = it) }
+object SettingsRow {
+  @Composable
+  fun Switch(
+      titleRes: Int = 0,
+      title: String? = null,
+      isOn: Boolean,
+      enabled: Boolean = true,
+      onToggle: (Boolean) -> Unit = {}
+  ) {
+    ListItem(
+        colors = MaterialTheme.colorScheme.listItem,
+        headlineContent = {
+          Text(
+              title ?: stringResource(titleRes),
+              style = MaterialTheme.typography.bodyMedium,
+          )
+        },
+        trailingContent = {
+          TintedSwitch(checked = isOn, onCheckedChange = onToggle, enabled = enabled)
+        })
   }
-  ListItem(
-      modifier = modifier,
-      colors = MaterialTheme.colorScheme.listItem,
-      headlineContent = {
-        Text(
-            setting.title ?: stringResource(setting.titleRes),
-            style = MaterialTheme.typography.bodyMedium,
-        )
-      },
-      trailingContent = {
-        TintedSwitch(checked = swVal, onCheckedChange = setting.onToggle, enabled = enabled)
-      })
 }
 
 @Composable

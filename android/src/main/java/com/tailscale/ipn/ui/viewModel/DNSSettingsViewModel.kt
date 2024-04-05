@@ -36,13 +36,6 @@ class DNSSettingsViewModel() : IpnViewModel() {
       MutableStateFlow(DNSEnablementState.NOT_RUNNING)
   val dnsConfig: StateFlow<Tailcfg.DNSConfig?> = MutableStateFlow(null)
 
-  val useDNSSetting =
-      Setting(
-          R.string.use_ts_dns,
-          type = SettingType.SWITCH,
-          isOn = MutableStateFlow(Notifier.prefs.value?.CorpDNS),
-          onToggle = { toggleCorpDNS {} })
-
   init {
     viewModelScope.launch {
       Notifier.netmap
@@ -51,19 +44,12 @@ class DNSSettingsViewModel() : IpnViewModel() {
           .collect { (netmap, prefs) ->
             Log.d("DNSSettingsViewModel", "prefs: CorpDNS=" + prefs?.CorpDNS.toString())
             prefs?.let {
-              useDNSSetting.isOn?.set(it.CorpDNS)
-              useDNSSetting.enabled.set(true)
-
               if (it.CorpDNS) {
                 enablementState.set(DNSEnablementState.ENABLED)
               } else {
                 enablementState.set(DNSEnablementState.DISABLED)
               }
-            }
-                ?: run {
-                  enablementState.set(DNSEnablementState.NOT_RUNNING)
-                  useDNSSetting.enabled.set(false)
-                }
+            } ?: run { enablementState.set(DNSEnablementState.NOT_RUNNING) }
             netmap?.let { dnsConfig.set(netmap.DNS) }
           }
     }

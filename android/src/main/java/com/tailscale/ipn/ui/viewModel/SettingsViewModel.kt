@@ -16,7 +16,6 @@ import kotlinx.coroutines.launch
 
 enum class SettingType {
   NAV,
-  SWITCH,
   TEXT
 }
 
