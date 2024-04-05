@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DropdownMenu
@@ -18,6 +19,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -31,10 +33,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
+import com.tailscale.ipn.ui.Links
+import com.tailscale.ipn.ui.theme.link
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.itemsWithDividers
 import com.tailscale.ipn.ui.util.set
@@ -47,10 +56,11 @@ fun UserSwitcherView(
     onNavigateHome: () -> Unit,
     viewModel: UserSwitcherViewModel = viewModel()
 ) {
-
+  val handler = LocalUriHandler.current
   val users = viewModel.loginProfiles.collectAsState().value
   val currentUser = viewModel.loggedInUser.collectAsState().value
   val showHeaderMenu = viewModel.showHeaderMenu.collectAsState().value
+  val isAdmin = viewModel.isAdmin.collectAsState().value
 
   Scaffold(
       topBar = {
@@ -119,7 +129,12 @@ fun UserSwitcherView(
                     }
                   }
 
-                  Lists.ItemDivider()
+                  //                  if (isAdmin) {
+                  //                    Lists.ItemDivider()
+                  //                    AdminTextView { handler.openUri(Links.ADMIN_URL) }
+                  //                  }
+
+                  Lists.SectionDivider()
                   Setting.Text(R.string.reauthenticate) { viewModel.login {} }
 
                   if (currentUser != null) {
@@ -188,4 +203,31 @@ fun FusMenu(viewModel: UserSwitcherViewModel) {
               }
             })
       }
+}
+
+@Composable
+fun AdminTextView(onNavigateToAdminConsole: () -> Unit) {
+  val adminStr = buildAnnotatedString {
+    withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.onSurfaceVariant)) {
+      append(stringResource(id = R.string.settings_admin_prefix))
+    }
+
+    pushStringAnnotation(tag = "link", annotation = Links.ADMIN_URL)
+    withStyle(
+        style =
+            SpanStyle(
+                color = MaterialTheme.colorScheme.link,
+                textDecoration = TextDecoration.Underline)) {
+          append(stringResource(id = R.string.settings_admin_link))
+        }
+    pop()
+  }
+
+  ListItem(
+      headlineContent = {
+        ClickableText(
+            text = adminStr,
+            style = MaterialTheme.typography.bodyMedium,
+            onClick = { onNavigateToAdminConsole() })
+      })
 }

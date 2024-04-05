@@ -3,13 +3,7 @@
 
 package com.tailscale.ipn.ui.viewModel
 
-import androidx.lifecycle.viewModelScope
 import com.tailscale.ipn.mdm.MDMSettings
-import com.tailscale.ipn.ui.notifier.Notifier
-import com.tailscale.ipn.ui.util.set
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
 
 data class SettingsNav(
     val onNavigateToBugReport: () -> Unit,
@@ -25,12 +19,5 @@ data class SettingsNav(
 
 class SettingsViewModel() : IpnViewModel() {
   // Display name for the logged in user
-  val isAdmin: StateFlow<Boolean> = MutableStateFlow(false)
   val managedByOrganization = MDMSettings.managedByOrganizationName.flow
-
-  init {
-    viewModelScope.launch {
-      Notifier.netmap.collect { netmap -> isAdmin.set(netmap?.SelfNode?.isAdmin ?: false) }
-    }
-  }
 }

@@ -11,6 +11,7 @@ import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.view.ErrorDialogType
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 
 class UserSwitcherViewModel : IpnViewModel() {
 
@@ -20,7 +21,15 @@ class UserSwitcherViewModel : IpnViewModel() {
   // True if we should render the kebab menu
   val showHeaderMenu: StateFlow<Boolean> = MutableStateFlow(false)
 
-  // Sets the custom control URL and immediatly invokes the login flow
+  val isAdmin: StateFlow<Boolean> = MutableStateFlow(false)
+
+  init {
+    viewModelScope.launch {
+      Notifier.netmap.collect { netmap -> isAdmin.set(netmap?.SelfNode?.isAdmin ?: false) }
+    }
+  }
+
+  // Sets the custom control URL and immediately invokes the login flow
   fun setControlURL(urlStr: String) {
     // Some basic checks that the entered URL is "reasonable".  The underlying
     // localAPIClient will use the default server if we give it a broken URL,
