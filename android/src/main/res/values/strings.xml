@@ -40,8 +40,8 @@
 
     <!-- Strings for the settings screen -->
     <string name="settings_title">Settings</string>
-    <string name="settings_admin_prefix">You can manage your account from the admin console.&#160;</string>
-    <string name="settings_admin_link">View admin console</string>
+    <string name="settings_admin_prefix">"Manage your tailnet settings in the "</string>
+    <string name="settings_admin_link">admin console</string>
     <string name="about_tailscale">About Tailscale</string>
     <string name="bug_report">Bug report</string>
     <string name="use_ts_dns">Use Tailscale DNS</string>
@@ -98,6 +98,7 @@
     <string name="logout_failed">Unable to logout at this time. Please try again.</string>
     <string name="error">Error</string>
     <string name="accounts">Accounts</string>
+    <string name="manage_accounts">Manage accounts</string>
     <string name="add_account">Add another account…</string>
     <string name="add_account_short">Add account</string>
     <string name="reauthenticate">Reauthenticate</string>
