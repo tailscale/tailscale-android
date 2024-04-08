@@ -20,7 +20,8 @@ data class SettingsNav(
     val onNavigateToManagedBy: () -> Unit,
     val onNavigateToUserSwitcher: () -> Unit,
     val onNavigateToPermissions: () -> Unit,
-    val onBackPressed: () -> Unit,
+    val onNavigateBackHome: () -> Unit,
+    val onBackToSettings: () -> Unit,
 )
 
 class SettingsViewModel() : IpnViewModel() {

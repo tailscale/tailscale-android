@@ -43,7 +43,7 @@ import com.tailscale.ipn.ui.viewModel.PeerDetailsViewModelFactory
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PeerDetails(
-    nav: BackNavigation,
+    backToHome: BackNavigation,
     nodeId: String,
     model: PeerDetailsViewModel =
         viewModel(factory = PeerDetailsViewModelFactory(nodeId, LocalContext.current.filesDir))
@@ -74,7 +74,7 @@ fun PeerDetails(
                     }
                   }
                 },
-                onBack = { nav.onBack() })
+                onBack = backToHome)
           },
       ) { innerPadding ->
         LazyColumn(

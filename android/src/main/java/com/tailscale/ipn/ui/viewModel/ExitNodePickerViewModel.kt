@@ -20,10 +20,10 @@ import kotlinx.coroutines.launch
 import java.util.TreeMap
 
 data class ExitNodePickerNav(
-    val onNavigateHome: () -> Unit,
-    val onNavigateBack: () -> Unit,
-    val onNavigateToExitNodePicker: () -> Unit,
+    val onNavigateBackHome: () -> Unit,
+    val onNavigateBackToExitNodes: () -> Unit,
     val onNavigateToMullvad: () -> Unit,
+    val onNavigateBackToMullvad: () -> Unit,
     val onNavigateToMullvadCountry: (String) -> Unit,
     val onNavigateToRunAsExitNode: () -> Unit,
 )
@@ -138,7 +138,7 @@ class ExitNodePickerViewModel(private val nav: ExitNodePickerNav) : IpnViewModel
     val prefsOut = Ipn.MaskedPrefs()
     prefsOut.ExitNodeID = node.id
     Client(viewModelScope).editPrefs(prefsOut) {
-      nav.onNavigateHome()
+      nav.onNavigateBackHome()
       LoadingIndicator.stop()
     }
   }

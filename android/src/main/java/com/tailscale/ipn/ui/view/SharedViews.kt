@@ -29,9 +29,7 @@ import androidx.compose.ui.unit.dp
 import com.tailscale.ipn.ui.theme.topAppBar
 import com.tailscale.ipn.ui.theme.ts_color_light_blue
 
-data class BackNavigation(
-    val onBack: () -> Unit,
-)
+typealias BackNavigation = () -> Unit
 
 // Header view for all secondary screens
 // @see TopAppBar actions for additional actions (usually a row of icons)

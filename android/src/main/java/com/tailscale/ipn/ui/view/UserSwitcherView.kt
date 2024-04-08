@@ -43,7 +43,7 @@ import com.tailscale.ipn.ui.viewModel.UserSwitcherViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserSwitcherView(
-    nav: BackNavigation,
+    backToSettings: BackNavigation,
     onNavigateHome: () -> Unit,
     viewModel: UserSwitcherViewModel = viewModel()
 ) {
@@ -56,7 +56,7 @@ fun UserSwitcherView(
       topBar = {
         Header(
             R.string.accounts,
-            onBack = nav.onBack,
+            onBack = backToSettings,
             actions = {
               Row {
                 FusMenu(viewModel = viewModel)

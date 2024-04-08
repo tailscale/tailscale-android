@@ -40,7 +40,7 @@ fun RunExitNodeView(
   val isRunningExitNode = model.isRunningExitNode.collectAsState().value
 
   Scaffold(
-      topBar = { Header(R.string.run_as_exit_node, onBack = nav.onNavigateToExitNodePicker) }) {
+      topBar = { Header(R.string.run_as_exit_node, onBack = nav.onNavigateBackToExitNodes) }) {
           innerPadding ->
         LoadingIndicator.Wrap {
           Column(
