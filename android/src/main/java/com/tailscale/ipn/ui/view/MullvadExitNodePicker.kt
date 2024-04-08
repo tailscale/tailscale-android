@@ -40,7 +40,7 @@ fun MullvadExitNodePicker(
           topBar = {
             Header(
                 title = { Text("${countryCode.flag()} ${any.country}") },
-                onBack = nav.onNavigateBack)
+                onBack = nav.onNavigateBackToExitNodes)
           }) { innerPadding ->
             LazyColumn(modifier = Modifier.padding(innerPadding)) {
               if (nodes.size > 1) {

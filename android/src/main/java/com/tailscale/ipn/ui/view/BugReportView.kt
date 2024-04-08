@@ -29,11 +29,12 @@ import com.tailscale.ipn.ui.util.ClipboardValueView
 import com.tailscale.ipn.ui.viewModel.BugReportViewModel
 
 @Composable
-fun BugReportView(nav: BackNavigation, model: BugReportViewModel = viewModel()) {
+fun BugReportView(backToSettings: BackNavigation, model: BugReportViewModel = viewModel()) {
   val handler = LocalUriHandler.current
   val bugReportID = model.bugReportID.collectAsState().value
 
-  Scaffold(topBar = { Header(R.string.bug_report_title, onBack = nav.onBack) }) { innerPadding ->
+  Scaffold(topBar = { Header(R.string.bug_report_title, onBack = backToSettings) }) { innerPadding
+    ->
     Column(modifier = Modifier.padding(innerPadding).fillMaxWidth().fillMaxHeight()) {
       ListItem(
           headlineContent = {

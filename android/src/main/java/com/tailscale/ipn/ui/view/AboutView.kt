@@ -30,8 +30,9 @@ import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.Links
 
 @Composable
-fun AboutView(nav: BackNavigation) {
-  Scaffold(topBar = { Header(R.string.about_view_title, onBack = nav.onBack) }) { innerPadding ->
+fun AboutView(backToSettings: BackNavigation) {
+  Scaffold(topBar = { Header(R.string.about_view_title, onBack = backToSettings) }) { innerPadding
+    ->
     Column(
         verticalArrangement =
             Arrangement.spacedBy(space = 20.dp, alignment = Alignment.CenterVertically),

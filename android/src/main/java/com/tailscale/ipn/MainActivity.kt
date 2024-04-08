@@ -3,6 +3,7 @@
 
 package com.tailscale.ipn
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
@@ -30,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.core.net.toUri
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -45,7 +47,6 @@ import com.tailscale.ipn.ui.util.AndroidTVUtil
 import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.util.universalFit
 import com.tailscale.ipn.ui.view.AboutView
-import com.tailscale.ipn.ui.view.BackNavigation
 import com.tailscale.ipn.ui.view.BugReportView
 import com.tailscale.ipn.ui.view.DNSSettingsView
 import com.tailscale.ipn.ui.view.ExitNodePicker
@@ -73,14 +74,12 @@ import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
   private lateinit var requestVpnPermission: ActivityResultLauncher<Unit>
+  private lateinit var navController: NavHostController
 
   companion object {
-    // Request codes for Android callbacks.
-    // requestPrepareVPN is for when Android's VpnService.prepare completes.
-    @JvmStatic val requestPrepareVPN: Int = 1001
-
-    const val WRITE_STORAGE_RESULT = 1000
     private const val TAG = "Main Activity"
+
+    private const val START_AT_ROOT = "startAtRoot"
   }
 
   private fun Context.isLandscapeCapable(): Boolean {
@@ -93,6 +92,7 @@ class MainActivity : ComponentActivity() {
   // simply opening the URL.  This should be consumed once it has been handled.
   private val loginQRCode: StateFlow<String?> = MutableStateFlow(null)
 
+  @SuppressLint("SourceLockedOrientationActivity")
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
 
@@ -124,6 +124,10 @@ class MainActivity : ComponentActivity() {
                 popExitTransition = {
                   slideOutHorizontally(animationSpec = tween(150), targetOffsetX = { it })
                 }) {
+                  fun backTo(route: String): () -> Unit = {
+                    navController.popBackStack(route = route, inclusive = false)
+                  }
+
                   val mainViewNav =
                       MainViewNavigation(
                           onNavigateToSettings = { navController.navigate("settings") },
@@ -143,19 +147,17 @@ class MainActivity : ComponentActivity() {
                           onNavigateToManagedBy = { navController.navigate("managedBy") },
                           onNavigateToUserSwitcher = { navController.navigate("userSwitcher") },
                           onNavigateToPermissions = { navController.navigate("permissions") },
-                          onBackPressed = { navController.popBackStack() },
-                      )
-
-                  val backNav = BackNavigation(onBack = { navController.popBackStack() })
+                          onBackToSettings = backTo("settings"),
+                          onNavigateBackHome = backTo("main"))
 
                   val exitNodePickerNav =
                       ExitNodePickerNav(
-                          onNavigateHome = {
+                          onNavigateBackHome = {
                             navController.popBackStack(route = "main", inclusive = false)
                           },
-                          onNavigateBack = { navController.popBackStack() },
-                          onNavigateToExitNodePicker = { navController.popBackStack() },
+                          onNavigateBackToExitNodes = backTo("exitNodes"),
                           onNavigateToMullvad = { navController.navigate("mullvad") },
+                          onNavigateBackToMullvad = backTo("mullvad"),
                           onNavigateToMullvadCountry = { navController.navigate("mullvad/$it") },
                           onNavigateToRunAsExitNode = { navController.navigate("runExitNode") })
 
@@ -176,26 +178,21 @@ class MainActivity : ComponentActivity() {
                   composable(
                       "peerDetails/{nodeId}",
                       arguments = listOf(navArgument("nodeId") { type = NavType.StringType })) {
-                        PeerDetails(nav = backNav, it.arguments?.getString("nodeId") ?: "")
+                        PeerDetails(backTo("main"), it.arguments?.getString("nodeId") ?: "")
                       }
-                  composable("bugReport") { BugReportView(nav = backNav) }
-                  composable("dnsSettings") { DNSSettingsView(nav = backNav) }
-                  composable("tailnetLock") { TailnetLockSetupView(nav = backNav) }
-                  composable("about") { AboutView(nav = backNav) }
-                  composable("mdmSettings") { MDMSettingsDebugView(nav = backNav) }
-                  composable("managedBy") { ManagedByView(nav = backNav) }
+                  composable("bugReport") { BugReportView(backTo("settings")) }
+                  composable("dnsSettings") { DNSSettingsView(backTo("settings")) }
+                  composable("tailnetLock") { TailnetLockSetupView(backTo("settings")) }
+                  composable("about") { AboutView(backTo("settings")) }
+                  composable("mdmSettings") { MDMSettingsDebugView(backTo("settings")) }
+                  composable("managedBy") { ManagedByView(backTo("settings")) }
                   composable("userSwitcher") {
-                    UserSwitcherView(
-                        nav = backNav,
-                        onNavigateHome = {
-                          navController.popBackStack(route = "main", inclusive = false)
-                        })
+                    UserSwitcherView(backTo("settings"), backTo("main"))
                   }
                   composable("permissions") {
-                    PermissionsView(
-                        nav = backNav, openApplicationSettings = ::openApplicationSettings)
+                    PermissionsView(backTo("settings"), ::openApplicationSettings)
                   }
-                  composable("intro") { IntroView { navController.popBackStack() } }
+                  composable("intro") { IntroView(backTo("main")) }
                 }
 
             // Show the intro screen one time
@@ -245,6 +242,13 @@ class MainActivity : ComponentActivity() {
     return AndroidTVUtil.isAndroidTV()
   }
 
+  override fun onNewIntent(intent: Intent?) {
+    super.onNewIntent(intent)
+    if (intent?.getBooleanExtra(START_AT_ROOT, false) == true) {
+      navController.popBackStack(route = "main", inclusive = false)
+    }
+  }
+
   private fun login(urlString: String) {
     // Launch coroutine to listen for state changes. When the user completes login, relaunch
     // MainActivity to bring the app back to focus.
@@ -257,6 +261,7 @@ class MainActivity : ComponentActivity() {
                   addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                   action = Intent.ACTION_MAIN
                   addCategory(Intent.CATEGORY_LAUNCHER)
+                  putExtra(START_AT_ROOT, true)
                 }
             startActivity(intent)
 

@@ -25,10 +25,10 @@ import com.tailscale.ipn.ui.util.itemsWithDividers
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun PermissionsView(nav: BackNavigation, openApplicationSettings: () -> Unit) {
+fun PermissionsView(backToSettings: BackNavigation, openApplicationSettings: () -> Unit) {
   val permissions = Permissions.withGrantedStatus
-  Scaffold(topBar = { Header(titleRes = R.string.permissions, onBack = nav.onBack) }) { innerPadding
-    ->
+  Scaffold(topBar = { Header(titleRes = R.string.permissions, onBack = backToSettings) }) {
+      innerPadding ->
     LazyColumn(modifier = Modifier.padding(innerPadding)) {
       itemsWithDividers(permissions) { (permission, granted) ->
         ListItem(

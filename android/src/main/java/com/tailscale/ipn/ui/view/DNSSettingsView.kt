@@ -35,7 +35,7 @@ data class ViewableRoute(val name: String, val resolvers: List<DnsType.Resolver>
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun DNSSettingsView(
-    nav: BackNavigation,
+    backToSettings: BackNavigation,
     model: DNSSettingsViewModel = viewModel(factory = DNSSettingsViewModelFactory())
 ) {
   val state: DNSEnablementState = model.enablementState.collectAsState().value
@@ -47,7 +47,7 @@ fun DNSSettingsView(
       } ?: emptyList()
   val useCorpDNS = Notifier.prefs.collectAsState().value?.CorpDNS == true
 
-  Scaffold(topBar = { Header(R.string.dns_settings, onBack = nav.onBack) }) { innerPadding ->
+  Scaffold(topBar = { Header(R.string.dns_settings, onBack = backToSettings) }) { innerPadding ->
     LoadingIndicator.Wrap {
       LazyColumn(Modifier.padding(innerPadding)) {
         item("state") {

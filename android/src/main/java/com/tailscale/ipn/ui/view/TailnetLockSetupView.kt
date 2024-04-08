@@ -37,14 +37,14 @@ import com.tailscale.ipn.ui.viewModel.TailnetLockSetupViewModelFactory
 
 @Composable
 fun TailnetLockSetupView(
-    nav: BackNavigation,
+    backToSettings: BackNavigation,
     model: TailnetLockSetupViewModel = viewModel(factory = TailnetLockSetupViewModelFactory())
 ) {
   val statusItems = model.statusItems.collectAsState().value
   val nodeKey = model.nodeKey.collectAsState().value
   val tailnetLockKey = model.tailnetLockKey.collectAsState().value
 
-  Scaffold(topBar = { Header(R.string.tailnet_lock, onBack = nav.onBack) }) { innerPadding ->
+  Scaffold(topBar = { Header(R.string.tailnet_lock, onBack = backToSettings) }) { innerPadding ->
     LoadingIndicator.Wrap {
       LazyColumn(modifier = Modifier.padding(innerPadding)) {
         item(key = "header") { ExplainerView() }

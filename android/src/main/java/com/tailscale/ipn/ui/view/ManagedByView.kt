@@ -21,8 +21,8 @@ import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.viewModel.IpnViewModel
 
 @Composable
-fun ManagedByView(nav: BackNavigation, model: IpnViewModel = viewModel()) {
-  Scaffold(topBar = { Header(R.string.managed_by, onBack = nav.onBack) }) { innerPadding ->
+fun ManagedByView(backToSettings: BackNavigation, model: IpnViewModel = viewModel()) {
+  Scaffold(topBar = { Header(R.string.managed_by, onBack = backToSettings) }) { innerPadding ->
     Column(
         verticalArrangement =
             Arrangement.spacedBy(space = 20.dp, alignment = Alignment.CenterVertically),
