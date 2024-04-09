@@ -159,7 +159,7 @@
     <string name="this_device_is_using_the_system_dns_resolver">This device is using the system DNS resolver.</string>
     <string name="not_using_tailscale_dns">Not using Tailscale DNS</string>
     <string name="allow_lan_access">Allow LAN access</string>
-    <string name="exit_nodes_available">exit nodes available</string>
+    <string name="countries">countries</string>
     <string name="cities_available">cities available</string>
 
     <!-- Strings for MDM Settings Manifest (app_restrictions.xml) -->
