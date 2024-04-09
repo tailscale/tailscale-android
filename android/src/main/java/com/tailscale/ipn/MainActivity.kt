@@ -23,6 +23,10 @@ import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.Modifier
 import androidx.core.net.toUri
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
@@ -37,12 +41,16 @@ import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.theme.AppTheme
+import com.tailscale.ipn.ui.util.AndroidTVUtil
+import com.tailscale.ipn.ui.util.set
+import com.tailscale.ipn.ui.util.universalFit
 import com.tailscale.ipn.ui.view.AboutView
 import com.tailscale.ipn.ui.view.BackNavigation
 import com.tailscale.ipn.ui.view.BugReportView
 import com.tailscale.ipn.ui.view.DNSSettingsView
 import com.tailscale.ipn.ui.view.ExitNodePicker
 import com.tailscale.ipn.ui.view.IntroView
+import com.tailscale.ipn.ui.view.LoginQRView
 import com.tailscale.ipn.ui.view.MDMSettingsDebugView
 import com.tailscale.ipn.ui.view.MainView
 import com.tailscale.ipn.ui.view.MainViewNavigation
@@ -57,9 +65,10 @@ import com.tailscale.ipn.ui.view.TailnetLockSetupView
 import com.tailscale.ipn.ui.view.UserSwitcherView
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerNav
 import com.tailscale.ipn.ui.viewModel.SettingsNav
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -79,6 +88,11 @@ class MainActivity : ComponentActivity() {
         SCREENLAYOUT_SIZE_LARGE
   }
 
+  // The loginQRCode is used to track whether or not we should be rendering a QR code
+  // to the user.  This is used only on TV platforms with no browser in lieu of
+  // simply opening the URL.  This should be consumed once it has been handled.
+  private val loginQRCode: StateFlow<String?> = MutableStateFlow(null)
+
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
 
@@ -93,97 +107,109 @@ class MainActivity : ComponentActivity() {
     setContent {
       AppTheme {
         val navController = rememberNavController()
-        NavHost(
-            navController = navController,
-            startDestination = "main",
-            enterTransition = {
-              slideInHorizontally(animationSpec = tween(150), initialOffsetX = { it })
-            },
-            exitTransition = {
-              slideOutHorizontally(animationSpec = tween(150), targetOffsetX = { -it })
-            },
-            popEnterTransition = {
-              slideInHorizontally(animationSpec = tween(150), initialOffsetX = { -it })
-            },
-            popExitTransition = {
-              slideOutHorizontally(animationSpec = tween(150), targetOffsetX = { it })
-            }) {
-              val mainViewNav =
-                  MainViewNavigation(
-                      onNavigateToSettings = { navController.navigate("settings") },
-                      onNavigateToPeerDetails = {
-                        navController.navigate("peerDetails/${it.StableID}")
-                      },
-                      onNavigateToExitNodes = { navController.navigate("exitNodes") },
-                  )
+        Surface(color = MaterialTheme.colorScheme.inverseSurface) { // Background for the letterbox
+          Surface(modifier = Modifier.universalFit()) { // Letterbox for AndroidTV
+            NavHost(
+                navController = navController,
+                startDestination = "main",
+                enterTransition = {
+                  slideInHorizontally(animationSpec = tween(150), initialOffsetX = { it })
+                },
+                exitTransition = {
+                  slideOutHorizontally(animationSpec = tween(150), targetOffsetX = { -it })
+                },
+                popEnterTransition = {
+                  slideInHorizontally(animationSpec = tween(150), initialOffsetX = { -it })
+                },
+                popExitTransition = {
+                  slideOutHorizontally(animationSpec = tween(150), targetOffsetX = { it })
+                }) {
+                  val mainViewNav =
+                      MainViewNavigation(
+                          onNavigateToSettings = { navController.navigate("settings") },
+                          onNavigateToPeerDetails = {
+                            navController.navigate("peerDetails/${it.StableID}")
+                          },
+                          onNavigateToExitNodes = { navController.navigate("exitNodes") },
+                      )
 
-              val settingsNav =
-                  SettingsNav(
-                      onNavigateToBugReport = { navController.navigate("bugReport") },
-                      onNavigateToAbout = { navController.navigate("about") },
-                      onNavigateToDNSSettings = { navController.navigate("dnsSettings") },
-                      onNavigateToTailnetLock = { navController.navigate("tailnetLock") },
-                      onNavigateToMDMSettings = { navController.navigate("mdmSettings") },
-                      onNavigateToManagedBy = { navController.navigate("managedBy") },
-                      onNavigateToUserSwitcher = { navController.navigate("userSwitcher") },
-                      onNavigateToPermissions = { navController.navigate("permissions") },
-                      onBackPressed = { navController.popBackStack() },
-                  )
+                  val settingsNav =
+                      SettingsNav(
+                          onNavigateToBugReport = { navController.navigate("bugReport") },
+                          onNavigateToAbout = { navController.navigate("about") },
+                          onNavigateToDNSSettings = { navController.navigate("dnsSettings") },
+                          onNavigateToTailnetLock = { navController.navigate("tailnetLock") },
+                          onNavigateToMDMSettings = { navController.navigate("mdmSettings") },
+                          onNavigateToManagedBy = { navController.navigate("managedBy") },
+                          onNavigateToUserSwitcher = { navController.navigate("userSwitcher") },
+                          onNavigateToPermissions = { navController.navigate("permissions") },
+                          onBackPressed = { navController.popBackStack() },
+                      )
 
-              val backNav = BackNavigation(onBack = { navController.popBackStack() })
+                  val backNav = BackNavigation(onBack = { navController.popBackStack() })
 
-              val exitNodePickerNav =
-                  ExitNodePickerNav(
-                      onNavigateHome = {
-                        navController.popBackStack(route = "main", inclusive = false)
-                      },
-                      onNavigateBack = { navController.popBackStack() },
-                      onNavigateToExitNodePicker = { navController.popBackStack() },
-                      onNavigateToMullvad = { navController.navigate("mullvad") },
-                      onNavigateToMullvadCountry = { navController.navigate("mullvad/$it") },
-                      onNavigateToRunAsExitNode = { navController.navigate("runExitNode") })
+                  val exitNodePickerNav =
+                      ExitNodePickerNav(
+                          onNavigateHome = {
+                            navController.popBackStack(route = "main", inclusive = false)
+                          },
+                          onNavigateBack = { navController.popBackStack() },
+                          onNavigateToExitNodePicker = { navController.popBackStack() },
+                          onNavigateToMullvad = { navController.navigate("mullvad") },
+                          onNavigateToMullvadCountry = { navController.navigate("mullvad/$it") },
+                          onNavigateToRunAsExitNode = { navController.navigate("runExitNode") })
 
-              composable("main") { MainView(navigation = mainViewNav) }
-              composable("settings") { SettingsView(settingsNav) }
-              navigation(startDestination = "list", route = "exitNodes") {
-                composable("list") { ExitNodePicker(exitNodePickerNav) }
-                composable("mullvad") { MullvadExitNodePickerList(exitNodePickerNav) }
-                composable(
-                    "mullvad/{countryCode}",
-                    arguments = listOf(navArgument("countryCode") { type = NavType.StringType })) {
-                      MullvadExitNodePicker(
-                          it.arguments!!.getString("countryCode")!!, exitNodePickerNav)
-                    }
-                composable("runExitNode") { RunExitNodeView(exitNodePickerNav) }
-              }
-              composable(
-                  "peerDetails/{nodeId}",
-                  arguments = listOf(navArgument("nodeId") { type = NavType.StringType })) {
-                    PeerDetails(nav = backNav, it.arguments?.getString("nodeId") ?: "")
+                  composable("main") { MainView(navigation = mainViewNav) }
+                  composable("settings") { SettingsView(settingsNav) }
+                  navigation(startDestination = "list", route = "exitNodes") {
+                    composable("list") { ExitNodePicker(exitNodePickerNav) }
+                    composable("mullvad") { MullvadExitNodePickerList(exitNodePickerNav) }
+                    composable(
+                        "mullvad/{countryCode}",
+                        arguments =
+                            listOf(navArgument("countryCode") { type = NavType.StringType })) {
+                          MullvadExitNodePicker(
+                              it.arguments!!.getString("countryCode")!!, exitNodePickerNav)
+                        }
+                    composable("runExitNode") { RunExitNodeView(exitNodePickerNav) }
                   }
-              composable("bugReport") { BugReportView(nav = backNav) }
-              composable("dnsSettings") { DNSSettingsView(nav = backNav) }
-              composable("tailnetLock") { TailnetLockSetupView(nav = backNav) }
-              composable("about") { AboutView(nav = backNav) }
-              composable("mdmSettings") { MDMSettingsDebugView(nav = backNav) }
-              composable("managedBy") { ManagedByView(nav = backNav) }
-              composable("userSwitcher") {
-                UserSwitcherView(
-                    nav = backNav,
-                    onNavigateHome = {
-                      navController.popBackStack(route = "main", inclusive = false)
-                    })
-              }
-              composable("permissions") {
-                PermissionsView(nav = backNav, openApplicationSettings = ::openApplicationSettings)
-              }
-              composable("intro") { IntroView { navController.popBackStack() } }
-            }
+                  composable(
+                      "peerDetails/{nodeId}",
+                      arguments = listOf(navArgument("nodeId") { type = NavType.StringType })) {
+                        PeerDetails(nav = backNav, it.arguments?.getString("nodeId") ?: "")
+                      }
+                  composable("bugReport") { BugReportView(nav = backNav) }
+                  composable("dnsSettings") { DNSSettingsView(nav = backNav) }
+                  composable("tailnetLock") { TailnetLockSetupView(nav = backNav) }
+                  composable("about") { AboutView(nav = backNav) }
+                  composable("mdmSettings") { MDMSettingsDebugView(nav = backNav) }
+                  composable("managedBy") { ManagedByView(nav = backNav) }
+                  composable("userSwitcher") {
+                    UserSwitcherView(
+                        nav = backNav,
+                        onNavigateHome = {
+                          navController.popBackStack(route = "main", inclusive = false)
+                        })
+                  }
+                  composable("permissions") {
+                    PermissionsView(
+                        nav = backNav, openApplicationSettings = ::openApplicationSettings)
+                  }
+                  composable("intro") { IntroView { navController.popBackStack() } }
+                }
 
-        // Show the intro screen one time
-        if (!introScreenViewed()) {
-          navController.navigate("intro")
-          setIntroScreenViewed(true)
+            // Show the intro screen one time
+            if (!introScreenViewed()) {
+              navController.navigate("intro")
+              setIntroScreenViewed(true)
+            }
+          }
+        }
+
+        // Login actions are app wide.  If we are told about a browse-to-url, we should render it
+        // over whatever screen we happen to be on.
+        loginQRCode.collectAsState().value?.let {
+          LoginQRView(onDismiss = { loginQRCode.set(null) })
         }
       }
     }
@@ -196,11 +222,27 @@ class MainActivity : ComponentActivity() {
   }
 
   init {
-    // Watch the model's browseToURL and launch the browser when it changes
-    // This will trigger the login flow
+    // Watch the model's browseToURL and launch the browser when it changes or
+    // pop up a QR code to scan
     lifecycleScope.launch {
-      Notifier.browseToURL.collect { url -> url?.let { Dispatchers.Main.run { login(it) } } }
+      Notifier.browseToURL.collect { url ->
+        url?.let {
+          when (useQRCodeLogin()) {
+            false -> Dispatchers.Main.run { login(it) }
+            true -> loginQRCode.set(it)
+          }
+        }
+      }
     }
+
+    // Once we see a loginFinished event, clear the QR code which will dismiss the QR dialog.
+    lifecycleScope.launch { Notifier.loginFinished.collect { _ -> loginQRCode.set(null) } }
+  }
+
+  // Returns true if we should render a QR code instead of launching a browser
+  // for login requests
+  private fun useQRCodeLogin(): Boolean {
+    return AndroidTVUtil.isAndroidTV()
   }
 
   private fun login(urlString: String) {

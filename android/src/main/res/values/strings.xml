@@ -17,7 +17,8 @@
     <string name="ok">OK</string>
     <string name="_continue">Continue</string>
     <string name="warning">Warning</string>
-    <string name="search">Search\n</string>
+    <string name="search">Search</string>
+    <string name="dismiss">Dismiss</string>
 
     <!-- Strings for the about screen -->
     <string name="app_name">Tailscale</string>
@@ -223,5 +224,6 @@
     <string name="getStarted">Get Started</string>
     <string name="welcome1">Tailscale is a mesh VPN for securely connecting your devices.</string>
     <string name="welcome2">All connections are device-to-device, so we never see your data. We collect and use your email address and name, as well as your device name, OS version, and IP address in order to help you to connect your devices and manage your settings. We log when you are connected to your network.</string>
+        <string name="scan_to_connect_to_your_tailnet">Scan this QR code to log in to your tailnet</string>
 
 </resources>

@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowDropDown
@@ -126,7 +127,16 @@ fun MainView(navigation: MainViewNavigation, viewModel: MainViewModel = viewMode
                     when (user) {
                       null -> SettingsButton { navigation.onNavigateToSettings() }
                       else ->
-                          Avatar(profile = user, size = 36) { navigation.onNavigateToSettings() }
+                          Box(
+                              contentAlignment = Alignment.Center,
+                              modifier =
+                                  Modifier.size(42.dp).clip(CircleShape).clickable {
+                                    navigation.onNavigateToSettings()
+                                  }) {
+                                Avatar(profile = user, size = 36) {
+                                  navigation.onNavigateToSettings()
+                                }
+                              }
                     }
                   }
                 })
@@ -216,8 +226,6 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
 
 @Composable
 fun SettingsButton(action: () -> Unit) {
-  // (jonathan) TODO: On iOS this is the users avatar or a letter avatar.
-
   IconButton(modifier = Modifier.size(24.dp), onClick = { action() }) {
     Icon(
         Icons.Outlined.Settings,
