@@ -18,6 +18,7 @@ import (
 	"tailscale.com/types/logger"
 	"tailscale.com/types/logid"
 	"tailscale.com/util/clientmetric"
+	"tailscale.com/util/syspolicy"
 )
 
 const defaultMTU = 1280 // minimalMTU from wgengine/userspace.go
@@ -38,6 +39,7 @@ func newApp(dataDir, directFileRoot string, appCtx AppContext) Application {
 
 	a.store = newStateStore(a.appCtx)
 	interfaces.RegisterInterfaceGetter(a.getInterfaces)
+	syspolicy.RegisterHandler(androidHandler{a: a})
 	go func() {
 		defer func() {
 			if p := recover(); p != nil {
