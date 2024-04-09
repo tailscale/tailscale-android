@@ -171,13 +171,9 @@ $(LIBTAILSCALE): Makefile android/libs $(LIBTAILSCALE_SOURCES) $(GOBIN)/gomobile
 
 libtailscale: $(LIBTAILSCALE)
 
-tailscale-new-fdroid.apk: $(LIBTAILSCALE)
-	(cd android && ./gradlew test assembleFdroidDebug)
-	mv android/build/outputs/apk/fdroid/debug/android-fdroid-debug.apk $@
-
 tailscale-new-debug.apk: $(LIBTAILSCALE)
-	(cd android && ./gradlew test assemblePlayDebug)
-	mv android/build/outputs/apk/play/debug/android-play-debug.apk $@
+	(cd android && ./gradlew test assembleDebug)
+	mv android/build/outputs/apk/debug/android-debug.apk $@
 
 tailscale-new-debug: tailscale-new-debug.apk ## Build the new debug APK
 

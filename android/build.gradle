@@ -51,15 +51,6 @@ android {
         kotlinCompilerExtensionVersion = "$kotlin_compose_version"
     }
     flavorDimensions "version"
-    productFlavors {
-        fdroid {
-            // The fdroid flavor contains only free dependencies and is suitable
-            // for the F-Droid app store.
-        }
-        play {
-            // The play flavor contains all features and is for the Play Store.
-        }
-    }
     namespace 'com.tailscale.ipn'
 }
 
@@ -74,7 +65,7 @@ dependencies {
     // Kotlin dependencies.
     implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0"
-    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0"
+    runtimeOnly "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0"
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
 
@@ -86,7 +77,6 @@ dependencies {
     implementation 'androidx.compose.material:material-icons-core:1.6.3'
     implementation "androidx.compose.ui:ui:1.6.3"
     implementation "androidx.compose.ui:ui-tooling:1.6.3"
-    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
     implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0'
     implementation 'androidx.activity:activity-compose:1.8.2'
     implementation "com.google.accompanist:accompanist-permissions:$accompanist_version"
@@ -95,12 +85,8 @@ dependencies {
 
     // Navigation dependencies.
     def nav_version = "2.7.7"
-    implementation "androidx.navigation:navigation-fragment:$nav_version"
-    implementation "androidx.navigation:navigation-ui:$nav_version"
-    implementation "androidx.navigation:navigation-fragment-ktx:$nav_version"
-    implementation "androidx.navigation:navigation-ui-ktx:$nav_version"
-    implementation "androidx.navigation:navigation-dynamic-features-fragment:$nav_version"
     implementation "androidx.navigation:navigation-compose:$nav_version"
+    implementation "androidx.navigation:navigation-ui:$nav_version"
 
     // Supporting libraries.
     implementation("io.coil-kt:coil-compose:2.6.0")
@@ -108,11 +94,4 @@ dependencies {
 
     // Tailscale dependencies.
     implementation ':libtailscale@aar'
-
-    // Tests
-    testImplementation "junit:junit:4.12"
-    androidTestImplementation "androidx.navigation:navigation-testing:$nav_version"
-
-    // Non-free dependencies.
-    playImplementation 'com.google.android.gms:play-services-auth:20.7.0'
 }
