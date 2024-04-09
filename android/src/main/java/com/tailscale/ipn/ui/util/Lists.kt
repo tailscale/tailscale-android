@@ -28,7 +28,7 @@ object Lists {
   @Composable
   fun SectionDivider(title: String? = null) {
     Box(Modifier.size(0.dp, 16.dp))
-    title?.let { SectionTitle(title) }
+    title?.let { LargeTitle(title) }
   }
 
   @Composable
@@ -37,7 +37,7 @@ object Lists {
   }
 
   @Composable
-  fun SectionTitle(
+  fun LargeTitle(
       title: String,
       bottomPadding: Dp = 0.dp,
       style: TextStyle = MaterialTheme.typography.titleMedium,
@@ -57,6 +57,20 @@ object Lists {
   }
 
   @Composable
+  fun MutedHeader(text: String) {
+    Box(
+        modifier =
+            Modifier.fillMaxWidth()
+                .background(color = MaterialTheme.colorScheme.surface, shape = RectangleShape)) {
+          Text(
+              modifier = Modifier.padding(start = 16.dp, top = 16.dp),
+              text = text,
+              style = MaterialTheme.typography.titleSmall,
+              color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+  }
+
+  @Composable
   fun InfoItem(text: CharSequence, onClick: (() -> Unit)? = null) {
     val style =
         MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -67,6 +81,14 @@ object Lists {
               ClickableText(text = text as AnnotatedString, style = style, onClick = { onClick() })
             } ?: run { Text(text as String, style = style) }
           }
+        })
+  }
+
+  @Composable
+  fun MultilineDescription(headlineContent: @Composable () -> Unit) {
+    ListItem(
+        headlineContent = {
+          Box(modifier = Modifier.padding(vertical = 8.dp)) { headlineContent() }
         })
   }
 }

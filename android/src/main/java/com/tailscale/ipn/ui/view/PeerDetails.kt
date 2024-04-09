@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -24,7 +23,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -81,17 +79,7 @@ fun PeerDetails(
             modifier = Modifier.padding(innerPadding),
         ) {
           item(key = "tailscaleAddresses") {
-            Box(
-                modifier =
-                    Modifier.fillMaxWidth()
-                        .background(
-                            color = MaterialTheme.colorScheme.surface, shape = RectangleShape)) {
-                  Text(
-                      modifier = Modifier.padding(start = 16.dp, top = 16.dp),
-                      text = stringResource(R.string.tailscale_addresses),
-                      style = MaterialTheme.typography.titleSmall,
-                      color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+            Lists.MutedHeader(stringResource(R.string.tailscale_addresses))
           }
 
           itemsWithDividers(node.displayAddresses, key = { it.address }) {

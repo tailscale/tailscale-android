@@ -22,6 +22,8 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContract
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.material3.MaterialTheme
@@ -159,7 +161,9 @@ class MainActivity : ComponentActivity() {
                           onNavigateToMullvadCountry = { navController.navigate("mullvad/$it") },
                           onNavigateToRunAsExitNode = { navController.navigate("runExitNode") })
 
-                  composable("main") { MainView(navigation = mainViewNav) }
+                  composable("main", enterTransition = { fadeIn(animationSpec = tween(150)) }) {
+                    MainView(navigation = mainViewNav)
+                  }
                   composable("settings") { SettingsView(settingsNav) }
                   composable("exitNodes") { ExitNodePicker(exitNodePickerNav) }
                   composable("mullvad") { MullvadExitNodePickerList(exitNodePickerNav) }
@@ -188,7 +192,9 @@ class MainActivity : ComponentActivity() {
                   composable("permissions") {
                     PermissionsView(backTo("settings"), ::openApplicationSettings)
                   }
-                  composable("intro") { IntroView(backTo("main")) }
+                  composable("intro", exitTransition = { fadeOut(animationSpec = tween(150)) }) {
+                    IntroView(backTo("main"))
+                  }
                 }
 
             // Show the intro screen one time

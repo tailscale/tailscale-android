@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -38,19 +37,23 @@ fun BugReportView(backToSettings: BackNavigation, model: BugReportViewModel = vi
 
   Scaffold(topBar = { Header(R.string.bug_report_title, onBack = backToSettings) }) { innerPadding
     ->
-    Column(modifier = Modifier.padding(innerPadding).fillMaxWidth().fillMaxHeight().verticalScroll(rememberScrollState())) {
-      ListItem(
-          headlineContent = {
+    Column(
+        modifier =
+            Modifier.padding(innerPadding)
+                .fillMaxWidth()
+                .fillMaxHeight()
+                .verticalScroll(rememberScrollState())) {
+          Lists.MultilineDescription {
             ClickableText(
                 text = contactText(),
                 style = MaterialTheme.typography.bodyMedium,
                 onClick = { handler.openUri(Links.SUPPORT_URL) })
-          })
+          }
 
-      ClipboardValueView(bugReportID, title = stringResource(R.string.bug_report_id))
+          ClipboardValueView(bugReportID, title = stringResource(R.string.bug_report_id))
 
-      Lists.InfoItem(stringResource(id = R.string.bug_report_id_desc))
-    }
+          Lists.InfoItem(stringResource(id = R.string.bug_report_id_desc))
+        }
   }
 }
 

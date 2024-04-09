@@ -3,7 +3,6 @@
 
 package com.tailscale.ipn.ui.view
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -24,7 +23,6 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.Links
@@ -88,15 +86,12 @@ fun TailnetLockSetupView(
 private fun ExplainerView() {
   val handler = LocalUriHandler.current
 
-  ListItem(
-      headlineContent = {
-        Box(modifier = Modifier.padding(vertical = 8.dp)) {
-          ClickableText(
-              explainerText(),
-              onClick = { handler.openUri(Links.TAILNET_LOCK_KB_URL) },
-              style = MaterialTheme.typography.bodyMedium)
-        }
-      })
+  Lists.MultilineDescription {
+    ClickableText(
+        explainerText(),
+        onClick = { handler.openUri(Links.TAILNET_LOCK_KB_URL) },
+        style = MaterialTheme.typography.bodyMedium)
+  }
 }
 
 @Composable
