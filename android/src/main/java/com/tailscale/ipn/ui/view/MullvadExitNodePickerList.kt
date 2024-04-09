@@ -38,7 +38,7 @@ fun MullvadExitNodePickerList(
   LoadingIndicator.Wrap {
     Scaffold(
         topBar = {
-          Header(R.string.choose_mullvad_exit_node, onBack = nav.onNavigateBackToMullvad)
+          Header(R.string.choose_mullvad_exit_node, onBack = nav.onNavigateBackToExitNodes)
         }) { innerPadding ->
           val mullvadExitNodes = model.mullvadExitNodesByCountryCode.collectAsState()
 

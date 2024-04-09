@@ -66,7 +66,8 @@ fun ExitNodePicker(
         if (mullvadExitNodeCount > 0) {
           item(key = "mullvad") {
             Lists.SectionDivider()
-            MullvadItem(nav, mullvadExitNodeCount, mullvadExitNodesByCountryCode.selected)
+            MullvadItem(
+                nav, mullvadExitNodesByCountryCode.size, mullvadExitNodesByCountryCode.selected)
           }
         }
 
@@ -128,7 +129,7 @@ fun MullvadItem(nav: ExitNodePickerNav, count: Int, selected: Boolean) {
         },
         supportingContent = {
           Text(
-              "$count ${stringResource(R.string.exit_nodes_available)}",
+              "$count ${stringResource(R.string.countries)}",
               style = MaterialTheme.typography.bodyMedium)
         },
         trailingContent = {

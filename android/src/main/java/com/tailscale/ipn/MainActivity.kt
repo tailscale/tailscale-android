@@ -37,7 +37,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import androidx.navigation.navigation
 import com.tailscale.ipn.Peer.RequestCodes
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.model.Ipn
@@ -74,7 +73,7 @@ import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
   private lateinit var requestVpnPermission: ActivityResultLauncher<Unit>
-  private var navController: NavHostController? = null
+  private lateinit var navController: NavHostController
 
   companion object {
     private const val TAG = "Main Activity"
@@ -105,7 +104,7 @@ class MainActivity : ComponentActivity() {
 
     setContent {
       AppTheme {
-        val navController = rememberNavController()
+        navController = rememberNavController()
         Surface(color = MaterialTheme.colorScheme.inverseSurface) { // Background for the letterbox
           Surface(modifier = Modifier.universalFit()) { // Letterbox for AndroidTV
             NavHost(
@@ -162,18 +161,16 @@ class MainActivity : ComponentActivity() {
 
                   composable("main") { MainView(navigation = mainViewNav) }
                   composable("settings") { SettingsView(settingsNav) }
-                  navigation(startDestination = "list", route = "exitNodes") {
-                    composable("list") { ExitNodePicker(exitNodePickerNav) }
-                    composable("mullvad") { MullvadExitNodePickerList(exitNodePickerNav) }
-                    composable(
-                        "mullvad/{countryCode}",
-                        arguments =
-                            listOf(navArgument("countryCode") { type = NavType.StringType })) {
-                          MullvadExitNodePicker(
-                              it.arguments!!.getString("countryCode")!!, exitNodePickerNav)
-                        }
-                    composable("runExitNode") { RunExitNodeView(exitNodePickerNav) }
-                  }
+                  composable("exitNodes") { ExitNodePicker(exitNodePickerNav) }
+                  composable("mullvad") { MullvadExitNodePickerList(exitNodePickerNav) }
+                  composable(
+                      "mullvad/{countryCode}",
+                      arguments =
+                          listOf(navArgument("countryCode") { type = NavType.StringType })) {
+                        MullvadExitNodePicker(
+                            it.arguments!!.getString("countryCode")!!, exitNodePickerNav)
+                      }
+                  composable("runExitNode") { RunExitNodeView(exitNodePickerNav) }
                   composable(
                       "peerDetails/{nodeId}",
                       arguments = listOf(navArgument("nodeId") { type = NavType.StringType })) {
@@ -244,7 +241,7 @@ class MainActivity : ComponentActivity() {
   override fun onNewIntent(intent: Intent?) {
     super.onNewIntent(intent)
     if (intent?.getBooleanExtra(START_AT_ROOT, false) == true) {
-      navController?.popBackStack(route = "main", inclusive = false)
+      navController.popBackStack(route = "main", inclusive = false)
     }
   }
 
