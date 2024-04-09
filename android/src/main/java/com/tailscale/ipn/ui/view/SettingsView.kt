@@ -97,6 +97,7 @@ fun SettingsView(settingsNav: SettingsNav, viewModel: SettingsViewModel = viewMo
           // TODO: put a heading for the debug section
           if (BuildConfig.DEBUG) {
             Lists.SectionDivider()
+            Lists.MutedHeader(text = stringResource(R.string.internal_debug_options))
             Setting.Text(R.string.mdm_settings, onClick = settingsNav.onNavigateToMDMSettings)
           }
         }

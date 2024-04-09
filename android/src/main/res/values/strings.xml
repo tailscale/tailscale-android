@@ -47,6 +47,7 @@
     <string name="about_tailscale">About Tailscale</string>
     <string name="bug_report">Bug report</string>
     <string name="use_ts_dns">Use Tailscale DNS</string>
+    <string name="internal_debug_options">Internal debug options</string>
 
     <!-- Strings for the main screen -->
     <string name="exit_node">EXIT NODE</string>

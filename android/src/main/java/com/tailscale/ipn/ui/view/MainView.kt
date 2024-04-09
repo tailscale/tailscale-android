@@ -322,7 +322,8 @@ fun PeerList(
 ) {
   val peerList = viewModel.peers.collectAsState(initial = emptyList<PeerSet>())
   val searchTermStr by viewModel.searchTerm.collectAsState(initial = "")
-  val showNoResults = derivedStateOf { searchTermStr.isNotEmpty() && peerList.value.isEmpty() }.value
+  val showNoResults =
+      derivedStateOf { searchTermStr.isNotEmpty() && peerList.value.isEmpty() }.value
   val netmap = viewModel.netmap.collectAsState()
 
   val focusManager = LocalFocusManager.current
@@ -373,7 +374,7 @@ fun PeerList(
                     .fillMaxSize()
                     .background(color = MaterialTheme.colorScheme.surface))
 
-            Lists.SectionTitle(
+            Lists.LargeTitle(
                 stringResource(id = R.string.no_results),
                 bottomPadding = 8.dp,
                 style = MaterialTheme.typography.bodyMedium,
@@ -394,7 +395,7 @@ fun PeerList(
                     .fillMaxSize()
                     .background(color = MaterialTheme.colorScheme.surface))
 
-            Lists.SectionTitle(
+            Lists.LargeTitle(
                 peerSet.user?.DisplayName ?: stringResource(id = R.string.unknown_user),
                 bottomPadding = 8.dp,
                 style = MaterialTheme.typography.titleLarge,
