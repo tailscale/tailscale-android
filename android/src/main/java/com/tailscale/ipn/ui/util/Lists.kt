@@ -10,12 +10,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -52,7 +55,23 @@ object Lists {
               fontWeight = fontWeight)
         }
   }
+
+  @Composable
+  fun InfoItem(text: CharSequence, onClick: (() -> Unit)? = null) {
+    val style =
+        MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+    ListItem(
+        headlineContent = {
+          Box(modifier = Modifier.padding(vertical = 4.dp)) {
+            onClick?.let {
+              ClickableText(text = text as AnnotatedString, style = style, onClick = { onClick() })
+            } ?: run { Text(text as String, style = style) }
+          }
+        })
+  }
 }
+
+/** Similar to items() but includes a horizontal divider between items. */
 
 /** Similar to items() but includes a horizontal divider between items. */
 inline fun <T> LazyListScope.itemsWithDividers(

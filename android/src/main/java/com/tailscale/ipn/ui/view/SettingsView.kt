@@ -4,11 +4,9 @@
 package com.tailscale.ipn.ui.view
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
@@ -24,7 +22,6 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.BuildConfig
 import com.tailscale.ipn.R
@@ -165,9 +162,7 @@ object Setting {
 @Composable
 fun AdminTextView(onNavigateToAdminConsole: () -> Unit) {
   val adminStr = buildAnnotatedString {
-    withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.onSurfaceVariant)) {
-      append(stringResource(id = R.string.settings_admin_prefix))
-    }
+    append(stringResource(id = R.string.settings_admin_prefix))
 
     pushStringAnnotation(tag = "link", annotation = Links.ADMIN_URL)
     withStyle(
@@ -177,16 +172,7 @@ fun AdminTextView(onNavigateToAdminConsole: () -> Unit) {
                 textDecoration = TextDecoration.Underline)) {
           append(stringResource(id = R.string.settings_admin_link))
         }
-    pop()
   }
 
-  ListItem(
-      headlineContent = {
-        Box(modifier = Modifier.padding(vertical = 4.dp)) {
-          ClickableText(
-              text = adminStr,
-              style = MaterialTheme.typography.bodyMedium,
-              onClick = { onNavigateToAdminConsole() })
-        }
-      })
+  Lists.InfoItem(adminStr, onClick = onNavigateToAdminConsole)
 }

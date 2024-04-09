@@ -28,6 +28,7 @@ import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.Links
 import com.tailscale.ipn.ui.theme.link
 import com.tailscale.ipn.ui.util.ClipboardValueView
+import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.viewModel.BugReportViewModel
 
 @Composable
@@ -46,10 +47,9 @@ fun BugReportView(backToSettings: BackNavigation, model: BugReportViewModel = vi
                 onClick = { handler.openUri(Links.SUPPORT_URL) })
           })
 
-      ClipboardValueView(
-          bugReportID,
-          title = stringResource(R.string.bug_report_id),
-          subtitle = stringResource(id = R.string.bug_report_id_desc))
+      ClipboardValueView(bugReportID, title = stringResource(R.string.bug_report_id))
+
+      Lists.InfoItem(stringResource(id = R.string.bug_report_id_desc))
     }
   }
 }
