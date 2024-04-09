@@ -171,11 +171,25 @@ $(LIBTAILSCALE): Makefile android/libs $(LIBTAILSCALE_SOURCES) $(GOBIN)/gomobile
 
 libtailscale: $(LIBTAILSCALE)
 
-tailscale-new-debug.apk: $(LIBTAILSCALE)
+ANDROID_SOURCES=$(shell find android -type f -not -path "android/build/*" -not -path '*/.*')
+DEBUG_INTERMEDIARY = android/build/outputs/apk/debug/android-debug.apk
+
+$(DEBUG_INTERMEDIARY): $(ANDROID_SOURCES) $(LIBTAILSCALE)
+	cd android && ./gradlew test assembleDebug
+
+tailscale-new-debug.apk: $(DEBUG_INTERMEDIARY)
 	(cd android && ./gradlew test assembleDebug)
-	mv android/build/outputs/apk/debug/android-debug.apk $@
+	mv $(DEBUG_INTERMEDIARY) $@
 
 tailscale-new-debug: tailscale-new-debug.apk ## Build the new debug APK
+
+ANDROID_TEST_INTERMEDIARY=./android/build/outputs/apk/androidTest/applicationTest/android-applicationTest-androidTest.apk
+
+$(ANDROID_TEST_INTERMEDIARY): $(ANDROID_SOURCES) $(LIBTAILSCALE)
+	cd android && ./gradlew assembleApplicationTestAndroidTest
+
+tailscale-test.apk: $(ANDROID_TEST_INTERMEDIARY)
+	mv $(ANDROID_TEST_INTERMEDIARY) $@
 
 test: $(LIBTAILSCALE) ## Run the Android tests
 	(cd android && ./gradlew test)

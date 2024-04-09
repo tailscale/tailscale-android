@@ -24,6 +24,7 @@ tailscale-release.aab
 tailscale-fdroid.apk
 tailscale-new-fdroid.apk
 tailscale-new-debug.apk
+tailscale-test.apk
 
 # Signing key
 tailscale.jks
