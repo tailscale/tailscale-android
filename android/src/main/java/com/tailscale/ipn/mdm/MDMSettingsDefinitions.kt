@@ -10,7 +10,22 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 abstract class MDMSetting<T>(defaultValue: T, val key: String, val localizedTitle: String) {
+  private val keys = mutableSetOf<String>()
+
+    init {
+        registerKey(key)
+    }
   val flow: StateFlow<T> = MutableStateFlow<T>(defaultValue)
+
+  private fun registerKey(key: String) {
+    if (!keyExists(key)) {
+        keys.add(key)
+    }
+}
+
+fun keyExists(key: String): Boolean {
+    return keys.contains(key)
+}
 
   fun setFrom(bundle: Bundle?, app: App) {
     val v = getFrom(bundle, app)
