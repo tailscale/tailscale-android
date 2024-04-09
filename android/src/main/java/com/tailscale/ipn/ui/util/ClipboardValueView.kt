@@ -27,16 +27,17 @@ fun ClipboardValueView(value: String, title: String? = null, subtitle: String? =
   ListItem(
       colors = MaterialTheme.colorScheme.titledListItem,
       modifier = Modifier.clickable { localClipboardManager.setText(AnnotatedString(value)) },
-      overlineContent = { title?.let { Text(it, style = MaterialTheme.typography.titleMedium) } },
+      overlineContent = title?.let { { Text(it, style = MaterialTheme.typography.titleMedium) } },
       headlineContent = { Text(text = value, style = MaterialTheme.typography.bodyMedium) },
-      supportingContent = {
-        subtitle?.let { subtitle ->
-          Text(
-              subtitle,
-              modifier = Modifier.padding(top = 8.dp),
-              style = MaterialTheme.typography.bodyMedium)
-        }
-      },
+      supportingContent =
+          subtitle?.let {
+            {
+              Text(
+                  it,
+                  modifier = Modifier.padding(top = 8.dp),
+                  style = MaterialTheme.typography.bodyMedium)
+            }
+          },
       trailingContent = {
         Icon(
             painterResource(R.drawable.clipboard),

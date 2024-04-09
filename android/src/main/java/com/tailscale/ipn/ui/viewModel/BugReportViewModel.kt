@@ -15,7 +15,9 @@ class BugReportViewModel : ViewModel() {
 
   init {
     Client(viewModelScope).bugReportId { result ->
-      result.onSuccess { bugReportID.set(it) }.onFailure { bugReportID.set("(Error fetching ID)") }
+      result
+          .onSuccess { bugReportID.set(it.trim()) }
+          .onFailure { bugReportID.set("(Error fetching ID)") }
     }
   }
 }
