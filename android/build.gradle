@@ -1,6 +1,6 @@
 buildscript {
     ext.kotlin_version = "1.9.22"
-    ext.kotlin_compose_version = "1.5.10"
+    ext.compose_version = "1.5.10"
     ext.accompanist_version = "0.34.0"
 
     repositories {
@@ -39,7 +39,9 @@ android {
         targetSdkVersion 34
         versionCode 198
         versionName "1.59.53-t0f042b981-g1017015de26"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
@@ -48,10 +50,21 @@ android {
         compose true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "$kotlin_compose_version"
+        kotlinCompilerExtensionVersion = "$compose_version"
     }
     flavorDimensions "version"
     namespace 'com.tailscale.ipn'
+
+    buildTypes {
+        applicationTest {
+            initWith debug
+            buildConfigField "String", "GITHUB_USERNAME", "\"" + getLocalProperty("githubUsername")+"\""
+            buildConfigField "String", "GITHUB_PASSWORD", "\"" + getLocalProperty("githubPassword")+"\""
+            buildConfigField "String", "GITHUB_2FA_SECRET", "\"" + getLocalProperty("github2FASecret")+"\""
+        }
+    }
+
+    testBuildType "applicationTest"
 }
 
 dependencies {
@@ -94,4 +107,26 @@ dependencies {
 
     // Tailscale dependencies.
     implementation ':libtailscale@aar'
+
+    // Tests
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test:runner:1.5.2'
+    androidTestImplementation 'androidx.test.ext:junit-ktx:1.1.5'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+    implementation 'androidx.test.uiautomator:uiautomator:2.3.0'
+
+    // Authentication only for tests
+    androidTestImplementation 'dev.turingcomplete:kotlin-onetimepassword:2.4.0'
+    androidTestImplementation 'commons-codec:commons-codec:1.16.1'
+}
+
+def getLocalProperty(key) {
+    try {
+        Properties properties = new Properties()
+        properties.load(project.file('local.properties').newDataInputStream())
+        return properties.getProperty(key);
+    } catch(Throwable ignored) {
+        return ""
+    }
 }
