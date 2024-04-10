@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material3.Button
@@ -47,7 +49,7 @@ fun RunExitNodeView(
               horizontalAlignment = Alignment.CenterHorizontally,
               verticalArrangement =
                   Arrangement.spacedBy(24.dp, alignment = Alignment.CenterVertically),
-              modifier = Modifier.padding(innerPadding).padding(24.dp).fillMaxHeight()) {
+              modifier = Modifier.padding(innerPadding).padding(24.dp).fillMaxHeight().verticalScroll(rememberScrollState())) {
                 RunExitNodeGraphic()
 
                 if (isRunningExitNode) {

@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -28,7 +30,7 @@ import com.tailscale.ipn.R
 @Composable
 fun IntroView(onContinue: () -> Unit) {
   Column(
-      modifier = Modifier.fillMaxHeight().fillMaxWidth(),
+      modifier = Modifier.fillMaxHeight().fillMaxWidth().verticalScroll(rememberScrollState()),
       horizontalAlignment = Alignment.CenterHorizontally,
       verticalArrangement = Arrangement.Center) {
         Image(
@@ -48,15 +50,15 @@ fun IntroView(onContinue: () -> Unit) {
               fontSize = MaterialTheme.typography.titleMedium.fontSize)
         }
         Spacer(modifier = Modifier.height(40.dp))
-      }
 
-  Box(
-      modifier = Modifier.fillMaxHeight().padding(start = 20.dp, end = 20.dp, bottom = 40.dp),
-      contentAlignment = Alignment.BottomCenter) {
-        Text(
-            text = stringResource(R.string.welcome2),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center)
+        Box(
+            modifier = Modifier.fillMaxHeight().padding(start = 20.dp, end = 20.dp, bottom = 40.dp),
+            contentAlignment = Alignment.BottomCenter) {
+              Text(
+                  text = stringResource(R.string.welcome2),
+                  style = MaterialTheme.typography.bodyMedium,
+                  color = MaterialTheme.colorScheme.onSurfaceVariant,
+                  textAlign = TextAlign.Center)
+            }
       }
 }
