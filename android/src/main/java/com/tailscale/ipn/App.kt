@@ -15,7 +15,6 @@ import android.content.ContentResolver
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
-import android.content.RestrictionsManager
 import android.content.SharedPreferences
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
@@ -38,10 +37,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
-import com.tailscale.ipn.mdm.AlwaysNeverUserDecidesMDMSetting
-import com.tailscale.ipn.mdm.BooleanMDMSetting
-import com.tailscale.ipn.mdm.ShowHideMDMSetting
-import com.tailscale.ipn.mdm.StringMDMSetting
+import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.localapi.Client
 import com.tailscale.ipn.ui.localapi.Request
 import com.tailscale.ipn.ui.model.Ipn
@@ -459,29 +455,15 @@ class App : Application(), libtailscale.AppContext {
 
   @Throws(IOException::class, GeneralSecurityException::class)
   override fun getSyspolicyBooleanValue(key: String): Boolean {
-    val manager = getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
-    return BooleanMDMSetting(key, key).getFrom(manager.applicationRestrictions, this)
+    return getSyspolicyStringValue(key) == "true"
   }
 
   @Throws(IOException::class, GeneralSecurityException::class)
   override fun getSyspolicyStringValue(key: String): String {
-    val manager = getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
-
-    val alwaysNeverSetting = AlwaysNeverUserDecidesMDMSetting(key, key, false)
-    val showHideSetting = ShowHideMDMSetting(key, key, false)
-    val stringSetting = StringMDMSetting(key, key, false)
-
-    return when {
-      alwaysNeverSetting.keyExists(key) ->
-          alwaysNeverSetting.getFrom(manager.applicationRestrictions, this).value
-      showHideSetting.keyExists(key) ->
-          showHideSetting.getFrom(manager.applicationRestrictions, this).value
-      stringSetting.keyExists(key) ->
-          stringSetting.getFrom(manager.applicationRestrictions, this) ?: ""
-      else -> {
-        Log.d("MDM", "$key is not defined on Android. Returning empty.")
-        ""
-      }
-    }
+    return MDMSettings.allSettingsByKey[key]?.flow?.value?.toString()
+        ?: run {
+          Log.d("MDM", "$key is not defined on Android. Returning empty.")
+          ""
+        }
   }
 }

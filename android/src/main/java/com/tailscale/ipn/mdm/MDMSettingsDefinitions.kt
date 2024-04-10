@@ -4,31 +4,13 @@
 package com.tailscale.ipn.mdm
 
 import android.os.Bundle
-import android.util.Log
 import com.tailscale.ipn.App
 import com.tailscale.ipn.ui.util.set
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
-// Don't keep track of the key if shouldRegisterKey is false - shouldRegisterKey should be false when creating an MDMSetting to check whether a key has been registered with that setting.
-abstract class MDMSetting<T>(defaultValue: T, val key: String, val localizedTitle: String, private val shouldRegisterKey: Boolean = true) {
-  private val keys = mutableSetOf<String>()
-
-    init {
-      if (shouldRegisterKey) { registerKey(key)
-    }
-  }
+abstract class MDMSetting<T>(defaultValue: T, val key: String, val localizedTitle: String) {
   val flow: StateFlow<T> = MutableStateFlow<T>(defaultValue)
-
-  private fun registerKey(key: String) {
-    if (!keyExists(key)) {
-        keys.add(key)
-    }
-}
-
-fun keyExists(key: String): Boolean {
-    return keys.contains(key)
-}
 
   fun setFrom(bundle: Bundle?, app: App) {
     val v = getFrom(bundle, app)
@@ -44,8 +26,8 @@ class BooleanMDMSetting(key: String, localizedTitle: String) :
       bundle?.getBoolean(key) ?: app.getEncryptedPrefs().getBoolean(key, false)
 }
 
-class StringMDMSetting(key: String, localizedTitle: String, shouldRegisterKey: Boolean = true) :
-    MDMSetting<String?>(null, key, localizedTitle, shouldRegisterKey) {
+class StringMDMSetting(key: String, localizedTitle: String) :
+    MDMSetting<String?>(null, key, localizedTitle) {
   override fun getFrom(bundle: Bundle?, app: App) =
       bundle?.getString(key) ?: app.getEncryptedPrefs().getString(key, null)
 }
@@ -57,8 +39,8 @@ class StringArrayListMDMSetting(key: String, localizedTitle: String) :
           ?: app.getEncryptedPrefs().getStringSet(key, HashSet<String>())?.toList()
 }
 
-class AlwaysNeverUserDecidesMDMSetting(key: String, localizedTitle: String, shouldRegisterKey: Boolean = true) :
-    MDMSetting<AlwaysNeverUserDecides>(AlwaysNeverUserDecides.UserDecides, key, localizedTitle, shouldRegisterKey) {
+class AlwaysNeverUserDecidesMDMSetting(key: String, localizedTitle: String) :
+    MDMSetting<AlwaysNeverUserDecides>(AlwaysNeverUserDecides.UserDecides, key, localizedTitle) {
   override fun getFrom(bundle: Bundle?, app: App): AlwaysNeverUserDecides {
     val storedString =
         bundle?.getString(key)
@@ -78,8 +60,8 @@ class AlwaysNeverUserDecidesMDMSetting(key: String, localizedTitle: String, shou
   }
 }
 
-class ShowHideMDMSetting(key: String, localizedTitle: String, shouldRegisterKey: Boolean = true) :
-    MDMSetting<ShowHide>(ShowHide.Show, key, localizedTitle, shouldRegisterKey) {
+class ShowHideMDMSetting(key: String, localizedTitle: String) :
+    MDMSetting<ShowHide>(ShowHide.Show, key, localizedTitle) {
   override fun getFrom(bundle: Bundle?, app: App): ShowHide {
     val storedString =
         bundle?.getString(key)
