@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.safeContentPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,7 +29,7 @@ fun ManagedByView(backToSettings: BackNavigation, model: IpnViewModel = viewMode
         verticalArrangement =
             Arrangement.spacedBy(space = 20.dp, alignment = Alignment.CenterVertically),
         horizontalAlignment = Alignment.Start,
-        modifier = Modifier.fillMaxWidth().safeContentPadding()) {
+        modifier = Modifier.fillMaxWidth().safeContentPadding().verticalScroll(rememberScrollState())) {
           val managedByOrganization =
               MDMSettings.managedByOrganizationName.flow.collectAsState().value
           val managedByCaption = MDMSettings.managedByCaption.flow.collectAsState().value
