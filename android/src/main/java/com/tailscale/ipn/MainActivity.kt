@@ -74,11 +74,10 @@ import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
   private lateinit var requestVpnPermission: ActivityResultLauncher<Unit>
-  private lateinit var navController: NavHostController
+  private var navController: NavHostController? = null
 
   companion object {
     private const val TAG = "Main Activity"
-
     private const val START_AT_ROOT = "startAtRoot"
   }
 
@@ -245,7 +244,7 @@ class MainActivity : ComponentActivity() {
   override fun onNewIntent(intent: Intent?) {
     super.onNewIntent(intent)
     if (intent?.getBooleanExtra(START_AT_ROOT, false) == true) {
-      navController.popBackStack(route = "main", inclusive = false)
+      navController?.popBackStack(route = "main", inclusive = false)
     }
   }
 
