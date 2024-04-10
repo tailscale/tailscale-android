@@ -37,6 +37,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.localapi.Client
 import com.tailscale.ipn.ui.localapi.Request
 import com.tailscale.ipn.ui.model.Ipn
@@ -450,5 +451,19 @@ class App : Application(), libtailscale.AppContext {
     }
 
     return downloads
+  }
+
+  @Throws(IOException::class, GeneralSecurityException::class)
+  override fun getSyspolicyBooleanValue(key: String): Boolean {
+    return getSyspolicyStringValue(key) == "true"
+  }
+
+  @Throws(IOException::class, GeneralSecurityException::class)
+  override fun getSyspolicyStringValue(key: String): String {
+    return MDMSettings.allSettingsByKey[key]?.flow?.value?.toString()
+        ?: run {
+          Log.d("MDM", "$key is not defined on Android. Returning empty.")
+          ""
+        }
   }
 }

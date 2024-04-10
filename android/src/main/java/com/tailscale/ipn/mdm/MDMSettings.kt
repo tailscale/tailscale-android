@@ -57,6 +57,8 @@ object MDMSettings {
         .map { it.call(MDMSettings) as MDMSetting<*> }
   }
 
+  val allSettingsByKey by lazy { allSettings.associateBy { it.key } }
+
   fun update(app: App, restrictionsManager: RestrictionsManager?) {
     val bundle = restrictionsManager?.applicationRestrictions
     allSettings.forEach { it.setFrom(bundle, app) }
