@@ -5,7 +5,9 @@ package com.tailscale.ipn.ui.viewModel
 
 import androidx.lifecycle.viewModelScope
 import com.tailscale.ipn.mdm.MDMSettings
+import com.tailscale.ipn.ui.localapi.Client
 import com.tailscale.ipn.ui.notifier.Notifier
+import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.set
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,14 +26,34 @@ data class SettingsNav(
     val onBackToSettings: () -> Unit,
 )
 
-class SettingsViewModel() : IpnViewModel() {
+class SettingsViewModel : IpnViewModel() {
   // Display name for the logged in user
   val isAdmin: StateFlow<Boolean> = MutableStateFlow(false)
   val managedByOrganization = MDMSettings.managedByOrganizationName.flow
+  // True if tailnet lock is enabled.  nil if not yet known.
+  val tailNetLockEnabled: StateFlow<Boolean?> = MutableStateFlow(null)
+  // True if tailscaleDNS is enabled. nil if not yet known.
+  val corpDNSEnabled: StateFlow<Boolean?> = MutableStateFlow(null)
 
   init {
     viewModelScope.launch {
       Notifier.netmap.collect { netmap -> isAdmin.set(netmap?.SelfNode?.isAdmin ?: false) }
+    }
+
+    Client(viewModelScope).tailnetLockStatus { result ->
+      result.onSuccess { status -> tailNetLockEnabled.set(status.Enabled) }
+
+      LoadingIndicator.stop()
+    }
+
+    viewModelScope.launch {
+      Notifier.prefs.collect {
+        it?.let {
+          corpDNSEnabled.set(it.CorpDNS)
+        } ?: run {
+          corpDNSEnabled.set(null)
+        }
+      }
     }
   }
 }
