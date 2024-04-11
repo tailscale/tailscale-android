@@ -26,6 +26,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.Links
+import com.tailscale.ipn.ui.theme.defaultTextColor
 import com.tailscale.ipn.ui.theme.link
 import com.tailscale.ipn.ui.util.ClipboardValueView
 import com.tailscale.ipn.ui.util.Lists
@@ -97,7 +98,9 @@ private fun ExplainerView() {
 @Composable
 fun explainerText(): AnnotatedString {
   val annotatedString = buildAnnotatedString {
-    append(stringResource(id = R.string.tailnet_lock_explainer))
+    withStyle(SpanStyle(color = MaterialTheme.colorScheme.defaultTextColor)) {
+      append(stringResource(id = R.string.tailnet_lock_explainer))
+    }
 
     pushStringAnnotation(tag = "tailnetLockSupportURL", annotation = Links.TAILNET_LOCK_KB_URL)
 

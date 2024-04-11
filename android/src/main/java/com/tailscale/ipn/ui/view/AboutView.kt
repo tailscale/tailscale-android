@@ -3,7 +3,6 @@
 
 package com.tailscale.ipn.ui.view
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -22,7 +21,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -30,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import com.tailscale.ipn.BuildConfig
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.Links
+import com.tailscale.ipn.ui.theme.logoBackground
 
 @Composable
 fun AboutView(backToSettings: BackNavigation) {
@@ -39,16 +38,19 @@ fun AboutView(backToSettings: BackNavigation) {
         verticalArrangement =
             Arrangement.spacedBy(space = 20.dp, alignment = Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.fillMaxWidth().fillMaxHeight().padding(innerPadding).verticalScroll(rememberScrollState())) {
-          Image(
+        modifier =
+            Modifier.fillMaxWidth()
+                .fillMaxHeight()
+                .padding(innerPadding)
+                .verticalScroll(rememberScrollState())) {
+          TailscaleLogoView(
+              usesOnBackgroundColors = true,
               modifier =
                   Modifier.width(100.dp)
                       .height(100.dp)
                       .clip(RoundedCornerShape(50))
-                      .background(MaterialTheme.colorScheme.onSurface)
-                      .padding(15.dp),
-              painter = painterResource(id = R.drawable.androidicon),
-              contentDescription = stringResource(R.string.app_icon_content_description))
+                      .background(MaterialTheme.colorScheme.logoBackground)
+                      .padding(25.dp))
 
           Column(
               verticalArrangement =

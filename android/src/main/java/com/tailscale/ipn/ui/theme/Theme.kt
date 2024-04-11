@@ -16,6 +16,7 @@ import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TopAppBarColors
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.Typography
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -27,7 +28,12 @@ import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
 @Composable
 fun AppTheme(useDarkTheme: Boolean = isSystemInDarkTheme(), content: @Composable() () -> Unit) {
-  val colors = LightColors
+  val colors =
+      if (useDarkTheme) {
+        DarkColors
+      } else {
+        LightColors
+      }
 
   val typography =
       Typography(
@@ -78,6 +84,35 @@ private val LightColors =
         scrim = Color(0xAA000000), // black
     )
 
+private val DarkColors =
+    darkColorScheme(
+        primary = Color(0xFF3f5eb3), // blue-600
+        onPrimary = Color(0xFFFFFFFF), // white
+        primaryContainer = Color(0xFFf0f5ff), // blue-0
+        onPrimaryContainer = Color(0xFF3f5eb3), // blue-600
+        error = Color(0xFF940822), // red-600
+        onError = Color(0xFFFFFFFF), // white
+        errorContainer = Color(0xFFfff6f4), // red-0
+        onErrorContainer = Color(0xFF940822), // red-600
+        surfaceDim = Color(0xFF1f1e1e), // gray-900
+        surface = Color(0xFF232222), // gray-800
+        background = Color(0xFF1f1e1e), // gray-900
+        surfaceBright = Color(0xFF444342), // gray-600
+        surfaceContainerLowest = Color(0xFF232222), // gray-800
+        surfaceContainerLow = Color(0xFF2e2d2d), // gray-700
+        surfaceContainer = Color(0xFF2e2d2d), // gray-700
+        surfaceContainerHigh = Color(0xFF2e2d2d), // gray-700
+        surfaceContainerHighest = Color(0xFF444342), // gray-600
+        surfaceVariant = Color(0xFF1f1e1e), // gray-900
+        onSurface = Color(0xFFfaf9f8), // gray-0
+        onSurfaceVariant = Color(0xFFafacab), // gray-400
+        outline = Color(0xFF706E6D), // gray-500
+        outlineVariant = Color(0xFF444342), // gray-600
+        inverseSurface = Color(0xFFEDEBEA), // gray-200
+        inverseOnSurface = Color(0xFF000000), // black
+        scrim = Color(0xAA000000), // black
+    )
+
 val ColorScheme.warning: Color
   get() = Color(0xFFD97916) // yellow-300
 
@@ -106,7 +141,13 @@ val ColorScheme.on: Color
   get() = Color(0xFF1CA672) // green-300
 
 val ColorScheme.off: Color
-  get() = Color(0xFFD9D6D5) // gray-300
+  @Composable
+  get() =
+      if (isSystemInDarkTheme()) {
+        Color(0xFFAFACAB) // gray-400
+      } else {
+        Color(0xFFD9D6D5) // gray-300
+      }
 
 val ColorScheme.link: Color
   get() = onPrimaryContainer
@@ -238,6 +279,60 @@ val ColorScheme.secondaryButton: ButtonColors
         disabledContentColor = defaults.disabledContentColor)
   }
 
+val ColorScheme.defaultTextColor: Color
+  @Composable
+  get() =
+      if (isSystemInDarkTheme()) {
+        Color.White
+      } else {
+        Color.Black
+      }
+
+val ColorScheme.logoBackground: Color
+  @Composable
+  get() =
+      if (isSystemInDarkTheme()) {
+        Color(0xFFFFFFFF) // white
+      } else {
+        Color(0xFF1F1E1E)
+      }
+
+val ColorScheme.standaloneLogoDotEnabled: Color
+  @Composable
+  get() =
+      if (isSystemInDarkTheme()) {
+        Color(0xFFFFFFFF)
+      } else {
+        Color(0xFF000000)
+      }
+
+val ColorScheme.standaloneLogoDotDisabled: Color
+  @Composable
+  get() =
+      if (isSystemInDarkTheme()) {
+        Color(0x66FFFFFF)
+      } else {
+        Color(0x661F1E1E)
+      }
+
+val ColorScheme.onBackgroundLogoDotEnabled: Color
+  @Composable
+  get() =
+      if (isSystemInDarkTheme()) {
+        Color(0xFF141414)
+      } else {
+        Color(0xFFFFFFFF)
+      }
+
+val ColorScheme.onBackgroundLogoDotDisabled: Color
+  @Composable
+  get() =
+      if (isSystemInDarkTheme()) {
+        Color(0x66141414)
+      } else {
+        Color(0x66FFFFFF)
+      }
+
 val ColorScheme.disabled: Color
   get() = Color(0xFFAFACAB) // gray-400
 
@@ -252,9 +347,9 @@ val ColorScheme.searchBarColors: TextFieldColors
         focusedTextColor = MaterialTheme.colorScheme.onSurface,
         unfocusedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
         disabledTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        focusedContainerColor = MaterialTheme.colorScheme.background,
-        unfocusedContainerColor = MaterialTheme.colorScheme.background,
-        disabledContainerColor = MaterialTheme.colorScheme.background,
+        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+        disabledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
         focusedBorderColor = Color.Transparent,
         unfocusedBorderColor = Color.Transparent)
   }

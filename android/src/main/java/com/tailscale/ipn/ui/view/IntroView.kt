@@ -3,7 +3,6 @@
 
 package com.tailscale.ipn.ui.view
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,7 +20,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -33,10 +31,7 @@ fun IntroView(onContinue: () -> Unit) {
       modifier = Modifier.fillMaxHeight().fillMaxWidth().verticalScroll(rememberScrollState()),
       horizontalAlignment = Alignment.CenterHorizontally,
       verticalArrangement = Arrangement.Center) {
-        Image(
-            modifier = Modifier.width(80.dp).height(80.dp),
-            painter = painterResource(id = R.drawable.androidicon_light),
-            contentDescription = stringResource(R.string.app_icon_content_description))
+        TailscaleLogoView(modifier = Modifier.width(60.dp).height(60.dp))
         Spacer(modifier = Modifier.height(40.dp))
         Text(
             modifier = Modifier.padding(start = 40.dp, end = 40.dp, bottom = 40.dp),

@@ -25,6 +25,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.Links
+import com.tailscale.ipn.ui.theme.defaultTextColor
 import com.tailscale.ipn.ui.theme.link
 import com.tailscale.ipn.ui.util.ClipboardValueView
 import com.tailscale.ipn.ui.util.Lists
@@ -60,7 +61,9 @@ fun BugReportView(backToSettings: BackNavigation, model: BugReportViewModel = vi
 @Composable
 fun contactText(): AnnotatedString {
   val annotatedString = buildAnnotatedString {
-    append(stringResource(id = R.string.bug_report_instructions_prefix))
+    withStyle(SpanStyle(color = MaterialTheme.colorScheme.defaultTextColor)) {
+      append(stringResource(id = R.string.bug_report_instructions_prefix))
+    }
 
     pushStringAnnotation(tag = "reportLink", annotation = Links.SUPPORT_URL)
     withStyle(
@@ -72,7 +75,9 @@ fun contactText(): AnnotatedString {
         }
     pop()
 
-    append(stringResource(id = R.string.bug_report_instructions_suffix))
+    withStyle(SpanStyle(color = MaterialTheme.colorScheme.defaultTextColor)) {
+      append(stringResource(id = R.string.bug_report_instructions_suffix))
+    }
   }
   return annotatedString
 }
