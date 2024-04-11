@@ -41,6 +41,8 @@ fun SettingsView(settingsNav: SettingsNav, viewModel: SettingsViewModel = viewMo
   val user = viewModel.loggedInUser.collectAsState().value
   val isAdmin = viewModel.isAdmin.collectAsState().value
   val managedByOrganization = viewModel.managedByOrganization.collectAsState().value
+  val tailnetLockEnabled = viewModel.tailNetLockEnabled.collectAsState().value
+  val corpDNSEnabled = viewModel.corpDNSEnabled.collectAsState().value
 
   Scaffold(
       topBar = {
@@ -58,10 +60,23 @@ fun SettingsView(settingsNav: SettingsNav, viewModel: SettingsViewModel = viewMo
           }
 
           Lists.SectionDivider()
-          Setting.Text(R.string.dns_settings, onClick = settingsNav.onNavigateToDNSSettings)
+          Setting.Text(
+              R.string.dns_settings,
+              subtitle =
+                  corpDNSEnabled?.let {
+                    stringResource(
+                        if (it) R.string.using_tailscale_dns else R.string.not_using_tailscale_dns)
+                  },
+              onClick = settingsNav.onNavigateToDNSSettings)
 
           Lists.ItemDivider()
-          Setting.Text(R.string.tailnet_lock, onClick = settingsNav.onNavigateToTailnetLock)
+          Setting.Text(
+              R.string.tailnet_lock,
+              subtitle =
+                  tailnetLockEnabled?.let {
+                    stringResource(if (it) R.string.enabled else R.string.disabled)
+                  },
+              onClick = settingsNav.onNavigateToTailnetLock)
 
           Lists.ItemDivider()
           Setting.Text(R.string.permissions, onClick = settingsNav.onNavigateToPermissions)
@@ -77,7 +92,10 @@ fun SettingsView(settingsNav: SettingsNav, viewModel: SettingsViewModel = viewMo
           Setting.Text(R.string.bug_report, onClick = settingsNav.onNavigateToBugReport)
 
           Lists.ItemDivider()
-          Setting.Text(R.string.about_tailscale, onClick = settingsNav.onNavigateToAbout)
+          Setting.Text(
+              R.string.about_tailscale,
+              subtitle = "${stringResource(id = R.string.version)} ${BuildConfig.VERSION_NAME}",
+              onClick = settingsNav.onNavigateToAbout)
 
           // TODO: put a heading for the debug section
           if (BuildConfig.DEBUG) {
@@ -93,6 +111,7 @@ object Setting {
   fun Text(
       titleRes: Int = 0,
       title: String? = null,
+      subtitle: String? = null,
       destructive: Boolean = false,
       enabled: Boolean = true,
       onClick: (() -> Unit)? = null
@@ -110,7 +129,15 @@ object Setting {
               style = MaterialTheme.typography.bodyMedium,
               color = if (destructive) MaterialTheme.colorScheme.error else Color.Unspecified)
         },
-    )
+        supportingContent =
+            subtitle?.let {
+              {
+                Text(
+                    it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+              }
+            })
   }
 
   @Composable
