@@ -39,7 +39,18 @@ class PeerCategorizer {
         grouped
             .map { (userId, peers) ->
               val profile = netmap.userProfile(userId)
-              PeerSet(profile, peers.sortedBy { it.ComputedName })
+              PeerSet(
+                  profile,
+                  peers.sortedWith { a, b ->
+                    when {
+                      a.StableID == b.StableID -> 0
+                      a.isSelfNode(netmap) -> -1
+                      b.isSelfNode(netmap) -> 1
+                      else ->
+                          (a.ComputedName?.lowercase() ?: "").compareTo(
+                              b.ComputedName?.lowercase() ?: "")
+                    }
+                  })
             }
             .sortedBy {
               if (it.user?.ID == me?.ID) {

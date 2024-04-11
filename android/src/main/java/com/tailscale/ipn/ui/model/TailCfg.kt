@@ -101,6 +101,8 @@ class Tailcfg {
     val displayName: String
       get() = ComputedName ?: Name
 
+    fun isSelfNode(netmap: Netmap.NetworkMap): Boolean = StableID == netmap.SelfNode.StableID
+
     fun connectedOrSelfNode(nm: Netmap.NetworkMap?) =
         Online == true || StableID == nm?.SelfNode?.StableID
 
