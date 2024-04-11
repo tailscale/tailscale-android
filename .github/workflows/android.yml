@@ -28,7 +28,7 @@ jobs:
         java-version: '17'
 
     - name: Build APKs
-      run: make tailscale-new-debug.apk
+      run: make tailscale-debug.apk
 
     - name: Run tests
       run: make test
