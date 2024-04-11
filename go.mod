@@ -13,7 +13,7 @@ require (
 	golang.org/x/mobile v0.0.0-20240319015410-c58ccf4b0c87
 	golang.org/x/sys v0.18.0
 	inet.af/netaddr v0.0.0-20220617031823-097006376321
-	tailscale.com v1.63.0-pre.0.20240404175649-853e3e29a0a6
+	tailscale.com v1.64.0
 )
 
 require (
