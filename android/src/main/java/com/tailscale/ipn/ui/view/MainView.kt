@@ -40,6 +40,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -321,6 +322,7 @@ fun PeerList(
 ) {
   val peerList = viewModel.peers.collectAsState(initial = emptyList<PeerSet>())
   val searchTermStr by viewModel.searchTerm.collectAsState(initial = "")
+  val showNoResults = derivedStateOf { searchTermStr.isNotEmpty() && peerList.value.isEmpty() }.value
   val netmap = viewModel.netmap.collectAsState()
 
   val focusManager = LocalFocusManager.current
@@ -364,6 +366,21 @@ fun PeerList(
 
   LazyColumn(
       modifier = Modifier.fillMaxSize().background(color = MaterialTheme.colorScheme.surface)) {
+        if (showNoResults) {
+          item {
+            Spacer(
+                Modifier.height(16.dp)
+                    .fillMaxSize()
+                    .background(color = MaterialTheme.colorScheme.surface))
+
+            Lists.SectionTitle(
+                stringResource(id = R.string.no_results),
+                bottomPadding = 8.dp,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Light)
+          }
+        }
+
         var first = true
         peerList.value.forEach { peerSet ->
           if (!first) {

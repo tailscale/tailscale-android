@@ -19,6 +19,7 @@
     <string name="warning">Warning</string>
     <string name="search">Search</string>
     <string name="dismiss">Dismiss</string>
+    <string name="no_results">No results</string>
 
     <!-- Strings for the about screen -->
     <string name="app_name">Tailscale</string>
