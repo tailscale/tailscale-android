@@ -8,7 +8,9 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
 import com.tailscale.ipn.R
+import com.tailscale.ipn.ui.theme.AppTheme
 
 
 enum class ErrorDialogType {
@@ -59,11 +61,19 @@ fun ErrorDialog(
     @StringRes buttonText: Int = R.string.ok,
     onDismiss: () -> Unit = {}
 ) {
-  AlertDialog(
+  AppTheme {
+    AlertDialog(
       onDismissRequest = onDismiss,
       title = { Text(text = stringResource(id = title)) },
       text = { Text(text = stringResource(id = message)) },
       confirmButton = {
         PrimaryActionButton(onClick = onDismiss) { Text(text = stringResource(id = buttonText)) }
       })
+  }
+}
+
+@Preview
+@Composable
+fun ErrorDialogPreview() {
+  ErrorDialog(ErrorDialogType.LOGOUT_FAILED)
 }

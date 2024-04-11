@@ -24,10 +24,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
+import com.tailscale.ipn.ui.theme.AppTheme
+import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.viewModel.LoginQRViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -65,4 +68,12 @@ fun LoginQRView(onDismiss: () -> Unit = {}, model: LoginQRViewModel = viewModel(
           }
     }
   }
+}
+
+@Composable
+@Preview
+fun LoginQRViewPreview() {
+  val vm = LoginQRViewModel()
+  vm.qrCode.set(vm.generateQRCode("https://tailscale.com", 200, 0))
+  AppTheme { LoginQRView({}, vm) }
 }
