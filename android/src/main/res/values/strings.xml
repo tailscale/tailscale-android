@@ -60,7 +60,10 @@
     <string name="deviceKeyNeverExpires">Device key does not expire</string>
     <string name="deviceKeyExpires">Device key expires %s</string>
     <string name="deviceKeyExpired">Device key expired %s</string>
-
+    <string name="machine_auth_required">Admin approval required</string>
+    <string name="machine_auth_explainer">This device must be approved by an administrator before it can connect to the tailnet.</string>
+    <string name="open_admin_console">Open admin console</string>
+    <string name="needs_machine_auth">Authorization required</string>
 
     <!-- Strings for peer details -->
     <string name="os">OS</string>
@@ -226,6 +229,6 @@
     <string name="getStarted">Get Started</string>
     <string name="welcome1">Tailscale is a mesh VPN for securely connecting your devices.</string>
     <string name="welcome2">All connections are device-to-device, so we never see your data. We collect and use your email address and name, as well as your device name, OS version, and IP address in order to help you to connect your devices and manage your settings. We log when you are connected to your network.</string>
-        <string name="scan_to_connect_to_your_tailnet">Scan this QR code to log in to your tailnet</string>
+    <string name="scan_to_connect_to_your_tailnet">Scan this QR code to log in to your tailnet</string>
 
 </resources>

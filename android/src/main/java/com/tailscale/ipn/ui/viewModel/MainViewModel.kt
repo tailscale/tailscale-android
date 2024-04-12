@@ -79,7 +79,7 @@ private fun State?.userStringRes(): Int {
     State.NoState -> R.string.waiting
     State.InUseOtherUser -> R.string.placeholder
     State.NeedsLogin -> R.string.please_login
-    State.NeedsMachineAuth -> R.string.placeholder
+    State.NeedsMachineAuth -> R.string.needs_machine_auth
     State.Stopped -> R.string.stopped
     State.Starting -> R.string.starting
     State.Running -> R.string.connected

@@ -3,7 +3,7 @@
 
 package com.tailscale.ipn.ui.util
 
-class DisplayAddress(val ip: String) {
+class DisplayAddress(ip: String) {
   enum class addrType {
     V4,
     V6,

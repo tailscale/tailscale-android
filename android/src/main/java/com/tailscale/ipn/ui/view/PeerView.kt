@@ -28,7 +28,7 @@ fun PeerView(
     peer: Tailcfg.Node,
     selfPeer: String? = null,
     stateVal: Ipn.State? = null,
-    subtitle: () -> String = { peer.Addresses?.first()?.split("/")?.first() ?: "" },
+    subtitle: () -> String = { peer.primaryIPv4Address ?: peer.primaryIPv6Address ?: "" },
     onClick: (Tailcfg.Node) -> Unit = {},
     trailingContent: @Composable () -> Unit = {}
 ) {
