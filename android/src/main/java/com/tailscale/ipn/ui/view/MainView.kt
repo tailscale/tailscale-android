@@ -469,7 +469,7 @@ fun PeerList(
 fun ExpiryNotificationIfNecessary(netmap: Netmap.NetworkMap?, action: () -> Unit = {}) {
   // Key expiry warning shown only if the key is expiring within 24 hours (or has already expired)
   val networkMap = netmap ?: return
-  if (!TimeUtil.isWithin24Hours(networkMap.SelfNode.KeyExpiry)) {
+  if (!TimeUtil.isWithin24Hours(networkMap.SelfNode.KeyExpiry) || networkMap.SelfNode.keyDoesNotExpire) {
     return
   }
 
