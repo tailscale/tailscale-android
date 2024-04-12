@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.material.icons.outlined.Clear
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Button
@@ -50,6 +51,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
@@ -61,6 +63,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.tailscale.ipn.R
+import com.tailscale.ipn.ui.Links
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.Netmap
@@ -159,7 +162,9 @@ fun MainView(navigation: MainViewNavigation, viewModel: MainViewModel = viewMode
               }
               Ipn.State.NoState,
               Ipn.State.Starting -> StartingView()
-              else -> ConnectView(state, user, { viewModel.toggleVpn() }, { viewModel.login {} })
+              else -> {
+                ConnectView(state, user, { viewModel.toggleVpn() }, { viewModel.login {} })
+              }
             }
           }
     }
@@ -186,9 +191,9 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
               modifier = Modifier.clickable { navAction() },
               colors =
                   if (active) MaterialTheme.colorScheme.primaryListItem
-                  else ListItemDefaults.colors(
-                      containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
-                  ),
+                  else
+                      ListItemDefaults.colors(
+                          containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
               overlineContent = {
                 Text(
                     stringResource(R.string.exit_node),
@@ -254,6 +259,8 @@ fun ConnectView(
     connectAction: () -> Unit,
     loginAction: () -> Unit
 ) {
+  val handler = LocalUriHandler.current
+
   Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
       Column(
@@ -261,7 +268,26 @@ fun ConnectView(
           verticalArrangement = Arrangement.spacedBy(8.dp, alignment = Alignment.CenterVertically),
           horizontalAlignment = Alignment.CenterHorizontally,
       ) {
-        if (state != Ipn.State.NeedsLogin && user != null && !user.isEmpty()) {
+        if (state == Ipn.State.NeedsMachineAuth) {
+          Icon(
+              modifier = Modifier.size(40.dp),
+              imageVector = Icons.Outlined.Lock,
+              contentDescription = "Device requires authentication")
+          Text(
+              text = stringResource(id = R.string.machine_auth_required),
+              style = MaterialTheme.typography.titleMedium,
+              textAlign = TextAlign.Center)
+          Text(
+              text = stringResource(id = R.string.machine_auth_explainer),
+              style = MaterialTheme.typography.bodyMedium,
+              textAlign = TextAlign.Center)
+          Spacer(modifier = Modifier.size(1.dp))
+          PrimaryActionButton(onClick = { handler.openUri(Links.ADMIN_URL) }) {
+            Text(
+                text = stringResource(id = R.string.open_admin_console),
+                fontSize = MaterialTheme.typography.titleMedium.fontSize)
+          }
+        } else if (state != Ipn.State.NeedsLogin && user != null && !user.isEmpty()) {
           Icon(
               painter = painterResource(id = R.drawable.power),
               contentDescription = null,
