@@ -170,6 +170,17 @@ func (b *backend) updateTUN(service IPNService, rcfg *router.Config, dcfg *dns.O
 			return err
 		}
 	}
+
+	for _, route := range rcfg.LocalRoutes {
+		addr := route.Addr()
+		if addr.IsLoopback() {
+			continue // Skip the loopback addresses since VpnService throws an exception for those (both IPv4 and IPv6) - see https://android.googlesource.com/platform/frameworks/base/+/c741553/core/java/android/net/VpnService.java#303
+		}
+		route = route.Masked()
+		if err := builder.ExcludeRoute(route.Addr().String(), int32(route.Bits())); err != nil {
+			return err
+		}
+	}
 	b.logger.Logf("updateTUN: added %d routes", len(rcfg.Routes))
 
 	for _, addr := range rcfg.LocalAddrs {
@@ -210,12 +221,6 @@ func (b *backend) updateTUN(service IPNService, rcfg *router.Config, dcfg *dns.O
 	b.devices.add(tunDev)
 	b.logger.Logf("updateTUN: added TUN device")
 
-	// TODO(oxtoacart): figure out what to do with this
-	// if err != nil {
-	// 	b.lastCfg = nil
-	// 	b.CloseTUNs()
-	// 	return err
-	// }
 	b.lastCfg = rcfg
 	b.lastDNSCfg = dcfg
 	return nil

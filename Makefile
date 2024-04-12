@@ -147,7 +147,7 @@ $(LIBTAILSCALE): Makefile android/libs $(LIBTAILSCALE_SOURCES) $(GOBIN)/gomobile
 		-ldflags "$(FULL_LDFLAGS)" \
 		-o $@ ./libtailscale
 
-libtailscale: $(LIBTAILSCALE)
+libtailscale: $(LIBTAILSCALE) ## Build libtailscale
 
 ANDROID_SOURCES=$(shell find android -type f -not -path "android/build/*" -not -path '*/.*')
 DEBUG_INTERMEDIARY = android/build/outputs/apk/debug/android-debug.apk

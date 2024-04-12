@@ -5,6 +5,7 @@ package libtailscale
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -18,9 +19,12 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"tailscale.com/ipn"
 )
 
-// CallLocalAPI calls the given endpoint on the local API using the given HTTP method
+// CallLocalAPI is the method for making localapi calls from Kotlin. It calls
+// the given endpoint on the local API using the given HTTP method and
 // optionally sending the given body. It returns a Response representing the
 // result of the call and an error if the call could not be completed or the
 // local API returned a status code in the 400 series or greater.
@@ -101,6 +105,18 @@ func (app *App) CallLocalAPIMultipart(timeoutMillis int, method, endpoint string
 	default:
 		panic("unexpected result type, this shouldn't happen")
 	}
+}
+
+func (app *App) EditPrefs(prefs ipn.MaskedPrefs) (LocalAPIResponse, error) {
+	r, w := io.Pipe()
+	go func() {
+		defer w.Close()
+		enc := json.NewEncoder(w)
+		if err := enc.Encode(prefs); err != nil {
+			log.Printf("Error encoding preferences: %v", err)
+		}
+	}()
+	return app.callLocalAPI(30000, "PATCH", "prefs", nil, r)
 }
 
 func (app *App) callLocalAPI(timeoutMillis int, method, endpoint string, header http.Header, body io.ReadCloser) (LocalAPIResponse, error) {
