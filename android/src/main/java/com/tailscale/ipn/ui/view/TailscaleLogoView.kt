@@ -14,6 +14,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import com.tailscale.ipn.ui.theme.onBackgroundLogoDotDisabled
+import com.tailscale.ipn.ui.theme.onBackgroundLogoDotEnabled
+import com.tailscale.ipn.ui.theme.standaloneLogoDotDisabled
+import com.tailscale.ipn.ui.theme.standaloneLogoDotEnabled
 import com.tailscale.ipn.ui.util.set
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,10 +35,24 @@ val logoDotsMatrix: DotsMatrix =
     )
 
 @Composable
-fun TailscaleLogoView(animated: Boolean = false, modifier: Modifier) {
+fun TailscaleLogoView(
+    animated: Boolean = false,
+    usesOnBackgroundColors: Boolean = false,
+    modifier: Modifier
+) {
 
-  val primaryColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
-  val secondaryColor: Color = primaryColor.copy(alpha = 0.1f)
+  val primaryColor: Color =
+      if (usesOnBackgroundColors) {
+        MaterialTheme.colorScheme.onBackgroundLogoDotEnabled
+      } else {
+        MaterialTheme.colorScheme.standaloneLogoDotEnabled
+      }
+  val secondaryColor: Color =
+      if (usesOnBackgroundColors) {
+        MaterialTheme.colorScheme.onBackgroundLogoDotDisabled
+      } else {
+        MaterialTheme.colorScheme.standaloneLogoDotDisabled
+      }
 
   val currentDotsMatrix: StateFlow<DotsMatrix> = MutableStateFlow(logoDotsMatrix)
   var currentDotsMatrixIndex = 0
