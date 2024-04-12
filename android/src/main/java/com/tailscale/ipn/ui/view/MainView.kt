@@ -48,6 +48,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalFocusManager
@@ -94,7 +95,11 @@ data class MainViewNavigation(
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun MainView(loginAtUrl: (String) -> Unit, navigation: MainViewNavigation, viewModel: MainViewModel = viewModel()) {
+fun MainView(
+    loginAtUrl: (String) -> Unit,
+    navigation: MainViewNavigation,
+    viewModel: MainViewModel = viewModel()
+) {
   LoadingIndicator.Wrap {
     Scaffold(contentWindowInsets = WindowInsets.Companion.statusBars) { paddingInsets ->
       Column(
@@ -194,9 +199,7 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
               modifier = Modifier.clickable { navAction() },
               colors =
                   if (active) MaterialTheme.colorScheme.primaryListItem
-                  else
-                      ListItemDefaults.colors(
-                          containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+                  else ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surface),
               overlineContent = {
                 Text(
                     stringResource(R.string.exit_node),
@@ -238,10 +241,7 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
 @Composable
 fun SettingsButton(action: () -> Unit) {
   IconButton(modifier = Modifier.size(24.dp), onClick = { action() }) {
-    Icon(
-        Icons.Outlined.Settings,
-        null,
-    )
+    Icon(Icons.Outlined.Settings, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
   }
 }
 
@@ -251,7 +251,8 @@ fun StartingView() {
       modifier = Modifier.fillMaxSize(),
       verticalArrangement = Arrangement.Center,
       horizontalAlignment = Alignment.CenterHorizontally) {
-        TailscaleLogoView(animated = true, usesOnBackgroundColors = false, Modifier.size(40.dp))
+        TailscaleLogoView(
+            animated = true, usesOnBackgroundColors = false, Modifier.size(40.dp).alpha(0.3f))
       }
 }
 
@@ -286,12 +287,11 @@ fun ConnectView(
               textAlign = TextAlign.Center)
           Spacer(modifier = Modifier.size(1.dp))
           selfNode?.let {
-            PrimaryActionButton(
-                onClick = { loginAtUrlAction(it.nodeAdminUrl) }) {
-                  Text(
-                      text = stringResource(id = R.string.open_admin_console),
-                      fontSize = MaterialTheme.typography.titleMedium.fontSize)
-                }
+            PrimaryActionButton(onClick = { loginAtUrlAction(it.nodeAdminUrl) }) {
+              Text(
+                  text = stringResource(id = R.string.open_admin_console),
+                  fontSize = MaterialTheme.typography.titleMedium.fontSize)
+            }
           }
         } else if (state != Ipn.State.NeedsLogin && user != null && !user.isEmpty()) {
           Icon(
@@ -356,7 +356,8 @@ fun PeerList(
 ) {
   val peerList = viewModel.peers.collectAsState(initial = emptyList<PeerSet>())
   val searchTermStr by viewModel.searchTerm.collectAsState(initial = "")
-  val showNoResults = remember { derivedStateOf { searchTermStr.isNotEmpty() && peerList.value.isEmpty() } }.value
+  val showNoResults =
+      remember { derivedStateOf { searchTermStr.isNotEmpty() && peerList.value.isEmpty() } }.value
   val netmap = viewModel.netmap.collectAsState()
 
   val focusManager = LocalFocusManager.current
