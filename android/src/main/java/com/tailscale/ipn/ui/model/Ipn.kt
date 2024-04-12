@@ -194,7 +194,8 @@ class Ipn {
   @Serializable
   data class Options(
       var FrontendLogID: String? = null,
-      var Prefs: Prefs? = null,
+      var UpdatePrefs: Prefs? = null,
+      var AuthKey: String? = null,
   )
 }
 

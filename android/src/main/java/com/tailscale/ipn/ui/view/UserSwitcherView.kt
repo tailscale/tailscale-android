@@ -7,7 +7,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -19,18 +18,13 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -41,13 +35,16 @@ import com.tailscale.ipn.ui.util.itemsWithDividers
 import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.viewModel.UserSwitcherViewModel
 
+data class UserSwitcherNav(
+    val backToSettings: BackNavigation,
+    val onNavigateHome: () -> Unit,
+    val onNavigateCustomControl: () -> Unit,
+    val onNavigateToAuthKey: () -> Unit
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun UserSwitcherView(
-    backToSettings: BackNavigation,
-    onNavigateHome: () -> Unit,
-    viewModel: UserSwitcherViewModel = viewModel()
-) {
+fun UserSwitcherView(nav: UserSwitcherNav, viewModel: UserSwitcherViewModel = viewModel()) {
 
   val users = viewModel.loginProfiles.collectAsState().value
   val currentUser = viewModel.loggedInUser.collectAsState().value
@@ -57,10 +54,13 @@ fun UserSwitcherView(
       topBar = {
         Header(
             R.string.accounts,
-            onBack = backToSettings,
+            onBack = nav.backToSettings,
             actions = {
               Row {
-                FusMenu(viewModel = viewModel)
+                FusMenu(
+                    viewModel = viewModel,
+                    onAuthKeyClick = nav.onNavigateToAuthKey,
+                    onCustomClick = nav.onNavigateCustomControl)
                 IconButton(onClick = { viewModel.showHeaderMenu.set(!showHeaderMenu) }) {
                   Icon(Icons.Default.MoreVert, "menu")
                 }
@@ -103,7 +103,7 @@ fun UserSwitcherView(
                               viewModel.errorDialog.set(ErrorDialogType.LOGOUT_FAILED)
                               nextUserId.value = null
                             } else {
-                              onNavigateHome()
+                              nav.onNavigateHome()
                             }
                           }
                         })
@@ -121,7 +121,7 @@ fun UserSwitcherView(
                   }
 
                   Lists.ItemDivider()
-                  Setting.Text(R.string.reauthenticate) { viewModel.login {} }
+                  Setting.Text(R.string.reauthenticate) { viewModel.login() }
 
                   if (currentUser != null) {
                     Lists.ItemDivider()
@@ -130,9 +130,10 @@ fun UserSwitcherView(
                         destructive = true,
                         onClick = {
                           viewModel.logout {
-                            if (it.isFailure) {
-                              viewModel.errorDialog.set(ErrorDialogType.LOGOUT_FAILED)
-                            }
+                            it.onSuccess { nav.onNavigateHome() }
+                                .onFailure {
+                                  viewModel.errorDialog.set(ErrorDialogType.LOGOUT_FAILED)
+                                }
                           }
                         })
                   }
@@ -143,57 +144,47 @@ fun UserSwitcherView(
 }
 
 @Composable
-fun FusMenu(viewModel: UserSwitcherViewModel) {
-  var url by remember { mutableStateOf("") }
+fun FusMenu(
+    onCustomClick: () -> Unit,
+    onAuthKeyClick: () -> Unit,
+    viewModel: UserSwitcherViewModel
+) {
   val expanded = viewModel.showHeaderMenu.collectAsState().value
 
   DropdownMenu(
       expanded = expanded,
-      onDismissRequest = {
-        url = ""
-        viewModel.showHeaderMenu.set(false)
-      },
+      onDismissRequest = { viewModel.showHeaderMenu.set(false) },
       modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainer)) {
-        DropdownMenuItem(
-            onClick = {},
-            text = {
-              Column {
-                Text(
-                    stringResource(id = R.string.custom_control_menu),
-                    style = MaterialTheme.typography.titleMedium)
-                Spacer(modifier = Modifier.padding(2.dp))
-                Text(
-                    stringResource(id = R.string.custom_control_menu_desc),
-                    style = MaterialTheme.typography.bodySmall)
-                Spacer(modifier = Modifier.padding(8.dp))
-
-                OutlinedTextField(
-                    colors =
-                        TextFieldDefaults.colors(
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent),
-                    textStyle = MaterialTheme.typography.bodyMedium,
-                    value = url,
-                    onValueChange = { url = it },
-                    placeholder = {
-                      Text(
-                          stringResource(id = R.string.custom_control_placeholder),
-                          style = MaterialTheme.typography.bodySmall)
-                    })
-
-                Spacer(modifier = Modifier.padding(8.dp))
-
-                PrimaryActionButton(onClick = { viewModel.setControlURL(url) }) {
-                  Text(stringResource(id = R.string.add_account_short))
-                }
-              }
-            })
+        MenuItem(
+            onClick = {
+              onCustomClick()
+              viewModel.showHeaderMenu.set(false)
+            },
+            text = stringResource(id = R.string.custom_control_menu))
+        MenuItem(
+            onClick = {
+              onAuthKeyClick()
+              viewModel.showHeaderMenu.set(false)
+            },
+            text = stringResource(id = R.string.auth_key_menu))
       }
+}
+
+@Composable
+fun MenuItem(text: String, onClick: () -> Unit) {
+  DropdownMenuItem(
+      modifier = Modifier.padding(horizontal = 8.dp, vertical = 0.dp), onClick = onClick, text = { Text(text = text) })
 }
 
 @Composable
 @Preview
 fun UserSwitcherViewPreview() {
   val vm = UserSwitcherViewModel()
-  UserSwitcherView(backToSettings = {}, onNavigateHome = {}, vm)
+  val nav =
+      UserSwitcherNav(
+          backToSettings = {},
+          onNavigateHome = {},
+          onNavigateCustomControl = {},
+          onNavigateToAuthKey = {})
+  UserSwitcherView(nav, vm)
 }

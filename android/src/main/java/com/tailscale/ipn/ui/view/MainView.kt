@@ -154,7 +154,7 @@ fun MainView(
 
                 PromptPermissionsIfNecessary()
 
-                ExpiryNotificationIfNecessary(netmap = netmap, action = { viewModel.login {} })
+                ExpiryNotificationIfNecessary(netmap = netmap, action = { viewModel.login() })
 
                 ExitNodeStatus(navAction = navigation.onNavigateToExitNodes, viewModel = viewModel)
 
@@ -170,7 +170,7 @@ fun MainView(
                     state,
                     user,
                     { viewModel.toggleVpn() },
-                    { viewModel.login {} },
+                    { viewModel.login() },
                     loginAtUrl,
                     netmap?.SelfNode)
               }

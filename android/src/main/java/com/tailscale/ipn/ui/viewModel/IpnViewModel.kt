@@ -3,9 +3,6 @@
 
 package com.tailscale.ipn.ui.viewModel
 
-import android.app.Activity
-import android.content.Context
-import android.content.ContextWrapper
 import android.content.Intent
 import android.util.Log
 import androidx.lifecycle.ViewModel
@@ -60,26 +57,7 @@ open class IpnViewModel : ViewModel() {
     Log.d(TAG, "Created")
   }
 
-  protected fun Context.findActivity(): Activity? =
-      when (this) {
-        is Activity -> this
-        is ContextWrapper -> baseContext.findActivity()
-        else -> null
-      }
-
-  private fun loadUserProfiles() {
-    Client(viewModelScope).profiles { result ->
-      result.onSuccess(loginProfiles::set).onFailure {
-        Log.e(TAG, "Error loading profiles: ${it.message}")
-      }
-    }
-
-    Client(viewModelScope).currentProfile { result ->
-      result
-          .onSuccess { loggedInUser.set(if (it.isEmpty()) null else it) }
-          .onFailure { Log.e(TAG, "Error loading current profile: ${it.message}") }
-    }
-  }
+  // VPN Control
 
   fun toggleVpn() {
     when (Notifier.state.value) {
@@ -102,12 +80,58 @@ open class IpnViewModel : ViewModel() {
     context.sendBroadcast(intent)
   }
 
-  fun login(completionHandler: (Result<Unit>) -> Unit = {}) {
-    Client(viewModelScope).startLoginInteractive { result ->
-      result
-          .onSuccess { Log.d(TAG, "Login started: $it") }
-          .onFailure { Log.e(TAG, "Error starting login: ${it.message}") }
-      completionHandler(result)
+  // Login/Logout
+
+  fun login(options: Ipn.Options = Ipn.Options(), completionHandler: (Result<Unit>) -> Unit = {}) {
+
+    val loginAction = {
+      Client(viewModelScope).startLoginInteractive { result ->
+        result
+            .onSuccess { Log.d(TAG, "Login started: $it") }
+            .onFailure { Log.e(TAG, "Error starting login: ${it.message}") }
+        completionHandler(result)
+      }
+    }
+
+    Client(viewModelScope).start(options) { start ->
+      start.onFailure { completionHandler(Result.failure(it)) }.onSuccess { loginAction() }
+    }
+  }
+
+  fun loginWithAuthKey(authKey: String, completionHandler: (Result<Unit>) -> Unit = {}) {
+    val prefs = Notifier.prefs.value
+    if (prefs == null) {
+      completionHandler(Result.failure(Error("no prefs")))
+      return
+    }
+
+    prefs.WantRunning = true
+    val options = Ipn.Options(AuthKey = authKey, UpdatePrefs = prefs)
+    login(options, completionHandler)
+  }
+
+  fun loginWithCustomControlURL(
+      controlURL: String,
+      completionHandler: (Result<Unit>) -> Unit = {}
+  ) {
+    val fail: (Throwable) -> Unit = { completionHandler(Result.failure(it)) }
+
+    // We need to have the current prefs to set them back with the new control URL
+    val prefs = Notifier.prefs.value
+    if (prefs == null) {
+      fail(Error("no prefs"))
+      return
+    }
+
+    // The flow for logging in with a custom control URL is to add a profile,
+    // call start with prefs that include the control URL, then
+    // start an interactive login.
+    Client(viewModelScope).addProfile { addProfile ->
+      addProfile.onFailure(fail).onSuccess {
+        prefs.ControlURL = controlURL
+        val options = Ipn.Options(UpdatePrefs = prefs)
+        login(options, completionHandler)
+      }
     }
   }
 
@@ -117,6 +141,22 @@ open class IpnViewModel : ViewModel() {
           .onSuccess { Log.d(TAG, "Logout started: $it") }
           .onFailure { Log.e(TAG, "Error starting logout: ${it.message}") }
       completionHandler(result)
+    }
+  }
+
+  // User Profiles
+
+  private fun loadUserProfiles() {
+    Client(viewModelScope).profiles { result ->
+      result.onSuccess(loginProfiles::set).onFailure {
+        Log.e(TAG, "Error loading profiles: ${it.message}")
+      }
+    }
+
+    Client(viewModelScope).currentProfile { result ->
+      result
+          .onSuccess { loggedInUser.set(if (it.isEmpty()) null else it) }
+          .onFailure { Log.e(TAG, "Error loading current profile: ${it.message}") }
     }
   }
 
@@ -130,7 +170,7 @@ open class IpnViewModel : ViewModel() {
   fun addProfile(completionHandler: (Result<String>) -> Unit) {
     Client(viewModelScope).addProfile {
       if (it.isSuccess) {
-        login {}
+        login()
       }
       startVPN()
       completionHandler(it)
@@ -142,53 +182,5 @@ open class IpnViewModel : ViewModel() {
       viewModelScope.launch { loadUserProfiles() }
       completionHandler(it)
     }
-  }
-
-  // The below handle all types of preference modifications typically invoked by the UI.
-  // Callers generally shouldn't care about the returned prefs value - the source of
-  // truth is the IPNModel, who's prefs flow will change in value to reflect the true
-  // value of the pref setting in the back end (and will match the value returned here).
-  // Generally, you will want to inspect the returned value in the callback for errors
-  // to indicate why a particular setting did not change in the interface.
-  //
-  // Usage:
-  // - User/Interface changed to new value.  Render the new value.
-  // - Submit the new value to the PrefsEditor
-  // - Observe the prefs on the IpnModel and update the UI when/if the value changes.
-  //   For a typical flow, the changed value should reflect the value already shown.
-  // - Inform the user of any error which may have occurred
-  //
-  // The "toggle' functions here will attempt to set the pref value to the inverse of
-  // what is currently known in the IpnModel.prefs.  If IpnModel.prefs is not available,
-  // the callback will be called with a NO_PREFS error
-  fun setWantRunning(wantRunning: Boolean, callback: (Result<Ipn.Prefs>) -> Unit) {
-    Ipn.MaskedPrefs().WantRunning = wantRunning
-    Client(viewModelScope).editPrefs(Ipn.MaskedPrefs(), callback)
-  }
-
-  fun toggleShieldsUp(callback: (Result<Ipn.Prefs>) -> Unit) {
-    val prefs =
-        Notifier.prefs.value
-            ?: run {
-              callback(Result.failure(Exception("no prefs")))
-              return@toggleShieldsUp
-            }
-
-    val prefsOut = Ipn.MaskedPrefs()
-    prefsOut.ShieldsUp = !prefs.ShieldsUp
-    Client(viewModelScope).editPrefs(prefsOut, callback)
-  }
-
-  fun toggleRouteAll(callback: (Result<Ipn.Prefs>) -> Unit) {
-    val prefs =
-        Notifier.prefs.value
-            ?: run {
-              callback(Result.failure(Exception("no prefs")))
-              return@toggleRouteAll
-            }
-
-    val prefsOut = Ipn.MaskedPrefs()
-    prefsOut.RouteAll = !prefs.RouteAll
-    Client(viewModelScope).editPrefs(prefsOut, callback)
   }
 }
