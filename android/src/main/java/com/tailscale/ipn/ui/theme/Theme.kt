@@ -86,28 +86,28 @@ private val LightColors =
 
 private val DarkColors =
     darkColorScheme(
-        primary = Color(0xFF3f5eb3), // blue-600
+        primary = Color(0xFF4B70CC), // blue-500
         onPrimary = Color(0xFFFFFFFF), // white
         primaryContainer = Color(0xFFf0f5ff), // blue-0
         onPrimaryContainer = Color(0xFF3f5eb3), // blue-600
-        error = Color(0xFF940822), // red-600
+        error = Color(0xFFB22D30), // red-500
         onError = Color(0xFFFFFFFF), // white
         errorContainer = Color(0xFFfff6f4), // red-0
         onErrorContainer = Color(0xFF940822), // red-600
         surfaceDim = Color(0xFF1f1e1e), // gray-900
         surface = Color(0xFF232222), // gray-800
-        background = Color(0xFF1f1e1e), // gray-900
+        background = Color(0xFF181717), // gray-1000
         surfaceBright = Color(0xFF444342), // gray-600
-        surfaceContainerLowest = Color(0xFF232222), // gray-800
-        surfaceContainerLow = Color(0xFF2e2d2d), // gray-700
-        surfaceContainer = Color(0xFF2e2d2d), // gray-700
-        surfaceContainerHigh = Color(0xFF2e2d2d), // gray-700
-        surfaceContainerHighest = Color(0xFF444342), // gray-600
+        surfaceContainerLowest = Color(0xFF1f1e1e), // gray-900
+        surfaceContainerLow = Color(0xFF232222), // gray-800
+        surfaceContainer = Color(0xFF181717), // gray-1000
+        surfaceContainerHigh = Color(0xFF232222), // gray-800
+        surfaceContainerHighest = Color(0xFF2e2d2d), // gray-700
         surfaceVariant = Color(0xFF1f1e1e), // gray-900
         onSurface = Color(0xFFfaf9f8), // gray-0
         onSurfaceVariant = Color(0xFFafacab), // gray-400
         outline = Color(0xFF706E6D), // gray-500
-        outlineVariant = Color(0xFF444342), // gray-600
+        outlineVariant = Color(0xFF2E2D2D), // gray-700
         inverseSurface = Color(0xFFEDEBEA), // gray-200
         inverseOnSurface = Color(0xFF000000), // black
         scrim = Color(0xAA000000), // black
@@ -144,13 +144,13 @@ val ColorScheme.off: Color
   @Composable
   get() =
       if (isSystemInDarkTheme()) {
-        Color(0xFFAFACAB) // gray-400
+        Color(0xFF444342) // gray-600
       } else {
         Color(0xFFD9D6D5) // gray-300
       }
 
 val ColorScheme.link: Color
-  get() = onPrimaryContainer
+  get() = primary
 
 /**
  * Main color scheme for list items, uses onPrimaryContainer color for leading and trailing icons.
