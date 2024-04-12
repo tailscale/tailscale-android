@@ -162,7 +162,7 @@ class MainActivity : ComponentActivity() {
                           onNavigateToRunAsExitNode = { navController.navigate("runExitNode") })
 
                   composable("main", enterTransition = { fadeIn(animationSpec = tween(150)) }) {
-                    MainView(navigation = mainViewNav)
+                    MainView(loginAtURL = ::login, navigation = mainViewNav)
                   }
                   composable("settings") { SettingsView(settingsNav) }
                   composable("exitNodes") { ExitNodePicker(exitNodePickerNav) }

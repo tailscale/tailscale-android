@@ -95,7 +95,11 @@ data class MainViewNavigation(
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun MainView(navigation: MainViewNavigation, viewModel: MainViewModel = viewModel()) {
+fun MainView(
+    navigation: MainViewNavigation,
+    loginAtURL: (String) -> Unit,
+    viewModel: MainViewModel = viewModel()
+) {
   LoadingIndicator.Wrap {
     Scaffold(contentWindowInsets = WindowInsets.Companion.statusBars) { paddingInsets ->
       Column(
@@ -106,7 +110,6 @@ fun MainView(navigation: MainViewNavigation, viewModel: MainViewModel = viewMode
             val stateVal = viewModel.stateRes.collectAsState(initial = R.string.placeholder).value
             val stateStr = stringResource(id = stateVal)
             val netmap = viewModel.netmap.collectAsState(initial = null)
-            val isAdmin = viewModel.isAdmin.collectAsState(initial = false).value
 
             ListItem(
                 colors = MaterialTheme.colorScheme.surfaceContainerListItem,
@@ -163,7 +166,13 @@ fun MainView(navigation: MainViewNavigation, viewModel: MainViewModel = viewMode
               Ipn.State.NoState,
               Ipn.State.Starting -> StartingView()
               else -> {
-                ConnectView(state, user, { viewModel.toggleVpn() }, { viewModel.login {} }, isAdmin)
+                ConnectView(
+                    state,
+                    user,
+                    { viewModel.toggleVpn() },
+                    { viewModel.login {} },
+                    loginAtURL,
+                    netmap.value)
               }
             }
           }
@@ -258,7 +267,8 @@ fun ConnectView(
     user: IpnLocal.LoginProfile?,
     connectAction: () -> Unit,
     loginAction: () -> Unit,
-    isAdmin: Boolean,
+    loginAtURL: (String) -> Unit,
+    netmap: Netmap.NetworkMap?,
 ) {
   val handler = LocalUriHandler.current
 
@@ -278,12 +288,14 @@ fun ConnectView(
               text = stringResource(id = R.string.machine_auth_explainer),
               style = MaterialTheme.typography.bodyMedium,
               textAlign = TextAlign.Center)
-          if (isAdmin) {
-            PrimaryActionButton(onClick = { handler.openUri(Links.ADMIN_URL) }) {
-              Text(
-                  text = stringResource(id = R.string.open_admin_console),
-                  fontSize = MaterialTheme.typography.titleMedium.fontSize)
-            }
+          Lists.SectionDivider()
+          netmap?.let {
+            PrimaryActionButton(
+                onClick = { loginAtURL("${Links.ADMIN_URL}/machines/${it.SelfNode.primaryIP}") }) {
+                  Text(
+                      text = stringResource(id = R.string.open_admin_console),
+                      fontSize = MaterialTheme.typography.titleMedium.fontSize)
+                }
           }
         } else if (state != Ipn.State.NeedsLogin && user != null && !user.isEmpty()) {
           Icon(
@@ -447,7 +459,7 @@ fun PeerList(
                 },
                 supportingContent = {
                   Text(
-                      text = peer.Addresses?.first()?.split("/")?.first() ?: "",
+                      text = peer.primaryIP ?: "",
                       style =
                           MaterialTheme.typography.bodyMedium.copy(
                               lineHeight = MaterialTheme.typography.titleMedium.lineHeight))

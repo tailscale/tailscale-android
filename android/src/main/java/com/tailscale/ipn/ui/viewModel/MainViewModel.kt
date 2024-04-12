@@ -34,8 +34,6 @@ class MainViewModel : IpnViewModel() {
   val prefs = Notifier.prefs
   val netmap = Notifier.netmap
 
-  val isAdmin: StateFlow<Boolean> = MutableStateFlow(false)
-
   // The active search term for filtering peers
   val searchTerm: StateFlow<String> = MutableStateFlow("")
 
@@ -55,7 +53,6 @@ class MainViewModel : IpnViewModel() {
         it?.let { netmap ->
           peerCategorizer.regenerateGroupedPeers(netmap)
           peers.set(peerCategorizer.groupedAndFilteredPeers(searchTerm.value))
-          isAdmin.set(netmap.SelfNode.isAdmin)
         }
       }
     }

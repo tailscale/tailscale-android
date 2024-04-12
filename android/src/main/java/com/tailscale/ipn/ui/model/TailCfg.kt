@@ -123,6 +123,8 @@ class Tailcfg {
         return addresses
       }
 
+    val primaryIP: String? = Addresses?.first()?.split("/")?.first()
+
     val info: List<PeerSettingInfo>
       get() {
         val result = mutableListOf<PeerSettingInfo>()
