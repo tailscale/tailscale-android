@@ -17,7 +17,6 @@ This repository contains the open source Tailscale Android client.
      alt="Get it on Google Play"
      height="80">](https://play.google.com/store/apps/details?id=com.tailscale.ipn)
 
-
 ## Preparing a build environment
 
 There are several options for setting up a build environment. The Android Studio
@@ -87,7 +86,6 @@ release candidate builds (currently Go 1.14) in module mode. It might
 work in earlier Go versions or in GOPATH mode, but we're making no
 effort to keep those working.
 
-
 ## Google Sign-In
 
 Google Sign-In support relies on configuring a [Google API Console
@@ -96,28 +94,6 @@ with the app identifier and [signing key
 hashes](https://developers.google.com/android/guides/client-auth).
 The official release uses the app identifier `com.tailscale.ipn`;
 custom builds should use a different identifier.
-
-## Running in the Android emulator
-
-By default, the android emulator uses an older version of OpenGL ES,
-which results in a black screen when opening the Tailscale app. To fix
-this, with the emulator running:
-
- - Open the three-dots menu to access emulator settings
- - To to `Settings > Advanced`
- - Set "OpenGL ES API level" to "Renderer maximum (up to OpenGL ES 3.1)"
- - Close the emulator.
- - In Android Studio's emulator view (that lists all your emulated
-   devices), hit the down arrow by the virtual device and select "Cold
-   boot now" to restart the emulator from scratch.
-
-The Tailscale app should now render correctly.
-
-Additionally, there seems to be a bug that prevents using the
-system-level Google sign-in option (the one that pops up a
-system-level UI to select your Google account). You can work around
-this by selecting "Other" at the sign-in screen, and then selecting
-Google from the next screen.
 
 ## Developing on a Fire Stick TV
 
