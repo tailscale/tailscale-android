@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.material.icons.outlined.Clear
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Button
@@ -93,7 +94,7 @@ data class MainViewNavigation(
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun MainView(navigation: MainViewNavigation, viewModel: MainViewModel = viewModel()) {
+fun MainView(loginAtUrl: (String) -> Unit, navigation: MainViewNavigation, viewModel: MainViewModel = viewModel()) {
   LoadingIndicator.Wrap {
     Scaffold(contentWindowInsets = WindowInsets.Companion.statusBars) { paddingInsets ->
       Column(
@@ -103,7 +104,7 @@ fun MainView(navigation: MainViewNavigation, viewModel: MainViewModel = viewMode
             val user = viewModel.loggedInUser.collectAsState(initial = null).value
             val stateVal = viewModel.stateRes.collectAsState(initial = R.string.placeholder).value
             val stateStr = stringResource(id = stateVal)
-            val netmap = viewModel.netmap.collectAsState(initial = null)
+            val netmap = viewModel.netmap.collectAsState(initial = null).value
 
             ListItem(
                 colors = MaterialTheme.colorScheme.surfaceContainerListItem,
@@ -147,8 +148,7 @@ fun MainView(navigation: MainViewNavigation, viewModel: MainViewModel = viewMode
 
                 PromptPermissionsIfNecessary()
 
-                ExpiryNotificationIfNecessary(
-                    netmap = netmap.value, action = { viewModel.login {} })
+                ExpiryNotificationIfNecessary(netmap = netmap, action = { viewModel.login {} })
 
                 ExitNodeStatus(navAction = navigation.onNavigateToExitNodes, viewModel = viewModel)
 
@@ -159,7 +159,15 @@ fun MainView(navigation: MainViewNavigation, viewModel: MainViewModel = viewMode
               }
               Ipn.State.NoState,
               Ipn.State.Starting -> StartingView()
-              else -> ConnectView(state, user, { viewModel.toggleVpn() }, { viewModel.login {} })
+              else -> {
+                ConnectView(
+                    state,
+                    user,
+                    { viewModel.toggleVpn() },
+                    { viewModel.login {} },
+                    loginAtUrl,
+                    netmap?.SelfNode)
+              }
             }
           }
     }
@@ -186,9 +194,9 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
               modifier = Modifier.clickable { navAction() },
               colors =
                   if (active) MaterialTheme.colorScheme.primaryListItem
-                  else ListItemDefaults.colors(
-                      containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
-                  ),
+                  else
+                      ListItemDefaults.colors(
+                          containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
               overlineContent = {
                 Text(
                     stringResource(R.string.exit_node),
@@ -252,7 +260,9 @@ fun ConnectView(
     state: Ipn.State,
     user: IpnLocal.LoginProfile?,
     connectAction: () -> Unit,
-    loginAction: () -> Unit
+    loginAction: () -> Unit,
+    loginAtUrlAction: (String) -> Unit,
+    selfNode: Tailcfg.Node?
 ) {
   Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
@@ -261,7 +271,29 @@ fun ConnectView(
           verticalArrangement = Arrangement.spacedBy(8.dp, alignment = Alignment.CenterVertically),
           horizontalAlignment = Alignment.CenterHorizontally,
       ) {
-        if (state != Ipn.State.NeedsLogin && user != null && !user.isEmpty()) {
+        if (state == Ipn.State.NeedsMachineAuth) {
+          Icon(
+              modifier = Modifier.size(40.dp),
+              imageVector = Icons.Outlined.Lock,
+              contentDescription = "Device requires authentication")
+          Text(
+              text = stringResource(id = R.string.machine_auth_required),
+              style = MaterialTheme.typography.titleMedium,
+              textAlign = TextAlign.Center)
+          Text(
+              text = stringResource(id = R.string.machine_auth_explainer),
+              style = MaterialTheme.typography.bodyMedium,
+              textAlign = TextAlign.Center)
+          Spacer(modifier = Modifier.size(1.dp))
+          selfNode?.let {
+            PrimaryActionButton(
+                onClick = { loginAtUrlAction(it.nodeAdminUrl) }) {
+                  Text(
+                      text = stringResource(id = R.string.open_admin_console),
+                      fontSize = MaterialTheme.typography.titleMedium.fontSize)
+                }
+          }
+        } else if (state != Ipn.State.NeedsLogin && user != null && !user.isEmpty()) {
           Icon(
               painter = painterResource(id = R.drawable.power),
               contentDescription = null,
@@ -324,8 +356,7 @@ fun PeerList(
 ) {
   val peerList = viewModel.peers.collectAsState(initial = emptyList<PeerSet>())
   val searchTermStr by viewModel.searchTerm.collectAsState(initial = "")
-  val showNoResults =
-      derivedStateOf { searchTermStr.isNotEmpty() && peerList.value.isEmpty() }.value
+  val showNoResults = remember { derivedStateOf { searchTermStr.isNotEmpty() && peerList.value.isEmpty() } }.value
   val netmap = viewModel.netmap.collectAsState()
 
   val focusManager = LocalFocusManager.current

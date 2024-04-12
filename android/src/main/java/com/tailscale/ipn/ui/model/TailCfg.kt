@@ -7,6 +7,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import com.tailscale.ipn.R
+import com.tailscale.ipn.ui.Links
 import com.tailscale.ipn.ui.theme.off
 import com.tailscale.ipn.ui.theme.on
 import com.tailscale.ipn.ui.util.ComposableStringFormatter
@@ -90,6 +91,16 @@ class Tailcfg {
       get() =
           Capabilities?.contains("https://tailscale.com/cap/is-admin") == true ||
               CapMap?.contains("https://tailscale.com/cap/is-admin") == true
+
+    // Derives the url to directly administer a node
+    val nodeAdminUrl: String
+      get() = primaryIPv4Address?.let { "${Links.ADMIN_URL}/machines/${it}" } ?: Links.ADMIN_URL
+
+    val primaryIPv4Address: String?
+      get() = displayAddresses.firstOrNull { it.type == DisplayAddress.addrType.V4 }?.address
+
+    val primaryIPv6Address: String?
+      get() = displayAddresses.firstOrNull { it.type == DisplayAddress.addrType.V6 }?.address
 
     // isExitNode reproduces the Go logic in local.go peerStatusFromNode
     val isExitNode: Boolean =
