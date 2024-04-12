@@ -4,8 +4,6 @@
 
 DEBUG_APK=tailscale-debug.apk
 RELEASE_AAB=tailscale-release.aab
-APPID=com.tailscale.ipn
-AAR=android_legacy/libs/ipn.aar
 KEYSTORE=tailscale.jks
 KEYSTORE_ALIAS=tailscale
 TAILSCALE_VERSION=$(shell ./version/tailscale-version.sh 200)
@@ -14,12 +12,12 @@ TAILSCALE_VERSION_ABBREV=$(shell ./version/tailscale-version.sh 11)
 OUR_VERSION_ABBREV=$(shell git describe --dirty --exclude "*" --always --abbrev=11)
 VERSION_LONG=$(TAILSCALE_VERSION_ABBREV)-g$(OUR_VERSION_ABBREV)
 # Extract the long version build.gradle's versionName and strip quotes.
-VERSIONNAME=$(patsubst "%",%,$(lastword $(shell grep versionName android_legacy/build.gradle)))
+VERSIONNAME=$(patsubst "%",%,$(lastword $(shell grep versionName android/build.gradle)))
 # Extract the x.y.z part for the short version.
 VERSIONNAME_SHORT=$(shell echo $(VERSIONNAME) | cut -d - -f 1)
 TAILSCALE_COMMIT=$(shell echo $(TAILSCALE_VERSION) | cut -d - -f 2 | cut -d t -f 2)
 # Extract the version code from build.gradle.
-VERSIONCODE=$(lastword $(shell grep versionCode android_legacy/build.gradle))
+VERSIONCODE=$(lastword $(shell grep versionCode android/build.gradle))
 VERSIONCODE_PLUSONE=$(shell expr $(VERSIONCODE) + 1)
 VERSION_LDFLAGS=-X tailscale.com/version.longStamp=$(VERSIONNAME) -X tailscale.com/version.shortStamp=$(VERSIONNAME_SHORT) -X tailscale.com/version.gitCommitStamp=$(TAILSCALE_COMMIT) -X tailscale.com/version.extraGitCommitStamp=$(OUR_VERSION)
 FULL_LDFLAGS=$(VERSION_LDFLAGS) -w
@@ -71,7 +69,7 @@ export GOBIN
 export PATH := $(PWD)/tool:$(GOBIN):$(JAVA_HOME)/bin:$(ANDROID_HOME)/cmdline-tools/latest/bin:$(ANDROID_HOME)/platform-tools:$(PATH)
 export GOROOT := # Unset
 
-all: tailscale-new-debug.apk test $(DEBUG_APK) tailscale-fdroid.apk ## Build and test everything
+all: tailscale-debug.apk test $(DEBUG_APK) ## Build and test everything
 
 env:
 	@echo PATH=$(PATH)
@@ -82,9 +80,9 @@ env:
 	@echo TOOLCHAINDIR=$(TOOLCHAINDIR)
 
 tag_release: ## Tag a release
-	sed -i'.bak' 's/versionCode $(VERSIONCODE)/versionCode $(VERSIONCODE_PLUSONE)/' android_legacy/build.gradle && rm android_legacy/build.gradle.bak
-	sed -i'.bak' 's/versionName .*/versionName "$(VERSION_LONG)"/' android_legacy/build.gradle && rm android_legacy/build.gradle.bak
-	git commit -sm "android: bump version code" android_legacy/build.gradle
+	sed -i'.bak' 's/versionCode $(VERSIONCODE)/versionCode $(VERSIONCODE_PLUSONE)/' android/build.gradle && rm android/build.gradle.bak
+	sed -i'.bak' 's/versionName .*/versionName "$(VERSION_LONG)"/' android/build.gradle && rm android/build.gradle.bak
+	git commit -sm "android: bump version code" android/build.gradle
 	git tag -a "$(VERSION_LONG)"
 
 bumposs: ## Update the tailscale.com go module
@@ -123,27 +121,9 @@ androidpath:
 	@echo "export ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT)"
 	@echo 'export PATH=$(ANDROID_HOME)/cmdline-tools/latest/bin:$(ANDROID_HOME)/platform-tools:$$PATH'
 
-$(AAR): checkandroidsdk
-	@mkdir -p android_legacy/libs && \
-	go run gioui.org/cmd/gogio \
-		-ldflags "$(VERSION_LDFLAGS)" \
-		-buildmode archive -target android -appid $(APPID) -tags novulkan,tailscale_go -o $@ github.com/tailscale/tailscale-android/cmd/tailscale
-
-# tailscale-debug.apk builds a debuggable APK with the Google Play SDK.
-$(DEBUG_APK): $(AAR)
-	(cd android_legacy && ./gradlew test assemblePlayDebug)
-	mv android_legacy/build/outputs/apk/play/debug/android_legacy-play-debug.apk $@
-
-# tailscale-fdroid.apk builds a non-Google Play SDK, without the Google bits.
-# This is effectively what the F-Droid build definition produces.
-# This is useful for testing on e.g. Amazon Fire Stick devices.
-tailscale-fdroid.apk: $(AAR)
-	(cd android_legacy && ./gradlew test assembleFdroidDebug)
-	mv android_legacy/build/outputs/apk/fdroid/debug/android_legacy-fdroid-debug.apk $@
-
-$(RELEASE_AAB): $(AAR)
-	(cd android_legacy && ./gradlew test bundlePlayRelease)
-	mv ./android_legacy/build/outputs/bundle/playRelease/android_legacy-play-release.aab $@
+$(RELEASE_AAB): $(LIBTAILSCALE)
+	(cd android && ./gradlew test bundleRelease)
+	mv ./android/build/outputs/bundle/release/android-release.aab $@
 
 release: $(RELEASE_AAB) ## Build the release AAB
 	jarsigner -sigalg SHA256withRSA -digestalg SHA-256 -keystore $(KEYSTORE) $(RELEASE_AAB) $(KEYSTORE_ALIAS)
@@ -162,8 +142,6 @@ $(GOBIN)/gomobile: $(GOBIN)/gobind go.mod go.sum
 $(GOBIN)/gobind: go.mod go.sum
 	go install golang.org/x/mobile/cmd/gobind
 
-# TODO: the version names used below parse the legacy version information,
-# though hopefully they won't substantially differ for now.
 $(LIBTAILSCALE): Makefile android/libs $(LIBTAILSCALE_SOURCES) $(GOBIN)/gomobile
 	gomobile bind -target android -androidapi 26 \
 		-ldflags "$(FULL_LDFLAGS)" \
@@ -177,11 +155,11 @@ DEBUG_INTERMEDIARY = android/build/outputs/apk/debug/android-debug.apk
 $(DEBUG_INTERMEDIARY): $(ANDROID_SOURCES) $(LIBTAILSCALE)
 	cd android && ./gradlew test assembleDebug
 
-tailscale-new-debug.apk: $(DEBUG_INTERMEDIARY)
+$(DEBUG_APK): $(DEBUG_INTERMEDIARY)
 	(cd android && ./gradlew test assembleDebug)
 	mv $(DEBUG_INTERMEDIARY) $@
 
-tailscale-new-debug: tailscale-new-debug.apk ## Build the new debug APK
+tailscale-debug: tailscale-debug.apk ## Build the debug APK
 
 ANDROID_TEST_INTERMEDIARY=./android/build/outputs/apk/androidTest/applicationTest/android-applicationTest-androidTest.apk
 
@@ -194,7 +172,7 @@ tailscale-test.apk: $(ANDROID_TEST_INTERMEDIARY)
 test: $(LIBTAILSCALE) ## Run the Android tests
 	(cd android && ./gradlew test)
 
-install: tailscale-new-debug.apk ## Install the debug APK on a connected device
+install: tailscale-debug.apk ## Install the debug APK on a connected device
 	adb install -r $<
 
 run: install ## Run the debug APK on a connected device
@@ -205,7 +183,7 @@ dockershell: ## Run a shell in the Docker build container
 	docker run -v $(CURDIR):/build/tailscale-android -it --rm tailscale-android
 
 clean: ## Remove build artifacts
-	-rm -rf android/build android_legacy/build $(DEBUG_APK) $(RELEASE_AAB) $(AAR) $(LIBTAILSCALE) android/libs tailscale-fdroid.apk *.apk
+	-rm -rf android/build $(DEBUG_APK) $(RELEASE_AAB) $(LIBTAILSCALE) android/libs *.apk
 	-pkill -f gradle
 
 help: ## Show this help
@@ -213,5 +191,5 @@ help: ## Show this help
 	@grep -hE '^[0-9a-zA-Z_-]+:.*?## .*$$' ${MAKEFILE_LIST} | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-20s\033[m %s\n", $$1, $$2}'
 	@echo ""
 
-.PHONY: all clean install android_legacy/lib $(DEBUG_APK) $(RELEASE_AAB) $(AAR) release bump_version dockershell lib tailscale-new-debug help
+.PHONY: all clean install android_legacy/lib $(DEBUG_APK) $(RELEASE_AAB) release bump_version dockershell lib tailscale-debug help
 .DEFAULT_GOAL := help
