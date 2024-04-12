@@ -26,7 +26,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.material.icons.outlined.Clear
 import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Button
@@ -107,6 +106,7 @@ fun MainView(navigation: MainViewNavigation, viewModel: MainViewModel = viewMode
             val stateVal = viewModel.stateRes.collectAsState(initial = R.string.placeholder).value
             val stateStr = stringResource(id = stateVal)
             val netmap = viewModel.netmap.collectAsState(initial = null)
+            val isAdmin = viewModel.isAdmin.collectAsState(initial = false).value
 
             ListItem(
                 colors = MaterialTheme.colorScheme.surfaceContainerListItem,
@@ -163,7 +163,7 @@ fun MainView(navigation: MainViewNavigation, viewModel: MainViewModel = viewMode
               Ipn.State.NoState,
               Ipn.State.Starting -> StartingView()
               else -> {
-                ConnectView(state, user, { viewModel.toggleVpn() }, { viewModel.login {} })
+                ConnectView(state, user, { viewModel.toggleVpn() }, { viewModel.login {} }, isAdmin)
               }
             }
           }
@@ -257,7 +257,8 @@ fun ConnectView(
     state: Ipn.State,
     user: IpnLocal.LoginProfile?,
     connectAction: () -> Unit,
-    loginAction: () -> Unit
+    loginAction: () -> Unit,
+    isAdmin: Boolean,
 ) {
   val handler = LocalUriHandler.current
 
@@ -269,10 +270,6 @@ fun ConnectView(
           horizontalAlignment = Alignment.CenterHorizontally,
       ) {
         if (state == Ipn.State.NeedsMachineAuth) {
-          Icon(
-              modifier = Modifier.size(40.dp),
-              imageVector = Icons.Outlined.Lock,
-              contentDescription = "Device requires authentication")
           Text(
               text = stringResource(id = R.string.machine_auth_required),
               style = MaterialTheme.typography.titleMedium,
@@ -281,11 +278,12 @@ fun ConnectView(
               text = stringResource(id = R.string.machine_auth_explainer),
               style = MaterialTheme.typography.bodyMedium,
               textAlign = TextAlign.Center)
-          Spacer(modifier = Modifier.size(1.dp))
-          PrimaryActionButton(onClick = { handler.openUri(Links.ADMIN_URL) }) {
-            Text(
-                text = stringResource(id = R.string.open_admin_console),
-                fontSize = MaterialTheme.typography.titleMedium.fontSize)
+          if (isAdmin) {
+            PrimaryActionButton(onClick = { handler.openUri(Links.ADMIN_URL) }) {
+              Text(
+                  text = stringResource(id = R.string.open_admin_console),
+                  fontSize = MaterialTheme.typography.titleMedium.fontSize)
+            }
           }
         } else if (state != Ipn.State.NeedsLogin && user != null && !user.isEmpty()) {
           Icon(
