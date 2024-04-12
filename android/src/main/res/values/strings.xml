@@ -97,7 +97,7 @@
     <string name="ago_x_hours">%d hours ago</string>
     <string name="ago_x_days">%d days ago</string>
     <string name="ago_x_months">%d months ago</string>
-    <string name="ago_x_years">.1f years ago</string>
+    <string name="ago_x_years">%.1f years ago</string>
 
     <!-- Strings for the user switcher -->
     <string name="user_switcher">Accounts</string>
