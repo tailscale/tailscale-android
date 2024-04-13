@@ -11,6 +11,11 @@ import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.jvm.jvmErasure
 
 object MDMSettings {
+  // The String message used in this NoSuchKeyException must match the value of
+  // syspolicy.ErrNoSuchKey defined in Go, since the backend checks the value
+  // returned by the handler for equality using errors.Is().
+  class NoSuchKeyException : Exception("no such key")
+
   val forceEnabled = BooleanMDMSetting("ForceEnabled", "Force Enabled Connection Toggle")
 
   val exitNodeID = StringMDMSetting("ExitNodeID", "Forced Exit Node: Stable ID")
