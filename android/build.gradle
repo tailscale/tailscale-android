@@ -126,6 +126,9 @@ dependencies {
     // Authentication only for tests
     androidTestImplementation 'dev.turingcomplete:kotlin-onetimepassword:2.4.0'
     androidTestImplementation 'commons-codec:commons-codec:1.16.1'
+    
+    debugImplementation("androidx.compose.ui:ui-tooling")
+    implementation("androidx.compose.ui:ui-tooling-preview")
 }
 
 def getLocalProperty(key) {

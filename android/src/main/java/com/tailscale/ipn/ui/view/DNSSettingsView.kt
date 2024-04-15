@@ -17,6 +17,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
@@ -26,6 +27,7 @@ import com.tailscale.ipn.ui.util.ClipboardValueView
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.itemsWithDividers
+import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.viewModel.DNSEnablementState
 import com.tailscale.ipn.ui.viewModel.DNSSettingsViewModel
 import com.tailscale.ipn.ui.viewModel.DNSSettingsViewModelFactory
@@ -98,4 +100,12 @@ fun DNSSettingsView(
       }
     }
   }
+}
+
+@Preview
+@Composable
+fun DNSSettingsViewPreview() {
+  val vm = DNSSettingsViewModel()
+  vm.enablementState.set(DNSEnablementState.ENABLED)
+  DNSSettingsView(backToSettings = { }, vm)
 }
