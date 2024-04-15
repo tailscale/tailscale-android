@@ -4,6 +4,7 @@
 package com.tailscale.ipn.ui.view
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -21,7 +22,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -33,6 +36,8 @@ import com.tailscale.ipn.ui.theme.logoBackground
 
 @Composable
 fun AboutView(backToSettings: BackNavigation) {
+  val localClipboardManager = LocalClipboardManager.current
+
   Scaffold(topBar = { Header(R.string.about_view_title, onBack = backToSettings) }) { innerPadding
     ->
     Column(
@@ -62,6 +67,10 @@ fun AboutView(backToSettings: BackNavigation) {
                     fontWeight = FontWeight.SemiBold,
                     fontSize = MaterialTheme.typography.titleLarge.fontSize)
                 Text(
+                    modifier =
+                        Modifier.clickable {
+                          localClipboardManager.setText(AnnotatedString(BuildConfig.VERSION_NAME))
+                        },
                     text = "${stringResource(R.string.version)} ${BuildConfig.VERSION_NAME}",
                     fontWeight = MaterialTheme.typography.bodyMedium.fontWeight,
                     fontSize = MaterialTheme.typography.bodyMedium.fontSize)
