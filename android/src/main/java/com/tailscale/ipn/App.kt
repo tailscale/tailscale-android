@@ -453,17 +453,19 @@ class App : Application(), libtailscale.AppContext {
     return downloads
   }
 
-  @Throws(IOException::class, GeneralSecurityException::class)
+  @Throws(
+      IOException::class, GeneralSecurityException::class, MDMSettings.NoSuchKeyException::class)
   override fun getSyspolicyBooleanValue(key: String): Boolean {
     return getSyspolicyStringValue(key) == "true"
   }
 
-  @Throws(IOException::class, GeneralSecurityException::class)
+  @Throws(
+      IOException::class, GeneralSecurityException::class, MDMSettings.NoSuchKeyException::class)
   override fun getSyspolicyStringValue(key: String): String {
     return MDMSettings.allSettingsByKey[key]?.flow?.value?.toString()
         ?: run {
-          Log.d("MDM", "$key is not defined on Android. Returning empty.")
-          ""
+          Log.d("MDM", "$key is not defined on Android. Throwing NoSuchKeyException.")
+          throw MDMSettings.NoSuchKeyException()
         }
   }
 }
