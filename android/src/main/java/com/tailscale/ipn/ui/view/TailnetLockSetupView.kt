@@ -44,6 +44,7 @@ fun TailnetLockSetupView(
   val statusItems = model.statusItems.collectAsState().value
   val nodeKey = model.nodeKey.collectAsState().value
   val tailnetLockKey = model.tailnetLockKey.collectAsState().value
+  val tailnetLockTlPubKey = tailnetLockKey.replace("nlpub", "tlpub")
 
   Scaffold(topBar = { Header(R.string.tailnet_lock, onBack = backToSettings) }) { innerPadding ->
     LoadingIndicator.Wrap {
@@ -76,7 +77,7 @@ fun TailnetLockSetupView(
           Lists.SectionDivider()
 
           ClipboardValueView(
-              value = tailnetLockKey,
+              value = tailnetLockTlPubKey,
               title = stringResource(R.string.tailnet_lock_key),
               subtitle = stringResource(R.string.tailnet_lock_key_explainer))
         }
