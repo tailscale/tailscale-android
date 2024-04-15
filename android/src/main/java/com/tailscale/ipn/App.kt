@@ -12,7 +12,6 @@ import android.app.NotificationChannel
 import android.app.PendingIntent
 import android.app.UiModeManager
 import android.content.ContentResolver
-import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
@@ -28,7 +27,6 @@ import android.net.Uri
 import android.net.VpnService
 import android.os.Build
 import android.os.Environment
-import android.provider.MediaStore
 import android.provider.Settings
 import android.util.Log
 import androidx.browser.customtabs.CustomTabsIntent
@@ -316,25 +314,6 @@ class App : Application(), libtailscale.AppContext {
       }
       return null
     }
-
-  @Throws(IOException::class)
-  fun insertMedia(name: String?, mimeType: String): String {
-    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-      val resolver: ContentResolver = contentResolver
-      val contentValues = ContentValues()
-      contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, name)
-      if ("" != mimeType) {
-        contentValues.put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
-      }
-      val root: Uri = MediaStore.Files.getContentUri("external")
-      resolver.insert(root, contentValues).toString()
-    } else {
-      val dir: File = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-      dir.mkdirs()
-      val f = File(dir, name)
-      Uri.fromFile(f).toString()
-    }
-  }
 
   @Throws(IOException::class)
   fun openUri(uri: String?, mode: String?): Int? {

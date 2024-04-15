@@ -7,7 +7,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-        android:maxSdkVersion="28" />
+        android:maxSdkVersion="29" />
     <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
@@ -28,6 +28,7 @@
         android:name=".App"
         android:allowBackup="false"
         android:banner="@drawable/tv_banner"
+        android:requestLegacyExternalStorage="true"
         android:icon="@mipmap/ic_launcher"
         android:label="Tailscale"
         android:roundIcon="@mipmap/ic_launcher_round"
