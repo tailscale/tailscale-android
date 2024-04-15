@@ -112,6 +112,9 @@ class Tailcfg {
     val displayName: String
       get() = ComputedName ?: Name
 
+    val keyDoesNotExpire: Boolean
+      get() = KeyExpiry == "0001-01-01T00:00:00Z"
+
     fun isSelfNode(netmap: Netmap.NetworkMap): Boolean = StableID == netmap.SelfNode.StableID
 
     fun connectedOrSelfNode(nm: Netmap.NetworkMap?) =
@@ -142,7 +145,13 @@ class Tailcfg {
               PeerSettingInfo(R.string.os, ComposableStringFormatter(Hostinfo.OS!!)),
           )
         }
-        result.add(PeerSettingInfo(R.string.key_expiry, TimeUtil.keyExpiryFromGoTime(KeyExpiry)))
+        if (keyDoesNotExpire) {
+          result.add(
+              PeerSettingInfo(
+                  R.string.key_expiry, ComposableStringFormatter(R.string.deviceKeyNeverExpires)))
+        } else {
+          result.add(PeerSettingInfo(R.string.key_expiry, TimeUtil.keyExpiryFromGoTime(KeyExpiry)))
+        }
         return result
       }
 
