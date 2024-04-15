@@ -7,13 +7,13 @@ require (
 	gioui.org v0.0.0-20230206180804-32c6a9b10d0b
 	gioui.org/cmd v0.0.0-20210925100615-41f3a7e74ee6
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
-	github.com/tailscale/wireguard-go v0.0.0-20231121184858-cc193a0b3272
+	github.com/tailscale/wireguard-go v0.0.0-20240413175505-64040e66467d
 	golang.org/x/exp v0.0.0-20240119083558-1b970713d09a
 	golang.org/x/exp/shiny v0.0.0-20230817173708-d852ddb80c63
 	golang.org/x/mobile v0.0.0-20240319015410-c58ccf4b0c87
 	golang.org/x/sys v0.18.0
 	inet.af/netaddr v0.0.0-20220617031823-097006376321
-	tailscale.com v1.65.0-pre.0.20240412190536-7a77a2edf16f
+	tailscale.com v1.65.0-pre.0.20240415182113-14c8b674eab2
 )
 
 require (
@@ -45,6 +45,7 @@ require (
 	github.com/digitalocean/go-smbios v0.0.0-20180907143718-390a4f403a8e // indirect
 	github.com/fxamacker/cbor/v2 v2.5.0 // indirect
 	github.com/gaissmai/bart v0.4.1 // indirect
+	github.com/go-json-experiment/json v0.0.0-20231102232822-2e55bd4e08b0 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/go-text/typesetting v0.0.0-20221214153724-0399769901d5 // indirect
 	github.com/godbus/dbus/v5 v5.1.1-0.20230522191255-76236955d466 // indirect
