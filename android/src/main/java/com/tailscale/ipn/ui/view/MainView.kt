@@ -101,6 +101,7 @@ fun MainView(
     navigation: MainViewNavigation,
     viewModel: MainViewModel = viewModel()
 ) {
+  val isOn = viewModel.vpnToggleState.collectAsState()
   LoadingIndicator.Wrap {
     Scaffold(contentWindowInsets = WindowInsets.Companion.statusBars) { paddingInsets ->
       Column(
@@ -115,7 +116,6 @@ fun MainView(
             ListItem(
                 colors = MaterialTheme.colorScheme.surfaceContainerListItem,
                 leadingContent = {
-                  val isOn = viewModel.vpnToggleState.collectAsState(initial = false)
                   TintedSwitch(onCheckedChange = { viewModel.toggleVpn() }, checked = isOn.value)
                 },
                 headlineContent = {
