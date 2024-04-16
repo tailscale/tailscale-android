@@ -46,6 +46,7 @@ private object Endpoint {
   const val FILES = "files"
   const val FILE_PUT = "file-put"
   const val TAILFS_SERVER_ADDRESS = "tailfs/fileserver-address"
+  const val ENABLE_EXIT_NODE = "set-use-exit-node-enabled"
 }
 
 typealias StatusResponseHandler = (Result<IpnState.Status>) -> Unit
@@ -83,6 +84,11 @@ class Client(private val scope: CoroutineScope) {
   fun editPrefs(prefs: Ipn.MaskedPrefs, responseHandler: (Result<Ipn.Prefs>) -> Unit) {
     val body = Json.encodeToString(prefs).toByteArray()
     return patch(Endpoint.PREFS, body, responseHandler = responseHandler)
+  }
+
+  fun setUseExitNode(use: Boolean, responseHandler: (Result<Ipn.Prefs>) -> Unit) {
+    val path = "${Endpoint.ENABLE_EXIT_NODE}?enabled=$use"
+    return post(path, responseHandler = responseHandler)
   }
 
   fun profiles(responseHandler: (Result<List<IpnLocal.LoginProfile>>) -> Unit) {

@@ -65,7 +65,22 @@ class Ipn {
       var ForceDaemon: Boolean = false,
       var HostName: String = "",
       var AutoUpdate: AutoUpdatePrefs? = AutoUpdatePrefs(true, true),
-  )
+      var InternalExitNodePrior: String? = null,
+  ) {
+
+    // For the InternalExitNodePrior and ExitNodeId, these will treats the empty string as null to
+    // simplify the downstream logic.
+
+    val selectedExitNodeID: String?
+      get() {
+        return if (InternalExitNodePrior.isNullOrEmpty()) null else InternalExitNodePrior
+      }
+
+    val activeExitNodeID: String?
+      get() {
+        return if (ExitNodeID.isNullOrEmpty()) null else ExitNodeID
+      }
+  }
 
   @Serializable
   data class MaskedPrefs(
@@ -79,6 +94,7 @@ class Ipn {
       var AdvertiseRoutesSet: Boolean? = null,
       var ForceDaemonSet: Boolean? = null,
       var HostnameSet: Boolean? = null,
+      var InternalExitNodePriorSet: Boolean? = null,
   ) {
 
     var ControlURL: String? = null
@@ -103,6 +119,12 @@ class Ipn {
       set(value) {
         field = value
         ExitNodeIDSet = true
+      }
+
+    var InternalExitNodePrior: String? = null
+      set(value) {
+        field = value
+        InternalExitNodePriorSet = true
       }
 
     var ExitNodeAllowLANAccess: Boolean? = null

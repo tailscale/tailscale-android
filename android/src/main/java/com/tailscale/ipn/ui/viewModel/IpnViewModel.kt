@@ -14,6 +14,8 @@ import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.UserID
 import com.tailscale.ipn.ui.notifier.Notifier
+import com.tailscale.ipn.ui.notifier.Notifier.prefs
+import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.set
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -181,6 +183,24 @@ open class IpnViewModel : ViewModel() {
     Client(viewModelScope).deleteProfile(profile) {
       viewModelScope.launch { loadUserProfiles() }
       completionHandler(it)
+    }
+  }
+
+  // Exit Node Manipulation
+
+  fun toggleExitNode() {
+    val prefs = prefs.value ?: return
+
+    LoadingIndicator.start()
+    if (prefs.activeExitNodeID != null) {
+      // We have an active exit node so we should keep it, but disable it
+      Client(viewModelScope).setUseExitNode(false) { LoadingIndicator.stop() }
+    } else if (prefs.selectedExitNodeID != null) {
+      // We have a prior exit node to enable
+      Client(viewModelScope).setUseExitNode(true) { LoadingIndicator.stop() }
+    } else {
+      // This should not be possible.  In this state the button is hidden
+      Log.e(TAG, "No exit node to disable and no prior exit node to enable")
     }
   }
 }
