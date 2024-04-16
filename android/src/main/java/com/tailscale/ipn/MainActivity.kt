@@ -53,6 +53,8 @@ import com.tailscale.ipn.ui.view.DNSSettingsView
 import com.tailscale.ipn.ui.view.ExitNodePicker
 import com.tailscale.ipn.ui.view.IntroView
 import com.tailscale.ipn.ui.view.LoginQRView
+import com.tailscale.ipn.ui.view.LoginWithAuthKeyView
+import com.tailscale.ipn.ui.view.LoginWithCustomControlURLView
 import com.tailscale.ipn.ui.view.MDMSettingsDebugView
 import com.tailscale.ipn.ui.view.MainView
 import com.tailscale.ipn.ui.view.MainViewNavigation
@@ -64,6 +66,7 @@ import com.tailscale.ipn.ui.view.PermissionsView
 import com.tailscale.ipn.ui.view.RunExitNodeView
 import com.tailscale.ipn.ui.view.SettingsView
 import com.tailscale.ipn.ui.view.TailnetLockSetupView
+import com.tailscale.ipn.ui.view.UserSwitcherNav
 import com.tailscale.ipn.ui.view.UserSwitcherView
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerNav
 import com.tailscale.ipn.ui.viewModel.SettingsNav
@@ -161,6 +164,15 @@ class MainActivity : ComponentActivity() {
                           onNavigateToMullvadCountry = { navController.navigate("mullvad/$it") },
                           onNavigateToRunAsExitNode = { navController.navigate("runExitNode") })
 
+                  val userSwitcherNav =
+                      UserSwitcherNav(
+                          backToSettings = backTo("settings"),
+                          onNavigateHome = backTo("main"),
+                          onNavigateCustomControl = {
+                            navController.navigate("loginWithCustomControl")
+                          },
+                          onNavigateToAuthKey = { navController.navigate("loginWithAuthKey") })
+
                   composable("main", enterTransition = { fadeIn(animationSpec = tween(150)) }) {
                     MainView(loginAtUrl = ::login, navigation = mainViewNav)
                   }
@@ -186,14 +198,19 @@ class MainActivity : ComponentActivity() {
                   composable("about") { AboutView(backTo("settings")) }
                   composable("mdmSettings") { MDMSettingsDebugView(backTo("settings")) }
                   composable("managedBy") { ManagedByView(backTo("settings")) }
-                  composable("userSwitcher") {
-                    UserSwitcherView(backTo("settings"), backTo("main"))
-                  }
+                  composable("userSwitcher") { UserSwitcherView(userSwitcherNav) }
                   composable("permissions") {
                     PermissionsView(backTo("settings"), ::openApplicationSettings)
                   }
                   composable("intro", exitTransition = { fadeOut(animationSpec = tween(150)) }) {
                     IntroView(backTo("main"))
+                  }
+                  composable("loginWithAuthKey") {
+                    LoginWithAuthKeyView(onNavigateHome = backTo("main"), backTo("userSwitcher"))
+                  }
+                  composable("loginWithCustomControl") {
+                    LoginWithCustomControlURLView(
+                        onNavigateHome = backTo("main"), backTo("userSwitcher"))
                   }
                 }
 
