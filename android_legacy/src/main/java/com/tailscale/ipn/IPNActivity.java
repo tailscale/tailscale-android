@@ -20,6 +20,7 @@ import org.gioui.GioView;
 
 public final class IPNActivity extends Activity {
 	final static int WRITE_STORAGE_RESULT = 1000;
+	final static int NOTIFICATIONS_PERMISSION_RESULT = 1001;
 
 	private GioView view;
 
@@ -97,6 +98,13 @@ public final class IPNActivity extends Activity {
 			if (grants.length > 0 && grants[0] == PackageManager.PERMISSION_GRANTED) {
 				App.onWriteStorageGranted();
 			}
+			break;
+		case NOTIFICATIONS_PERMISSION_RESULT:
+			// Start the VPN regardless of the notifications permission being granted.
+			// It's not a blocker for running the VPN.
+			App app = ((App)getApplicationContext());
+			app.startVPN();
+			break;
 		}
 	}
 

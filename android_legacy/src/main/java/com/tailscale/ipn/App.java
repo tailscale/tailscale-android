@@ -284,6 +284,17 @@ public class App extends Application {
 		return null;
 	}
 
+	void requestNotificationPermission(Activity act) {
+		if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+			// We can send notifications without explicit notifications permission.
+			return;
+		}
+		if (ContextCompat.checkSelfPermission(act, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+			return;
+		}
+		act.requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, IPNActivity.NOTIFICATIONS_PERMISSION_RESULT);
+	}
+
 	void requestWriteStoragePermission(Activity act) {
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q || Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
 			// We can write files without permission.
