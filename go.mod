@@ -52,7 +52,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/google/btree v1.1.2 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
-	github.com/google/nftables v0.1.1-0.20230115205135-9aa6fdf5a28c // indirect
+	github.com/google/nftables v0.2.1-0.20240414091927-5e242ec57806 // indirect
 	github.com/google/uuid v1.5.0 // indirect
 	github.com/gorilla/csrf v1.7.2 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
