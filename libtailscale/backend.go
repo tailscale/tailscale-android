@@ -222,9 +222,9 @@ func (a *App) runBackend(ctx context.Context) error {
 				netns.SetAndroidProtectFunc(nil)
 				service = nil
 			}
-		case <-onDNSConfigChanged:
+		case i := <-onDNSConfigChanged:
 			if b != nil {
-				go b.NetworkChanged()
+				go b.NetworkChanged(i)
 			}
 		}
 	}
