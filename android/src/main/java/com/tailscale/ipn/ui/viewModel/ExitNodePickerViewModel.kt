@@ -139,7 +139,7 @@ class ExitNodePickerViewModel(private val nav: ExitNodePickerNav) : IpnViewModel
     prefsOut.ExitNodeID = node.id
 
     Client(viewModelScope).editPrefs(prefsOut) {
-      nav.onNavigateBackToExitNodes()
+      nav.onNavigateBackHome()
       LoadingIndicator.stop()
     }
   }
