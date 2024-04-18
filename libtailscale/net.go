@@ -227,8 +227,7 @@ func (b *backend) CloseTUNs() {
 	b.devices.Shutdown()
 }
 
-// ifname is the interface name retrieved from LinkProperties on network change. If a network is lost, an empty string is passed in.
-func (b *backend) NetworkChanged(ifname string) {
+func (b *backend) NetworkChanged() {
 	defer func() {
 		if p := recover(); p != nil {
 			log.Printf("panic in NetworkChanged %s: %s", p, debug.Stack())
@@ -240,7 +239,6 @@ func (b *backend) NetworkChanged(ifname string) {
 		if nm, ok := b.sys.NetMon.GetOK(); ok {
 			nm.InjectEvent()
 		}
-		interfaces.UpdateLastKnownDefaultRouteInterface(ifname)
 	}
 }
 

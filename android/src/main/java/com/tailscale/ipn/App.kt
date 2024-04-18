@@ -166,14 +166,14 @@ class App : Application(), libtailscale.AppContext {
             }
 
             if (dns.updateDNSFromNetwork(sb.toString())) {
-              Libtailscale.onDnsConfigChanged(linkProperties?.getInterfaceName())
+              Libtailscale.onDnsConfigChanged()
             }
           }
 
           override fun onLost(network: Network) {
             super.onLost(network)
             if (dns.updateDNSFromNetwork("")) {
-              Libtailscale.onDnsConfigChanged("")
+              Libtailscale.onDnsConfigChanged()
             }
           }
         })
