@@ -64,6 +64,8 @@
     <string name="machine_auth_explainer">This device must be approved by an administrator before it can connect to the tailnet.</string>
     <string name="open_admin_console">Open admin console</string>
     <string name="needs_machine_auth">Authorization required</string>
+    <string name="disable">Disable</string>
+    <string name="enable">Enable</string>
 
     <!-- Strings for peer details -->
     <string name="os">OS</string>
@@ -140,7 +142,6 @@
     <string name="run_exit_node_explainer_running">Other devices in your tailnet can now route their internet traffic through this Android device. Make sure to approve this exit node in the admin console in order for other devices to see it.</string>
     <string name="enabled">Enabled</string>
     <string name="disabled">Disabled</string>
-    <string name="stop">Stop</string>
 
     <!-- Strings for the tailnet lock screen -->
     <string name="tailnet_lock">Tailnet lock</string>

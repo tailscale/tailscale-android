@@ -63,7 +63,7 @@ class ExitNodePickerViewModel(private val nav: ExitNodePickerNav) : IpnViewModel
           .stateIn(viewModelScope)
           .collect { (netmap, prefs) ->
             isRunningExitNode.set(prefs?.let { AdvertisedRoutesHelper.exitNodeOnFromPrefs(it) })
-            val exitNodeId = prefs?.ExitNodeID
+            val exitNodeId = prefs?.activeExitNodeID ?: prefs?.selectedExitNodeID
             netmap?.Peers?.let { peers ->
               val allNodes =
                   peers
@@ -137,8 +137,9 @@ class ExitNodePickerViewModel(private val nav: ExitNodePickerNav) : IpnViewModel
     LoadingIndicator.start()
     val prefsOut = Ipn.MaskedPrefs()
     prefsOut.ExitNodeID = node.id
+
     Client(viewModelScope).editPrefs(prefsOut) {
-      nav.onNavigateBackHome()
+      nav.onNavigateBackToExitNodes()
       LoadingIndicator.stop()
     }
   }

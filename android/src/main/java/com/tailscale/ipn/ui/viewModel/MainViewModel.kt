@@ -3,13 +3,11 @@
 
 package com.tailscale.ipn.ui.viewModel
 
+import android.util.Log
 import androidx.lifecycle.viewModelScope
 import com.tailscale.ipn.R
-import com.tailscale.ipn.ui.localapi.Client
-import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.Ipn.State
 import com.tailscale.ipn.ui.notifier.Notifier
-import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.PeerCategorizer
 import com.tailscale.ipn.ui.util.PeerSet
 import com.tailscale.ipn.ui.util.set
@@ -60,17 +58,14 @@ class MainViewModel : IpnViewModel() {
     viewModelScope.launch {
       searchTerm.collect { term -> peers.set(peerCategorizer.groupedAndFilteredPeers(term)) }
     }
+
+    viewModelScope.launch {
+      Notifier.prefs.collect { prefs -> Log.d(TAG, "Main VM - prefs = ${prefs}") }
+    }
   }
 
   fun searchPeers(searchTerm: String) {
     this.searchTerm.set(searchTerm)
-  }
-
-  fun disableExitNode() {
-    LoadingIndicator.start()
-    val prefsOut = Ipn.MaskedPrefs()
-    prefsOut.ExitNodeID = null
-    Client(viewModelScope).editPrefs(prefsOut) { LoadingIndicator.stop() }
   }
 }
 

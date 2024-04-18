@@ -70,6 +70,7 @@ import com.tailscale.ipn.ui.model.Netmap
 import com.tailscale.ipn.ui.model.Permissions
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.theme.disabled
+import com.tailscale.ipn.ui.theme.exitNodeToggleButton
 import com.tailscale.ipn.ui.theme.listItem
 import com.tailscale.ipn.ui.theme.minTextSize
 import com.tailscale.ipn.ui.theme.primaryListItem
@@ -182,13 +183,26 @@ fun MainView(
 
 @Composable
 fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
-  val prefs = viewModel.prefs.collectAsState()
+  val maybePrefs = viewModel.prefs.collectAsState()
   val netmap = viewModel.netmap.collectAsState()
-  val exitNodeId = prefs.value?.ExitNodeID
-  val peer = exitNodeId?.let { id -> netmap.value?.Peers?.find { it.StableID == id } }
-  val location = peer?.Hostinfo?.Location
-  val name = peer?.ComputedName
-  val active = peer != null
+
+  // There's nothing to render if we haven't loaded the prefs yet
+  val prefs = maybePrefs.value ?: return
+
+  // The activeExitNode is the source of truth.  The selectedExitNode is only relevant if we
+  // don't have an active node.
+  val chosenExitNodeId = prefs.activeExitNodeID ?: prefs.selectedExitNodeID
+
+  val exitNodePeer = chosenExitNodeId?.let { id -> netmap.value?.Peers?.find { it.StableID == id } }
+  val location = exitNodePeer?.Hostinfo?.Location
+  val name = exitNodePeer?.ComputedName
+
+  // We're connected to an exit node if we found an active peer for the *active* exit node
+  val activeAndRunning = (exitNodePeer != null) && !prefs.activeExitNodeID.isNullOrEmpty()
+
+  // (jonathan) TODO: We will block the "enable/disable" button for an exit node for which we cannot
+  // find a peer  on purpose and render the "No Exit Node" state, however, that should
+  // eventually show up in the UI as an error case so the user knows to pick an available node.
 
   Box(modifier = Modifier.background(color = MaterialTheme.colorScheme.surfaceContainer)) {
     Box(
@@ -199,7 +213,7 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
           ListItem(
               modifier = Modifier.clickable { navAction() },
               colors =
-                  if (active) MaterialTheme.colorScheme.primaryListItem
+                  if (activeAndRunning) MaterialTheme.colorScheme.primaryListItem
                   else ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surface),
               overlineContent = {
                 Text(
@@ -221,17 +235,24 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
                       imageVector = Icons.Outlined.ArrowDropDown,
                       contentDescription = null,
                       tint =
-                          if (active) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
+                          if (activeAndRunning)
+                              MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
                           else MaterialTheme.colorScheme.onSurfaceVariant,
                   )
                 }
               },
               trailingContent = {
-                if (peer != null) {
+                if (exitNodePeer != null) {
                   Button(
-                      colors = MaterialTheme.colorScheme.secondaryButton,
-                      onClick = { viewModel.disableExitNode() }) {
-                        Text(stringResource(R.string.stop))
+                      colors =
+                          if (prefs.activeExitNodeID.isNullOrEmpty())
+                              MaterialTheme.colorScheme.exitNodeToggleButton
+                          else MaterialTheme.colorScheme.secondaryButton,
+                      onClick = { viewModel.toggleExitNode() }) {
+                        Text(
+                            if (prefs.activeExitNodeID.isNullOrEmpty())
+                                stringResource(id = R.string.enable)
+                            else stringResource(id = R.string.disable))
                       }
                 }
               })
@@ -470,7 +491,8 @@ fun PeerList(
 fun ExpiryNotificationIfNecessary(netmap: Netmap.NetworkMap?, action: () -> Unit = {}) {
   // Key expiry warning shown only if the key is expiring within 24 hours (or has already expired)
   val networkMap = netmap ?: return
-  if (!TimeUtil.isWithin24Hours(networkMap.SelfNode.KeyExpiry) || networkMap.SelfNode.keyDoesNotExpire) {
+  if (!TimeUtil.isWithin24Hours(networkMap.SelfNode.KeyExpiry) ||
+      networkMap.SelfNode.keyDoesNotExpire) {
     return
   }
 
@@ -518,8 +540,6 @@ fun MainViewPreview() {
   MainView(
       {},
       MainViewNavigation(
-          onNavigateToSettings = {},
-          onNavigateToPeerDetails = {},
-          onNavigateToExitNodes = {}),
+          onNavigateToSettings = {}, onNavigateToPeerDetails = {}, onNavigateToExitNodes = {}),
       vm)
 }

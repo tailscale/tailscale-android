@@ -333,6 +333,17 @@ val ColorScheme.onBackgroundLogoDotDisabled: Color
         Color(0x66FFFFFF)
       }
 
+val ColorScheme.exitNodeToggleButton: ButtonColors
+  @Composable
+  get() {
+    val defaults = ButtonDefaults.buttonColors()
+    return ButtonColors(
+        containerColor = Color(0xFF4B70CC), // blue-500
+        contentColor = Color(0xFFFFFFFF), // white
+        disabledContainerColor = defaults.disabledContainerColor,
+        disabledContentColor = defaults.disabledContentColor)
+  }
+
 val ColorScheme.disabled: Color
   get() = Color(0xFFAFACAB) // gray-400
 
