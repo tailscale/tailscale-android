@@ -14,6 +14,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"tailscale.com/drive/driveimpl"
 	"tailscale.com/hostinfo"
 	"tailscale.com/ipn"
 	"tailscale.com/ipn/ipnlocal"
@@ -278,6 +279,7 @@ func newBackend(dataDir, directFileRoot string, appCtx AppContext, store *stateS
 		Dialer:         dialer,
 		SetSubsystem:   sys.Set,
 		NetMon:         b.netMon,
+		DriveForLocal:  driveimpl.NewFileSystemForLocal(logf),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("runBackend: NewUserspaceEngine: %v", err)

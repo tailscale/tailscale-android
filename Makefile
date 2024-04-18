@@ -176,7 +176,7 @@ install: tailscale-debug.apk ## Install the debug APK on a connected device
 	adb install -r $<
 
 run: install ## Run the debug APK on a connected device
-	adb shell am start -n com.tailscale.ipn/com.tailscale.ipn.IPNActivity
+	adb shell am start -n com.tailscale.ipn/com.tailscale.ipn.MainActivity
 
 dockershell: ## Run a shell in the Docker build container
 	docker build -t tailscale-android .
@@ -191,5 +191,5 @@ help: ## Show this help
 	@grep -hE '^[0-9a-zA-Z_-]+:.*?## .*$$' ${MAKEFILE_LIST} | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-20s\033[m %s\n", $$1, $$2}'
 	@echo ""
 
-.PHONY: all clean install android_legacy/lib $(DEBUG_APK) $(RELEASE_AAB) release bump_version dockershell lib tailscale-debug help
+.PHONY: all clean install android/lib $(DEBUG_APK) $(RELEASE_AAB) release bump_version dockershell lib tailscale-debug help
 .DEFAULT_GOAL := help

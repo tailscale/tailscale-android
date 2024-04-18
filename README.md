@@ -86,15 +86,6 @@ release candidate builds (currently Go 1.14) in module mode. It might
 work in earlier Go versions or in GOPATH mode, but we're making no
 effort to keep those working.
 
-## Google Sign-In
-
-Google Sign-In support relies on configuring a [Google API Console
-project](https://developers.google.com/identity/sign-in/android/start-integrating)
-with the app identifier and [signing key
-hashes](https://developers.google.com/android/guides/client-auth).
-The official release uses the app identifier `com.tailscale.ipn`;
-custom builds should use a different identifier.
-
 ## Developing on a Fire Stick TV
 
 On the Fire Stick:
@@ -105,7 +96,7 @@ Then some useful commands:
 ```
 adb connect 10.2.200.213:5555
 adb install -r tailscale-fdroid.apk
-adb shell am start -n com.tailscale.ipn/com.tailscale.ipn.IPNActivity
+adb shell am start -n com.tailscale.ipn/com.tailscale.ipn.MainActivity
 adb shell pm uninstall com.tailscale.ipn
 ```
 
@@ -127,8 +118,8 @@ Origin](https://en.wikipedia.org/wiki/Developer_Certificate_of_Origin)
 
 ## About Us
 
-We are apenwarr, bradfitz, crawshaw, danderson, dfcarney,
-from Tailscale Inc.
-You can learn more about us from [our website](https://tailscale.com).
+We are [Tailscale](https://tailscale.com). See
+https://tailscale.com/company for more about us and what we're
+building.
 
 WireGuard is a registered trademark of Jason A. Donenfeld.
