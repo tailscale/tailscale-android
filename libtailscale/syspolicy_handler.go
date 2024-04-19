@@ -4,6 +4,7 @@
 package libtailscale
 
 import (
+	"errors"
 	"log"
 
 	"tailscale.com/util/syspolicy"
@@ -20,7 +21,7 @@ func (h syspolicyHandler) ReadString(key string) (string, error) {
 		return "", syspolicy.ErrNoSuchKey
 	}
 	retVal, err := h.a.appCtx.GetSyspolicyStringValue(key)
-	if err != nil {
+	if err != nil && !errors.Is(err, syspolicy.ErrNoSuchKey) {
 		log.Printf("syspolicy: failed to get string value via gomobile: %v", err)
 	}
 	return retVal, err
@@ -31,7 +32,7 @@ func (h syspolicyHandler) ReadBoolean(key string) (bool, error) {
 		return false, syspolicy.ErrNoSuchKey
 	}
 	retVal, err := h.a.appCtx.GetSyspolicyBooleanValue(key)
-	if err != nil {
+	if err != nil && !errors.Is(err, syspolicy.ErrNoSuchKey) {
 		log.Printf("syspolicy: failed to get bool value via gomobile: %v", err)
 	}
 	return retVal, err
