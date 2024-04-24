@@ -51,6 +51,10 @@ type AppContext interface {
 
 	// GetSyspolicyBooleanValue returns whether the given system policy is enabled.
 	GetSyspolicyBooleanValue(key string) (bool, error)
+
+	// GetSyspolicyStringArrayValue returns the current string array value for the given system policy,
+	// expressed as a JSON string.
+	GetSyspolicyStringArrayJSONValue(key string) (string, error)
 }
 
 // IPNService corresponds to our IPNService in Java.

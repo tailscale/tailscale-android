@@ -4,6 +4,7 @@
 package libtailscale
 
 import (
+	"encoding/json"
 	"errors"
 	"log"
 
@@ -45,4 +46,24 @@ func (h syspolicyHandler) ReadUInt64(key string) (uint64, error) {
 	// TODO(angott): drop ReadUInt64 everywhere. We are not using it.
 	log.Fatalf("ReadUInt64 is not implemented on Android")
 	return 0, nil
+}
+
+func (h syspolicyHandler) ReadStringArray(key string) ([]string, error) {
+	if key == "" {
+		return nil, syspolicy.ErrNoSuchKey
+	}
+	retVal, err := h.a.appCtx.GetSyspolicyStringArrayJSONValue(key)
+	if err != nil && !errors.Is(err, syspolicy.ErrNoSuchKey) {
+		log.Printf("syspolicy: failed to get string array value via gomobile: %v", err)
+		return nil, err
+	}
+	if retVal == "" {
+		return nil, syspolicy.ErrNoSuchKey
+	}
+	var arr []string
+	jsonErr := json.Unmarshal([]byte(retVal), &arr)
+	if jsonErr != nil {
+		return nil, jsonErr
+	}
+	return arr, err
 }

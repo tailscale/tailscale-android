@@ -45,6 +45,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import libtailscale.Libtailscale
 import java.io.File
 import java.io.IOException
@@ -446,5 +448,17 @@ class App : Application(), libtailscale.AppContext {
           Log.d("MDM", "$key is not defined on Android. Throwing NoSuchKeyException.")
           throw MDMSettings.NoSuchKeyException()
         }
+  }
+
+  @Throws(
+      IOException::class, GeneralSecurityException::class, MDMSettings.NoSuchKeyException::class)
+  override fun getSyspolicyStringArrayJSONValue(key: String): String {
+    val list = MDMSettings.allSettingsByKey[key]?.flow?.value as? List<String>
+    try {
+      return Json.encodeToString(list)
+    } catch (e: Exception) {
+      Log.d("MDM", "$key is not defined on Android. Throwing NoSuchKeyException.")
+      throw MDMSettings.NoSuchKeyException()
+    }
   }
 }

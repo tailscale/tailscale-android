@@ -51,7 +51,8 @@ object MDMSettings {
   val runExitNode = ShowHideMDMSetting("RunExitNode", "Run as Exit Node")
   val testMenu = ShowHideMDMSetting("TestMenu", "Show Debug Menu")
   val updateMenu = ShowHideMDMSetting("UpdateMenu", "“Update Available” menu item")
-
+  val allowedSuggestedExitNodes =
+      StringArrayListMDMSetting("AllowedSuggestedExitNodes", "Allowed Suggested Exit Nodes")
   val allSettings by lazy {
     MDMSettings::class
         .declaredMemberProperties
