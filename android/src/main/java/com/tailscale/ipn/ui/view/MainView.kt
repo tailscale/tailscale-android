@@ -263,7 +263,7 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
 @Composable
 fun SettingsButton(action: () -> Unit) {
   IconButton(modifier = Modifier.size(24.dp), onClick = { action() }) {
-    Icon(Icons.Outlined.Settings, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+    Icon(Icons.Outlined.Settings, contentDescription = "Open settings", tint = MaterialTheme.colorScheme.onSurfaceVariant)
   }
 }
 

@@ -60,7 +60,7 @@ fun BackArrow(action: () -> Unit) {
   Box(modifier = Modifier.padding(start = 8.dp, end = 8.dp)) {
     Icon(
         Icons.AutoMirrored.Filled.ArrowBack,
-        null,
+        contentDescription = "Go back to the previous screen",
         modifier =
             Modifier.clickable(
                 interactionSource = remember { MutableInteractionSource() },
