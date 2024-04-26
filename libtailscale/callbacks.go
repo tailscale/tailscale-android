@@ -8,11 +8,6 @@ import (
 )
 
 var (
-	// onVPNPrepared is notified when VpnService.prepare succeeds.
-	onVPNPrepared = make(chan struct{}, 1)
-	// onVPNRevoked is notified whenever the VPN service is revoked.
-	onVPNRevoked = make(chan struct{}, 1)
-
 	// onVPNRequested receives global IPNService references when
 	// a VPN connection is requested.
 	onVPNRequested = make(chan IPNService)
@@ -31,20 +26,6 @@ var (
 func OnDNSConfigChanged(ifname string) {
 	select {
 	case onDNSConfigChanged <- ifname:
-	default:
-	}
-}
-
-func notifyVPNPrepared() {
-	select {
-	case onVPNPrepared <- struct{}{}:
-	default:
-	}
-}
-
-func notifyVPNRevoked() {
-	select {
-	case onVPNRevoked <- struct{}{}:
 	default:
 	}
 }

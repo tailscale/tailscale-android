@@ -5,6 +5,7 @@ package libtailscale
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -166,6 +167,27 @@ func (a *App) runBackend(ctx context.Context) error {
 		select {
 		case s := <-stateCh:
 			state = s
+			if cfg.rcfg != nil && state >= ipn.Starting && service != nil {
+				// On state change, check if there are router or config changes requiring an update to VPNBuilder
+				if err := b.updateTUN(service, cfg.rcfg, cfg.dcfg); err != nil {
+					if errors.Is(err, errMultipleUsers) {
+						// TODO: surface error to user
+					}
+					log.Printf("VPN update failed: %v", err)
+
+					mp := new(ipn.MaskedPrefs)
+					mp.WantRunning = false
+					mp.WantRunningSet = true
+
+					_, err := a.EditPrefs(*mp)
+					if err != nil {
+						log.Printf("localapi edit prefs error %v", err)
+					}
+
+					b.lastCfg = nil
+					b.CloseTUNs()
+				}
+			}
 		case n := <-netmapCh:
 			networkMap = n
 		case c := <-configs:
@@ -214,6 +236,8 @@ func (a *App) runBackend(ctx context.Context) error {
 				if err := b.updateTUN(service, cfg.rcfg, cfg.dcfg); err != nil {
 					log.Printf("VPN update failed: %v", err)
 					service.Close()
+					b.lastCfg = nil
+					b.CloseTUNs()
 				}
 			}
 		case s := <-onDisconnect:
