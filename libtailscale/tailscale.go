@@ -11,6 +11,7 @@ import (
 	"runtime/debug"
 	"time"
 
+	"tailscale.com/health"
 	"tailscale.com/logpolicy"
 	"tailscale.com/logtail"
 	"tailscale.com/logtail/filch"
@@ -91,11 +92,11 @@ func (a *App) isChromeOS() bool {
 }
 
 // SetupLogs sets up remote logging.
-func (b *backend) setupLogs(logDir string, logID logid.PrivateID, logf logger.Logf) {
+func (b *backend) setupLogs(logDir string, logID logid.PrivateID, logf logger.Logf, health *health.Tracker) {
 	if b.netMon == nil {
 		panic("netMon must be created prior to SetupLogs")
 	}
-	transport := logpolicy.NewLogtailTransport(logtail.DefaultHost, b.netMon, log.Printf)
+	transport := logpolicy.NewLogtailTransport(logtail.DefaultHost, b.netMon, health, log.Printf)
 
 	logcfg := logtail.Config{
 		Collection:          logtail.CollectionNode,

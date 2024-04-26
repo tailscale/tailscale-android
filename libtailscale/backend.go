@@ -132,7 +132,7 @@ func (a *App) runBackend(ctx context.Context) error {
 	a.backend = b.backend
 	defer b.CloseTUNs()
 
-	h := localapi.NewHandler(b.backend, log.Printf, b.sys.NetMon.Get(), *a.logIDPublicAtomic.Load())
+	h := localapi.NewHandler(b.backend, log.Printf, *a.logIDPublicAtomic.Load())
 	h.PermitRead = true
 	h.PermitWrite = true
 	a.localAPIHandler = h
@@ -265,7 +265,7 @@ func newBackend(dataDir, directFileRoot string, appCtx AppContext, store *stateS
 		log.Printf("netmon.New: %w", err)
 	}
 	b.netMon = netMon
-	b.setupLogs(dataDir, logID, logf)
+	b.setupLogs(dataDir, logID, logf, sys.HealthTracker())
 	dialer := new(tsdial.Dialer)
 	vf := &VPNFacade{
 		SetBoth:           b.setCfg,
@@ -279,6 +279,7 @@ func newBackend(dataDir, directFileRoot string, appCtx AppContext, store *stateS
 		Dialer:         dialer,
 		SetSubsystem:   sys.Set,
 		NetMon:         b.netMon,
+		HealthTracker:  sys.HealthTracker(),
 		DriveForLocal:  driveimpl.NewFileSystemForLocal(logf),
 	})
 	if err != nil {
