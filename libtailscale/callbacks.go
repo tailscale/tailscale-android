@@ -23,13 +23,14 @@ var (
 	// onGoogleToken receives google ID tokens.
 	onGoogleToken = make(chan string)
 
-	// onDNSConfigChanged is notified when the network changes and the DNS config needs to be updated.
-	onDNSConfigChanged = make(chan struct{}, 1)
+	// onDNSConfigChanged is notified when the network changes and the DNS config needs to be updated. It receives the updated interface name.
+	onDNSConfigChanged = make(chan string, 1)
 )
 
-func OnDnsConfigChanged() {
+// ifname is the interface name retrieved from LinkProperties on network change. An empty string is used if there is no network available.
+func OnDNSConfigChanged(ifname string) {
 	select {
-	case onDNSConfigChanged <- struct{}{}:
+	case onDNSConfigChanged <- ifname:
 	default:
 	}
 }
