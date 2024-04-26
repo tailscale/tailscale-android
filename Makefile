@@ -4,8 +4,7 @@
 
 DEBUG_APK=tailscale-debug.apk
 RELEASE_AAB=tailscale-release.aab
-KEYSTORE=tailscale.jks
-KEYSTORE_ALIAS=tailscale
+LIBTAILSCALE=android/libs/libtailscale.aar
 TAILSCALE_VERSION=$(shell ./version/tailscale-version.sh 200)
 OUR_VERSION=$(shell git describe --dirty --exclude "*" --always --abbrev=200)
 TAILSCALE_VERSION_ABBREV=$(shell ./version/tailscale-version.sh 11)
@@ -57,6 +56,8 @@ export JAVA_HOME ?= $(shell find "$(ANDROID_STUDIO_ROOT)/jbr" "$(ANDROID_STUDIO_
 # If JAVA_HOME is still unset, remove it, because SDK tools go into a CPU spin if it is set and empty.
 ifeq ($(JAVA_HOME),)
 	unexport JAVA_HOME
+else
+	export PATH := $(JAVA_HOME)/bin:$(PATH)
 endif
 
 # TOOLCHAINDIR is set by fdoid CI and used by tool/* scripts.
@@ -66,11 +67,68 @@ export TOOLCHAINDIR
 GOBIN ?= $(PWD)/android/build/go/bin
 export GOBIN
 
-export PATH := $(PWD)/tool:$(GOBIN):$(JAVA_HOME)/bin:$(ANDROID_HOME)/cmdline-tools/latest/bin:$(ANDROID_HOME)/platform-tools:$(PATH)
+export PATH := $(PWD)/tool:$(GOBIN):$(ANDROID_HOME)/cmdline-tools/latest/bin:$(ANDROID_HOME)/platform-tools:$(PATH)
 export GOROOT := # Unset
 
-all: tailscale-debug.apk test $(DEBUG_APK) ## Build and test everything
+#
+# Android Builds:
+#
 
+.PHONY: apk
+apk: $(DEBUG_APK) ## Build the debug APK
+
+.PHONY: tailscale-debug
+tailscale-debug: $(DEBUG_APK) ## Build the debug APK
+
+.PHONY: release
+release: tailscale.jks $(RELEASE_AAB) ## Build the release AAB
+	jarsigner -sigalg SHA256withRSA -digestalg SHA-256 -keystore tailscale.jks $(RELEASE_AAB) tailscale
+
+# gradle-dependencies groups together the android sources and libtailscale needed to assemble tests/debug/release builds.
+.PHONY: gradle-dependencies
+gradle-dependencies: $(shell find android -type f -not -path "android/build/*" -not -path '*/.*') $(LIBTAILSCALE)
+
+$(DEBUG_APK): gradle-dependencies
+	(cd android && ./gradlew test assembleDebug)
+	install -C android/build/outputs/apk/debug/android-debug.apk $@
+
+$(RELEASE_AAB): gradle-dependencies
+	(cd android && ./gradlew test bundleRelease)
+	install -C ./android/build/outputs/bundle/release/android-release.aab $@
+
+tailscale-test.apk: gradle-dependencies
+	(cd android && ./gradlew assembleApplicationTestAndroidTest)
+	install -C ./android/build/outputs/apk/androidTest/applicationTest/android-applicationTest-androidTest.apk $@
+
+#
+# Go Builds:
+#
+
+android/libs:
+	mkdir -p android/libs
+
+$(GOBIN)/gomobile: $(GOBIN)/gobind go.mod go.sum
+	go install golang.org/x/mobile/cmd/gomobile
+
+$(GOBIN)/gobind: go.mod go.sum
+	go install golang.org/x/mobile/cmd/gobind
+
+$(LIBTAILSCALE): Makefile android/libs $(shell find libtailscale -name *.go) go.mod go.sum $(GOBIN)/gomobile
+	gomobile bind -target android -androidapi 26 \
+		-ldflags "$(FULL_LDFLAGS)" \
+		-o $@ ./libtailscale
+
+.PHONY: libtailscale
+libtailscale: $(LIBTAILSCALE) ## Build the libtailscale AAR
+
+#
+# Utility tasks:
+#
+
+.PHONY: all
+all: test $(DEBUG_APK) ## Build and test everything
+
+.PHONY: env
 env:
 	@echo PATH=$(PATH)
 	@echo ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT)
@@ -79,12 +137,20 @@ env:
 	@echo JAVA_HOME=$(JAVA_HOME)
 	@echo TOOLCHAINDIR=$(TOOLCHAINDIR)
 
+.PHONY: androidpath
+androidpath:
+	@echo "export ANDROID_HOME=$(ANDROID_HOME)"
+	@echo "export ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT)"
+	@echo 'export PATH=$(ANDROID_HOME)/cmdline-tools/latest/bin:$(ANDROID_HOME)/platform-tools:$$PATH'
+
+.PHONY: tag_release
 tag_release: ## Tag a release
 	sed -i'.bak' 's/versionCode $(VERSIONCODE)/versionCode $(VERSIONCODE_PLUSONE)/' android/build.gradle && rm android/build.gradle.bak
 	sed -i'.bak' 's/versionName .*/versionName "$(VERSION_LONG)"/' android/build.gradle && rm android/build.gradle.bak
 	git commit -sm "android: bump version code" android/build.gradle
 	git tag -a "$(VERSION_LONG)"
 
+.PHONY: bumposs
 bumposs: ## Update the tailscale.com go module
 	GOPROXY=direct go get tailscale.com@main
 	go run tailscale.com/cmd/printdep --go > go.toolchain.rev
@@ -101,6 +167,7 @@ $(ANDROID_HOME)/cmdline-tools/latest/bin/sdkmanager:
 	mv $(ANDROID_HOME)/tmp/cmdline-tools $(ANDROID_HOME)/cmdline-tools/latest
 	rm -rf $(ANDROID_HOME)/tmp
 
+.PHONY: androidsdk
 androidsdk: $(ANDROID_HOME)/cmdline-tools/latest/bin/sdkmanager ## Install the set of Android SDK packages we need.
 	yes | $(ANDROID_HOME)/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
 	$(ANDROID_HOME)/cmdline-tools/latest/bin/sdkmanager --update
@@ -109,6 +176,7 @@ androidsdk: $(ANDROID_HOME)/cmdline-tools/latest/bin/sdkmanager ## Install the s
 # Normally in make you would simply take a dependency on the task that provides
 # the binaries, however users may have a decision to make as to whether they
 # want to install an SDK or use the one from an Android Studio installation.
+.PHONY: checkandroidsdk
 checkandroidsdk: ## Check that Android SDK is installed
 	@$(ANDROID_HOME)/cmdline-tools/latest/bin/sdkmanager --list_installed | grep -q 'ndk' || (\
 		echo -e "\n\tERROR: Android SDK not installed.\n\
@@ -116,80 +184,32 @@ checkandroidsdk: ## Check that Android SDK is installed
 		\tANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT)\n\n\
 		See README.md for instructions on how to install the prerequisites.\n"; exit 1)
 
-androidpath:
-	@echo "export ANDROID_HOME=$(ANDROID_HOME)"
-	@echo "export ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT)"
-	@echo 'export PATH=$(ANDROID_HOME)/cmdline-tools/latest/bin:$(ANDROID_HOME)/platform-tools:$$PATH'
-
-$(RELEASE_AAB): $(LIBTAILSCALE)
-	(cd android && ./gradlew test bundleRelease)
-	mv ./android/build/outputs/bundle/release/android-release.aab $@
-
-release: $(RELEASE_AAB) ## Build the release AAB
-	jarsigner -sigalg SHA256withRSA -digestalg SHA-256 -keystore $(KEYSTORE) $(RELEASE_AAB) $(KEYSTORE_ALIAS)
-
-apk: $(DEBUG_APK) ## Build the debug APK
-
-LIBTAILSCALE=android/libs/libtailscale.aar
-LIBTAILSCALE_SOURCES=$(shell find libtailscale -name *.go) go.mod go.sum
-
-android/libs:
-	mkdir -p android/libs
-
-$(GOBIN)/gomobile: $(GOBIN)/gobind go.mod go.sum
-	go install golang.org/x/mobile/cmd/gomobile
-
-$(GOBIN)/gobind: go.mod go.sum
-	go install golang.org/x/mobile/cmd/gobind
-
-$(LIBTAILSCALE): Makefile android/libs $(LIBTAILSCALE_SOURCES) $(GOBIN)/gomobile
-	gomobile bind -target android -androidapi 26 \
-		-ldflags "$(FULL_LDFLAGS)" \
-		-o $@ ./libtailscale
-
-libtailscale: $(LIBTAILSCALE) ## Build libtailscale
-
-ANDROID_SOURCES=$(shell find android -type f -not -path "android/build/*" -not -path '*/.*')
-DEBUG_INTERMEDIARY = android/build/outputs/apk/debug/android-debug.apk
-
-$(DEBUG_INTERMEDIARY): $(ANDROID_SOURCES) $(LIBTAILSCALE)
-	cd android && ./gradlew test assembleDebug
-
-$(DEBUG_APK): $(DEBUG_INTERMEDIARY)
-	(cd android && ./gradlew test assembleDebug)
-	mv $(DEBUG_INTERMEDIARY) $@
-
-tailscale-debug: tailscale-debug.apk ## Build the debug APK
-
-ANDROID_TEST_INTERMEDIARY=./android/build/outputs/apk/androidTest/applicationTest/android-applicationTest-androidTest.apk
-
-$(ANDROID_TEST_INTERMEDIARY): $(ANDROID_SOURCES) $(LIBTAILSCALE)
-	cd android && ./gradlew assembleApplicationTestAndroidTest
-
-tailscale-test.apk: $(ANDROID_TEST_INTERMEDIARY)
-	mv $(ANDROID_TEST_INTERMEDIARY) $@
-
-test: $(LIBTAILSCALE) ## Run the Android tests
+.PHONY: test
+test: gradle-dependencies ## Run the Android tests
 	(cd android && ./gradlew test)
 
-install: tailscale-debug.apk ## Install the debug APK on a connected device
+.PHONY: install
+install: $(DEBUG_APK) ## Install the debug APK on a connected device
 	adb install -r $<
 
+.PHONY: run
 run: install ## Run the debug APK on a connected device
 	adb shell am start -n com.tailscale.ipn/com.tailscale.ipn.MainActivity
 
+.PHONY: dockershell
 dockershell: ## Run a shell in the Docker build container
 	docker build -t tailscale-android .
 	docker run -v $(CURDIR):/build/tailscale-android -it --rm tailscale-android
 
+.PHONY: clean
 clean: ## Remove build artifacts
-	-rm -rf android/build $(DEBUG_APK) $(RELEASE_AAB) $(LIBTAILSCALE) android/libs *.apk
+	-rm -rf android/build $(DEBUG_APK) $(RELEASE_AAB) $(LIBTAILSCALE) android/libs *.apk *.aab
 	-pkill -f gradle
 
+.PHONY: help
 help: ## Show this help
 	@echo "\nSpecify a command. The choices are:\n"
 	@grep -hE '^[0-9a-zA-Z_-]+:.*?## .*$$' ${MAKEFILE_LIST} | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-20s\033[m %s\n", $$1, $$2}'
 	@echo ""
 
-.PHONY: all clean install android/lib $(DEBUG_APK) $(RELEASE_AAB) release bump_version dockershell lib tailscale-debug help
 .DEFAULT_GOAL := help
