@@ -1,0 +1,39 @@
+name: Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: sudosubin/git-clone-action@v1.0.1
+        with:
+          repository: 'tailscale/tailscale-android'
+          platform: 'github'
+          ref: 'main'
+
+      - name: modify
+        run: |
+          sed -i '/b.backend.Start(ipn.Options/,+2d' cmd/tailscale/backend.go
+          sed -i '/backend.SetNotifyCallback/a\ \ \ \ \ \ \ \ prefs := ipn.NewPrefs()\n\ \ \ \ \ \ \ \ prefs.ControlURL = "'"${{ secrets.HEADSCALE_URL }}"'"\n\ \ \ \ \ \ \ \ opts := ipn.Options{\n\ \ \ \ \ \ \ \ StateKey: "ipn-android",\n\ \ \ \ \ \ \ \ \ \ \ \ UpdatePrefs: prefs,\n\ \ \ \ \ \ \ \ }\n\ \ \ \ \ \ \ \ return b.backend.Start(opts)' cmd/tailscale/backend.go
+          sed -i 's/Sign in with other/Sign in with Headscale/g' cmd/tailscale/ui.go
+
+      - name: build
+        run: |
+          docker build -t tailscale-android .
+          docker run -v ${PWD}:/build/tailscale-android --rm tailscale-android make tailscale-debug.apk
+ 
+      - name: Upload Release
+        uses: softprops/action-gh-release@v1
+        if: ${{ success() }}
+        with:
+          tag_name: latest
+          files: tailscale-debug.apk
+          release: true
+          repository: ${{ github.actor }}/tailscale-android
