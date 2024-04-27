@@ -69,6 +69,36 @@ export GOBIN
 export PATH := $(PWD)/tool:$(GOBIN):$(JAVA_HOME)/bin:$(ANDROID_HOME)/cmdline-tools/latest/bin:$(ANDROID_HOME)/platform-tools:$(PATH)
 export GOROOT := # Unset
 
+base_image := "system-images;android-33;google_apis;"
+AVD := "tailscale-android"
+
+select-image:
+	@echo "Determining machine architecture..."
+    $(eval machine_arch := $(shell uname -m))
+    @if [ "$(machine_arch)" = "x86_64" ]; then \
+        echo "Using x86_64 system image"; \
+        AVD_IMAGE="$(base_image)x86_64"; \
+    elif [ "$(machine_arch)" = "aarch64" ]; then \
+        echo "Checking for ARM64 v8a system image..."; \
+        $(eval arm64_v8a_exists := $(shell $(ANDROID_HOME)/cmdline-tools/latest/bin/sdkmanager --list | grep -q "arm64-v8a" && echo yes)) \
+        if [ "$(arm64_v8a_exists)" = "yes" ]; then \
+            echo "Selected ARM64 v8a System Image"; \
+            AVD_IMAGE="$(base_image)arm64-v8a"; \
+        else \
+            echo "ARM64 v8a system image not available, defaulting to x86_64"; \
+            AVD_IMAGE="$(base_image)x86_64"; \
+        fi; \
+	else \
+		echo "Unsupported architecture: $(machine_arch)"; \
+		exit 1; \
+	fi; \
+	echo "Fallback to system architecture: $$AVD_IMAGE"; \
+	export AVD_IMAGE=$$AVD_IMAGE;
+
+all: select-image
+	@echo "Using AVD Image: $(AVD_IMAGE)"
+	@echo "AVD set to: $(AVD)"
+
 all: tailscale-debug.apk test $(DEBUG_APK) ## Build and test everything
 
 env:
@@ -166,11 +196,32 @@ ANDROID_TEST_INTERMEDIARY=./android/build/outputs/apk/androidTest/applicationTes
 $(ANDROID_TEST_INTERMEDIARY): $(ANDROID_SOURCES) $(LIBTAILSCALE)
 	cd android && ./gradlew assembleApplicationTestAndroidTest
 
-tailscale-test.apk: $(ANDROID_TEST_INTERMEDIARY)
+tailscale-test.apk: $(ANDROID_TEST_INTERMEDIARY) ## Build the test APK
 	mv $(ANDROID_TEST_INTERMEDIARY) $@
 
 test: $(LIBTAILSCALE) ## Run the Android tests
 	(cd android && ./gradlew test)
+
+emulator: select-image
+	@echo "Checking installed SDK packages..."
+	@if ! $(ANDROID_HOME)/cmdline-tools/latest/bin/sdkmanager --list_installed | grep -q "$(AVD_IMAGE)"; then \
+		echo "$(AVD_IMAGE) not found, installing..."; \
+		$(ANDROID_HOME)/cmdline-tools/latest/bin/sdkmanager "$(AVD_IMAGE)"; \
+	fi
+	@echo "Checking if AVD exists..."
+	@if ! $(ANDROID_HOME)/cmdline-tools/latest/bin/avdmanager list avd | grep -q "$(AVD)"; then \
+		echo "AVD $(AVD) not found, creating..."; \
+		$(ANDROID_HOME)/cmdline-tools/latest/bin/avdmanager create avd -n "$(AVD)" -k "$(AVD_IMAGE)"; \
+	fi
+	@echo "Starting emulator..."
+	@$(ANDROID_HOME)/emulator/emulator -avd "$(AVD)" -logcat-output /dev/stdout -netdelay none -netspeed full &
+	@echo "Waiting for emulator to fully boot..."
+	@$(ANDROID_HOME)/platform-tools/adb wait-for-device
+	@echo "Emulator booted, installing APK..."
+	@$(ANDROID_HOME)/platform-tools/adb install -r tailscale-debug.apk
+	@echo "APK installed, launching app..."
+	@$(ANDROID_HOME)/platform-tools/adb shell am start -n "com.tailscale.ipn/com.tailscale.ipn.MainActivity"
+	@echo "Tailscale launched."
 
 install: tailscale-debug.apk ## Install the debug APK on a connected device
 	adb install -r $<
