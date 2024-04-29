@@ -97,32 +97,8 @@ open class IPNService : VpnService(), libtailscale.IPNService {
     return VPNServiceBuilder(b)
   }
 
-  fun notify(title: String?, message: String?) {
-    val builder: NotificationCompat.Builder =
-        NotificationCompat.Builder(this, App.NOTIFY_CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(title)
-            .setContentText(message)
-            .setContentIntent(configIntent())
-            .setAutoCancel(true)
-            .setOnlyAlertOnce(true)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-    val nm: NotificationManagerCompat = NotificationManagerCompat.from(this)
-    nm.notify(App.NOTIFY_NOTIFICATION_ID, builder.build())
-  }
-
-  fun updateStatusNotification(title: String?, message: String?) {
-    val builder: NotificationCompat.Builder =
-        NotificationCompat.Builder(this, App.STATUS_CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(title)
-            .setContentText(message)
-            .setContentIntent(configIntent())
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-    startForeground(App.STATUS_NOTIFICATION_ID, builder.build())
-  }
-
   companion object {
     const val ACTION_REQUEST_VPN = "com.tailscale.ipn.REQUEST_VPN"
+    const val ACTION_STOP_VPN = "com.tailscale.ipn.STOP_VPN"
   }
 }

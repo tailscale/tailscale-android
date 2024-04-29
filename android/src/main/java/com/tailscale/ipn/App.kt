@@ -61,11 +61,9 @@ class App : Application(), libtailscale.AppContext {
   companion object {
     const val STATUS_CHANNEL_ID = "tailscale-status"
     const val STATUS_NOTIFICATION_ID = 1
-    const val NOTIFY_CHANNEL_ID = "tailscale-notify"
-    const val NOTIFY_NOTIFICATION_ID = 2
     private const val PEER_TAG = "peer"
     private const val FILE_CHANNEL_ID = "tailscale-files"
-    private const val FILE_NOTIFICATION_ID = 3
+    private const val FILE_NOTIFICATION_ID = 2
     private const val TAG = "App"
     private val networkConnectivityRequest =
         NetworkRequest.Builder()
@@ -115,14 +113,12 @@ class App : Application(), libtailscale.AppContext {
     connectivityManager = this.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     setAndRegisterNetworkCallbacks()
     createNotificationChannel(
-        NOTIFY_CHANNEL_ID, "Notifications", NotificationManagerCompat.IMPORTANCE_DEFAULT)
-    createNotificationChannel(
         STATUS_CHANNEL_ID, "VPN Status", NotificationManagerCompat.IMPORTANCE_LOW)
     createNotificationChannel(
         FILE_CHANNEL_ID, "File transfers", NotificationManagerCompat.IMPORTANCE_DEFAULT)
     appInstance = this
     applicationScope.launch {
-      Notifier.tileActive.collect { isTileReadyToBeActive -> setTileActive(isTileReadyToBeActive) }
+      Notifier.connStatus.collect { connStatus -> updateConnStatus(connStatus) }
     }
   }
 
@@ -212,15 +208,33 @@ class App : Application(), libtailscale.AppContext {
         EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM)
   }
 
-  fun setTileActive(ready: Boolean) {
+  fun updateConnStatus(ready: Boolean) {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
       return
     }
     QuickToggleService.setReady(this, ready)
     Log.d("App", "Set Tile Ready: $ready")
+    val action = if (ready) IPNReceiver.INTENT_DISCONNECT_VPN else IPNReceiver.INTENT_CONNECT_VPN
+    val intent = Intent(this, IPNReceiver::class.java).apply {
+    this.action = action
+    }
+    val pendingIntent : PendingIntent = PendingIntent.getBroadcast(
+      this,
+      0,
+      intent,
+      PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+    )
     if (ready){
       startVPN()
     }
+    val notificationMessage = if (ready) getString(R.string.connected) else getString(R.string.not_connected)
+    notify(
+    "Tailscale",
+    notificationMessage,
+    STATUS_CHANNEL_ID,
+    pendingIntent,
+    STATUS_NOTIFICATION_ID
+)
   }
 
   fun getHostname(): String {
@@ -323,12 +337,22 @@ class App : Application(), libtailscale.AppContext {
     }
     val pending: PendingIntent =
         PendingIntent.getActivity(this, 0, viewIntent, PendingIntent.FLAG_UPDATE_CURRENT)
+    notify(getString(R.string.file_notification), msg, FILE_CHANNEL_ID, pending, FILE_NOTIFICATION_ID)
+  }
+
+  fun createNotificationChannel(id: String?, name: String?, importance: Int) {
+    val channel = NotificationChannel(id, name, importance)
+    val nm: NotificationManagerCompat = NotificationManagerCompat.from(this)
+    nm.createNotificationChannel(channel)
+  }
+
+  fun notify(title: String?, message: String?, channel: String, intent: PendingIntent?, notificationID: Int) {
     val builder: NotificationCompat.Builder =
-        NotificationCompat.Builder(this, FILE_CHANNEL_ID)
+        NotificationCompat.Builder(this, channel)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle("File received")
-            .setContentText(msg)
-            .setContentIntent(pending)
+            .setContentTitle(title)
+            .setContentText(message)
+            .setContentIntent(intent)
             .setAutoCancel(true)
             .setOnlyAlertOnce(true)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
@@ -344,13 +368,7 @@ class App : Application(), libtailscale.AppContext {
       // for ActivityCompat#requestPermissions for more details.
       return
     }
-    nm.notify(FILE_NOTIFICATION_ID, builder.build())
-  }
-
-  fun createNotificationChannel(id: String?, name: String?, importance: Int) {
-    val channel = NotificationChannel(id, name, importance)
-    val nm: NotificationManagerCompat = NotificationManagerCompat.from(this)
-    nm.createNotificationChannel(channel)
+    nm.notify(notificationID, builder.build())
   }
 
   override fun getInterfacesAsString(): String {

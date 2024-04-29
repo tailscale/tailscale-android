@@ -31,7 +31,7 @@ object Notifier {
   private val decoder = Json { ignoreUnknownKeys = true }
 
   // Global App State
-  val tileActive: StateFlow<Boolean> = MutableStateFlow(false)
+  val connStatus: StateFlow<Boolean> = MutableStateFlow(false)
   val readyToPrepareVPN: StateFlow<Boolean> = MutableStateFlow(false)
 
   // General IPN Bus State
@@ -82,7 +82,7 @@ object Notifier {
           }
       state.collect { currstate ->
         readyToPrepareVPN.set(currstate > Ipn.State.Stopped)
-        tileActive.set(currstate > Ipn.State.Stopped)
+        connStatus.set(currstate > Ipn.State.Stopped)
       }
     }
   }
