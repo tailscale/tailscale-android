@@ -3,8 +3,10 @@
 # license that can be found in the LICENSE file.
 
 DEBUG_APK=tailscale-debug.apk
+RELEASE_APK=tailscale-release.apk
 RELEASE_AAB=tailscale-release.aab
 LIBTAILSCALE=android/libs/libtailscale.aar
+
 TAILSCALE_VERSION=$(shell ./version/tailscale-version.sh 200)
 OUR_VERSION=$(shell git describe --dirty --exclude "*" --always --abbrev=200)
 TAILSCALE_VERSION_ABBREV=$(shell ./version/tailscale-version.sh 11)
@@ -14,12 +16,15 @@ VERSION_LONG=$(TAILSCALE_VERSION_ABBREV)-g$(OUR_VERSION_ABBREV)
 VERSIONNAME=$(patsubst "%",%,$(lastword $(shell grep versionName android/build.gradle)))
 # Extract the x.y.z part for the short version.
 VERSIONNAME_SHORT=$(shell echo $(VERSIONNAME) | cut -d - -f 1)
+
 TAILSCALE_COMMIT=$(shell echo $(TAILSCALE_VERSION) | cut -d - -f 2 | cut -d t -f 2)
 # Extract the version code from build.gradle.
 VERSIONCODE=$(lastword $(shell grep versionCode android/build.gradle))
 VERSIONCODE_PLUSONE=$(shell expr $(VERSIONCODE) + 1)
 VERSION_LDFLAGS=-X tailscale.com/version.longStamp=$(VERSIONNAME) -X tailscale.com/version.shortStamp=$(VERSIONNAME_SHORT) -X tailscale.com/version.gitCommitStamp=$(TAILSCALE_COMMIT) -X tailscale.com/version.extraGitCommitStamp=$(OUR_VERSION)
+
 FULL_LDFLAGS=$(VERSION_LDFLAGS) -w
+
 ifeq ($(shell uname),Linux)
 	ANDROID_TOOLS_URL="https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip"
 	ANDROID_TOOLS_SUM="bd1aa17c7ef10066949c88dc6c9c8d536be27f992a1f3b5a584f9bd2ba5646a0  commandlinetools-linux-9477386_latest.zip"
@@ -81,8 +86,17 @@ apk: $(DEBUG_APK) ## Build the debug APK
 tailscale-debug: $(DEBUG_APK) ## Build the debug APK
 
 .PHONY: release
-release: tailscale.jks $(RELEASE_AAB) ## Build the release AAB
+release: tailscale.jks $(RELEASE_AAB) $(RELEASE_APK) signaab signapk ## Build and sign the release AAB and APK
+
+.PHONY: signaab
+signaab: tailscale.jks $(RELEASE_AAB) ## Sign the release AAB
 	jarsigner -sigalg SHA256withRSA -digestalg SHA-256 -keystore tailscale.jks $(RELEASE_AAB) tailscale
+	jarsigner -verify -certs $(RELEASE_AAB)
+
+.PHONY: signapk
+signapk: tailscale.jks $(RELEASE_APK) ## Sign the release APK
+	jarsigner -sigalg SHA256withRSA -digestalg SHA-256 -keystore tailscale.jks $(RELEASE_APK) tailscale
+	jarsigner -verify -certs $(RELEASE_APK)
 
 # gradle-dependencies groups together the android sources and libtailscale needed to assemble tests/debug/release builds.
 .PHONY: gradle-dependencies
@@ -95,6 +109,10 @@ $(DEBUG_APK): gradle-dependencies
 $(RELEASE_AAB): gradle-dependencies
 	(cd android && ./gradlew test bundleRelease)
 	install -C ./android/build/outputs/bundle/release/android-release.aab $@
+
+$(RELEASE_APK): gradle-dependencies
+	(cd android && ./gradlew test assembleRelease)
+	install -C ./android/build/outputs/apk/release/android-release-unsigned.apk $@
 
 tailscale-test.apk: gradle-dependencies
 	(cd android && ./gradlew assembleApplicationTestAndroidTest)

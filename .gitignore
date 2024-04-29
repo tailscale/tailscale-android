@@ -21,6 +21,7 @@ android/local.properties
 # Output files from the Makefile:
 tailscale-debug.apk
 tailscale-release.aab
+tailscale-release.apk
 tailscale-fdroid.apk
 tailscale-new-fdroid.apk
 tailscale-new-debug.apk
