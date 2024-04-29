@@ -23,7 +23,7 @@ public class QuickToggleService extends TileService {
     // Request code for opening activity.
     private static int reqCode = 0;
 
-    private static void updateTile() {
+    private static void updateTile(Context ctx) {
         Tile t;
         boolean act;
         synchronized (lock) {
@@ -33,6 +33,10 @@ public class QuickToggleService extends TileService {
         if (t == null) {
             return;
         }
+        t.setLabel("Tailscale");
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            t.setSubtitle(act ? ctx.getString(R.string.connected) : ctx.getString(R.string.not_connected));
+        }
         t.setState(act ? Tile.STATE_ACTIVE : Tile.STATE_INACTIVE);
         t.updateTile();
     }
@@ -41,14 +45,14 @@ public class QuickToggleService extends TileService {
         synchronized (lock) {
             ready = rdy;
         }
-        updateTile();
+        updateTile(ctx);
     }
 
     static void setStatus(Context ctx, boolean act) {
         synchronized (lock) {
             active = act;
         }
-        updateTile();
+        updateTile(ctx);
     }
 
     @Override
@@ -56,7 +60,7 @@ public class QuickToggleService extends TileService {
         synchronized (lock) {
             currentTile = getQsTile();
         }
-        updateTile();
+        updateTile(this.getApplicationContext());
     }
 
     @Override

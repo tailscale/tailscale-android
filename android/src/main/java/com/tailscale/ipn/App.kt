@@ -220,11 +220,8 @@ class App : Application(), libtailscale.AppContext {
   }
 
   fun setTileReady(ready: Boolean) {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
-      return
-    }
     QuickToggleService.setReady(this, ready)
-    Log.d("App", "Set Tile Ready: $ready $autoConnect")
+    Log.d("App", "Set Tile Ready: ready=$ready, autoConnect=$autoConnect")
     vpnReady = ready
     if (ready && autoConnect) {
       startVPN()
@@ -232,9 +229,6 @@ class App : Application(), libtailscale.AppContext {
   }
 
   fun setTileStatus(status: Boolean) {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
-      return
-    }
     QuickToggleService.setStatus(this, status)
   }
 
@@ -363,9 +357,6 @@ class App : Application(), libtailscale.AppContext {
   }
 
   fun createNotificationChannel(id: String?, name: String?, importance: Int) {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-      return
-    }
     val channel = NotificationChannel(id, name, importance)
     val nm: NotificationManagerCompat = NotificationManagerCompat.from(this)
     nm.createNotificationChannel(channel)
