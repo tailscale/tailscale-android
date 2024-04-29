@@ -17,9 +17,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import coil.annotation.ExperimentalCoilApi
 import coil.compose.AsyncImage
+import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.model.IpnLocal
 
 @OptIn(ExperimentalCoilApi::class)
@@ -34,7 +36,10 @@ fun Avatar(profile: IpnLocal.LoginProfile?, size: Int = 50, action: (() -> Unit)
               indication = rememberRipple(bounded = false),
               onClick = action)
     }
-    Icon(imageVector = Icons.Default.Person, contentDescription = null, modifier = modifier)
+    Icon(
+        imageVector = Icons.Default.Person,
+        contentDescription = stringResource(R.string.settings_title),
+        modifier = modifier)
 
     profile?.UserProfile?.ProfilePicURL?.let { url ->
       AsyncImage(model = url, modifier = Modifier.size((size * 1.2f).dp), contentDescription = null)

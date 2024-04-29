@@ -25,6 +25,7 @@
     <string name="app_name">Tailscale</string>
     <string name="tile_name">Tailscale</string>
     <string name="version">Version</string>
+    <string name="about_view_header">About Tailscale</string>
     <string name="about_view_title">Tailscale for Android</string>
     <string name="acknowledgements">Acknowledgements</string>
     <string name="privacy_policy">Privacy Policy</string>

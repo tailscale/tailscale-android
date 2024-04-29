@@ -110,7 +110,7 @@ fun ExitNodeItem(
         trailingContent = {
           Row {
             if (node.selected) {
-              Icon(Icons.Outlined.Check, contentDescription = stringResource(R.string.selected))
+              Icon(Icons.Outlined.Check, null)
             }
           }
         })
@@ -134,7 +134,7 @@ fun MullvadItem(nav: ExitNodePickerNav, count: Int, selected: Boolean) {
         },
         trailingContent = {
           if (selected) {
-            Icon(Icons.Outlined.Check, contentDescription = stringResource(R.string.selected))
+            Icon(Icons.Outlined.Check, null)
           }
         })
   }

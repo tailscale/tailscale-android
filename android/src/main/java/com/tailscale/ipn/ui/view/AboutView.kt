@@ -38,7 +38,7 @@ import com.tailscale.ipn.ui.theme.logoBackground
 fun AboutView(backToSettings: BackNavigation) {
   val localClipboardManager = LocalClipboardManager.current
 
-  Scaffold(topBar = { Header(R.string.about_view_title, onBack = backToSettings) }) { innerPadding
+  Scaffold(topBar = { Header(R.string.about_view_header, onBack = backToSettings) }) { innerPadding
     ->
     Column(
         verticalArrangement =
