@@ -87,8 +87,6 @@ class App : Application(), libtailscale.AppContext {
   }
 
   val dns = DnsConfig()
-  var autoConnect = false
-  var vpnReady = false
   private lateinit var connectivityManager: ConnectivityManager
   private lateinit var app: libtailscale.Application
 
@@ -124,7 +122,7 @@ class App : Application(), libtailscale.AppContext {
         FILE_CHANNEL_ID, "File transfers", NotificationManagerCompat.IMPORTANCE_DEFAULT)
     appInstance = this
     applicationScope.launch {
-      Notifier.tileReady.collect { isTileReady -> setTileReady(isTileReady) }
+      Notifier.tileActive.collect { isTileReadyToBeActive -> setTileActive(isTileReadyToBeActive) }
     }
   }
 
@@ -137,7 +135,7 @@ class App : Application(), libtailscale.AppContext {
   fun setWantRunning(wantRunning: Boolean) {
     val callback: (Result<Ipn.Prefs>) -> Unit = { result ->
       result.fold(
-          onSuccess = { _ -> setTileStatus(wantRunning) },
+          onSuccess = { },
           onFailure = { error ->
             Log.d("TAG", "Set want running: failed to update preferences: ${error.message}")
           })
@@ -187,11 +185,6 @@ class App : Application(), libtailscale.AppContext {
     startService(intent)
   }
 
-  fun stopVPN() {
-    val intent = Intent(this, IPNService::class.java)
-    intent.setAction(IPNService.ACTION_STOP_VPN)
-    startService(intent)
-  }
 
   // encryptToPref a byte array of data using the Jetpack Security
   // library and writes it to a global encrypted preference store.
@@ -219,17 +212,15 @@ class App : Application(), libtailscale.AppContext {
         EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM)
   }
 
-  fun setTileReady(ready: Boolean) {
+  fun setTileActive(ready: Boolean) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+      return
+    }
     QuickToggleService.setReady(this, ready)
-    Log.d("App", "Set Tile Ready: ready=$ready, autoConnect=$autoConnect")
-    vpnReady = ready
-    if (ready && autoConnect) {
+    Log.d("App", "Set Tile Ready: $ready")
+    if (ready){
       startVPN()
     }
-  }
-
-  fun setTileStatus(status: Boolean) {
-    QuickToggleService.setStatus(this, status)
   }
 
   fun getHostname(): String {

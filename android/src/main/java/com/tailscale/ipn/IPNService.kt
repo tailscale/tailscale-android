@@ -21,11 +21,6 @@ open class IPNService : VpnService(), libtailscale.IPNService {
   }
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-    if (intent != null && ACTION_STOP_VPN == intent.action) {
-      (applicationContext as App).autoConnect = false
-      close()
-      return START_NOT_STICKY
-    }
     val app = applicationContext as App
     if (intent != null && "android.net.VpnService" == intent.action) {
       // Start VPN and connect to it due to Always-on VPN
@@ -33,14 +28,9 @@ open class IPNService : VpnService(), libtailscale.IPNService {
       i.setPackage(packageName)
       i.setClass(applicationContext, IPNReceiver::class.java)
       sendBroadcast(i)
-      Libtailscale.requestVPN(this)
-      app.setWantRunning(true)
-      return START_STICKY
     }
     Libtailscale.requestVPN(this)
-    if (app.vpnReady && app.autoConnect) {
-      app.setWantRunning(true)
-    }
+    app.setWantRunning(true)
     return START_STICKY
   }
 
@@ -134,6 +124,5 @@ open class IPNService : VpnService(), libtailscale.IPNService {
 
   companion object {
     const val ACTION_REQUEST_VPN = "com.tailscale.ipn.REQUEST_VPN"
-    const val ACTION_STOP_VPN = "com.tailscale.ipn.STOP_VPN"
   }
 }
