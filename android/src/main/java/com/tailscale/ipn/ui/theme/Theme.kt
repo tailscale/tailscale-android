@@ -86,11 +86,11 @@ private val LightColors =
 
 private val DarkColors =
     darkColorScheme(
-        primary = Color(0xFF4B70CC), // blue-500
+        primary = Color(0xFF3E5DB3), // blue-600
         onPrimary = Color(0xFFFFFFFF), // white
         primaryContainer = Color(0xFFf0f5ff), // blue-0
-        onPrimaryContainer = Color(0xFF3f5eb3), // blue-600
-        error = Color(0xFFB22D30), // red-500
+        onPrimaryContainer = Color(0xFF5A82DC), // blue-400
+        error = Color(0xFFEF5350), // red-400
         onError = Color(0xFFFFFFFF), // white
         errorContainer = Color(0xFFfff6f4), // red-0
         onErrorContainer = Color(0xFF940822), // red-600
@@ -150,7 +150,7 @@ val ColorScheme.off: Color
       }
 
 val ColorScheme.link: Color
-  get() = primary
+  get() = onPrimaryContainer
 
 /**
  * Main color scheme for list items, uses onPrimaryContainer color for leading and trailing icons.
@@ -248,7 +248,7 @@ val ColorScheme.warningListItem: ListItemColors
         containerColor = MaterialTheme.colorScheme.warning,
         headlineColor = MaterialTheme.colorScheme.onPrimary,
         leadingIconColor = MaterialTheme.colorScheme.onPrimary,
-        overlineColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
+        overlineColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
         supportingTextColor = MaterialTheme.colorScheme.onPrimary,
         trailingIconColor = MaterialTheme.colorScheme.onPrimary,
         disabledHeadlineColor = default.disabledHeadlineColor,
@@ -272,11 +272,19 @@ val ColorScheme.secondaryButton: ButtonColors
   @Composable
   get() {
     val defaults = ButtonDefaults.buttonColors()
-    return ButtonColors(
-        containerColor = Color(0xFF6D94EC), // blue-400
-        contentColor = Color(0xFFFFFFFF), // white
-        disabledContainerColor = defaults.disabledContainerColor,
-        disabledContentColor = defaults.disabledContentColor)
+    if (isSystemInDarkTheme()) {
+      return ButtonColors(
+          containerColor = Color(0xFF4B70CC), // blue-500
+          contentColor = Color(0xFFFFFFFF), // white
+          disabledContainerColor = defaults.disabledContainerColor,
+          disabledContentColor = defaults.disabledContentColor)
+    } else {
+      return ButtonColors(
+          containerColor = Color(0xFF5A82DC), // blue-400
+          contentColor = Color(0xFFFFFFFF), // white
+          disabledContainerColor = defaults.disabledContainerColor,
+          disabledContentColor = defaults.disabledContentColor)
+    }
   }
 
 val ColorScheme.defaultTextColor: Color

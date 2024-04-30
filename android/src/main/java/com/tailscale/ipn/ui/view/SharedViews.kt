@@ -71,7 +71,7 @@ fun BackArrow(action: () -> Unit) {
 
 @Composable
 fun CheckedIndicator() {
-  Icon(Icons.Default.CheckCircle, "selected", tint = ts_color_light_blue)
+  Icon(Icons.Default.CheckCircle, null, tint = ts_color_light_blue)
 }
 
 @Composable
