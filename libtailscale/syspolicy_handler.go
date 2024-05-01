@@ -23,7 +23,7 @@ func (h syspolicyHandler) ReadString(key string) (string, error) {
 	}
 	retVal, err := h.a.appCtx.GetSyspolicyStringValue(key)
 	if err != nil && !errors.Is(err, syspolicy.ErrNoSuchKey) {
-		log.Printf("syspolicy: failed to get string value via gomobile: %v", err)
+		log.Printf("syspolicy: %s (str) will not be set: %v", key, err)
 	}
 	return retVal, err
 }
@@ -34,7 +34,7 @@ func (h syspolicyHandler) ReadBoolean(key string) (bool, error) {
 	}
 	retVal, err := h.a.appCtx.GetSyspolicyBooleanValue(key)
 	if err != nil && !errors.Is(err, syspolicy.ErrNoSuchKey) {
-		log.Printf("syspolicy: failed to get bool value via gomobile: %v", err)
+		log.Printf("syspolicy: %s (bool) will not be set: %v", key, err)
 	}
 	return retVal, err
 }
@@ -54,7 +54,7 @@ func (h syspolicyHandler) ReadStringArray(key string) ([]string, error) {
 	}
 	retVal, err := h.a.appCtx.GetSyspolicyStringArrayJSONValue(key)
 	if err != nil && !errors.Is(err, syspolicy.ErrNoSuchKey) {
-		log.Printf("syspolicy: failed to get string array value via gomobile: %v", err)
+		log.Printf("syspolicy: %s (strArr) will not be set: %v", key, err)
 		return nil, err
 	}
 	if retVal == "" {
