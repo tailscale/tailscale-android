@@ -17,7 +17,7 @@ import (
 	"golang.org/x/sys/unix"
 	"inet.af/netaddr"
 	"tailscale.com/net/dns"
-	"tailscale.com/net/interfaces"
+	"tailscale.com/net/netmon"
 	"tailscale.com/util/dnsname"
 	"tailscale.com/wgengine/router"
 )
@@ -34,8 +34,8 @@ var errVPNNotPrepared = errors.New("VPN service not prepared or was revoked")
 var errMultipleUsers = errors.New("VPN cannot be created on this device due to an Android bug with multiple users")
 
 // Report interfaces in the device in net.Interface format.
-func (a *App) getInterfaces() ([]interfaces.Interface, error) {
-	var ifaces []interfaces.Interface
+func (a *App) getInterfaces() ([]netmon.Interface, error) {
+	var ifaces []netmon.Interface
 
 	ifaceString, err := a.appCtx.GetInterfacesAsString()
 	if err != nil {
@@ -68,7 +68,7 @@ func (a *App) getInterfaces() ([]interfaces.Interface, error) {
 			continue
 		}
 
-		newIf := interfaces.Interface{
+		newIf := netmon.Interface{
 			Interface: &net.Interface{
 				Name:  name,
 				Index: index,
@@ -242,7 +242,7 @@ func (b *backend) NetworkChanged(ifname string) {
 	}()
 
 	// Set the interface name and alert the monitor.
-	interfaces.UpdateLastKnownDefaultRouteInterface(ifname)
+	netmon.UpdateLastKnownDefaultRouteInterface(ifname)
 	if b.sys != nil {
 		if nm, ok := b.sys.NetMon.GetOK(); ok {
 			nm.InjectEvent()
