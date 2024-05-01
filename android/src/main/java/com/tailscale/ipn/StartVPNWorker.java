@@ -25,11 +25,7 @@ public final class StartVPNWorker extends Worker {
     @Override
     public Result doWork() {
         App app = ((App) getApplicationContext());
-
-        // We will start the VPN from the background
-        app.setAutoConnect(true);
         // We need to make sure we prepare the VPN Service, just in case it isn't prepared.
-
         Intent intent = VpnService.prepare(app);
         if (intent == null) {
             // If null then the VPN is already prepared and/or it's just been prepared because we have permission

@@ -13,8 +13,6 @@ import android.service.quicksettings.TileService;
 public class QuickToggleService extends TileService {
     // lock protects the static fields below it.
     private static final Object lock = new Object();
-    // Active tracks whether the VPN is active.
-    private static boolean active;
     // Ready tracks whether the tailscale backend is
     // ready to switch on/off.
     private static boolean ready;
@@ -28,7 +26,7 @@ public class QuickToggleService extends TileService {
         boolean act;
         synchronized (lock) {
             t = currentTile;
-            act = active && ready;
+            act = ready;
         }
         if (t == null) {
             return;
@@ -44,13 +42,6 @@ public class QuickToggleService extends TileService {
     static void setReady(Context ctx, boolean rdy) {
         synchronized (lock) {
             ready = rdy;
-        }
-        updateTile(ctx);
-    }
-
-    static void setStatus(Context ctx, boolean act) {
-        synchronized (lock) {
-            active = act;
         }
         updateTile(ctx);
     }
@@ -92,7 +83,7 @@ public class QuickToggleService extends TileService {
     private void onTileClick() {
         boolean act;
         synchronized (lock) {
-            act = active && ready;
+            act = ready;
         }
         Intent i = new Intent(act ? IPNReceiver.INTENT_DISCONNECT_VPN : IPNReceiver.INTENT_CONNECT_VPN);
         i.setPackage(getPackageName());
