@@ -86,21 +86,26 @@ apk: $(DEBUG_APK) ## Build the debug APK
 tailscale-debug: $(DEBUG_APK) ## Build the debug APK
 
 .PHONY: release
-release: tailscale.jks $(RELEASE_AAB) $(RELEASE_APK) signaab signapk ## Build and sign the release AAB and APK
+release: signingkey $(RELEASE_AAB) $(RELEASE_APK) signaab signapk ## Build and sign the release AAB and APK
 
 .PHONY: signaab
-signaab: tailscale.jks $(RELEASE_AAB) ## Sign the release AAB
-	jarsigner -sigalg SHA256withRSA -digestalg SHA-256 -keystore tailscale.jks $(RELEASE_AAB) tailscale
+signaab: signingkey $(RELEASE_AAB) ## Sign the release AAB
+	jarsigner -sigalg SHA256withRSA -digestalg SHA-256 -keystore tailscale.jks -storepass $(KEYSTORE_PASSWORD) $(RELEASE_AAB) tailscale
 	jarsigner -verify -certs $(RELEASE_AAB)
 
 .PHONY: signapk
-signapk: tailscale.jks $(RELEASE_APK) ## Sign the release APK
-	jarsigner -sigalg SHA256withRSA -digestalg SHA-256 -keystore tailscale.jks $(RELEASE_APK) tailscale
+signapk: signingkey $(RELEASE_APK) ## Sign the release APK
+	jarsigner -sigalg SHA256withRSA -digestalg SHA-256 -keystore tailscale.jks -storepass $(KEYSTORE_PASSWORD) $(RELEASE_APK) tailscale
 	jarsigner -verify -certs $(RELEASE_APK)
 
 # gradle-dependencies groups together the android sources and libtailscale needed to assemble tests/debug/release builds.
 .PHONY: gradle-dependencies
 gradle-dependencies: $(shell find android -type f -not -path "android/build/*" -not -path '*/.*') $(LIBTAILSCALE)
+
+.PHONY: signingkey
+signingkey: tailscale.jks
+	@test $${KEYSTORE_PASSWORD?Please set environment variable KEYSTORE_PASSWORD to the keystore password}
+	@echo "tailscale.jks is present and KEYSTORE_PASSWORD is set"
 
 $(DEBUG_APK): gradle-dependencies
 	(cd android && ./gradlew test assembleDebug)
