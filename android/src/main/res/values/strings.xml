@@ -212,7 +212,7 @@
     <string name="permission_write_external_storage">Storage</string>
     <string name="permission_write_external_storage_needed">We use storage in order to receive files with Taildrop.</string>
     <string name="permission_post_notifications">Notifications</string>
-    <string name="permission_post_notifications_needed">We use notifications to help you troubleshoot broken connections, or notify you before you need to reauthenticate to your network.</string>
+    <string name="permission_post_notifications_needed">We use notifications to help you troubleshoot broken connections, or notify you before you need to reauthenticate to your network. Persistent status notifications are off by default and can be enabled in system settings. </string>
 
 
     <!-- Strings for the share activity -->
@@ -226,6 +226,7 @@
     <string name="taildrop_share_failed">Taildrop failed. Some files were not shared. Please try again.</string>
     <string name="taildrop_sending">Sending</string>
     <string name="taildrop_share_failed_short">Failed</string>
+    <string name="file_notification">File received</string>
 
 
     <!-- Error Dialog Titles -->
