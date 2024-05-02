@@ -15,7 +15,7 @@ import (
 	"tailscale.com/logpolicy"
 	"tailscale.com/logtail"
 	"tailscale.com/logtail/filch"
-	"tailscale.com/net/interfaces"
+	"tailscale.com/net/netmon"
 	"tailscale.com/types/logger"
 	"tailscale.com/types/logid"
 	"tailscale.com/util/clientmetric"
@@ -39,7 +39,7 @@ func newApp(dataDir, directFileRoot string, appCtx AppContext) Application {
 	a.ready.Add(1)
 
 	a.store = newStateStore(a.appCtx)
-	interfaces.RegisterInterfaceGetter(a.getInterfaces)
+	netmon.RegisterInterfaceGetter(a.getInterfaces)
 	syspolicy.RegisterHandler(syspolicyHandler{a: a})
 	go func() {
 		defer func() {
