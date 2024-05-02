@@ -21,6 +21,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
+import com.tailscale.ipn.mdm.MDMSettings
+import com.tailscale.ipn.mdm.ShowHide
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.theme.disabledListItem
 import com.tailscale.ipn.ui.theme.listItem
@@ -45,6 +47,9 @@ fun ExitNodePicker(
       val mullvadExitNodeCount = model.mullvadExitNodeCount.collectAsState().value
       val anyActive = model.anyActive.collectAsState()
       val allowLANAccess = Notifier.prefs.collectAsState().value?.ExitNodeAllowLANAccess == true
+      val showRunAsExitNode = MDMSettings.runExitNode.flow.collectAsState().value
+      val allowLanAccessMDMDisposition =
+          MDMSettings.exitNodeAllowLANAccess.flow.collectAsState().value
 
       LazyColumn(modifier = Modifier.padding(innerPadding)) {
         item(key = "header") {
@@ -55,8 +60,11 @@ fun ExitNodePicker(
                   online = true,
                   selected = !anyActive.value,
               ))
-          Lists.ItemDivider()
-          RunAsExitNodeItem(nav = nav, viewModel = model)
+
+          if (showRunAsExitNode == ShowHide.Show) {
+            Lists.ItemDivider()
+            RunAsExitNodeItem(nav = nav, viewModel = model)
+          }
         }
 
         item(key = "divider1") { Lists.SectionDivider() }
@@ -71,13 +79,14 @@ fun ExitNodePicker(
           }
         }
 
-        // TODO: make sure this actually works, and if not, leave it out for now
-        item(key = "allowLANAccess") {
-          Lists.SectionDivider()
+        if (!allowLanAccessMDMDisposition.hiddenFromUser) {
+          item(key = "allowLANAccess") {
+            Lists.SectionDivider()
 
-          Setting.Switch(R.string.allow_lan_access, isOn = allowLANAccess) {
-            LoadingIndicator.start()
-            model.toggleAllowLANAccess { LoadingIndicator.stop() }
+            Setting.Switch(R.string.allow_lan_access, isOn = allowLANAccess) {
+              LoadingIndicator.start()
+              model.toggleAllowLANAccess { LoadingIndicator.stop() }
+            }
           }
         }
       }

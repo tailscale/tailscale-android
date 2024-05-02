@@ -18,41 +18,71 @@ object MDMSettings {
 
   val forceEnabled = BooleanMDMSetting("ForceEnabled", "Force Enabled Connection Toggle")
 
+  // Handled on the backed
   val exitNodeID = StringMDMSetting("ExitNodeID", "Forced Exit Node: Stable ID")
+
+  // (jonathan) TODO: Unused but required. There is some funky go string duration parsing required
+  // here.
   val keyExpirationNotice = StringMDMSetting("KeyExpirationNotice", "Key Expiration Notice Period")
+
   val loginURL = StringMDMSetting("LoginURL", "Custom control server URL")
+
   val managedByCaption = StringMDMSetting("ManagedByCaption", "Managed By - Caption")
+
   val managedByOrganizationName =
       StringMDMSetting("ManagedByOrganizationName", "Managed By - Organization Name")
+
   val managedByURL = StringMDMSetting("ManagedByURL", "Managed By - Support URL")
+
+  // Handled on the backend
   val tailnet = StringMDMSetting("Tailnet", "Recommended/Required Tailnet Name")
 
   val hiddenNetworkDevices =
       StringArrayListMDMSetting("HiddenNetworkDevices", "Hidden Network Device Categories")
 
+  // Unused on Android
   val allowIncomingConnections =
       AlwaysNeverUserDecidesMDMSetting("AllowIncomingConnections", "Allow Incoming Connections")
+
+  // Unused on Android
   val detectThirdPartyAppConflicts =
       AlwaysNeverUserDecidesMDMSetting(
           "DetectThirdPartyAppConflicts", "Detect potentially problematic third-party apps")
+
   val exitNodeAllowLANAccess =
       AlwaysNeverUserDecidesMDMSetting(
           "ExitNodeAllowLANAccess", "Allow LAN Access when using an exit node")
+
+  // Handled on the backend
   val postureChecking =
       AlwaysNeverUserDecidesMDMSetting("PostureChecking", "Enable Posture Checking")
+
   val useTailscaleDNSSettings =
       AlwaysNeverUserDecidesMDMSetting("UseTailscaleDNSSettings", "Use Tailscale DNS Settings")
+
+  // Unused on Android
   val useTailscaleSubnets =
       AlwaysNeverUserDecidesMDMSetting("UseTailscaleSubnets", "Use Tailscale Subnets")
 
   val exitNodesPicker = ShowHideMDMSetting("ExitNodesPicker", "Exit Nodes Picker")
+
   val manageTailnetLock = ShowHideMDMSetting("ManageTailnetLock", "“Manage Tailnet lock” menu item")
+
+  // Unused on Android
   val resetToDefaults = ShowHideMDMSetting("ResetToDefaults", "“Reset to Defaults” menu item")
+
   val runExitNode = ShowHideMDMSetting("RunExitNode", "Run as Exit Node")
+
+  // Unused on Android
   val testMenu = ShowHideMDMSetting("TestMenu", "Show Debug Menu")
+
+  // Unused on Android
   val updateMenu = ShowHideMDMSetting("UpdateMenu", "“Update Available” menu item")
+
+  // (jonathan) TODO: Use this when suggested exit nodes are implemented
   val allowedSuggestedExitNodes =
       StringArrayListMDMSetting("AllowedSuggestedExitNodes", "Allowed Suggested Exit Nodes")
+
   val allSettings by lazy {
     MDMSettings::class
         .declaredMemberProperties

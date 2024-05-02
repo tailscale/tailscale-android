@@ -64,6 +64,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.tailscale.ipn.R
+import com.tailscale.ipn.mdm.MDMSettings
+import com.tailscale.ipn.mdm.ShowHide
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.Netmap
@@ -113,11 +115,20 @@ fun MainView(
             val stateVal = viewModel.stateRes.collectAsState(initial = R.string.placeholder).value
             val stateStr = stringResource(id = stateVal)
             val netmap = viewModel.netmap.collectAsState(initial = null).value
+            val showExitNodePicker = MDMSettings.exitNodesPicker.flow.collectAsState().value
+            val allowToggle = MDMSettings.forceEnabled.flow.collectAsState().value
 
             ListItem(
                 colors = MaterialTheme.colorScheme.surfaceContainerListItem,
                 leadingContent = {
-                  TintedSwitch(onCheckedChange = { viewModel.toggleVpn() }, checked = isOn.value)
+                  TintedSwitch(
+                      onCheckedChange = {
+                        if (allowToggle) {
+                          viewModel.toggleVpn()
+                        }
+                      },
+                      enabled = !allowToggle,
+                      checked = isOn.value)
                 },
                 headlineContent = {
                   user?.NetworkProfile?.DomainName?.let { domain ->
@@ -157,7 +168,10 @@ fun MainView(
 
                 ExpiryNotificationIfNecessary(netmap = netmap, action = { viewModel.login() })
 
-                ExitNodeStatus(navAction = navigation.onNavigateToExitNodes, viewModel = viewModel)
+                if (showExitNodePicker == ShowHide.Show) {
+                  ExitNodeStatus(
+                      navAction = navigation.onNavigateToExitNodes, viewModel = viewModel)
+                }
 
                 PeerList(
                     viewModel = viewModel,
@@ -263,7 +277,10 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
 @Composable
 fun SettingsButton(action: () -> Unit) {
   IconButton(modifier = Modifier.size(24.dp), onClick = { action() }) {
-    Icon(Icons.Outlined.Settings, contentDescription = "Open settings", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+    Icon(
+        Icons.Outlined.Settings,
+        contentDescription = "Open settings",
+        tint = MaterialTheme.colorScheme.onSurfaceVariant)
   }
 }
 
