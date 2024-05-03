@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tailscale.ipn.App
 import com.tailscale.ipn.IPNReceiver
+import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.localapi.Client
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.IpnLocal
@@ -85,6 +86,12 @@ open class IpnViewModel : ViewModel() {
   // Login/Logout
 
   fun login(options: Ipn.Options = Ipn.Options(), completionHandler: (Result<Unit>) -> Unit = {}) {
+
+    MDMSettings.loginURL.flow.value?.let {
+      Log.d(TAG, "Using MDM derived control URL: $it")
+      loginWithCustomControlURL(it, completionHandler)
+      return
+    }
 
     val loginAction = {
       Client(viewModelScope).startLoginInteractive { result ->

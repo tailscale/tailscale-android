@@ -81,7 +81,12 @@ class ShowHideMDMSetting(key: String, localizedTitle: String) :
 enum class AlwaysNeverUserDecides(val value: String) {
   Always("always"),
   Never("never"),
-  UserDecides("user-decides")
+  UserDecides("user-decides");
+
+  val hiddenFromUser: Boolean
+    get() {
+      return this != UserDecides
+    }
 }
 
 enum class ShowHide(val value: String) {

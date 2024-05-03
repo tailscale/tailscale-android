@@ -21,6 +21,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
+import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.model.DnsType
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.util.ClipboardValueView
@@ -48,6 +49,7 @@ fun DNSSettingsView(
         entry.value?.let { resolvers -> ViewableRoute(name = entry.key, resolvers) } ?: run { null }
       } ?: emptyList()
   val useCorpDNS = Notifier.prefs.collectAsState().value?.CorpDNS == true
+  val dnsSettingsMDMDisposition = MDMSettings.useTailscaleDNSSettings.flow.collectAsState().value
 
   Scaffold(topBar = { Header(R.string.dns_settings, onBack = backToSettings) }) { innerPadding ->
     LoadingIndicator.Wrap {
@@ -66,14 +68,16 @@ fun DNSSettingsView(
               },
               supportingContent = { Text(stringResource(state.caption)) })
 
-          Lists.ItemDivider()
-          Setting.Switch(
-              R.string.use_ts_dns,
-              isOn = useCorpDNS,
-              onToggle = {
-                LoadingIndicator.start()
-                model.toggleCorpDNS { LoadingIndicator.stop() }
-              })
+          if (!dnsSettingsMDMDisposition.hiddenFromUser) {
+            Lists.ItemDivider()
+            Setting.Switch(
+                R.string.use_ts_dns,
+                isOn = useCorpDNS,
+                onToggle = {
+                  LoadingIndicator.start()
+                  model.toggleCorpDNS { LoadingIndicator.stop() }
+                })
+          }
         }
 
         if (resolvers.isNotEmpty()) {
@@ -107,5 +111,5 @@ fun DNSSettingsView(
 fun DNSSettingsViewPreview() {
   val vm = DNSSettingsViewModel()
   vm.enablementState.set(DNSEnablementState.ENABLED)
-  DNSSettingsView(backToSettings = { }, vm)
+  DNSSettingsView(backToSettings = {}, vm)
 }

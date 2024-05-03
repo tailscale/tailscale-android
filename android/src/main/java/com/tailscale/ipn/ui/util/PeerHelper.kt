@@ -3,6 +3,7 @@
 
 package com.tailscale.ipn.ui.util
 
+import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.model.Netmap
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.model.UserID
@@ -19,21 +20,41 @@ class PeerCategorizer {
     val selfNode = netmap.SelfNode
     var grouped = mutableMapOf<UserID, MutableList<Tailcfg.Node>>()
 
-    for (peer in (peers + selfNode)) {
-      // (jonathan) TODO: MDM -> There are a number of MDM settings to hide devices from the user
-      // (jonathan) TODO: MDM -> currentUser, otherUsers, taggedDevices
-      val userId = peer.User
-
-      // Mullvad based nodes should not be shown in the peer list
-      if (!peer.isMullvadNode) {
-        if (!grouped.containsKey(userId)) {
-          grouped[userId] = mutableListOf()
-        }
-        grouped[userId]?.add(peer)
-      }
-    }
+    val mdm = MDMSettings.hiddenNetworkDevices.flow.value
+    val hideMyDevices = mdm?.contains("current-user") ?: false
+    val hideOtherDevices = mdm?.contains("other-users") ?: false
+    val hideTaggedDevices = mdm?.contains("tagged-devices") ?: false
 
     val me = netmap.currentUserProfile()
+
+    for (peer in (peers + selfNode)) {
+
+      val userId = peer.User
+      val profile = netmap.userProfile(userId)
+
+      // Mullvad nodes should not be shown in the peer list
+      if (peer.isMullvadNode) {
+        continue
+      }
+
+      // Hide devices based on MDM settings
+      if (hideMyDevices && userId == me?.ID) {
+        continue
+      }
+
+      if (hideOtherDevices && userId != me?.ID) {
+        continue
+      }
+
+      if (hideTaggedDevices && (profile?.isTaggedDevice() == true)) {
+        continue
+      }
+
+      if (!grouped.containsKey(userId)) {
+        grouped[userId] = mutableListOf()
+      }
+      grouped[userId]?.add(peer)
+    }
 
     peerSets =
         grouped

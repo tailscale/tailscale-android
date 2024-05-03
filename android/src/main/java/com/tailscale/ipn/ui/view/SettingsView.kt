@@ -26,6 +26,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.BuildConfig
 import com.tailscale.ipn.R
+import com.tailscale.ipn.mdm.MDMSettings
+import com.tailscale.ipn.mdm.ShowHide
 import com.tailscale.ipn.ui.Links
 import com.tailscale.ipn.ui.theme.link
 import com.tailscale.ipn.ui.theme.listItem
@@ -42,6 +44,8 @@ fun SettingsView(settingsNav: SettingsNav, viewModel: SettingsViewModel = viewMo
   val managedByOrganization = viewModel.managedByOrganization.collectAsState().value
   val tailnetLockEnabled = viewModel.tailNetLockEnabled.collectAsState().value
   val corpDNSEnabled = viewModel.corpDNSEnabled.collectAsState().value
+
+  val showTailnetLock = MDMSettings.manageTailnetLock.flow.collectAsState().value
 
   Scaffold(
       topBar = {
@@ -68,14 +72,16 @@ fun SettingsView(settingsNav: SettingsNav, viewModel: SettingsViewModel = viewMo
                   },
               onClick = settingsNav.onNavigateToDNSSettings)
 
-          Lists.ItemDivider()
-          Setting.Text(
-              R.string.tailnet_lock,
-              subtitle =
-                  tailnetLockEnabled?.let {
-                    stringResource(if (it) R.string.enabled else R.string.disabled)
-                  },
-              onClick = settingsNav.onNavigateToTailnetLock)
+          if (showTailnetLock == ShowHide.Show) {
+            Lists.ItemDivider()
+            Setting.Text(
+                R.string.tailnet_lock,
+                subtitle =
+                    tailnetLockEnabled?.let {
+                      stringResource(if (it) R.string.enabled else R.string.disabled)
+                    },
+                onClick = settingsNav.onNavigateToTailnetLock)
+          }
 
           Lists.ItemDivider()
           Setting.Text(R.string.permissions, onClick = settingsNav.onNavigateToPermissions)
