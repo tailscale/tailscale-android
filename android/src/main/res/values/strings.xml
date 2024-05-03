@@ -9,6 +9,7 @@
     <string name="unknown_user">Unknown user</string>
     <string name="connected">Connected</string>
     <string name="not_connected">Not connected</string>
+    <string name="disconnect">Disconnect</string>
     <string name="empty"> </string>
     <string name="template">%s</string>
     <string name="more">More</string>

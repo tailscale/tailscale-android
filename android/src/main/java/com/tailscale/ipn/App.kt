@@ -65,6 +65,9 @@ class App : Application(), libtailscale.AppContext {
     private const val FILE_CHANNEL_ID = "tailscale-files"
     private const val FILE_NOTIFICATION_ID = 2
     private const val TAG = "App"
+    private const val NOTIF_REQ_CODE = 0
+    private const val NOTIF_ACTION_REQ_CODE = 1
+    private const val NOTIF_FILE_REQ_CODE = 2
     private val networkConnectivityRequest =
         NetworkRequest.Builder()
             .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
@@ -131,7 +134,7 @@ class App : Application(), libtailscale.AppContext {
   fun setWantRunning(wantRunning: Boolean) {
     val callback: (Result<Ipn.Prefs>) -> Unit = { result ->
       result.fold(
-          onSuccess = { },
+          onSuccess = {},
           onFailure = { error ->
             Log.d("TAG", "Set want running: failed to update preferences: ${error.message}")
           })
@@ -181,7 +184,6 @@ class App : Application(), libtailscale.AppContext {
     startService(intent)
   }
 
-
   // encryptToPref a byte array of data using the Jetpack Security
   // library and writes it to a global encrypted preference store.
   @Throws(IOException::class, GeneralSecurityException::class)
@@ -214,27 +216,48 @@ class App : Application(), libtailscale.AppContext {
     }
     QuickToggleService.setReady(this, ready)
     Log.d("App", "Set Tile Ready: $ready")
-    val action = if (ready) IPNReceiver.INTENT_DISCONNECT_VPN else IPNReceiver.INTENT_CONNECT_VPN
-    val intent = Intent(this, IPNReceiver::class.java).apply {
-    this.action = action
-    }
-    val pendingIntent : PendingIntent = PendingIntent.getBroadcast(
-      this,
-      0,
-      intent,
-      PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-    )
+
     if (ready){
-      startVPN()
-    }
-    val notificationMessage = if (ready) getString(R.string.connected) else getString(R.string.not_connected)
-    notify(
-    "Tailscale",
-    notificationMessage,
-    STATUS_CHANNEL_ID,
-    pendingIntent,
-    STATUS_NOTIFICATION_ID
-)
+      val notificationMessage = getString(R.string.connected)
+      var actionIntent: PendingIntent? = null
+      var actionTitle: String? = null
+      if (ready) {
+        val disconnectAction =
+            if (ready) IPNReceiver.INTENT_DISCONNECT_VPN else IPNReceiver.INTENT_CONNECT_VPN
+        val disconnectIntent =
+            Intent(this, IPNReceiver::class.java).apply { this.action = disconnectAction }
+        actionIntent =
+            PendingIntent.getBroadcast(
+                this,
+                NOTIF_ACTION_REQ_CODE,
+                disconnectIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        actionTitle = getString(R.string.disconnect)
+        startVPN()
+      }
+
+      val intent =
+          Intent(applicationContext, MainActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            action = Intent.ACTION_MAIN
+            addCategory(Intent.CATEGORY_LAUNCHER)
+          }
+      val pendingIntent =
+          PendingIntent.getActivity(
+              applicationContext,
+              NOTIF_REQ_CODE,
+              intent,
+              PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+
+      notify(
+          title = getString(R.string.tile_name),
+          message = notificationMessage,
+          channel = STATUS_CHANNEL_ID,
+          intent = pendingIntent,
+          actionIntent = actionIntent,
+          actionButtonTitle = actionTitle,
+          notificationID = STATUS_NOTIFICATION_ID)
+      }
   }
 
   fun getHostname(): String {
@@ -336,8 +359,16 @@ class App : Application(), libtailscale.AppContext {
       viewIntent = Intent(DownloadManager.ACTION_VIEW_DOWNLOADS)
     }
     val pending: PendingIntent =
-        PendingIntent.getActivity(this, 0, viewIntent, PendingIntent.FLAG_UPDATE_CURRENT)
-    notify(getString(R.string.file_notification), msg, FILE_CHANNEL_ID, pending, FILE_NOTIFICATION_ID)
+        PendingIntent.getActivity(
+            this, NOTIF_FILE_REQ_CODE, viewIntent, PendingIntent.FLAG_UPDATE_CURRENT)
+    notify(
+        title = getString(R.string.file_notification),
+        message = msg,
+        channel = FILE_CHANNEL_ID,
+        intent = pending,
+        actionIntent = null,
+        actionButtonTitle = null,
+        notificationID = FILE_NOTIFICATION_ID)
   }
 
   fun createNotificationChannel(id: String?, name: String?, importance: Int) {
@@ -346,7 +377,15 @@ class App : Application(), libtailscale.AppContext {
     nm.createNotificationChannel(channel)
   }
 
-  fun notify(title: String?, message: String?, channel: String, intent: PendingIntent?, notificationID: Int) {
+  fun notify(
+      title: String?,
+      message: String?,
+      channel: String,
+      intent: PendingIntent?,
+      actionIntent: PendingIntent?,
+      actionButtonTitle: CharSequence?,
+      notificationID: Int
+  ) {
     val builder: NotificationCompat.Builder =
         NotificationCompat.Builder(this, channel)
             .setSmallIcon(R.drawable.ic_notification)
@@ -356,6 +395,12 @@ class App : Application(), libtailscale.AppContext {
             .setAutoCancel(true)
             .setOnlyAlertOnce(true)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+    actionButtonTitle?.let { title ->
+      if (actionIntent != null) {
+        // Use 0 for icon since the icons are hidden for Android N+
+        builder.addAction(0, actionButtonTitle, actionIntent)
+      }
+    }
     val nm: NotificationManagerCompat = NotificationManagerCompat.from(this)
     if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
         PackageManager.PERMISSION_GRANTED) {
