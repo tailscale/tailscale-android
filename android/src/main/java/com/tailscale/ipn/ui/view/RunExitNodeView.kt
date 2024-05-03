@@ -21,6 +21,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -39,7 +40,7 @@ fun RunExitNodeView(
     nav: ExitNodePickerNav,
     model: RunExitNodeViewModel = viewModel(factory = RunExitNodeViewModelFactory())
 ) {
-  val isRunningExitNode = model.isRunningExitNode.collectAsState().value
+  val isRunningExitNode by model.isRunningExitNode.collectAsState()
 
   Scaffold(
       topBar = { Header(R.string.run_as_exit_node, onBack = nav.onNavigateBackToExitNodes) }) {
@@ -49,7 +50,11 @@ fun RunExitNodeView(
               horizontalAlignment = Alignment.CenterHorizontally,
               verticalArrangement =
                   Arrangement.spacedBy(24.dp, alignment = Alignment.CenterVertically),
-              modifier = Modifier.padding(innerPadding).padding(24.dp).fillMaxHeight().verticalScroll(rememberScrollState())) {
+              modifier =
+                  Modifier.padding(innerPadding)
+                      .padding(24.dp)
+                      .fillMaxHeight()
+                      .verticalScroll(rememberScrollState())) {
                 RunExitNodeGraphic()
 
                 if (isRunningExitNode) {

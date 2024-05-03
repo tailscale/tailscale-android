@@ -12,6 +12,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -38,7 +39,7 @@ fun MDMSettingsDebugView(backToSettings: BackNavigation, model: IpnViewModel = v
 
 @Composable
 fun MDMSettingView(setting: MDMSetting<*>) {
-  val value = setting.flow.collectAsState().value
+  val value by setting.flow.collectAsState()
   ListItem(
       headlineContent = { Text(setting.localizedTitle, maxLines = 3) },
       supportingContent = {

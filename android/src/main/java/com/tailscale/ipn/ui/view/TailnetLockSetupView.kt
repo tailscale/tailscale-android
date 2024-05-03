@@ -14,6 +14,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
@@ -41,9 +42,9 @@ fun TailnetLockSetupView(
     backToSettings: BackNavigation,
     model: TailnetLockSetupViewModel = viewModel(factory = TailnetLockSetupViewModelFactory())
 ) {
-  val statusItems = model.statusItems.collectAsState().value
-  val nodeKey = model.nodeKey.collectAsState().value
-  val tailnetLockKey = model.tailnetLockKey.collectAsState().value
+  val statusItems by model.statusItems.collectAsState()
+  val nodeKey by model.nodeKey.collectAsState()
+  val tailnetLockKey by model.tailnetLockKey.collectAsState()
   val tailnetLockTlPubKey = tailnetLockKey.replace("nlpub", "tlpub")
 
   Scaffold(topBar = { Header(R.string.tailnet_lock, onBack = backToSettings) }) { innerPadding ->

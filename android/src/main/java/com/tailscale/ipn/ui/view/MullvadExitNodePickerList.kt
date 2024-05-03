@@ -17,6 +17,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -40,11 +41,11 @@ fun MullvadExitNodePickerList(
         topBar = {
           Header(R.string.choose_mullvad_exit_node, onBack = nav.onNavigateBackToExitNodes)
         }) { innerPadding ->
-          val mullvadExitNodes = model.mullvadExitNodesByCountryCode.collectAsState()
+          val mullvadExitNodes by model.mullvadExitNodesByCountryCode.collectAsState()
 
           LazyColumn(modifier = Modifier.padding(innerPadding)) {
             val sortedCountries =
-                mullvadExitNodes.value.entries.toList().sortedBy {
+                mullvadExitNodes.entries.toList().sortedBy {
                   it.value.first().country.lowercase()
                 }
             itemsWithDividers(sortedCountries) { (countryCode, nodes) ->

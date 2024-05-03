@@ -22,6 +22,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -46,9 +47,9 @@ data class UserSwitcherNav(
 @Composable
 fun UserSwitcherView(nav: UserSwitcherNav, viewModel: UserSwitcherViewModel = viewModel()) {
 
-  val users = viewModel.loginProfiles.collectAsState().value
-  val currentUser = viewModel.loggedInUser.collectAsState().value
-  val showHeaderMenu = viewModel.showHeaderMenu.collectAsState().value
+  val users by viewModel.loginProfiles.collectAsState()
+  val currentUser by viewModel.loggedInUser.collectAsState()
+  val showHeaderMenu by viewModel.showHeaderMenu.collectAsState()
 
   Scaffold(
       topBar = {
@@ -70,7 +71,7 @@ fun UserSwitcherView(nav: UserSwitcherNav, viewModel: UserSwitcherViewModel = vi
         Column(
             modifier = Modifier.padding(innerPadding).fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp)) {
-              val showErrorDialog = viewModel.errorDialog.collectAsState().value
+              val showErrorDialog by viewModel.errorDialog.collectAsState()
 
               // Show the error overlay if need be
               showErrorDialog?.let {
@@ -149,7 +150,7 @@ fun FusMenu(
     onAuthKeyClick: () -> Unit,
     viewModel: UserSwitcherViewModel
 ) {
-  val expanded = viewModel.showHeaderMenu.collectAsState().value
+  val expanded by viewModel.showHeaderMenu.collectAsState()
 
   DropdownMenu(
       expanded = expanded,
@@ -173,7 +174,9 @@ fun FusMenu(
 @Composable
 fun MenuItem(text: String, onClick: () -> Unit) {
   DropdownMenuItem(
-      modifier = Modifier.padding(horizontal = 8.dp, vertical = 0.dp), onClick = onClick, text = { Text(text = text) })
+      modifier = Modifier.padding(horizontal = 8.dp, vertical = 0.dp),
+      onClick = onClick,
+      text = { Text(text = text) })
 }
 
 @Composable

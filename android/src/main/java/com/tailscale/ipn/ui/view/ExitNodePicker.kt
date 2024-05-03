@@ -17,6 +17,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -42,14 +43,13 @@ fun ExitNodePicker(
   LoadingIndicator.Wrap {
     Scaffold(topBar = { Header(R.string.choose_exit_node, onBack = nav.onNavigateBackHome) }) {
         innerPadding ->
-      val tailnetExitNodes = model.tailnetExitNodes.collectAsState().value
-      val mullvadExitNodesByCountryCode = model.mullvadExitNodesByCountryCode.collectAsState().value
-      val mullvadExitNodeCount = model.mullvadExitNodeCount.collectAsState().value
-      val anyActive = model.anyActive.collectAsState()
+      val tailnetExitNodes by model.tailnetExitNodes.collectAsState()
+      val mullvadExitNodesByCountryCode by model.mullvadExitNodesByCountryCode.collectAsState()
+      val mullvadExitNodeCount by model.mullvadExitNodeCount.collectAsState()
+      val anyActive by model.anyActive.collectAsState()
       val allowLANAccess = Notifier.prefs.collectAsState().value?.ExitNodeAllowLANAccess == true
-      val showRunAsExitNode = MDMSettings.runExitNode.flow.collectAsState().value
-      val allowLanAccessMDMDisposition =
-          MDMSettings.exitNodeAllowLANAccess.flow.collectAsState().value
+      val showRunAsExitNode by MDMSettings.runExitNode.flow.collectAsState()
+      val allowLanAccessMDMDisposition by MDMSettings.exitNodeAllowLANAccess.flow.collectAsState()
 
       LazyColumn(modifier = Modifier.padding(innerPadding)) {
         item(key = "header") {
@@ -58,7 +58,7 @@ fun ExitNodePicker(
               ExitNodePickerViewModel.ExitNode(
                   label = stringResource(R.string.none),
                   online = true,
-                  selected = !anyActive.value,
+                  selected = !anyActive,
               ))
 
           if (showRunAsExitNode == ShowHide.Show) {

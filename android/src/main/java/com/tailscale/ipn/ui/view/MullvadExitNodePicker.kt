@@ -10,6 +10,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -29,10 +30,10 @@ fun MullvadExitNodePicker(
     nav: ExitNodePickerNav,
     model: ExitNodePickerViewModel = viewModel(factory = ExitNodePickerViewModelFactory(nav))
 ) {
-  val mullvadExitNodes = model.mullvadExitNodesByCountryCode.collectAsState()
-  val bestAvailableByCountry = model.mullvadBestAvailableByCountry.collectAsState()
+  val mullvadExitNodes by model.mullvadExitNodesByCountryCode.collectAsState()
+  val bestAvailableByCountry by model.mullvadBestAvailableByCountry.collectAsState()
 
-  mullvadExitNodes.value[countryCode]?.toList()?.let { nodes ->
+  mullvadExitNodes[countryCode]?.toList()?.let { nodes ->
     val any = nodes.first()
 
     LoadingIndicator.Wrap {
@@ -44,7 +45,7 @@ fun MullvadExitNodePicker(
           }) { innerPadding ->
             LazyColumn(modifier = Modifier.padding(innerPadding)) {
               if (nodes.size > 1) {
-                val bestAvailableNode = bestAvailableByCountry.value[countryCode]!!
+                val bestAvailableNode = bestAvailableByCountry[countryCode]!!
                 item {
                   ExitNodeItem(
                       model,

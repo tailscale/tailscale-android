@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,7 +41,7 @@ object LoadingIndicator {
         contentAlignment = Alignment.Center,
     ) {
       content()
-      val isLoading = loading.collectAsState().value
+      val isLoading by loading.collectAsState()
       if (isLoading) {
         Box(Modifier.clickable {}.matchParentSize().background(Color.Gray.copy(alpha = 0.0f)))
 
@@ -54,7 +55,8 @@ object LoadingIndicator {
           Column(
               modifier = Modifier.fillMaxWidth(),
               horizontalAlignment = Alignment.CenterHorizontally) {
-                TailscaleLogoView(true, usesOnBackgroundColors = false, Modifier.size(72.dp).alpha(0.4f))
+                TailscaleLogoView(
+                    true, usesOnBackgroundColors = false, Modifier.size(72.dp).alpha(0.4f))
               }
         }
       }

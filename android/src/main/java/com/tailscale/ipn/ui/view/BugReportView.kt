@@ -14,6 +14,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
@@ -36,7 +37,7 @@ import com.tailscale.ipn.ui.viewModel.BugReportViewModel
 @Composable
 fun BugReportView(backToSettings: BackNavigation, model: BugReportViewModel = viewModel()) {
   val handler = LocalUriHandler.current
-  val bugReportID = model.bugReportID.collectAsState().value
+  val bugReportID by model.bugReportID.collectAsState()
 
   Scaffold(topBar = { Header(R.string.bug_report_title, onBack = backToSettings) }) { innerPadding
     ->
