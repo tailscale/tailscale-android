@@ -85,7 +85,6 @@ import com.tailscale.ipn.ui.util.AutoResizingText
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.PeerSet
-import com.tailscale.ipn.ui.util.TimeUtil
 import com.tailscale.ipn.ui.util.flag
 import com.tailscale.ipn.ui.util.itemsWithDividers
 import com.tailscale.ipn.ui.viewModel.MainViewModel
@@ -110,24 +109,25 @@ fun MainView(
       Column(
           modifier = Modifier.fillMaxWidth().padding(paddingInsets),
           verticalArrangement = Arrangement.Center) {
-            val state = viewModel.ipnState.collectAsState(initial = Ipn.State.NoState).value
-            val user = viewModel.loggedInUser.collectAsState(initial = null).value
-            val stateVal = viewModel.stateRes.collectAsState(initial = R.string.placeholder).value
+            val state by viewModel.ipnState.collectAsState(initial = Ipn.State.NoState)
+            val user by viewModel.loggedInUser.collectAsState(initial = null)
+            val stateVal by viewModel.stateRes.collectAsState(initial = R.string.placeholder)
             val stateStr = stringResource(id = stateVal)
-            val netmap = viewModel.netmap.collectAsState(initial = null).value
-            val showExitNodePicker = MDMSettings.exitNodesPicker.flow.collectAsState().value
-            val allowToggle = MDMSettings.forceEnabled.flow.collectAsState().value
+            val netmap by viewModel.netmap.collectAsState(initial = null)
+            val showExitNodePicker by MDMSettings.exitNodesPicker.flow.collectAsState()
+            val disableToggle by MDMSettings.forceEnabled.flow.collectAsState(initial = true)
+            val showKeyExpiry by viewModel.showExpiry.collectAsState(initial = false)
 
             ListItem(
                 colors = MaterialTheme.colorScheme.surfaceContainerListItem,
                 leadingContent = {
                   TintedSwitch(
                       onCheckedChange = {
-                        if (allowToggle) {
+                        if (!disableToggle) {
                           viewModel.toggleVpn()
                         }
                       },
-                      enabled = !allowToggle,
+                      enabled = !disableToggle,
                       checked = isOn.value)
                 },
                 headlineContent = {
@@ -166,7 +166,9 @@ fun MainView(
 
                 PromptPermissionsIfNecessary()
 
-                ExpiryNotificationIfNecessary(netmap = netmap, action = { viewModel.login() })
+                if (showKeyExpiry) {
+                  ExpiryNotification(netmap = netmap, action = { viewModel.login() })
+                }
 
                 if (showExitNodePicker == ShowHide.Show) {
                   ExitNodeStatus(
@@ -397,6 +399,7 @@ fun PeerList(
   val searchTermStr by viewModel.searchTerm.collectAsState(initial = "")
   val showNoResults =
       remember { derivedStateOf { searchTermStr.isNotEmpty() && peerList.value.isEmpty() } }.value
+
   val netmap = viewModel.netmap.collectAsState()
 
   val focusManager = LocalFocusManager.current
@@ -505,13 +508,8 @@ fun PeerList(
 }
 
 @Composable
-fun ExpiryNotificationIfNecessary(netmap: Netmap.NetworkMap?, action: () -> Unit = {}) {
-  // Key expiry warning shown only if the key is expiring within 24 hours (or has already expired)
-  val networkMap = netmap ?: return
-  if (!TimeUtil.isWithin24Hours(networkMap.SelfNode.KeyExpiry) ||
-      networkMap.SelfNode.keyDoesNotExpire) {
-    return
-  }
+fun ExpiryNotification(netmap: Netmap.NetworkMap?, action: () -> Unit = {}) {
+  if (netmap == null) return
 
   Box(modifier = Modifier.background(color = MaterialTheme.colorScheme.surfaceContainer)) {
     Box(
@@ -524,7 +522,7 @@ fun ExpiryNotificationIfNecessary(netmap: Netmap.NetworkMap?, action: () -> Unit
               colors = MaterialTheme.colorScheme.warningListItem,
               headlineContent = {
                 Text(
-                    networkMap.SelfNode.expiryLabel(),
+                    netmap.SelfNode.expiryLabel(),
                     style = MaterialTheme.typography.titleMedium,
                 )
               },

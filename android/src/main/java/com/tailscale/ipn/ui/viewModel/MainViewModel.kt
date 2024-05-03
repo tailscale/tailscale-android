@@ -6,14 +6,17 @@ package com.tailscale.ipn.ui.viewModel
 import android.util.Log
 import androidx.lifecycle.viewModelScope
 import com.tailscale.ipn.R
+import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.model.Ipn.State
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.util.PeerCategorizer
 import com.tailscale.ipn.ui.util.PeerSet
+import com.tailscale.ipn.ui.util.TimeUtil
 import com.tailscale.ipn.ui.util.set
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import java.time.Duration
 
 class MainViewModel : IpnViewModel() {
 
@@ -35,6 +38,9 @@ class MainViewModel : IpnViewModel() {
   // The active search term for filtering peers
   val searchTerm: StateFlow<String> = MutableStateFlow("")
 
+  // True if we should render the key expiry bannder
+  val showExpiry: StateFlow<Boolean> = MutableStateFlow(false)
+
   private val peerCategorizer = PeerCategorizer()
 
   init {
@@ -51,6 +57,18 @@ class MainViewModel : IpnViewModel() {
         it?.let { netmap ->
           peerCategorizer.regenerateGroupedPeers(netmap)
           peers.set(peerCategorizer.groupedAndFilteredPeers(searchTerm.value))
+
+          if (netmap.SelfNode.keyDoesNotExpire) {
+            showExpiry.set(false)
+            return@let
+          } else {
+            val expiryNotificationWindowMDM = MDMSettings.keyExpirationNotice.flow.value
+            val window =
+                expiryNotificationWindowMDM?.let { TimeUtil.duration(it) } ?: Duration.ofHours(24)
+            val expiresSoon =
+                TimeUtil.isWithinExpiryNotificationWindow(window, it.SelfNode.KeyExpiry)
+            showExpiry.set(expiresSoon)
+          }
         }
       }
     }
