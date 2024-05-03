@@ -335,6 +335,7 @@ class App : UninitializedApp(), libtailscale.AppContext {
 open class UninitializedApp : Application() {
   companion object {
     const val STATUS_NOTIFICATION_ID = 1
+    const val STATUS_EXIT_NODE_FAILURE_NOTIFICATION_ID = 2
     const val STATUS_CHANNEL_ID = "tailscale-status"
 
     // Key for shared preference that tracks whether or not we're able to start
@@ -388,6 +389,10 @@ open class UninitializedApp : Application() {
   }
 
   fun notifyStatus(vpnRunning: Boolean) {
+      notifyStatus(buildStatusNotification(vpnRunning))
+  }
+
+  fun notifyStatus(notification: Notification) {
     if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
         PackageManager.PERMISSION_GRANTED) {
       // TODO: Consider calling
@@ -399,7 +404,7 @@ open class UninitializedApp : Application() {
       // for ActivityCompat#requestPermissions for more details.
       return
     }
-    notificationManager.notify(STATUS_NOTIFICATION_ID, buildStatusNotification(vpnRunning))
+    notificationManager.notify(STATUS_NOTIFICATION_ID, notification)
   }
 
   fun buildStatusNotification(vpnRunning: Boolean): Notification {
