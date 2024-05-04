@@ -23,31 +23,35 @@ class UseExitNodeWorker(
     workerParams: WorkerParameters
 ) : CoroutineWorker(appContext, workerParams) {
     override suspend fun doWork(): Result {
+        val app = UninitializedApp.get()
         suspend fun runAndGetResult(): String? {
             val exitNodeName = inputData.getString(EXIT_NODE_NAME)
 
             val exitNodeId = if (exitNodeName.isNullOrEmpty()) {
                 null
             } else {
-                if (!UninitializedApp.get().isAbleToStartVPN()) {
-                    return "VPN is not ready to start"
+                if (!app.isAbleToStartVPN()) {
+                    return app.getString(R.string.vpn_is_not_ready_to_start)
                 }
 
                 val peers =
                     (Notifier.netmap.value
-                        ?: run { return@runAndGetResult "Tailscale is not setup" })
-                        .Peers ?: run { return@runAndGetResult "No peers found" }
+                        ?: run { return@runAndGetResult app.getString(R.string.tailscale_is_not_setup) })
+                        .Peers ?: run { return@runAndGetResult app.getString(R.string.no_peers_found) }
 
                 val filteredPeers = peers.filter {
                     it.displayName == exitNodeName
                 }.toList()
 
                 if (filteredPeers.isEmpty()) {
-                    return "No peers with name $exitNodeName found"
+                    return app.getString(R.string.no_peers_with_name_found, exitNodeName)
                 } else if (filteredPeers.size > 1) {
-                    return "Multiple peers with name $exitNodeName found"
+                    return app.getString(R.string.multiple_peers_with_name_found, exitNodeName)
                 } else if (!filteredPeers[0].isExitNode) {
-                    return "Peer with name $exitNodeName is not an exit node"
+                    return app.getString(
+                        R.string.peer_with_name_is_not_an_exit_node,
+                        exitNodeName
+                    )
                 }
 
                 filteredPeers[0].StableID
@@ -76,7 +80,6 @@ class UseExitNodeWorker(
         val result = runAndGetResult()
 
         return if (result != null) {
-            val app = UninitializedApp.get()
             val intent =
                 Intent(app, MainActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -87,7 +90,7 @@ class UseExitNodeWorker(
 
             val notification = NotificationCompat.Builder(app, STATUS_CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_notification)
-                .setContentTitle("Use Exit Node Intent Failed")
+                .setContentTitle(app.getString(R.string.use_exit_node_intent_failed))
                 .setContentText(result)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setContentIntent(pendingIntent)

@@ -243,6 +243,15 @@
     <string name="welcome2">All connections are device-to-device, so we never see your data. We collect and use your email address and name, as well as your device name, OS version, and IP address in order to help you to connect your devices and manage your settings. We log when you are connected to your network.</string>
     <string name="scan_to_connect_to_your_tailnet">Scan this QR code to log in to your tailnet</string>
 
+    <!-- Strings for intent handling -->
+    <string name="vpn_is_not_ready_to_start">VPN is not ready to start</string>
+    <string name="tailscale_is_not_setup">Tailscale is not setup</string>
+    <string name="no_peers_found">No peers found</string>
+    <string name="no_peers_with_name_found">No peers with name %1$s found</string>
+    <string name="multiple_peers_with_name_found">Multiple peers with name %1$s found</string>
+    <string name="peer_with_name_is_not_an_exit_node">Peer with name %1$s is not an exit node</string>
+    <string name="use_exit_node_intent_failed">Use Exit Node Intent Failed</string>
+
     <!-- Strings for the IPNReceiver -->
     <string name="title_connection_failed">Tailscale Connection Failed</string>
     <string name="body_open_tailscale">Tap here to open Tailscale.</string>
