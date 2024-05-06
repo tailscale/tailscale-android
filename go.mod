@@ -30,7 +30,6 @@ require (
 	github.com/aws/smithy-go v1.19.0 // indirect
 	github.com/bits-and-blooms/bitset v1.13.0 // indirect
 	github.com/coreos/go-iptables v0.7.1-0.20240112124308-65c67c9f46e6 // indirect
-	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/dblohm7/wingoes v0.0.0-20240119213807-a09d6be7affa // indirect
 	github.com/digitalocean/go-smbios v0.0.0-20180907143718-390a4f403a8e // indirect
 	github.com/djherbis/times v1.6.0 // indirect
