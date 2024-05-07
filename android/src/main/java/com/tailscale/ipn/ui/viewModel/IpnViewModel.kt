@@ -90,11 +90,6 @@ open class IpnViewModel : ViewModel() {
       authKey: String? = null,
       completionHandler: (Result<Unit>) -> Unit = {}
   ) {
-    MDMSettings.loginURL.flow.value?.let {
-      Log.d(TAG, "Using MDM derived control URL: $it")
-      loginWithCustomControlURL(it, completionHandler)
-      return
-    }
 
     val loginAction = {
       Client(viewModelScope).startLoginInteractive { result ->
@@ -111,8 +106,18 @@ open class IpnViewModel : ViewModel() {
       }
     }
 
-    maskedPrefs?.let { prefs ->
-      Client(viewModelScope).editPrefs(prefs) { result ->
+    // If an MDM control URL is set, we will always use that in lieu of anything the user sets.
+    var prefs = maskedPrefs
+    val mdmControlURL = MDMSettings.loginURL.flow.value
+
+    if (mdmControlURL != null) {
+      prefs = prefs ?: Ipn.MaskedPrefs()
+      prefs.ControlURL = mdmControlURL
+      Log.d(TAG, "Overriding control URL with MDM value: $mdmControlURL")
+    }
+
+    prefs?.let {
+      Client(viewModelScope).editPrefs(it) { result ->
         result.onFailure { completionHandler(Result.failure(it)) }.onSuccess { startAction() }
       }
     } ?: run { startAction() }
@@ -128,18 +133,9 @@ open class IpnViewModel : ViewModel() {
       controlURL: String,
       completionHandler: (Result<Unit>) -> Unit = {}
   ) {
-    val fail: (Throwable) -> Unit = { completionHandler(Result.failure(it)) }
-
-    // The flow for logging in with a custom control URL is to add a profile,
-    // call start with prefs that include the control URL, then
-    // start an interactive login.
-    Client(viewModelScope).addProfile { profile ->
-      profile.onFailure(fail).onSuccess {
-        val prefs = Ipn.MaskedPrefs()
-        prefs.ControlURL = controlURL
-        login(prefs, authKey = null, completionHandler)
-      }
-    }
+    val prefs = Ipn.MaskedPrefs()
+    prefs.ControlURL = controlURL
+    login(prefs, completionHandler = completionHandler)
   }
 
   fun logout(completionHandler: (Result<String>) -> Unit = {}) {
