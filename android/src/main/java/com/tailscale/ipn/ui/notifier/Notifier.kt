@@ -81,6 +81,7 @@ object Notifier {
             notify.IncomingFiles?.let(incomingFiles::set)
           }
       state.collect { currstate ->
+        Log.e("KARI","setting connstatus: $currstate")
         readyToPrepareVPN.set(currstate > Ipn.State.Stopped)
         connStatus.set(currstate > Ipn.State.Stopped)
       }

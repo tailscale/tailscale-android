@@ -2,13 +2,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
 package com.tailscale.ipn
 
-import android.Manifest
 import android.app.Activity
 import android.app.Application
 import android.app.DownloadManager
 import android.app.Fragment
 import android.app.FragmentTransaction
-import android.app.NotificationChannel
 import android.app.PendingIntent
 import android.app.UiModeManager
 import android.content.ContentResolver
@@ -30,8 +28,6 @@ import android.os.Environment
 import android.provider.Settings
 import android.util.Log
 import androidx.browser.customtabs.CustomTabsIntent
-import androidx.core.app.ActivityCompat
-import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
@@ -40,6 +36,7 @@ import com.tailscale.ipn.ui.localapi.Client
 import com.tailscale.ipn.ui.localapi.Request
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.notifier.Notifier
+import com.tailscale.ipn.ui.util.NotificationUtil
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -112,11 +109,9 @@ class App : Application(), libtailscale.AppContext {
     Notifier.start(applicationScope)
     connectivityManager = this.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     setAndRegisterNetworkCallbacks()
-    createNotificationChannel(
-        STATUS_CHANNEL_ID, "VPN Status", NotificationManagerCompat.IMPORTANCE_LOW)
-    createNotificationChannel(
-        FILE_CHANNEL_ID, "File transfers", NotificationManagerCompat.IMPORTANCE_DEFAULT)
     appInstance = this
+    NotificationUtil.createNotificationChannel(STATUS_CHANNEL_ID, "VPN Status", NotificationManagerCompat.IMPORTANCE_LOW)
+    NotificationUtil.createNotificationChannel(FILE_CHANNEL_ID, "File transfers", NotificationManagerCompat.IMPORTANCE_DEFAULT)
     applicationScope.launch {
       Notifier.connStatus.collect { connStatus -> updateConnStatus(connStatus) }
     }
@@ -131,7 +126,7 @@ class App : Application(), libtailscale.AppContext {
   fun setWantRunning(wantRunning: Boolean) {
     val callback: (Result<Ipn.Prefs>) -> Unit = { result ->
       result.fold(
-          onSuccess = { },
+          onSuccess = {},
           onFailure = { error ->
             Log.d("TAG", "Set want running: failed to update preferences: ${error.message}")
           })
@@ -178,9 +173,9 @@ class App : Application(), libtailscale.AppContext {
   fun startVPN() {
     val intent = Intent(this, IPNService::class.java)
     intent.setAction(IPNService.ACTION_REQUEST_VPN)
+    Log.e("KARI", "starting VPN service")
     startService(intent)
   }
-
 
   // encryptToPref a byte array of data using the Jetpack Security
   // library and writes it to a global encrypted preference store.
@@ -214,27 +209,11 @@ class App : Application(), libtailscale.AppContext {
     }
     QuickToggleService.setReady(this, ready)
     Log.d("App", "Set Tile Ready: $ready")
-    val action = if (ready) IPNReceiver.INTENT_DISCONNECT_VPN else IPNReceiver.INTENT_CONNECT_VPN
-    val intent = Intent(this, IPNReceiver::class.java).apply {
-    this.action = action
-    }
-    val pendingIntent : PendingIntent = PendingIntent.getBroadcast(
-      this,
-      0,
-      intent,
-      PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-    )
-    if (ready){
+
+    if (ready) {
+      Log.e("KARI", "calling startvpn")
       startVPN()
     }
-    val notificationMessage = if (ready) getString(R.string.connected) else getString(R.string.not_connected)
-    notify(
-    "Tailscale",
-    notificationMessage,
-    STATUS_CHANNEL_ID,
-    pendingIntent,
-    STATUS_NOTIFICATION_ID
-)
   }
 
   fun getHostname(): String {
@@ -337,38 +316,8 @@ class App : Application(), libtailscale.AppContext {
     }
     val pending: PendingIntent =
         PendingIntent.getActivity(this, 0, viewIntent, PendingIntent.FLAG_UPDATE_CURRENT)
-    notify(getString(R.string.file_notification), msg, FILE_CHANNEL_ID, pending, FILE_NOTIFICATION_ID)
-  }
-
-  fun createNotificationChannel(id: String?, name: String?, importance: Int) {
-    val channel = NotificationChannel(id, name, importance)
-    val nm: NotificationManagerCompat = NotificationManagerCompat.from(this)
-    nm.createNotificationChannel(channel)
-  }
-
-  fun notify(title: String?, message: String?, channel: String, intent: PendingIntent?, notificationID: Int) {
-    val builder: NotificationCompat.Builder =
-        NotificationCompat.Builder(this, channel)
-            .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(title)
-            .setContentText(message)
-            .setContentIntent(intent)
-            .setAutoCancel(true)
-            .setOnlyAlertOnce(true)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-    val nm: NotificationManagerCompat = NotificationManagerCompat.from(this)
-    if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
-        PackageManager.PERMISSION_GRANTED) {
-      // TODO: Consider calling
-      //    ActivityCompat#requestPermissions
-      // here to request the missing permissions, and then overriding
-      //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-      //                                          int[] grantResults)
-      // to handle the case where the user grants the permission. See the documentation
-      // for ActivityCompat#requestPermissions for more details.
-      return
-    }
-    nm.notify(notificationID, builder.build())
+    NotificationUtil.notify(
+        getString(R.string.file_notification), msg, FILE_CHANNEL_ID, pending, FILE_NOTIFICATION_ID)
   }
 
   override fun getInterfacesAsString(): String {

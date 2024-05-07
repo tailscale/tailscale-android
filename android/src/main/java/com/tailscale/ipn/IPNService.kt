@@ -2,14 +2,14 @@
 // SPDX-License-Identifier: BSD-3-Clause
 package com.tailscale.ipn
 
+import android.app.Notification
 import android.app.PendingIntent
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.VpnService
 import android.os.Build
 import android.system.OsConstants
-import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
+import com.tailscale.ipn.ui.util.NotificationUtil
 import libtailscale.Libtailscale
 import java.util.UUID
 
@@ -22,6 +22,7 @@ open class IPNService : VpnService(), libtailscale.IPNService {
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
     val app = applicationContext as App
+    startForeground(NotificationUtil.STATUS_NOTIFICATION_ID, createNotification())
     if (intent != null && "android.net.VpnService" == intent.action) {
       // Start VPN and connect to it due to Always-on VPN
       val i = Intent(IPNReceiver.INTENT_CONNECT_VPN)
@@ -32,6 +33,21 @@ open class IPNService : VpnService(), libtailscale.IPNService {
     Libtailscale.requestVPN(this)
     app.setWantRunning(true)
     return START_STICKY
+  }
+
+  fun createNotification(): Notification {
+    val intent =
+        Intent(this, IPNReceiver::class.java).apply {
+          this.action = IPNReceiver.INTENT_DISCONNECT_VPN
+        }
+    val pendingIntent: PendingIntent =
+        PendingIntent.getBroadcast(
+            this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+    return NotificationUtil.createNotification(
+        "Tailscale",
+        getString(R.string.connected),
+        NotificationUtil.STATUS_CHANNEL_ID,
+        pendingIntent)
   }
 
   override public fun close() {

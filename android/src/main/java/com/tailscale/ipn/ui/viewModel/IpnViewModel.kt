@@ -100,9 +100,19 @@ open class IpnViewModel : ViewModel() {
       }
     }
 
+    // Need to stop running before logging in to clear routes:
+    // https://linear.app/tailscale/issue/ENG-3441/routesdns-is-not-cleared-when-switching-profiles-or-reauthenticating
+    val stopThenLogin = {
+      Client(viewModelScope).editPrefs(Ipn.MaskedPrefs().apply { WantRunning = false }) { result ->
+        result
+            .onSuccess { loginAction() }
+            .onFailure { Log.e(TAG, "Error setting wantRunning to false: ${it.message}") }
+      }
+    }
+
     val startAction = {
       Client(viewModelScope).start(Ipn.Options(AuthKey = authKey)) { start ->
-        start.onFailure { completionHandler(Result.failure(it)) }.onSuccess { loginAction() }
+        start.onFailure { completionHandler(Result.failure(it)) }.onSuccess { stopThenLogin() }
       }
     }
 
@@ -164,9 +174,16 @@ open class IpnViewModel : ViewModel() {
   }
 
   fun switchProfile(profile: IpnLocal.LoginProfile, completionHandler: (Result<String>) -> Unit) {
-    Client(viewModelScope).switchProfile(profile) {
-      startVPN()
-      completionHandler(it)
+    val switchProfile = {
+      Client(viewModelScope).switchProfile(profile) {
+        startVPN()
+        completionHandler(it)
+      }
+    }
+    Client(viewModelScope).editPrefs(Ipn.MaskedPrefs().apply { WantRunning = false }) { result ->
+      result
+          .onSuccess { switchProfile() }
+          .onFailure { Log.e(TAG, "Error setting wantRunning to false: ${it.message}") }
     }
   }
 

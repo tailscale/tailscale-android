@@ -242,7 +242,8 @@ class MainActivity : ComponentActivity() {
     // Watch the model's browseToURL and launch the browser when it changes or
     // pop up a QR code to scan
     lifecycleScope.launch {
-      Notifier.browseToURL.collect { url ->
+      Notifier.browseToURL.collect { url -> 
+        Log.e("KARI", "url: $url")
         url?.let {
           when (useQRCodeLogin()) {
             false -> Dispatchers.Main.run { login(it) }
@@ -259,6 +260,8 @@ class MainActivity : ComponentActivity() {
   // Returns true if we should render a QR code instead of launching a browser
   // for login requests
   private fun useQRCodeLogin(): Boolean {
+    val isTV = AndroidTVUtil.isAndroidTV()
+    Log.e("KARI", "useQRCodeLogin: $isTV")
     return AndroidTVUtil.isAndroidTV()
   }
 
@@ -270,11 +273,13 @@ class MainActivity : ComponentActivity() {
   }
 
   private fun login(urlString: String) {
+    Log.e("KARI", "we're in login")
     // Launch coroutine to listen for state changes. When the user completes login, relaunch
     // MainActivity to bring the app back to focus.
     App.getApplication().applicationScope.launch {
       try {
         Notifier.state.collect { state ->
+          Log.e("KARI","state: ${state}")
           if (state > Ipn.State.NeedsMachineAuth) {
             val intent =
                 Intent(applicationContext, MainActivity::class.java).apply {
@@ -283,6 +288,7 @@ class MainActivity : ComponentActivity() {
                   addCategory(Intent.CATEGORY_LAUNCHER)
                   putExtra(START_AT_ROOT, true)
                 }
+            Log.e("KARI", "starting Main activity")
             startActivity(intent)
 
             // Cancel coroutine once we've logged in

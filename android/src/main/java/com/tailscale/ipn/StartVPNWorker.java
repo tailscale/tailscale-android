@@ -14,6 +14,8 @@ import android.os.Build;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
+import com.tailscale.ipn.ui.util.NotificationUtil;
+
 public final class StartVPNWorker extends Worker {
 
     public StartVPNWorker(
@@ -40,7 +42,7 @@ public final class StartVPNWorker extends Worker {
             String channelId = "start_vpn_channel";
 
             // Use createNotificationChannel method from App.java
-            app.createNotificationChannel(channelId, "Start VPN Channel", NotificationManager.IMPORTANCE_DEFAULT);
+            NotificationUtil.INSTANCE.createNotificationChannel(channelId, "Start VPN Channel", NotificationManager.IMPORTANCE_DEFAULT);
 
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             int pendingIntentFlags = PendingIntent.FLAG_ONE_SHOT | (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ? PendingIntent.FLAG_IMMUTABLE : 0);
