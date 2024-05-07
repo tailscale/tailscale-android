@@ -11,12 +11,10 @@ import android.content.RestrictionsManager
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration.SCREENLAYOUT_SIZE_LARGE
 import android.content.res.Configuration.SCREENLAYOUT_SIZE_MASK
-import android.net.Uri
 import android.net.VpnService
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
@@ -99,6 +97,9 @@ class MainActivity : ComponentActivity() {
   @SuppressLint("SourceLockedOrientationActivity")
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
+
+    // grab app to make sure it initializes
+    App.getApplication()
 
     // (jonathan) TODO: Force the app to be portrait on small screens until we have
     // proper landscape layout support
@@ -231,9 +232,10 @@ class MainActivity : ComponentActivity() {
       }
     }
     lifecycleScope.launch {
-      Notifier.readyToPrepareVPN.collect { isReady ->
-        if (isReady)
-            App.getApplication().prepareVPN(this@MainActivity, RequestCodes.requestPrepareVPN)
+      Notifier.state.collect { state ->
+        if (state > Ipn.State.Stopped) {
+          App.getApplication().prepareVPN(this@MainActivity, RequestCodes.requestPrepareVPN)
+        }
       }
     }
   }
@@ -349,9 +351,9 @@ class MainActivity : ComponentActivity() {
 
   private fun openApplicationSettings() {
     val intent =
-    Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
-      putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
-  }
+        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+          putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+        }
     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     startActivity(intent)
   }

@@ -6,6 +6,7 @@ package com.tailscale.ipn;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Build;
 import android.service.quicksettings.Tile;
 import android.service.quicksettings.TileService;
@@ -13,11 +14,21 @@ import android.service.quicksettings.TileService;
 public class QuickToggleService extends TileService {
     // lock protects the static fields below it.
     private static final Object lock = new Object();
-    // Ready tracks whether the tailscale backend is
-    // ready to switch on/off.
-    private static boolean ready;
+
+    // isRunning tracks whether the VPN is running.
+    private static boolean isRunning;
+
+    // Key for shared preference that tracks whether or not we're able to start
+    // the VPN (i.e. we're logged in and machine is authorized).
+    public static final String ABLE_TO_START_VPN_KEY = "ableToStartVPN";
+
+    // File for shared preference that tracks whether or not we're able to start
+    // the VPN (i.e. we're logged in and machine is authorized).
+    public static final String QUICK_TOGGLE = "quicktoggle";
+
     // currentTile tracks getQsTile while service is listening.
     private static Tile currentTile;
+
     // Request code for opening activity.
     private static int reqCode = 0;
 
@@ -26,7 +37,7 @@ public class QuickToggleService extends TileService {
         boolean act;
         synchronized (lock) {
             t = currentTile;
-            act = ready;
+            act = isRunning && getAbleToStartVPN(ctx);
         }
         if (t == null) {
             return;
@@ -39,9 +50,29 @@ public class QuickToggleService extends TileService {
         t.updateTile();
     }
 
-    static void setReady(Context ctx, boolean rdy) {
+    /*
+     * setAbleToStartVPN remembers whether or not we're able to start the VPN
+     * by storing this in a shared preference. This allows us to check this
+     * value without needing a fully initialized instance of the application.
+     */
+    static void setAbleToStartVPN(Context ctx, boolean rdy) {
+        SharedPreferences prefs = getSharedPreferences(ctx);
+        prefs.edit().putBoolean(ABLE_TO_START_VPN_KEY, rdy).apply();
+        updateTile(ctx);
+    }
+
+    static boolean getAbleToStartVPN(Context ctx) {
+        SharedPreferences prefs = getSharedPreferences(ctx);
+        return prefs.getBoolean(ABLE_TO_START_VPN_KEY, false);
+    }
+
+    static SharedPreferences getSharedPreferences(Context ctx) {
+        return ctx.getSharedPreferences(QUICK_TOGGLE, Context.MODE_PRIVATE);
+    }
+
+    static void setVPNRunning(Context ctx, boolean running) {
         synchronized (lock) {
-            ready = rdy;
+            isRunning = running;
         }
         updateTile(ctx);
     }
@@ -65,9 +96,11 @@ public class QuickToggleService extends TileService {
     public void onClick() {
         boolean r;
         synchronized (lock) {
-            r = ready;
+            r = getAbleToStartVPN(this);
         }
         if (r) {
+            // Get the application to make sure it initializes
+            App.getApplication();
             onTileClick();
         } else {
             // Start main activity.
@@ -83,7 +116,7 @@ public class QuickToggleService extends TileService {
     private void onTileClick() {
         boolean act;
         synchronized (lock) {
-            act = ready;
+            act = getAbleToStartVPN(this) && isRunning;
         }
         Intent i = new Intent(act ? IPNReceiver.INTENT_DISCONNECT_VPN : IPNReceiver.INTENT_CONNECT_VPN);
         i.setPackage(getPackageName());
