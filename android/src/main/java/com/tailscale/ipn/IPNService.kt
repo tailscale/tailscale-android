@@ -3,13 +3,14 @@
 package com.tailscale.ipn
 
 import android.app.PendingIntent
+import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.net.VpnService
 import android.os.Build
 import android.system.OsConstants
-import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
+import android.util.Log
 import libtailscale.Libtailscale
 import java.util.UUID
 
@@ -20,25 +21,32 @@ open class IPNService : VpnService(), libtailscale.IPNService {
     return randomID
   }
 
+  override fun onCreate() {
+    super.onCreate()
+    // grab app to make sure it initializes
+    App.getApplication()
+  }
+
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-    val app = applicationContext as App
     if (intent != null && "android.net.VpnService" == intent.action) {
       // Start VPN and connect to it due to Always-on VPN
       val i = Intent(IPNReceiver.INTENT_CONNECT_VPN)
       i.setPackage(packageName)
       i.setClass(applicationContext, IPNReceiver::class.java)
       sendBroadcast(i)
+
+    // If intent is null, the service is restarting because the system is attempting to re-create the killed service. If this is the case, check whether we are able to start the the VPN before starting.
+    } else if (intent != null || getAbleToStartVPN(this.getApplicationContext())) {
+      Libtailscale.requestVPN(this)
+      App.getApplication().setWantRunning(true)
     }
-    Libtailscale.requestVPN(this)
-    app.setWantRunning(true)
     return START_STICKY
   }
 
   override public fun close() {
     stopForeground(true)
     Libtailscale.serviceDisconnect(this)
-    val app = applicationContext as App
-    app.setWantRunning(false)
+    App.getApplication().setWantRunning(false)
   }
 
   override fun onDestroy() {
@@ -100,5 +108,17 @@ open class IPNService : VpnService(), libtailscale.IPNService {
   companion object {
     const val ACTION_REQUEST_VPN = "com.tailscale.ipn.REQUEST_VPN"
     const val ACTION_STOP_VPN = "com.tailscale.ipn.STOP_VPN"
+
+    private const val ABLE_TO_START_VPN_KEY = "able_to_start_vpn_key"
+    private const val PREFERENCES_FILE_KEY = "quicktoggle"
+
+    fun getAbleToStartVPN(ctx: Context): Boolean {
+      val prefs = getSharedPreferences(ctx)
+      return prefs.getBoolean(ABLE_TO_START_VPN_KEY, false)
+    }
+
+    private fun getSharedPreferences(ctx: Context): SharedPreferences {
+      return ctx.getSharedPreferences(PREFERENCES_FILE_KEY, Context.MODE_PRIVATE)
+    }
   }
 }
