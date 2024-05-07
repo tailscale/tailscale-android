@@ -85,8 +85,11 @@ open class IpnViewModel : ViewModel() {
 
   // Login/Logout
 
-  fun login(options: Ipn.Options = Ipn.Options(), completionHandler: (Result<Unit>) -> Unit = {}) {
-
+  fun login(
+      maskedPrefs: Ipn.MaskedPrefs? = null,
+      authKey: String? = null,
+      completionHandler: (Result<Unit>) -> Unit = {}
+  ) {
     MDMSettings.loginURL.flow.value?.let {
       Log.d(TAG, "Using MDM derived control URL: $it")
       loginWithCustomControlURL(it, completionHandler)
@@ -102,21 +105,23 @@ open class IpnViewModel : ViewModel() {
       }
     }
 
-    Client(viewModelScope).start(options) { start ->
-      start.onFailure { completionHandler(Result.failure(it)) }.onSuccess { loginAction() }
+    val startAction = {
+      Client(viewModelScope).start(Ipn.Options(AuthKey = authKey)) { start ->
+        start.onFailure { completionHandler(Result.failure(it)) }.onSuccess { loginAction() }
+      }
     }
+
+    maskedPrefs?.let { prefs ->
+      Client(viewModelScope).editPrefs(prefs) { result ->
+        result.onFailure { completionHandler(Result.failure(it)) }.onSuccess { startAction() }
+      }
+    } ?: run { startAction() }
   }
 
   fun loginWithAuthKey(authKey: String, completionHandler: (Result<Unit>) -> Unit = {}) {
-    val prefs = Notifier.prefs.value
-    if (prefs == null) {
-      completionHandler(Result.failure(Error("no prefs")))
-      return
-    }
-
+    val prefs = Ipn.MaskedPrefs()
     prefs.WantRunning = true
-    val options = Ipn.Options(AuthKey = authKey, UpdatePrefs = prefs)
-    login(options, completionHandler)
+    login(prefs, authKey = authKey, completionHandler)
   }
 
   fun loginWithCustomControlURL(
@@ -125,21 +130,14 @@ open class IpnViewModel : ViewModel() {
   ) {
     val fail: (Throwable) -> Unit = { completionHandler(Result.failure(it)) }
 
-    // We need to have the current prefs to set them back with the new control URL
-    val prefs = Notifier.prefs.value
-    if (prefs == null) {
-      fail(Error("no prefs"))
-      return
-    }
-
     // The flow for logging in with a custom control URL is to add a profile,
     // call start with prefs that include the control URL, then
     // start an interactive login.
-    Client(viewModelScope).addProfile { addProfile ->
-      addProfile.onFailure(fail).onSuccess {
+    Client(viewModelScope).addProfile { profile ->
+      profile.onFailure(fail).onSuccess {
+        val prefs = Ipn.MaskedPrefs()
         prefs.ControlURL = controlURL
-        val options = Ipn.Options(UpdatePrefs = prefs)
-        login(options, completionHandler)
+        login(prefs, authKey = null, completionHandler)
       }
     }
   }
