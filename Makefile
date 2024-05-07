@@ -2,6 +2,9 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
+## For signed release build JKS_PASSWORD must be set to the password for the jks keystore
+## and tailscale.jks must be present in the repo root.
+
 DEBUG_APK=tailscale-debug.apk
 RELEASE_AAB=tailscale-release.aab
 LIBTAILSCALE=android/libs/libtailscale.aar
@@ -82,7 +85,7 @@ tailscale-debug: $(DEBUG_APK) ## Build the debug APK
 
 .PHONY: release
 release: tailscale.jks $(RELEASE_AAB) ## Build the release AAB
-	jarsigner -sigalg SHA256withRSA -digestalg SHA-256 -keystore tailscale.jks $(RELEASE_AAB) tailscale
+	jarsigner -sigalg SHA256withRSA -digestalg SHA-256 -keystore tailscale.jks -storepass $(JKS_PASSWORD) $(RELEASE_AAB) tailscale
 
 # gradle-dependencies groups together the android sources and libtailscale needed to assemble tests/debug/release builds.
 .PHONY: gradle-dependencies
@@ -196,13 +199,32 @@ install: $(DEBUG_APK) ## Install the debug APK on a connected device
 run: install ## Run the debug APK on a connected device
 	adb shell am start -n com.tailscale.ipn/com.tailscale.ipn.MainActivity
 
-.PHONY: dockershell
-dockershell: ## Run a shell in the Docker build container
-	docker build -t tailscale-android .
-	docker run -v $(CURDIR):/build/tailscale-android -it --rm tailscale-android
+.PHONY: docker-build-image
+docker-build-image: ## Builds the docker image for the android build environment
+	docker build  -f docker/DockerFile.amd64-build -t tailscale-android-build-amd64 .
+
+.PHONY: docker-run-build
+docker-run-build: tailscale.jks docker-build-image  ## Runs the docker image for the android build environment and builds release
+	@docker run -v $(CURDIR):/build/tailscale-android --env JKS_PASSWORD=$(JKS_PASSWORD) tailscale-android-build-amd64
+
+.PHONY: docker-remove-build-image
+docker-remove-build-image: ## Removes all docker build image
+	docker rmi --force tailscale-android-build-amd64
+
+.PHONY: docker-all ## Makes a fresh docker environment, builds docker and cleans up.  For CI.
+docker-all: docker-build-image docker-run-build docker-remove-build-image
+
+.PHONY: docker-shell
+docker-shell: ## Builds a docker image with the android build env and opens a shell
+	docker build  -f docker/DockerFile.amd64-shell -t tailscale-android-shell-amd64 .
+	docker run -v $(CURDIR):/build/tailscale-android -it tailscale-android-shell-amd64
+
+.PHONY: docker-remove-shell-image
+docker-remove-shell-image: ## Removes all docker shell image
+	docker rmi --force tailscale-android-shell-amd64
 
 .PHONY: clean
-clean: ## Remove build artifacts
+clean: ## Remove build artifacts.  Does not purge docker build envs.  Use dockerRemoveEnv for that.
 	-rm -rf android/build $(DEBUG_APK) $(RELEASE_AAB) $(LIBTAILSCALE) android/libs *.apk *.aab
 	-pkill -f gradle
 

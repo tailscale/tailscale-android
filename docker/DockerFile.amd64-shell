@@ -31,8 +31,8 @@ RUN mkdir -p $HOME/tailscale-android
 RUN git config --global --add safe.directory $HOME/tailscale-android
 WORKDIR $HOME/tailscale-android
 
-# Preload Android SDK
 COPY Makefile Makefile
+
 # Get android sdk, ndk, and rest of the stuff needed to build the android app.
 RUN make androidsdk
 
@@ -41,4 +41,7 @@ COPY android/gradlew android/gradlew
 COPY android/gradle android/gradle
 RUN ./android/gradlew
 
+# Run a shell
 CMD /bin/bash
+
+
