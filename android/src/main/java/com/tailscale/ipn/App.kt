@@ -70,7 +70,7 @@ class App : Application(), libtailscale.AppContext {
             .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
             .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
             .build()
-    lateinit var appInstance: App
+    private lateinit var appInstance: App
 
     @JvmStatic
     fun startActivityForResult(act: Activity, intent: Intent?, request: Int) {
@@ -78,8 +78,13 @@ class App : Application(), libtailscale.AppContext {
       f.startActivityForResult(intent, request)
     }
 
+    /**
+     * Initializes the app (if necessary) and returns the singleton app instance. Always use this
+     * function to obtain an App reference to make sure the app initializes.
+     */
     @JvmStatic
     fun getApplication(): App {
+      appInstance.initOnce()
       return appInstance
     }
   }
@@ -98,6 +103,24 @@ class App : Application(), libtailscale.AppContext {
 
   override fun onCreate() {
     super.onCreate()
+    appInstance = this
+  }
+
+  override fun onTerminate() {
+    super.onTerminate()
+    Notifier.stop()
+    applicationScope.cancel()
+  }
+
+  var initialized = false
+
+  @Synchronized
+  private fun initOnce() {
+    if (initialized) {
+      return
+    }
+    initialized = true
+
     val dataDir = this.filesDir.absolutePath
 
     // Set this to enable direct mode for taildrop whereby downloads will be saved directly
@@ -105,7 +128,6 @@ class App : Application(), libtailscale.AppContext {
     // an app local directory "Taildrop" if we cannot create that.  This mode does not support
     // user notifications for incoming files.
     val directFileDir = this.prepareDownloadsFolder()
-
     app = Libtailscale.start(dataDir, directFileDir.absolutePath, this)
     Request.setApp(app)
     Notifier.setApp(app)
@@ -116,22 +138,15 @@ class App : Application(), libtailscale.AppContext {
         STATUS_CHANNEL_ID, "VPN Status", NotificationManagerCompat.IMPORTANCE_LOW)
     createNotificationChannel(
         FILE_CHANNEL_ID, "File transfers", NotificationManagerCompat.IMPORTANCE_DEFAULT)
-    appInstance = this
     applicationScope.launch {
       Notifier.connStatus.collect { connStatus -> updateConnStatus(connStatus) }
     }
   }
 
-  override fun onTerminate() {
-    super.onTerminate()
-    Notifier.stop()
-    applicationScope.cancel()
-  }
-
   fun setWantRunning(wantRunning: Boolean) {
     val callback: (Result<Ipn.Prefs>) -> Unit = { result ->
       result.fold(
-          onSuccess = { },
+          onSuccess = {},
           onFailure = { error ->
             Log.d("TAG", "Set want running: failed to update preferences: ${error.message}")
           })
@@ -181,7 +196,6 @@ class App : Application(), libtailscale.AppContext {
     startService(intent)
   }
 
-
   // encryptToPref a byte array of data using the Jetpack Security
   // library and writes it to a global encrypted preference store.
   @Throws(IOException::class, GeneralSecurityException::class)
@@ -215,26 +229,17 @@ class App : Application(), libtailscale.AppContext {
     QuickToggleService.setReady(this, ready)
     Log.d("App", "Set Tile Ready: $ready")
     val action = if (ready) IPNReceiver.INTENT_DISCONNECT_VPN else IPNReceiver.INTENT_CONNECT_VPN
-    val intent = Intent(this, IPNReceiver::class.java).apply {
-    this.action = action
-    }
-    val pendingIntent : PendingIntent = PendingIntent.getBroadcast(
-      this,
-      0,
-      intent,
-      PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-    )
-    if (ready){
+    val intent = Intent(this, IPNReceiver::class.java).apply { this.action = action }
+    val pendingIntent: PendingIntent =
+        PendingIntent.getBroadcast(
+            this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+    if (ready) {
       startVPN()
     }
-    val notificationMessage = if (ready) getString(R.string.connected) else getString(R.string.not_connected)
+    val notificationMessage =
+        if (ready) getString(R.string.connected) else getString(R.string.not_connected)
     notify(
-    "Tailscale",
-    notificationMessage,
-    STATUS_CHANNEL_ID,
-    pendingIntent,
-    STATUS_NOTIFICATION_ID
-)
+        "Tailscale", notificationMessage, STATUS_CHANNEL_ID, pendingIntent, STATUS_NOTIFICATION_ID)
   }
 
   fun getHostname(): String {
@@ -337,7 +342,8 @@ class App : Application(), libtailscale.AppContext {
     }
     val pending: PendingIntent =
         PendingIntent.getActivity(this, 0, viewIntent, PendingIntent.FLAG_UPDATE_CURRENT)
-    notify(getString(R.string.file_notification), msg, FILE_CHANNEL_ID, pending, FILE_NOTIFICATION_ID)
+    notify(
+        getString(R.string.file_notification), msg, FILE_CHANNEL_ID, pending, FILE_NOTIFICATION_ID)
   }
 
   fun createNotificationChannel(id: String?, name: String?, importance: Int) {
@@ -346,7 +352,13 @@ class App : Application(), libtailscale.AppContext {
     nm.createNotificationChannel(channel)
   }
 
-  fun notify(title: String?, message: String?, channel: String, intent: PendingIntent?, notificationID: Int) {
+  fun notify(
+      title: String?,
+      message: String?,
+      channel: String,
+      intent: PendingIntent?,
+      notificationID: Int
+  ) {
     val builder: NotificationCompat.Builder =
         NotificationCompat.Builder(this, channel)
             .setSmallIcon(R.drawable.ic_notification)

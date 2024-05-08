@@ -14,8 +14,10 @@ import com.tailscale.ipn.ui.util.AndroidTVUtil.isAndroidTV
 
 object AndroidTVUtil {
   fun isAndroidTV(): Boolean {
-    return (App.appInstance.packageManager.hasSystemFeature(PackageManager.FEATURE_TELEVISION) ||
-        App.appInstance.packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK))
+    return (App.getApplication()
+        .packageManager
+        .hasSystemFeature(PackageManager.FEATURE_TELEVISION) ||
+        App.getApplication().packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK))
   }
 }
 
