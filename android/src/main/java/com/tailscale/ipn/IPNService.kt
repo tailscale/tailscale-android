@@ -8,8 +8,6 @@ import android.content.pm.PackageManager
 import android.net.VpnService
 import android.os.Build
 import android.system.OsConstants
-import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
 import libtailscale.Libtailscale
 import java.util.UUID
 
@@ -20,8 +18,13 @@ open class IPNService : VpnService(), libtailscale.IPNService {
     return randomID
   }
 
+  override fun onCreate() {
+    super.onCreate()
+    // grab app to make sure it initializes
+    App.getApplication()
+  }
+
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-    val app = applicationContext as App
     if (intent != null && "android.net.VpnService" == intent.action) {
       // Start VPN and connect to it due to Always-on VPN
       val i = Intent(IPNReceiver.INTENT_CONNECT_VPN)
@@ -30,15 +33,14 @@ open class IPNService : VpnService(), libtailscale.IPNService {
       sendBroadcast(i)
     }
     Libtailscale.requestVPN(this)
-    app.setWantRunning(true)
+    App.getApplication().setWantRunning(true)
     return START_STICKY
   }
 
   override public fun close() {
     stopForeground(true)
     Libtailscale.serviceDisconnect(this)
-    val app = applicationContext as App
-    app.setWantRunning(false)
+    App.getApplication().setWantRunning(false)
   }
 
   override fun onDestroy() {
