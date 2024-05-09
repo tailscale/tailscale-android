@@ -345,11 +345,19 @@ val ColorScheme.exitNodeToggleButton: ButtonColors
   @Composable
   get() {
     val defaults = ButtonDefaults.buttonColors()
-    return ButtonColors(
-        containerColor = Color(0xFF4B70CC), // blue-500
-        contentColor = Color(0xFFFFFFFF), // white
-        disabledContainerColor = defaults.disabledContainerColor,
-        disabledContentColor = defaults.disabledContentColor)
+    return if (isSystemInDarkTheme()) {
+      ButtonColors(
+          containerColor = Color(0xFF444342), // grey-600
+          contentColor = Color(0xFFFFFFFF), // white
+          disabledContainerColor = defaults.disabledContainerColor,
+          disabledContentColor = defaults.disabledContentColor)
+    } else {
+      ButtonColors(
+          containerColor = Color(0xFFEDEBEA), // grey-300
+          contentColor = Color(0xFF000000), // black
+          disabledContainerColor = defaults.disabledContainerColor,
+          disabledContentColor = defaults.disabledContentColor)
+    }
   }
 
 val ColorScheme.disabled: Color
