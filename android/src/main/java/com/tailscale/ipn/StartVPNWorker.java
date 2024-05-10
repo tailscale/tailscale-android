@@ -11,52 +11,53 @@ import android.content.Intent;
 import android.net.VpnService;
 import android.os.Build;
 
+import androidx.annotation.NonNull;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
+/**
+ * A worker that exists to support IPNReceiver.
+ */
 public final class StartVPNWorker extends Worker {
 
-    public StartVPNWorker(
-            Context appContext,
-            WorkerParameters workerParams) {
+    public StartVPNWorker(Context appContext, WorkerParameters workerParams) {
         super(appContext, workerParams);
     }
 
+    @NonNull
     @Override
     public Result doWork() {
-        App app = ((App) getApplicationContext());
-        // We need to make sure we prepare the VPN Service, just in case it isn't prepared.
-        Intent intent = VpnService.prepare(app);
-        if (intent == null) {
-            // If null then the VPN is already prepared and/or it's just been prepared because we have permission
-            app.startVPN();
-            return Result.success();
-        } else {
-            // This VPN possibly doesn't have permission, we need to display a notification which when clicked launches the intent provided.
-            android.util.Log.e("StartVPNWorker", "Tailscale doesn't have permission from the system to start VPN. Launching the intent provided.");
-
-            // Send notification
-            NotificationManager notificationManager = (NotificationManager) app.getSystemService(Context.NOTIFICATION_SERVICE);
-            String channelId = "start_vpn_channel";
-
-            // Use createNotificationChannel method from App.java
-            app.createNotificationChannel(channelId, "Start VPN Channel", NotificationManager.IMPORTANCE_DEFAULT);
-
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            int pendingIntentFlags = PendingIntent.FLAG_ONE_SHOT | (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ? PendingIntent.FLAG_IMMUTABLE : 0);
-            PendingIntent pendingIntent = PendingIntent.getActivity(app, 0, intent, pendingIntentFlags);
-
-            Notification notification = new Notification.Builder(app, channelId)
-                    .setContentTitle("Tailscale Connection Failed")
-                    .setContentText("Tap here to renew permission.")
-                    .setSmallIcon(R.drawable.ic_notification)
-                    .setContentIntent(pendingIntent)
-                    .setAutoCancel(true)
-                    .build();
-
-            notificationManager.notify(1, notification);
-
-            return Result.failure();
+        UninitializedApp app = UninitializedApp.get();
+        boolean ableToStartVPN = app.isAbleToStartVPN();
+        if (ableToStartVPN) {
+            if (VpnService.prepare(app) == null) {
+                // We're ready and have permissions, start the VPN
+                app.startVPN();
+                return Result.success();
+            }
         }
+
+        // We aren't ready to start the VPN or don't have permission, open the Tailscale app.
+        android.util.Log.e("StartVPNWorker", "Tailscale isn't ready to start the VPN, notify the user.");
+
+        // Send notification
+        NotificationManager notificationManager = (NotificationManager) app.getSystemService(Context.NOTIFICATION_SERVICE);
+        String channelId = "start_vpn_channel";
+
+        // Use createNotificationChannel method from App.java
+        app.createNotificationChannel(channelId, "Start VPN Channel", NotificationManager.IMPORTANCE_DEFAULT);
+
+        // Use prepareIntent if available.
+        Intent intent = app.getPackageManager().getLaunchIntentForPackage(app.getPackageName());
+        assert intent != null;
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        int pendingIntentFlags = PendingIntent.FLAG_ONE_SHOT | (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ? PendingIntent.FLAG_IMMUTABLE : 0);
+        PendingIntent pendingIntent = PendingIntent.getActivity(app, 0, intent, pendingIntentFlags);
+
+        Notification notification = new Notification.Builder(app, channelId).setContentTitle(app.getString(R.string.title_connection_failed)).setContentText(app.getString(R.string.body_open_tailscale)).setSmallIcon(R.drawable.ic_notification).setContentIntent(pendingIntent).setAutoCancel(true).build();
+
+        notificationManager.notify(1, notification);
+
+        return Result.failure();
     }
 }

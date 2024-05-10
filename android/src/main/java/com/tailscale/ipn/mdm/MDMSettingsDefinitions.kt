@@ -44,7 +44,7 @@ class AlwaysNeverUserDecidesMDMSetting(key: String, localizedTitle: String) :
   override fun getFrom(bundle: Bundle?, app: App): AlwaysNeverUserDecides {
     val storedString =
         bundle?.getString(key)
-            ?: App.getApplication().getEncryptedPrefs().getString(key, null)
+            ?: App.get().getEncryptedPrefs().getString(key, null)
             ?: "user-decides"
     return when (storedString) {
       "always" -> {
@@ -64,9 +64,7 @@ class ShowHideMDMSetting(key: String, localizedTitle: String) :
     MDMSetting<ShowHide>(ShowHide.Show, key, localizedTitle) {
   override fun getFrom(bundle: Bundle?, app: App): ShowHide {
     val storedString =
-        bundle?.getString(key)
-            ?: App.getApplication().getEncryptedPrefs().getString(key, null)
-            ?: "show"
+        bundle?.getString(key) ?: App.get().getEncryptedPrefs().getString(key, null) ?: "show"
     return when (storedString) {
       "hide" -> {
         ShowHide.Hide

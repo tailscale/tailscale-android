@@ -99,7 +99,7 @@ class MainActivity : ComponentActivity() {
     super.onCreate(savedInstanceState)
 
     // grab app to make sure it initializes
-    App.getApplication()
+    App.get()
 
     // (jonathan) TODO: Force the app to be portrait on small screens until we have
     // proper landscape layout support
@@ -234,7 +234,7 @@ class MainActivity : ComponentActivity() {
     lifecycleScope.launch {
       Notifier.state.collect { state ->
         if (state > Ipn.State.Stopped) {
-          App.getApplication().prepareVPN(this@MainActivity, RequestCodes.requestPrepareVPN)
+          App.get().prepareVPN(this@MainActivity, RequestCodes.requestPrepareVPN)
         }
       }
     }
@@ -276,7 +276,7 @@ class MainActivity : ComponentActivity() {
   private fun login(urlString: String) {
     // Launch coroutine to listen for state changes. When the user completes login, relaunch
     // MainActivity to bring the app back to focus.
-    App.getApplication().applicationScope.launch {
+    App.get().applicationScope.launch {
       try {
         Notifier.state.collect { state ->
           if (state > Ipn.State.NeedsMachineAuth) {
@@ -317,9 +317,7 @@ class MainActivity : ComponentActivity() {
     super.onResume()
     val restrictionsManager =
         this.getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
-    lifecycleScope.launch(Dispatchers.IO) {
-      MDMSettings.update(App.getApplication(), restrictionsManager)
-    }
+    lifecycleScope.launch(Dispatchers.IO) { MDMSettings.update(App.get(), restrictionsManager) }
   }
 
   override fun onStart() {
@@ -334,9 +332,7 @@ class MainActivity : ComponentActivity() {
     super.onStop()
     val restrictionsManager =
         this.getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
-    lifecycleScope.launch(Dispatchers.IO) {
-      MDMSettings.update(App.getApplication(), restrictionsManager)
-    }
+    lifecycleScope.launch(Dispatchers.IO) { MDMSettings.update(App.get(), restrictionsManager) }
   }
 
   private fun requestVpnPermission() {
