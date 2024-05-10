@@ -265,7 +265,9 @@ class MainActivity : ComponentActivity() {
   override fun onNewIntent(intent: Intent?) {
     super.onNewIntent(intent)
     if (intent?.getBooleanExtra(START_AT_ROOT, false) == true) {
-      navController.popBackStack(route = "main", inclusive = false)
+      if (this::navController.isInitialized) {
+        navController.popBackStack(route = "main", inclusive = false)
+      }
     }
   }
 
