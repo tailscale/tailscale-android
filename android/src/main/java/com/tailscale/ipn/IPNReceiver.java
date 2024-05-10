@@ -12,6 +12,9 @@ import androidx.work.WorkManager;
 
 import java.util.Objects;
 
+/**
+ * IPNReceiver allows external applications to start the VPN.
+ */
 public class IPNReceiver extends BroadcastReceiver {
 
     public static final String INTENT_CONNECT_VPN = "com.tailscale.ipn.CONNECT_VPN";

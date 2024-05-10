@@ -30,10 +30,6 @@ object Notifier {
   private val TAG = Notifier::class.simpleName
   private val decoder = Json { ignoreUnknownKeys = true }
 
-  // Global App State
-  val connStatus: StateFlow<Boolean> = MutableStateFlow(false)
-  val readyToPrepareVPN: StateFlow<Boolean> = MutableStateFlow(false)
-
   // General IPN Bus State
   val state: StateFlow<Ipn.State> = MutableStateFlow(Ipn.State.NoState)
   val netmap: StateFlow<Netmap.NetworkMap?> = MutableStateFlow(null)
@@ -80,10 +76,6 @@ object Notifier {
             notify.FilesWaiting?.let(filesWaiting::set)
             notify.IncomingFiles?.let(incomingFiles::set)
           }
-      state.collect { currstate ->
-        readyToPrepareVPN.set(currstate > Ipn.State.Stopped)
-        connStatus.set(currstate > Ipn.State.Stopped)
-      }
     }
   }
 
