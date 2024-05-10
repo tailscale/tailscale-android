@@ -11,12 +11,10 @@ import android.content.RestrictionsManager
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration.SCREENLAYOUT_SIZE_LARGE
 import android.content.res.Configuration.SCREENLAYOUT_SIZE_MASK
-import android.net.Uri
 import android.net.VpnService
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
@@ -99,6 +97,9 @@ class MainActivity : ComponentActivity() {
   @SuppressLint("SourceLockedOrientationActivity")
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
+
+    // grab app to make sure it initializes
+    App.get()
 
     // (jonathan) TODO: Force the app to be portrait on small screens until we have
     // proper landscape layout support
@@ -231,9 +232,10 @@ class MainActivity : ComponentActivity() {
       }
     }
     lifecycleScope.launch {
-      Notifier.readyToPrepareVPN.collect { isReady ->
-        if (isReady)
-            App.getApplication().prepareVPN(this@MainActivity, RequestCodes.requestPrepareVPN)
+      Notifier.state.collect { state ->
+        if (state > Ipn.State.Stopped) {
+          App.get().prepareVPN(this@MainActivity, RequestCodes.requestPrepareVPN)
+        }
       }
     }
   }
@@ -274,7 +276,7 @@ class MainActivity : ComponentActivity() {
   private fun login(urlString: String) {
     // Launch coroutine to listen for state changes. When the user completes login, relaunch
     // MainActivity to bring the app back to focus.
-    App.getApplication().applicationScope.launch {
+    App.get().applicationScope.launch {
       try {
         Notifier.state.collect { state ->
           if (state > Ipn.State.NeedsMachineAuth) {
@@ -315,9 +317,7 @@ class MainActivity : ComponentActivity() {
     super.onResume()
     val restrictionsManager =
         this.getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
-    lifecycleScope.launch(Dispatchers.IO) {
-      MDMSettings.update(App.getApplication(), restrictionsManager)
-    }
+    lifecycleScope.launch(Dispatchers.IO) { MDMSettings.update(App.get(), restrictionsManager) }
   }
 
   override fun onStart() {
@@ -332,9 +332,7 @@ class MainActivity : ComponentActivity() {
     super.onStop()
     val restrictionsManager =
         this.getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
-    lifecycleScope.launch(Dispatchers.IO) {
-      MDMSettings.update(App.getApplication(), restrictionsManager)
-    }
+    lifecycleScope.launch(Dispatchers.IO) { MDMSettings.update(App.get(), restrictionsManager) }
   }
 
   private fun requestVpnPermission() {
@@ -351,9 +349,9 @@ class MainActivity : ComponentActivity() {
 
   private fun openApplicationSettings() {
     val intent =
-    Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
-      putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
-  }
+        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+          putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+        }
     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     startActivity(intent)
   }

@@ -9,13 +9,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
-import com.tailscale.ipn.App
+import com.tailscale.ipn.UninitializedApp
 import com.tailscale.ipn.ui.util.AndroidTVUtil.isAndroidTV
 
 object AndroidTVUtil {
   fun isAndroidTV(): Boolean {
-    return (App.appInstance.packageManager.hasSystemFeature(PackageManager.FEATURE_TELEVISION) ||
-        App.appInstance.packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK))
+    val pm = UninitializedApp.get().packageManager
+    return (pm.hasSystemFeature(PackageManager.FEATURE_TELEVISION) ||
+        pm.hasSystemFeature(PackageManager.FEATURE_LEANBACK))
   }
 }
 

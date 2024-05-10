@@ -18,9 +18,9 @@ public class Peer extends Fragment {
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == RequestCodes.requestPrepareVPN) {
             if (resultCode == resultOK) {
-                App.getApplication().startVPN();
+                UninitializedApp.get().startVPN();
             } else {
-                App.getApplication().setWantRunning(false);
+                App.get().setWantRunning(false);
                 // notify VPN revoked
             }
         }

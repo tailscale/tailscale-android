@@ -5,9 +5,13 @@ package com.tailscale.ipn;
 
 import android.content.Context;
 
+import androidx.annotation.NonNull;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
+/**
+ * A worker that exists to support IPNReceiver.
+ */
 public final class StopVPNWorker extends Worker {
 
     public StopVPNWorker(
@@ -16,9 +20,10 @@ public final class StopVPNWorker extends Worker {
         super(appContext, workerParams);
     }
 
+    @NonNull
     @Override
     public Result doWork() {
-        App.getApplication().setWantRunning(false);
+        UninitializedApp.get().stopVPN();
         return Result.success();
     }
 }
