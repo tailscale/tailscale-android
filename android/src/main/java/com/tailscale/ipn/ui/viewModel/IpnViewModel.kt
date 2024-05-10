@@ -3,12 +3,10 @@
 
 package com.tailscale.ipn.ui.viewModel
 
-import android.content.Intent
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.tailscale.ipn.App
-import com.tailscale.ipn.IPNReceiver
+import com.tailscale.ipn.UninitializedApp
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.localapi.Client
 import com.tailscale.ipn.ui.model.Ipn
@@ -70,17 +68,11 @@ open class IpnViewModel : ViewModel() {
   }
 
   fun startVPN() {
-    val context = App.getApplication().applicationContext
-    val intent = Intent(context, IPNReceiver::class.java)
-    intent.action = IPNReceiver.INTENT_CONNECT_VPN
-    context.sendBroadcast(intent)
+    UninitializedApp.get().startVPN()
   }
 
-  fun stopVPN() {
-    val context = App.getApplication().applicationContext
-    val intent = Intent(context, IPNReceiver::class.java)
-    intent.action = IPNReceiver.INTENT_DISCONNECT_VPN
-    context.sendBroadcast(intent)
+  private fun stopVPN() {
+    UninitializedApp.get().stopVPN()
   }
 
   // Login/Logout

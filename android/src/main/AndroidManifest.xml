@@ -83,7 +83,6 @@
             </intent-filter>
         </activity>
 
-
         <receiver
             android:name="IPNReceiver"
             android:exported="true">

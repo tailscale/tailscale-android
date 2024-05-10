@@ -5,31 +5,22 @@ package com.tailscale.ipn
 import android.Manifest
 import android.app.Activity
 import android.app.Application
-import android.app.DownloadManager
 import android.app.Fragment
-import android.app.FragmentTransaction
 import android.app.NotificationChannel
 import android.app.PendingIntent
-import android.app.UiModeManager
-import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
-import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
-import android.content.res.Configuration
 import android.net.ConnectivityManager
 import android.net.LinkProperties
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
-import android.net.Uri
 import android.net.VpnService
 import android.os.Build
 import android.os.Environment
-import android.provider.Settings
 import android.util.Log
-import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -55,7 +46,7 @@ import java.net.NetworkInterface
 import java.security.GeneralSecurityException
 import java.util.Locale
 
-class App : Application(), libtailscale.AppContext {
+class App : UninitializedApp(), libtailscale.AppContext {
   val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
   companion object {
@@ -63,7 +54,6 @@ class App : Application(), libtailscale.AppContext {
     const val STATUS_NOTIFICATION_ID = 1
     private const val PEER_TAG = "peer"
     private const val FILE_CHANNEL_ID = "tailscale-files"
-    private const val FILE_NOTIFICATION_ID = 2
     private const val TAG = "App"
     private val networkConnectivityRequest =
         NetworkRequest.Builder()
@@ -83,7 +73,7 @@ class App : Application(), libtailscale.AppContext {
      * function to obtain an App reference to make sure the app initializes.
      */
     @JvmStatic
-    fun getApplication(): App {
+    fun get(): App {
       appInstance.initOnce()
       return appInstance
     }
@@ -104,6 +94,7 @@ class App : Application(), libtailscale.AppContext {
   override fun onCreate() {
     super.onCreate()
     appInstance = this
+    setUnprotectedInstance(this)
   }
 
   override fun onTerminate() {
@@ -112,14 +103,14 @@ class App : Application(), libtailscale.AppContext {
     applicationScope.cancel()
   }
 
-  var initialized = false
+  private var isInitialized = false
 
   @Synchronized
   private fun initOnce() {
-    if (initialized) {
+    if (isInitialized) {
       return
     }
-    initialized = true
+    isInitialized = true
 
     val dataDir = this.filesDir.absolutePath
 
@@ -143,7 +134,7 @@ class App : Application(), libtailscale.AppContext {
         val ableToStartVPN = state > Ipn.State.NeedsMachineAuth
         val vpnRunning = state == Ipn.State.Starting || state == Ipn.State.Running
         updateConnStatus(ableToStartVPN, vpnRunning)
-        QuickToggleService.setVPNRunning(this@App, vpnRunning)
+        QuickToggleService.setVPNRunning(vpnRunning)
       }
     }
   }
@@ -182,7 +173,7 @@ class App : Application(), libtailscale.AppContext {
             }
 
             if (dns.updateDNSFromNetwork(sb.toString())) {
-              Libtailscale.onDNSConfigChanged(linkProperties?.getInterfaceName())
+              Libtailscale.onDNSConfigChanged(linkProperties?.interfaceName)
             }
           }
 
@@ -193,12 +184,6 @@ class App : Application(), libtailscale.AppContext {
             }
           }
         })
-  }
-
-  fun startVPN() {
-    val intent = Intent(this, IPNService::class.java)
-    intent.setAction(IPNService.ACTION_REQUEST_VPN)
-    startService(intent)
   }
 
   // encryptToPref a byte array of data using the Jetpack Security
@@ -227,15 +212,17 @@ class App : Application(), libtailscale.AppContext {
         EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM)
   }
 
-  fun updateConnStatus(ableToStartVPN: Boolean, vpnRunning: Boolean) {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
-      return
-    }
-    QuickToggleService.setAbleToStartVPN(this, ableToStartVPN)
+  /*
+   * setAbleToStartVPN remembers whether or not we're able to start the VPN
+   * by storing this in a shared preference. This allows us to check this
+   * value without needing a fully initialized instance of the application.
+   */
+  private fun updateConnStatus(ableToStartVPN: Boolean, vpnRunning: Boolean) {
+    setAbleToStartVPN(ableToStartVPN)
+    QuickToggleService.updateTile()
     Log.d("App", "Set Tile Ready: $ableToStartVPN")
-    val action =
-        if (ableToStartVPN) IPNReceiver.INTENT_DISCONNECT_VPN else IPNReceiver.INTENT_CONNECT_VPN
-    val intent = Intent(this, IPNReceiver::class.java).apply { this.action = action }
+    val action = if (ableToStartVPN) IPNService.ACTION_STOP_VPN else IPNService.ACTION_START_VPN
+    val intent = Intent(this, IPNService::class.java).apply { this.action = action }
     val pendingIntent: PendingIntent =
         PendingIntent.getBroadcast(
             this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
@@ -243,13 +230,6 @@ class App : Application(), libtailscale.AppContext {
         if (vpnRunning) getString(R.string.connected) else getString(R.string.not_connected)
     notify(
         "Tailscale", notificationMessage, STATUS_CHANNEL_ID, pendingIntent, STATUS_NOTIFICATION_ID)
-  }
-
-  fun getHostname(): String {
-    val userConfiguredDeviceName = getUserConfiguredDeviceName()
-    if (!userConfiguredDeviceName.isNullOrEmpty()) return userConfiguredDeviceName
-
-    return modelName
   }
 
   override fun getModelName(): String {
@@ -265,125 +245,22 @@ class App : Application(), libtailscale.AppContext {
 
   override fun getOSVersion(): String = Build.VERSION.RELEASE
 
-  // get user defined nickname from Settings
-  // returns null if not available
-  private fun getUserConfiguredDeviceName(): String? {
-    val nameFromSystemDevice = Settings.Secure.getString(contentResolver, "device_name")
-    if (!nameFromSystemDevice.isNullOrEmpty()) return nameFromSystemDevice
-    return null
-  }
-
-  // attachPeer adds a Peer fragment for tracking the Activity
-  // lifecycle.
-  fun attachPeer(act: Activity) {
-    act.runOnUiThread(
-        Runnable {
-          val ft: FragmentTransaction = act.fragmentManager.beginTransaction()
-          ft.add(Peer(), PEER_TAG)
-          ft.commit()
-          act.fragmentManager.executePendingTransactions()
-        })
-  }
-
   override fun isChromeOS(): Boolean {
     return packageManager.hasSystemFeature("android.hardware.type.pc")
   }
 
   fun prepareVPN(act: Activity, reqCode: Int) {
-    act.runOnUiThread(
-        Runnable {
-          val intent: Intent? = VpnService.prepare(act)
-          if (intent == null) {
-            startVPN()
-          } else {
-            startActivityForResult(act, intent, reqCode)
-          }
-        })
-  }
-
-  fun showURL(act: Activity, url: String?) {
-    act.runOnUiThread(
-        Runnable {
-          val builder: CustomTabsIntent.Builder = CustomTabsIntent.Builder()
-          val headerColor = -0xb69b6b
-          builder.setToolbarColor(headerColor)
-          val intent: CustomTabsIntent = builder.build()
-          intent.launchUrl(act, Uri.parse(url))
-        })
-  }
-
-  @get:Throws(Exception::class)
-  val packageCertificate: ByteArray?
-    // getPackageSignatureFingerprint returns the first package signing certificate, if any.
-    get() {
-      val info: PackageInfo
-      info = packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNATURES)
-      for (signature in info.signatures) {
-        return signature.toByteArray()
+    // We do this with UI in case it's our first time starting the VPN.
+    act.runOnUiThread {
+      val prepareIntent = VpnService.prepare(this)
+      if (prepareIntent == null) {
+        // No intent here means that we already have permission to be a VPN.
+        startVPN()
+      } else {
+        // An intent here means that we need to prompt for permission to be a VPN.
+        startActivityForResult(act, prepareIntent, reqCode)
       }
-      return null
     }
-
-  @Throws(IOException::class)
-  fun openUri(uri: String?, mode: String?): Int? {
-    val resolver: ContentResolver = contentResolver
-    return mode?.let { resolver.openFileDescriptor(Uri.parse(uri), it)?.detachFd() }
-  }
-
-  fun deleteUri(uri: String?) {
-    val resolver: ContentResolver = contentResolver
-    resolver.delete(Uri.parse(uri), null, null)
-  }
-
-  fun notifyFile(uri: String?, msg: String?) {
-    val viewIntent: Intent
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-      viewIntent = Intent(Intent.ACTION_VIEW, Uri.parse(uri))
-    } else {
-      // uri is a file:// which is not allowed to be shared outside the app.
-      viewIntent = Intent(DownloadManager.ACTION_VIEW_DOWNLOADS)
-    }
-    val pending: PendingIntent =
-        PendingIntent.getActivity(this, 0, viewIntent, PendingIntent.FLAG_UPDATE_CURRENT)
-    notify(
-        getString(R.string.file_notification), msg, FILE_CHANNEL_ID, pending, FILE_NOTIFICATION_ID)
-  }
-
-  fun createNotificationChannel(id: String?, name: String?, importance: Int) {
-    val channel = NotificationChannel(id, name, importance)
-    val nm: NotificationManagerCompat = NotificationManagerCompat.from(this)
-    nm.createNotificationChannel(channel)
-  }
-
-  fun notify(
-      title: String?,
-      message: String?,
-      channel: String,
-      intent: PendingIntent?,
-      notificationID: Int
-  ) {
-    val builder: NotificationCompat.Builder =
-        NotificationCompat.Builder(this, channel)
-            .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(title)
-            .setContentText(message)
-            .setContentIntent(intent)
-            .setAutoCancel(true)
-            .setOnlyAlertOnce(true)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-    val nm: NotificationManagerCompat = NotificationManagerCompat.from(this)
-    if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
-        PackageManager.PERMISSION_GRANTED) {
-      // TODO: Consider calling
-      //    ActivityCompat#requestPermissions
-      // here to request the missing permissions, and then overriding
-      //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-      //                                          int[] grantResults)
-      // to handle the case where the user grants the permission. See the documentation
-      // for ActivityCompat#requestPermissions for more details.
-      return
-    }
-    nm.notify(notificationID, builder.build())
   }
 
   override fun getInterfacesAsString(): String {
@@ -421,12 +298,7 @@ class App : Application(), libtailscale.AppContext {
     return sb.toString()
   }
 
-  fun isTV(): Boolean {
-    val mm = getSystemService(Context.UI_MODE_SERVICE) as UiModeManager
-    return mm.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION
-  }
-
-  fun prepareDownloadsFolder(): File {
+  private fun prepareDownloadsFolder(): File {
     var downloads = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
 
     try {
@@ -475,5 +347,92 @@ class App : Application(), libtailscale.AppContext {
       Log.d("MDM", "$key is not defined on Android. Throwing NoSuchKeyException.")
       throw MDMSettings.NoSuchKeyException()
     }
+  }
+}
+
+/**
+ * UninitializedApp contains all of the methods of App that can be used without having to initialize
+ * the Go backend. This is useful when you want to access functions on the App without creating side
+ * effects from starting the Go backend (such as launching the VPN).
+ */
+open class UninitializedApp : Application() {
+  companion object {
+    // Key for shared preference that tracks whether or not we're able to start
+    // the VPN (i.e. we're logged in and machine is authorized).
+    private const val ABLE_TO_START_VPN_KEY = "ableToStartVPN"
+
+    // File for shared preferences that are not encrypted.
+    private const val UNENCRYPTED_PREFERENCES = "unencrypted"
+
+    private lateinit var appInstance: UninitializedApp
+
+    @JvmStatic
+    fun get(): UninitializedApp {
+      return appInstance
+    }
+  }
+
+  protected fun setUnprotectedInstance(instance: UninitializedApp) {
+    appInstance = instance
+  }
+
+  protected fun setAbleToStartVPN(rdy: Boolean) {
+    getUnencryptedPrefs().edit().putBoolean(ABLE_TO_START_VPN_KEY, rdy).apply()
+  }
+
+  /** This function can be called without initializing the App. */
+  fun isAbleToStartVPN(): Boolean {
+    return getUnencryptedPrefs().getBoolean(ABLE_TO_START_VPN_KEY, false)
+  }
+
+  private fun getUnencryptedPrefs(): SharedPreferences {
+    return getSharedPreferences(UNENCRYPTED_PREFERENCES, MODE_PRIVATE)
+  }
+
+  fun startVPN() {
+    val intent = Intent(this, IPNService::class.java).apply { action = IPNService.ACTION_START_VPN }
+    startService(intent)
+  }
+
+  fun stopVPN() {
+    val intent = Intent(this, IPNService::class.java).apply { action = IPNService.ACTION_STOP_VPN }
+    startService(intent)
+  }
+
+  fun createNotificationChannel(id: String?, name: String?, importance: Int) {
+    val channel = NotificationChannel(id, name, importance)
+    val nm: NotificationManagerCompat = NotificationManagerCompat.from(this)
+    nm.createNotificationChannel(channel)
+  }
+
+  protected fun notify(
+      title: String?,
+      message: String?,
+      channel: String,
+      intent: PendingIntent?,
+      notificationID: Int
+  ) {
+    val builder: NotificationCompat.Builder =
+        NotificationCompat.Builder(this, channel)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(title)
+            .setContentText(message)
+            .setContentIntent(intent)
+            .setAutoCancel(true)
+            .setOnlyAlertOnce(true)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+    val nm: NotificationManagerCompat = NotificationManagerCompat.from(this)
+    if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
+        PackageManager.PERMISSION_GRANTED) {
+      // TODO: Consider calling
+      //    ActivityCompat#requestPermissions
+      // here to request the missing permissions, and then overriding
+      //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+      //                                          int[] grantResults)
+      // to handle the case where the user grants the permission. See the documentation
+      // for ActivityCompat#requestPermissions for more details.
+      return
+    }
+    nm.notify(notificationID, builder.build())
   }
 }
