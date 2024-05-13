@@ -39,9 +39,9 @@ open class IPNService : VpnService(), libtailscale.IPNService {
         }
         "android.net.VpnService" -> {
           // This means we were started by Android due to Always On VPN.
-          // Get the application to make sure it's been initialized, then
-          // request the VPN.
-          App.get()
+          // We don't show a foreground notification because we weren't
+          // started as a foreground service.
+          App.get().setWantRunning(true)
           Libtailscale.requestVPN(this)
           START_STICKY
         }
