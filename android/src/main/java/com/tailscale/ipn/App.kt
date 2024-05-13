@@ -6,6 +6,7 @@ import android.Manifest
 import android.app.Activity
 import android.app.Application
 import android.app.Fragment
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.PendingIntent
 import android.content.Context
@@ -50,8 +51,6 @@ class App : UninitializedApp(), libtailscale.AppContext {
   val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
   companion object {
-    const val STATUS_CHANNEL_ID = "tailscale-status"
-    const val STATUS_NOTIFICATION_ID = 1
     private const val PEER_TAG = "peer"
     private const val FILE_CHANNEL_ID = "tailscale-files"
     private const val TAG = "App"
@@ -93,6 +92,10 @@ class App : UninitializedApp(), libtailscale.AppContext {
 
   override fun onCreate() {
     super.onCreate()
+    createNotificationChannel(
+        STATUS_CHANNEL_ID, "VPN Status", NotificationManagerCompat.IMPORTANCE_LOW)
+    createNotificationChannel(
+        FILE_CHANNEL_ID, "File transfers", NotificationManagerCompat.IMPORTANCE_DEFAULT)
     appInstance = this
     setUnprotectedInstance(this)
   }
@@ -125,10 +128,6 @@ class App : UninitializedApp(), libtailscale.AppContext {
     Notifier.start(applicationScope)
     connectivityManager = this.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     setAndRegisterNetworkCallbacks()
-    createNotificationChannel(
-        STATUS_CHANNEL_ID, "VPN Status", NotificationManagerCompat.IMPORTANCE_LOW)
-    createNotificationChannel(
-        FILE_CHANNEL_ID, "File transfers", NotificationManagerCompat.IMPORTANCE_DEFAULT)
     applicationScope.launch {
       Notifier.state.collect { state ->
         val ableToStartVPN = state > Ipn.State.NeedsMachineAuth
@@ -221,20 +220,7 @@ class App : UninitializedApp(), libtailscale.AppContext {
     setAbleToStartVPN(ableToStartVPN)
     QuickToggleService.updateTile()
     Log.d("App", "Set Tile Ready: $ableToStartVPN")
-    val action = if (ableToStartVPN) IPNService.ACTION_STOP_VPN else IPNService.ACTION_START_VPN
-    val intent = Intent(this, IPNService::class.java).apply { this.action = action }
-    val pendingIntent: PendingIntent =
-        PendingIntent.getBroadcast(
-            this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-    val notificationMessage =
-        if (vpnRunning) getString(R.string.connected) else getString(R.string.not_connected)
-    notify(
-        "Tailscale",
-        notificationMessage,
-        vpnRunning,
-        STATUS_CHANNEL_ID,
-        pendingIntent,
-        STATUS_NOTIFICATION_ID)
+    notifyStatus(vpnRunning)
   }
 
   override fun getModelName(): String {
@@ -362,6 +348,9 @@ class App : UninitializedApp(), libtailscale.AppContext {
  */
 open class UninitializedApp : Application() {
   companion object {
+    const val STATUS_NOTIFICATION_ID = 1
+    const val STATUS_CHANNEL_ID = "tailscale-status"
+
     // Key for shared preference that tracks whether or not we're able to start
     // the VPN (i.e. we're logged in and machine is authorized).
     private const val ABLE_TO_START_VPN_KEY = "ableToStartVPN"
@@ -396,7 +385,7 @@ open class UninitializedApp : Application() {
 
   fun startVPN() {
     val intent = Intent(this, IPNService::class.java).apply { action = IPNService.ACTION_START_VPN }
-    startService(intent)
+    startForegroundService(intent)
   }
 
   fun stopVPN() {
@@ -410,26 +399,7 @@ open class UninitializedApp : Application() {
     nm.createNotificationChannel(channel)
   }
 
-  fun notify(
-      title: String?,
-      message: String?,
-      usesEnabledIcon: Boolean,
-      channel: String,
-      intent: PendingIntent?,
-      notificationID: Int
-  ) {
-    val icon =
-        if (usesEnabledIcon) R.drawable.ic_notification else R.drawable.ic_notification_disabled
-    val builder: NotificationCompat.Builder =
-        NotificationCompat.Builder(this, channel)
-            .setSmallIcon(icon)
-            .setContentTitle(title)
-            .setContentText(message)
-            .setContentIntent(intent)
-            .setAutoCancel(true)
-            .setOnlyAlertOnce(true)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-    val nm: NotificationManagerCompat = NotificationManagerCompat.from(this)
+  protected fun notifyStatus(vpnRunning: Boolean) {
     if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
         PackageManager.PERMISSION_GRANTED) {
       // TODO: Consider calling
@@ -441,6 +411,30 @@ open class UninitializedApp : Application() {
       // for ActivityCompat#requestPermissions for more details.
       return
     }
-    nm.notify(notificationID, builder.build())
+    val nm: NotificationManagerCompat = NotificationManagerCompat.from(this)
+    nm.notify(STATUS_NOTIFICATION_ID, buildStatusNotification(vpnRunning))
+  }
+
+  fun buildStatusNotification(vpnRunning: Boolean): Notification {
+    val message = getString(if (vpnRunning) R.string.connected else R.string.not_connected)
+    val icon = if (vpnRunning) R.drawable.ic_notification else R.drawable.ic_notification_disabled
+    val action =
+        if (vpnRunning) IPNReceiver.INTENT_DISCONNECT_VPN else IPNReceiver.INTENT_CONNECT_VPN
+    val actionLabel = getString(if (vpnRunning) R.string.disconnect else R.string.connect)
+    val intent = Intent(this, IPNReceiver::class.java).apply { this.action = action }
+    val pendingIntent: PendingIntent =
+        PendingIntent.getBroadcast(
+            this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+    return NotificationCompat.Builder(this, STATUS_CHANNEL_ID)
+        .setSmallIcon(icon)
+        .setContentTitle("Tailscale")
+        .setContentText(message)
+        .setAutoCancel(!vpnRunning)
+        .setOnlyAlertOnce(!vpnRunning)
+        .setOngoing(vpnRunning)
+        .setSilent(true)
+        .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+        .addAction(NotificationCompat.Action.Builder(0, actionLabel, pendingIntent).build())
+        .build()
   }
 }

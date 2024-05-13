@@ -32,6 +32,7 @@ open class IPNService : VpnService(), libtailscale.IPNService {
           START_NOT_STICKY
         }
         ACTION_START_VPN -> {
+          showForegroundNotification()
           App.get().setWantRunning(true)
           Libtailscale.requestVPN(this)
           START_STICKY
@@ -70,6 +71,12 @@ open class IPNService : VpnService(), libtailscale.IPNService {
   override fun onRevoke() {
     close()
     super.onRevoke()
+  }
+
+  private fun showForegroundNotification() {
+    startForeground(
+        UninitializedApp.STATUS_NOTIFICATION_ID,
+        UninitializedApp.get().buildStatusNotification(true))
   }
 
   private fun configIntent(): PendingIntent {
