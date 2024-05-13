@@ -119,7 +119,7 @@ func (a *App) runBackend(ctx context.Context) error {
 	}
 	configs := make(chan configPair)
 	configErrs := make(chan error)
-	b, err := newBackend(a.dataDir, a.directFileRoot, a.appCtx, a.store, func(rcfg *router.Config, dcfg *dns.OSConfig) error {
+	b, err := a.newBackend(a.dataDir, a.directFileRoot, a.appCtx, a.store, func(rcfg *router.Config, dcfg *dns.OSConfig) error {
 		if rcfg == nil {
 			return nil
 		}
@@ -254,7 +254,7 @@ func (a *App) runBackend(ctx context.Context) error {
 	}
 }
 
-func newBackend(dataDir, directFileRoot string, appCtx AppContext, store *stateStore,
+func (a *App) newBackend(dataDir, directFileRoot string, appCtx AppContext, store *stateStore,
 	settings settingsFunc) (*backend, error) {
 
 	sys := new(tsd.System)
@@ -344,6 +344,7 @@ func newBackend(dataDir, directFileRoot string, appCtx AppContext, store *stateS
 			log.Printf("Failed to start LocalBackend, panicking: %s", err)
 			panic(err)
 		}
+		a.ready.Done()
 	}()
 	return b, nil
 }

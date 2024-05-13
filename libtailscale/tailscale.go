@@ -36,7 +36,7 @@ func newApp(dataDir, directFileRoot string, appCtx AppContext) Application {
 		dataDir:        dataDir,
 		appCtx:         appCtx,
 	}
-	a.ready.Add(1)
+	a.ready.Add(2)
 
 	a.store = newStateStore(a.appCtx)
 	netmon.RegisterInterfaceGetter(a.getInterfaces)
