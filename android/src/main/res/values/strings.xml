@@ -246,4 +246,12 @@
     <!-- Strings for the IPNReceiver -->
     <string name="title_connection_failed">Tailscale Connection Failed</string>
     <string name="body_open_tailscale">Tap here to open Tailscale.</string>
+
+    <!-- Strings describing notification channels -->
+    <string name="taildrop_file_transfers">Taildrop file transfers</string>
+    <string name="vpn_status">VPN status</string>
+    <string name="vpn_start">VPN start</string>
+    <string name="notifications_delivered_when_user_interaction_is_required_to_establish_the_vpn_tunnel">Notifications delivered when user interaction is required to establish the VPN tunnel.</string>
+    <string name="optional_notifications_which_display_the_status_of_the_vpn_tunnel">Optional notifications which display the status of the VPN tunnel.</string>
+    <string name="notifications_delivered_when_a_file_is_received_using_taildrop">Notifications delivered when a file is received using Taildrop.</string>
 </resources>

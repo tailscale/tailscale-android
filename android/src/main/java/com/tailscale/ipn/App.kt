@@ -93,9 +93,15 @@ class App : UninitializedApp(), libtailscale.AppContext {
   override fun onCreate() {
     super.onCreate()
     createNotificationChannel(
-        STATUS_CHANNEL_ID, "VPN Status", NotificationManagerCompat.IMPORTANCE_LOW)
+        STATUS_CHANNEL_ID,
+        getString(R.string.vpn_status),
+        getString(R.string.optional_notifications_which_display_the_status_of_the_vpn_tunnel),
+        NotificationManagerCompat.IMPORTANCE_MIN)
     createNotificationChannel(
-        FILE_CHANNEL_ID, "File transfers", NotificationManagerCompat.IMPORTANCE_DEFAULT)
+        FILE_CHANNEL_ID,
+        getString(R.string.taildrop_file_transfers),
+        getString(R.string.notifications_delivered_when_a_file_is_received_using_taildrop),
+        NotificationManagerCompat.IMPORTANCE_DEFAULT)
     appInstance = this
     setUnprotectedInstance(this)
   }
@@ -393,8 +399,9 @@ open class UninitializedApp : Application() {
     startService(intent)
   }
 
-  fun createNotificationChannel(id: String?, name: String?, importance: Int) {
+  fun createNotificationChannel(id: String, name: String, description: String, importance: Int) {
     val channel = NotificationChannel(id, name, importance)
+    channel.description = description
     val nm: NotificationManagerCompat = NotificationManagerCompat.from(this)
     nm.createNotificationChannel(channel)
   }

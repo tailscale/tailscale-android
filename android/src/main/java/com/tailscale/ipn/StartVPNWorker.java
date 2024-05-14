@@ -45,7 +45,7 @@ public final class StartVPNWorker extends Worker {
         String channelId = "start_vpn_channel";
 
         // Use createNotificationChannel method from App.java
-        app.createNotificationChannel(channelId, "Start VPN Channel", NotificationManager.IMPORTANCE_DEFAULT);
+        app.createNotificationChannel(channelId, getApplicationContext().getString(R.string.vpn_start), getApplicationContext().getString(R.string.notifications_delivered_when_user_interaction_is_required_to_establish_the_vpn_tunnel), NotificationManager.IMPORTANCE_HIGH);
 
         // Use prepareIntent if available.
         Intent intent = app.getPackageManager().getLaunchIntentForPackage(app.getPackageName());
