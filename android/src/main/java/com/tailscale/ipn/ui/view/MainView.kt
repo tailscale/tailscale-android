@@ -46,6 +46,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -88,6 +89,7 @@ import com.tailscale.ipn.ui.util.PeerSet
 import com.tailscale.ipn.ui.util.flag
 import com.tailscale.ipn.ui.util.itemsWithDividers
 import com.tailscale.ipn.ui.viewModel.MainViewModel
+import android.util.Log
 
 // Navigation actions for the MainView
 data class MainViewNavigation(
@@ -101,14 +103,17 @@ data class MainViewNavigation(
 fun MainView(
     loginAtUrl: (String) -> Unit,
     navigation: MainViewNavigation,
-    viewModel: MainViewModel = viewModel()
+    viewModel: MainViewModel
 ) {
-  val isOn = viewModel.vpnToggleState.collectAsState()
+  
   LoadingIndicator.Wrap {
     Scaffold(contentWindowInsets = WindowInsets.Companion.statusBars) { paddingInsets ->
       Column(
           modifier = Modifier.fillMaxWidth().padding(paddingInsets),
           verticalArrangement = Arrangement.Center) {
+            // Assume VPN has been prepared. Whether or not it has been prepared cannot be known until permission has been granted to prepare the VPN.
+            val isPrepared by viewModel.vpnPrepared.collectAsState(initial=true)
+            val isOn by viewModel.vpnToggleState.collectAsState(initial = false)
             val state by viewModel.ipnState.collectAsState(initial = Ipn.State.NoState)
             val user by viewModel.loggedInUser.collectAsState(initial = null)
             val stateVal by viewModel.stateRes.collectAsState(initial = R.string.placeholder)
@@ -128,7 +133,7 @@ fun MainView(
                         }
                       },
                       enabled = !disableToggle,
-                      checked = isOn.value)
+                      checked = isOn)
                 },
                 headlineContent = {
                   user?.NetworkProfile?.DomainName?.let { domain ->
@@ -185,11 +190,13 @@ fun MainView(
               else -> {
                 ConnectView(
                     state,
+                    isPrepared,
                     user,
                     { viewModel.toggleVpn() },
                     { viewModel.login() },
                     loginAtUrl,
-                    netmap?.SelfNode)
+                    netmap?.SelfNode, 
+                    {viewModel.showVPNPermissionLauncherIfUnauthorized()})
               }
             }
           }
@@ -300,12 +307,19 @@ fun StartingView() {
 @Composable
 fun ConnectView(
     state: Ipn.State,
+    isPrepared: Boolean,
     user: IpnLocal.LoginProfile?,
     connectAction: () -> Unit,
     loginAction: () -> Unit,
     loginAtUrlAction: (String) -> Unit,
-    selfNode: Tailcfg.Node?
+    selfNode: Tailcfg.Node?,
+    showVPNPermissionLauncherIfUnauthorized: () -> Unit
 ) {
+  LaunchedEffect(isPrepared) {
+    if (!isPrepared) {
+      showVPNPermissionLauncherIfUnauthorized()
+    }
+}
   Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
       Column(
@@ -313,7 +327,24 @@ fun ConnectView(
           verticalArrangement = Arrangement.spacedBy(8.dp, alignment = Alignment.CenterVertically),
           horizontalAlignment = Alignment.CenterHorizontally,
       ) {
-        if (state == Ipn.State.NeedsMachineAuth) {
+        if (!isPrepared) { 
+          TailscaleLogoView(modifier = Modifier.size(50.dp))
+          Spacer(modifier = Modifier.size(1.dp))
+          Text(
+              text = stringResource(id = R.string.welcome_to_tailscale),
+              style = MaterialTheme.typography.titleMedium,
+              textAlign = TextAlign.Center)
+          Text(
+              stringResource(R.string.give_permissions),
+              style = MaterialTheme.typography.titleSmall,
+              textAlign = TextAlign.Center)
+          Spacer(modifier = Modifier.size(1.dp))
+          PrimaryActionButton(onClick = connectAction) {
+            Text(
+                text = stringResource(id = R.string.connect),
+                fontSize = MaterialTheme.typography.titleMedium.fontSize)
+          }
+        } else if (state == Ipn.State.NeedsMachineAuth) {
           Icon(
               modifier = Modifier.size(40.dp),
               imageVector = Icons.Outlined.Lock,

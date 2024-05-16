@@ -3,9 +3,7 @@
 package com.tailscale.ipn
 
 import android.Manifest
-import android.app.Activity
 import android.app.Application
-import android.app.Fragment
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.PendingIntent
@@ -18,7 +16,6 @@ import android.net.LinkProperties
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
-import android.net.VpnService
 import android.os.Build
 import android.os.Environment
 import android.util.Log
@@ -51,7 +48,6 @@ class App : UninitializedApp(), libtailscale.AppContext {
   val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
   companion object {
-    private const val PEER_TAG = "peer"
     private const val FILE_CHANNEL_ID = "tailscale-files"
     private const val TAG = "App"
     private val networkConnectivityRequest =
@@ -60,12 +56,6 @@ class App : UninitializedApp(), libtailscale.AppContext {
             .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
             .build()
     private lateinit var appInstance: App
-
-    @JvmStatic
-    fun startActivityForResult(act: Activity, intent: Intent?, request: Int) {
-      val f: Fragment = act.fragmentManager.findFragmentByTag(PEER_TAG)
-      f.startActivityForResult(intent, request)
-    }
 
     /**
      * Initializes the app (if necessary) and returns the singleton app instance. Always use this
@@ -244,20 +234,6 @@ class App : UninitializedApp(), libtailscale.AppContext {
 
   override fun isChromeOS(): Boolean {
     return packageManager.hasSystemFeature("android.hardware.type.pc")
-  }
-
-  fun prepareVPN(act: Activity, reqCode: Int) {
-    // We do this with UI in case it's our first time starting the VPN.
-    act.runOnUiThread {
-      val prepareIntent = VpnService.prepare(this)
-      if (prepareIntent == null) {
-        // No intent here means that we already have permission to be a VPN.
-        startVPN()
-      } else {
-        // An intent here means that we need to prompt for permission to be a VPN.
-        startActivityForResult(act, prepareIntent, reqCode)
-      }
-    }
   }
 
   override fun getInterfacesAsString(): String {

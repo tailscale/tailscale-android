@@ -3,10 +3,15 @@
 
 package com.tailscale.ipn.ui.viewModel
 
+import android.content.Intent
+import android.net.VpnService
 import android.util.Log
+import androidx.activity.result.ActivityResultLauncher
 import androidx.lifecycle.viewModelScope
+import com.tailscale.ipn.App
 import com.tailscale.ipn.R
 import com.tailscale.ipn.mdm.MDMSettings
+import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.Ipn.State
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.util.PeerCategorizer
@@ -15,16 +20,23 @@ import com.tailscale.ipn.ui.util.TimeUtil
 import com.tailscale.ipn.ui.util.set
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import java.time.Duration
 
 class MainViewModel : IpnViewModel() {
 
   // The user readable state of the system
-  val stateRes: StateFlow<Int> = MutableStateFlow(State.NoState.userStringRes())
+  val stateRes: StateFlow<Int> = MutableStateFlow(userStringRes(State.NoState, State.NoState, true))
 
   // The expected state of the VPN toggle
-  val vpnToggleState: StateFlow<Boolean> = MutableStateFlow(false)
+  private val _vpnToggleState = MutableStateFlow(false)
+  val vpnToggleState: StateFlow<Boolean> = _vpnToggleState
+
+  // Whether or not the VPN has been prepared
+  private val _vpnPrepared = MutableStateFlow(false)
+  val vpnPrepared: StateFlow<Boolean> = _vpnPrepared
+  private var vpnPermissionLauncher: ActivityResultLauncher<Intent>? = null
 
   // The list of peers
   val peers: StateFlow<List<PeerSet>> = MutableStateFlow(emptyList<PeerSet>())
@@ -44,13 +56,24 @@ class MainViewModel : IpnViewModel() {
   private val peerCategorizer = PeerCategorizer()
 
   init {
+
     viewModelScope.launch {
-      Notifier.state.collect { state ->
-        stateRes.set(state.userStringRes())
-        vpnToggleState.set(
-            (state == State.Running || state == State.Starting || state == State.NoState))
-      }
-    }
+      var previousState: State? = null
+  
+      combine(Notifier.state, vpnPrepared) { state, prepared -> state to prepared }
+          .collect { (currentState, prepared) ->
+              stateRes.set(userStringRes(currentState, previousState, prepared))
+  
+              val isOn = when {
+                  currentState == State.Running || currentState == State.Starting -> true
+                  previousState == State.NoState && currentState == State.Starting -> true
+                  else -> false
+              }
+  
+              _vpnToggleState.value = isOn
+              previousState = currentState
+          }
+  }
 
     viewModelScope.launch {
       Notifier.netmap.collect { it ->
@@ -82,20 +105,47 @@ class MainViewModel : IpnViewModel() {
     }
   }
 
+  fun showVPNPermissionLauncherIfUnauthorized() {
+    val vpnIntent = VpnService.prepare(App.get())
+    if (vpnIntent != null) {
+      vpnPermissionLauncher?.launch(vpnIntent)
+    }
+  }
+
+  fun toggleVpn() {
+    val state = Notifier.state.value
+    val isPrepared = vpnPrepared.value
+
+    when {
+        !isPrepared -> showVPNPermissionLauncherIfUnauthorized()
+        state == Ipn.State.Running -> stopVPN()
+        else -> startVPN()
+    }
+}
+
   fun searchPeers(searchTerm: String) {
     this.searchTerm.set(searchTerm)
   }
+
+  fun setVpnPermissionLauncher(launcher: ActivityResultLauncher<Intent>) {
+    vpnPermissionLauncher = launcher
+  }
+
+  fun setVpnPrepared(prepared: Boolean) {
+    _vpnPrepared.value = prepared
+  }
 }
 
-private fun State?.userStringRes(): Int {
-  return when (this) {
-    State.NoState -> R.string.waiting
-    State.InUseOtherUser -> R.string.placeholder
-    State.NeedsLogin -> R.string.please_login
-    State.NeedsMachineAuth -> R.string.needs_machine_auth
-    State.Stopped -> R.string.stopped
-    State.Starting -> R.string.starting
-    State.Running -> R.string.connected
-    else -> R.string.placeholder
+private fun userStringRes(currentState: State?, previousState: State?, vpnPrepared: Boolean): Int {
+  return when {
+      previousState == State.NoState && currentState == State.Starting -> R.string.starting
+      currentState == State.NoState -> R.string.placeholder
+      currentState == State.InUseOtherUser -> R.string.placeholder
+      currentState == State.NeedsLogin -> if (vpnPrepared) R.string.please_login else R.string.connect_to_vpn
+      currentState == State.NeedsMachineAuth -> R.string.needs_machine_auth
+      currentState == State.Stopped -> R.string.stopped
+      currentState == State.Starting -> R.string.starting
+      currentState == State.Running -> R.string.connected
+      else -> R.string.placeholder
   }
 }
