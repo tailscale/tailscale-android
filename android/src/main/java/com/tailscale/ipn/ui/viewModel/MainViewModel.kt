@@ -18,6 +18,7 @@ import com.tailscale.ipn.ui.util.PeerCategorizer
 import com.tailscale.ipn.ui.util.PeerSet
 import com.tailscale.ipn.ui.util.TimeUtil
 import com.tailscale.ipn.ui.util.set
+import com.tailscale.ipn.App
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -148,4 +149,5 @@ private fun userStringRes(currentState: State?, previousState: State?, vpnPrepar
       currentState == State.Running -> R.string.connected
       else -> R.string.placeholder
   }
+  return resId
 }
