@@ -13,6 +13,7 @@ import com.tailscale.ipn.ui.util.PeerCategorizer
 import com.tailscale.ipn.ui.util.PeerSet
 import com.tailscale.ipn.ui.util.TimeUtil
 import com.tailscale.ipn.ui.util.set
+import com.tailscale.ipn.App
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -21,10 +22,11 @@ import java.time.Duration
 class MainViewModel : IpnViewModel() {
 
   // The user readable state of the system
-  val stateRes: StateFlow<Int> = MutableStateFlow(State.NoState.userStringRes())
+  val stateRes: StateFlow<Int> = MutableStateFlow(State.NoState.userStringRes(null))
 
   // The expected state of the VPN toggle
-  val vpnToggleState: StateFlow<Boolean> = MutableStateFlow(false)
+  private val _vpnToggleState = MutableStateFlow(false)
+  val vpnToggleState: StateFlow<Boolean> = _vpnToggleState  
 
   // The list of peers
   val peers: StateFlow<List<PeerSet>> = MutableStateFlow(emptyList<PeerSet>())
@@ -44,13 +46,20 @@ class MainViewModel : IpnViewModel() {
   private val peerCategorizer = PeerCategorizer()
 
   init {
+
     viewModelScope.launch {
-      Notifier.state.collect { state ->
-        stateRes.set(state.userStringRes())
-        vpnToggleState.set(
-            (state == State.Running || state == State.Starting || state == State.NoState))
+      var previousState: State? = null
+      Notifier.state.collect { currentState ->
+          val userString = currentState.userStringRes(previousState)
+          stateRes.set(userString)
+          _vpnToggleState.value = when {
+              currentState == State.Running || currentState == State.Starting -> true
+              previousState == State.NoState && currentState == State.Starting -> true
+              else -> false
+          }
+          previousState = currentState
       }
-    }
+  }
 
     viewModelScope.launch {
       Notifier.netmap.collect { it ->
@@ -87,15 +96,17 @@ class MainViewModel : IpnViewModel() {
   }
 }
 
-private fun State?.userStringRes(): Int {
-  return when (this) {
-    State.NoState -> R.string.waiting
-    State.InUseOtherUser -> R.string.placeholder
-    State.NeedsLogin -> R.string.please_login
-    State.NeedsMachineAuth -> R.string.needs_machine_auth
-    State.Stopped -> R.string.stopped
-    State.Starting -> R.string.starting
-    State.Running -> R.string.connected
-    else -> R.string.placeholder
+private fun State?.userStringRes(previousState: State?): Int {
+  val resId = when {
+      previousState == State.NoState && this == State.Starting -> R.string.starting
+      this == State.NoState -> R.string.placeholder
+      this == State.InUseOtherUser -> R.string.placeholder
+      this == State.NeedsLogin -> R.string.please_login
+      this == State.NeedsMachineAuth -> R.string.needs_machine_auth
+      this == State.Stopped -> R.string.stopped
+      this == State.Starting -> R.string.starting
+      this == State.Running -> R.string.connected
+      else -> R.string.placeholder
   }
+  return resId
 }
