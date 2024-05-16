@@ -19,6 +19,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContract
+import androidx.activity.viewModels
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -38,7 +39,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.tailscale.ipn.Peer.RequestCodes
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.notifier.Notifier
@@ -68,6 +68,7 @@ import com.tailscale.ipn.ui.view.TailnetLockSetupView
 import com.tailscale.ipn.ui.view.UserSwitcherNav
 import com.tailscale.ipn.ui.view.UserSwitcherView
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerNav
+import com.tailscale.ipn.ui.viewModel.MainViewModel
 import com.tailscale.ipn.ui.viewModel.SettingsNav
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
@@ -78,6 +79,8 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
   private lateinit var requestVpnPermission: ActivityResultLauncher<Unit>
   private lateinit var navController: NavHostController
+  private lateinit var vpnPermissionLauncher: ActivityResultLauncher<Intent>
+  private val viewModel: MainViewModel by viewModels()
 
   companion object {
     private const val TAG = "Main Activity"
@@ -108,6 +111,18 @@ class MainActivity : ComponentActivity() {
     }
 
     installSplashScreen()
+
+    vpnPermissionLauncher =
+        registerForActivityResult(VpnPermissionContract()) { granted ->
+          if (granted) {
+            Log.d("VpnPermission", "VPN permission granted")
+            viewModel.setVpnPrepared(true)
+          } else {
+            Log.d("VpnPermission", "VPN permission denied")
+            viewModel.setVpnPrepared(false)
+          }
+        }
+        viewModel.setVpnPermissionLauncher(vpnPermissionLauncher)
 
     setContent {
       AppTheme {
@@ -176,7 +191,7 @@ class MainActivity : ComponentActivity() {
                           onNavigateToAuthKey = { navController.navigate("loginWithAuthKey") })
 
                   composable("main", enterTransition = { fadeIn(animationSpec = tween(150)) }) {
-                    MainView(loginAtUrl = ::login, navigation = mainViewNav)
+                    MainView(loginAtUrl = ::login, navigation = mainViewNav, viewModel = viewModel)
                   }
                   composable("settings") { SettingsView(settingsNav) }
                   composable("exitNodes") { ExitNodePicker(exitNodePickerNav) }
@@ -228,13 +243,6 @@ class MainActivity : ComponentActivity() {
         // over whatever screen we happen to be on.
         loginQRCode.collectAsState().value?.let {
           LoginQRView(onDismiss = { loginQRCode.set(null) })
-        }
-      }
-    }
-    lifecycleScope.launch {
-      Notifier.state.collect { state ->
-        if (state > Ipn.State.Stopped) {
-          App.get().prepareVPN(this@MainActivity, RequestCodes.requestPrepareVPN)
         }
       }
     }
@@ -322,10 +330,6 @@ class MainActivity : ComponentActivity() {
 
   override fun onStart() {
     super.onStart()
-
-    // (jonathan) TODO: Requesting VPN permissions onStart is a bit aggressive.  This should
-    // be done when the user initiall starts the VPN
-    requestVpnPermission()
   }
 
   override fun onStop() {
@@ -333,18 +337,6 @@ class MainActivity : ComponentActivity() {
     val restrictionsManager =
         this.getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
     lifecycleScope.launch(Dispatchers.IO) { MDMSettings.update(App.get(), restrictionsManager) }
-  }
-
-  private fun requestVpnPermission() {
-    val vpnIntent = VpnService.prepare(this)
-    if (vpnIntent != null) {
-      val contract = VpnPermissionContract()
-      requestVpnPermission =
-          registerForActivityResult(contract) { granted ->
-            Log.i("VPN", "VPN permission ${if (granted) "granted" else "denied"}")
-          }
-      requestVpnPermission.launch(Unit)
-    }
   }
 
   private fun openApplicationSettings() {
@@ -368,9 +360,9 @@ class MainActivity : ComponentActivity() {
   }
 }
 
-class VpnPermissionContract : ActivityResultContract<Unit, Boolean>() {
-  override fun createIntent(context: Context, input: Unit): Intent {
-    return VpnService.prepare(context) ?: Intent()
+class VpnPermissionContract : ActivityResultContract<Intent, Boolean>() {
+  override fun createIntent(context: Context, input: Intent): Intent {
+    return input
   }
 
   override fun parseResult(resultCode: Int, intent: Intent?): Boolean {

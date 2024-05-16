@@ -58,6 +58,7 @@
     <string name="connect_to_tailnet_suffix">" tailnet."</string>
     <string name="welcome_to_tailscale">Welcome to Tailscale</string>
     <string name="login_to_join_your_tailnet">Log in to join your tailnet and connect your devices.</string>
+    <string name="give_permissions">Set up a VPN connection so you can start using Tailscale.</string>
     <string name="keyExpiryExplainer">Reauthenticate to remain connected to Tailscale.</string>
     <string name="deviceKeyNeverExpires">Device key does not expire</string>
     <string name="deviceKeyExpires">Device key expires %s</string>
@@ -87,6 +88,7 @@
     <string name="placeholder">--</string>
     <string name="please_login">Login required</string>
     <string name="stopped">Not connected</string>
+    <string name="connect_to_vpn">Connect to VPN</string>
 
     <!-- Time conversion templates -->
     <string name="expired">expired</string>

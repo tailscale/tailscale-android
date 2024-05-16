@@ -59,19 +59,11 @@ open class IpnViewModel : ViewModel() {
   }
 
   // VPN Control
-
-  fun toggleVpn() {
-    when (Notifier.state.value) {
-      Ipn.State.Running -> stopVPN()
-      else -> startVPN()
-    }
-  }
-
   fun startVPN() {
     UninitializedApp.get().startVPN()
   }
 
-  private fun stopVPN() {
+ fun stopVPN() {
     UninitializedApp.get().stopVPN()
   }
 
