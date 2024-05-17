@@ -44,6 +44,7 @@ fun SettingsView(settingsNav: SettingsNav, viewModel: SettingsViewModel = viewMo
   val managedByOrganization = viewModel.managedByOrganization.collectAsState().value
   val tailnetLockEnabled = viewModel.tailNetLockEnabled.collectAsState().value
   val corpDNSEnabled = viewModel.corpDNSEnabled.collectAsState().value
+  val isVPNPrepared = viewModel.vpnPrepared.collectAsState().value
 
   val showTailnetLock = MDMSettings.manageTailnetLock.flow.collectAsState().value
 
@@ -52,10 +53,12 @@ fun SettingsView(settingsNav: SettingsNav, viewModel: SettingsViewModel = viewMo
         Header(titleRes = R.string.settings_title, onBack = settingsNav.onNavigateBackHome)
       }) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding).verticalScroll(rememberScrollState())) {
-          UserView(
-              profile = user,
-              actionState = UserActionState.NAV,
-              onClick = settingsNav.onNavigateToUserSwitcher)
+          if (isVPNPrepared){
+            UserView(
+                profile = user,
+                actionState = UserActionState.NAV,
+                onClick = settingsNav.onNavigateToUserSwitcher)
+          }
 
           if (isAdmin) {
             Lists.ItemDivider()
