@@ -4,6 +4,7 @@
 package com.tailscale.ipn.ui.notifier
 
 import android.util.Log
+import com.tailscale.ipn.App
 import com.tailscale.ipn.ui.model.Empty
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.Ipn.Notify
@@ -56,6 +57,9 @@ object Notifier {
   @OptIn(ExperimentalSerializationApi::class)
   fun start(scope: CoroutineScope) {
     Log.d(TAG, "Starting")
+    if (!::app.isInitialized) {
+      App.get()
+    }
     scope.launch(Dispatchers.IO) {
       val mask =
           NotifyWatchOpt.Netmap.value or
