@@ -33,9 +33,7 @@ class MainViewModel : IpnViewModel() {
   private val _vpnToggleState = MutableStateFlow(false)
   val vpnToggleState: StateFlow<Boolean> = _vpnToggleState
 
-  // Whether or not the VPN has been prepared
-  private val _vpnPrepared = MutableStateFlow(false)
-  val vpnPrepared: StateFlow<Boolean> = _vpnPrepared
+  // Permission to prepare VPN
   private var vpnPermissionLauncher: ActivityResultLauncher<Intent>? = null
 
   // The list of peers
@@ -130,10 +128,6 @@ class MainViewModel : IpnViewModel() {
 
   fun setVpnPermissionLauncher(launcher: ActivityResultLauncher<Intent>) {
     vpnPermissionLauncher = launcher
-  }
-
-  fun setVpnPrepared(prepared: Boolean) {
-    _vpnPrepared.value = prepared
   }
 }
 
