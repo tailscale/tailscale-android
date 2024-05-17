@@ -3,9 +3,11 @@
 
 package com.tailscale.ipn.ui.viewModel
 
+import android.net.VpnService
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tailscale.ipn.App
 import com.tailscale.ipn.UninitializedApp
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.localapi.Client
@@ -36,6 +38,16 @@ open class IpnViewModel : ViewModel() {
   private var selfNodeUserId: UserID? = null
 
   init {
+    // Check if the user has granted permission yet.
+    if (!vpnPrepared.value) {
+      val vpnIntent = VpnService.prepare(App.get())
+      if (vpnIntent != null) {
+        setVpnPrepared(false)
+      } else {
+        setVpnPrepared(true)
+      }
+    }
+
     viewModelScope.launch {
       Notifier.state.collect {
         // Reload the user profiles on all state transitions to ensure loggedInUser is correct
