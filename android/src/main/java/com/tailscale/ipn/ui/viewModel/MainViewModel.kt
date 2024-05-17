@@ -18,7 +18,6 @@ import com.tailscale.ipn.ui.util.PeerCategorizer
 import com.tailscale.ipn.ui.util.PeerSet
 import com.tailscale.ipn.ui.util.TimeUtil
 import com.tailscale.ipn.ui.util.set
-import com.tailscale.ipn.App
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -60,21 +59,22 @@ class MainViewModel : IpnViewModel() {
 
     viewModelScope.launch {
       var previousState: State? = null
-  
+
       combine(Notifier.state, vpnPrepared) { state, prepared -> state to prepared }
           .collect { (currentState, prepared) ->
-              stateRes.set(userStringRes(currentState, previousState, prepared))
-  
-              val isOn = when {
+            stateRes.set(userStringRes(currentState, previousState, prepared))
+
+            val isOn =
+                when {
                   currentState == State.Running || currentState == State.Starting -> true
                   previousState == State.NoState && currentState == State.Starting -> true
                   else -> false
-              }
-  
-              _vpnToggleState.value = isOn
-              previousState = currentState
+                }
+
+            _vpnToggleState.value = isOn
+            previousState = currentState
           }
-  }
+    }
 
     viewModelScope.launch {
       Notifier.netmap.collect { it ->
@@ -118,11 +118,11 @@ class MainViewModel : IpnViewModel() {
     val isPrepared = vpnPrepared.value
 
     when {
-        !isPrepared -> showVPNPermissionLauncherIfUnauthorized()
-        state == Ipn.State.Running -> stopVPN()
-        else -> startVPN()
+      !isPrepared -> showVPNPermissionLauncherIfUnauthorized()
+      state == Ipn.State.Running -> stopVPN()
+      else -> startVPN()
     }
-}
+  }
 
   fun searchPeers(searchTerm: String) {
     this.searchTerm.set(searchTerm)
@@ -139,15 +139,15 @@ class MainViewModel : IpnViewModel() {
 
 private fun userStringRes(currentState: State?, previousState: State?, vpnPrepared: Boolean): Int {
   return when {
-      previousState == State.NoState && currentState == State.Starting -> R.string.starting
-      currentState == State.NoState -> R.string.placeholder
-      currentState == State.InUseOtherUser -> R.string.placeholder
-      currentState == State.NeedsLogin -> if (vpnPrepared) R.string.please_login else R.string.connect_to_vpn
-      currentState == State.NeedsMachineAuth -> R.string.needs_machine_auth
-      currentState == State.Stopped -> R.string.stopped
-      currentState == State.Starting -> R.string.starting
-      currentState == State.Running -> R.string.connected
-      else -> R.string.placeholder
+    previousState == State.NoState && currentState == State.Starting -> R.string.starting
+    currentState == State.NoState -> R.string.placeholder
+    currentState == State.InUseOtherUser -> R.string.placeholder
+    currentState == State.NeedsLogin ->
+        if (vpnPrepared) R.string.please_login else R.string.connect_to_vpn
+    currentState == State.NeedsMachineAuth -> R.string.needs_machine_auth
+    currentState == State.Stopped -> R.string.stopped
+    currentState == State.Starting -> R.string.starting
+    currentState == State.Running -> R.string.connected
+    else -> R.string.placeholder
   }
-  return resId
 }
