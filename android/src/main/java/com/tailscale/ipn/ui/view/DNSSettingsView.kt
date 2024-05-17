@@ -14,6 +14,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -41,7 +42,7 @@ fun DNSSettingsView(
     backToSettings: BackNavigation,
     model: DNSSettingsViewModel = viewModel(factory = DNSSettingsViewModelFactory())
 ) {
-  val state: DNSEnablementState = model.enablementState.collectAsState().value
+  val state: DNSEnablementState by model.enablementState.collectAsState()
   val resolvers = model.dnsConfig.collectAsState().value?.Resolvers ?: emptyList()
   val domains = model.dnsConfig.collectAsState().value?.Domains ?: emptyList()
   val routes: List<ViewableRoute> =
@@ -49,7 +50,7 @@ fun DNSSettingsView(
         entry.value?.let { resolvers -> ViewableRoute(name = entry.key, resolvers) } ?: run { null }
       } ?: emptyList()
   val useCorpDNS = Notifier.prefs.collectAsState().value?.CorpDNS == true
-  val dnsSettingsMDMDisposition = MDMSettings.useTailscaleDNSSettings.flow.collectAsState().value
+  val dnsSettingsMDMDisposition by MDMSettings.useTailscaleDNSSettings.flow.collectAsState()
 
   Scaffold(topBar = { Header(R.string.dns_settings, onBack = backToSettings) }) { innerPadding ->
     LoadingIndicator.Wrap {

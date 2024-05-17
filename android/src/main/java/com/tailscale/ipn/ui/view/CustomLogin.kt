@@ -53,7 +53,7 @@ fun LoginWithCustomControlURLView(
             onBack = backToSettings,
         )
       }) { innerPadding ->
-        val error = viewModel.errorDialog.collectAsState().value
+        val error by viewModel.errorDialog.collectAsState()
         val strings =
             LoginViewStrings(
                 title = stringResource(id = R.string.custom_control_menu),
@@ -85,7 +85,7 @@ fun LoginWithAuthKeyView(
             onBack = backToSettings,
         )
       }) { innerPadding ->
-        val error = viewModel.errorDialog.collectAsState().value
+        val error by viewModel.errorDialog.collectAsState()
         val strings =
             LoginViewStrings(
                 title = stringResource(id = R.string.auth_key_title),

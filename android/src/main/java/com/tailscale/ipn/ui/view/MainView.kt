@@ -40,13 +40,13 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -62,7 +62,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.tailscale.ipn.R
 import com.tailscale.ipn.mdm.MDMSettings
@@ -89,7 +88,6 @@ import com.tailscale.ipn.ui.util.PeerSet
 import com.tailscale.ipn.ui.util.flag
 import com.tailscale.ipn.ui.util.itemsWithDividers
 import com.tailscale.ipn.ui.viewModel.MainViewModel
-import android.util.Log
 
 // Navigation actions for the MainView
 data class MainViewNavigation(
@@ -105,14 +103,14 @@ fun MainView(
     navigation: MainViewNavigation,
     viewModel: MainViewModel
 ) {
-  
   LoadingIndicator.Wrap {
     Scaffold(contentWindowInsets = WindowInsets.Companion.statusBars) { paddingInsets ->
       Column(
           modifier = Modifier.fillMaxWidth().padding(paddingInsets),
           verticalArrangement = Arrangement.Center) {
-            // Assume VPN has been prepared. Whether or not it has been prepared cannot be known until permission has been granted to prepare the VPN.
-            val isPrepared by viewModel.vpnPrepared.collectAsState(initial=true)
+            // Assume VPN has been prepared. Whether or not it has been prepared cannot be known
+            // until permission has been granted to prepare the VPN.
+            val isPrepared by viewModel.vpnPrepared.collectAsState(initial = true)
             val isOn by viewModel.vpnToggleState.collectAsState(initial = false)
             val state by viewModel.ipnState.collectAsState(initial = Ipn.State.NoState)
             val user by viewModel.loggedInUser.collectAsState(initial = null)
@@ -195,8 +193,8 @@ fun MainView(
                     { viewModel.toggleVpn() },
                     { viewModel.login() },
                     loginAtUrl,
-                    netmap?.SelfNode, 
-                    {viewModel.showVPNPermissionLauncherIfUnauthorized()})
+                    netmap?.SelfNode,
+                    { viewModel.showVPNPermissionLauncherIfUnauthorized() })
               }
             }
           }
@@ -206,17 +204,17 @@ fun MainView(
 
 @Composable
 fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
-  val maybePrefs = viewModel.prefs.collectAsState()
-  val netmap = viewModel.netmap.collectAsState()
+  val maybePrefs by viewModel.prefs.collectAsState()
+  val netmap by viewModel.netmap.collectAsState()
 
   // There's nothing to render if we haven't loaded the prefs yet
-  val prefs = maybePrefs.value ?: return
+  val prefs = maybePrefs ?: return
 
   // The activeExitNode is the source of truth.  The selectedExitNode is only relevant if we
   // don't have an active node.
   val chosenExitNodeId = prefs.activeExitNodeID ?: prefs.selectedExitNodeID
 
-  val exitNodePeer = chosenExitNodeId?.let { id -> netmap.value?.Peers?.find { it.StableID == id } }
+  val exitNodePeer = chosenExitNodeId?.let { id -> netmap?.Peers?.find { it.StableID == id } }
   val location = exitNodePeer?.Hostinfo?.Location
   val name = exitNodePeer?.ComputedName
 
@@ -319,7 +317,7 @@ fun ConnectView(
     if (!isPrepared) {
       showVPNPermissionLauncherIfUnauthorized()
     }
-}
+  }
   Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
       Column(
@@ -327,7 +325,7 @@ fun ConnectView(
           verticalArrangement = Arrangement.spacedBy(8.dp, alignment = Alignment.CenterVertically),
           horizontalAlignment = Alignment.CenterHorizontally,
       ) {
-        if (!isPrepared) { 
+        if (!isPrepared) {
           TailscaleLogoView(modifier = Modifier.size(50.dp))
           Spacer(modifier = Modifier.size(1.dp))
           Text(
@@ -426,10 +424,10 @@ fun PeerList(
     onNavigateToPeerDetails: (Tailcfg.Node) -> Unit,
     onSearch: (String) -> Unit
 ) {
-  val peerList = viewModel.peers.collectAsState(initial = emptyList<PeerSet>())
+  val peerList by viewModel.peers.collectAsState(initial = emptyList<PeerSet>())
   val searchTermStr by viewModel.searchTerm.collectAsState(initial = "")
   val showNoResults =
-      remember { derivedStateOf { searchTermStr.isNotEmpty() && peerList.value.isEmpty() } }.value
+      remember { derivedStateOf { searchTermStr.isNotEmpty() && peerList.isEmpty() } }.value
 
   val netmap = viewModel.netmap.collectAsState()
 
@@ -490,7 +488,7 @@ fun PeerList(
         }
 
         var first = true
-        peerList.value.forEach { peerSet ->
+        peerList.forEach { peerSet ->
           if (!first) {
             item(key = "user_divider_${peerSet.user?.ID ?: 0L}") { Lists.ItemDivider() }
           }

@@ -14,6 +14,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalUriHandler
@@ -39,14 +40,14 @@ import com.tailscale.ipn.ui.viewModel.SettingsViewModel
 @Composable
 fun SettingsView(settingsNav: SettingsNav, viewModel: SettingsViewModel = viewModel()) {
   val handler = LocalUriHandler.current
-  val user = viewModel.loggedInUser.collectAsState().value
-  val isAdmin = viewModel.isAdmin.collectAsState().value
-  val managedByOrganization = viewModel.managedByOrganization.collectAsState().value
-  val tailnetLockEnabled = viewModel.tailNetLockEnabled.collectAsState().value
-  val corpDNSEnabled = viewModel.corpDNSEnabled.collectAsState().value
-  val isVPNPrepared = viewModel.vpnPrepared.collectAsState().value
 
-  val showTailnetLock = MDMSettings.manageTailnetLock.flow.collectAsState().value
+  val user by viewModel.loggedInUser.collectAsState()
+  val isAdmin by viewModel.isAdmin.collectAsState()
+  val managedByOrganization by viewModel.managedByOrganization.collectAsState()
+  val tailnetLockEnabled by viewModel.tailNetLockEnabled.collectAsState()
+  val corpDNSEnabled by viewModel.corpDNSEnabled.collectAsState()
+  val isVPNPrepared by viewModel.vpnPrepared.collectAsState()
+  val showTailnetLock by MDMSettings.manageTailnetLock.flow.collectAsState()
 
   Scaffold(
       topBar = {

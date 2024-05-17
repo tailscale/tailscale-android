@@ -153,7 +153,7 @@ class TaildropViewModel(
   fun TrailingContentForPeer(peerId: String) {
     // Check our outgoing files for the peer and determine the state of the transfer.
     val transfers = this.transfers.collectAsState().value.filter { it.PeerID == peerId }
-    var status: TransferState = transferState(transfers) ?: return
+    val status: TransferState = transferState(transfers) ?: return
 
     // Still no status? Nothing to render for this peer
 

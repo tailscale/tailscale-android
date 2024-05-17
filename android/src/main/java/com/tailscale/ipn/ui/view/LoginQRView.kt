@@ -20,6 +20,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,7 +39,7 @@ import com.tailscale.ipn.ui.viewModel.LoginQRViewModel
 fun LoginQRView(onDismiss: () -> Unit = {}, model: LoginQRViewModel = viewModel()) {
   Surface(color = MaterialTheme.colorScheme.scrim, modifier = Modifier.fillMaxSize()) {
     Dialog(onDismissRequest = onDismiss) {
-      val image = model.qrCode.collectAsState()
+      val image by model.qrCode.collectAsState()
 
       Column(
           modifier =
@@ -57,7 +58,7 @@ fun LoginQRView(onDismiss: () -> Unit = {}, model: LoginQRViewModel = viewModel(
                         .background(MaterialTheme.colorScheme.onSurface)
                         .fillMaxWidth(),
                 contentAlignment = Alignment.Center) {
-                  image.value?.let {
+                  image?.let {
                     Image(
                         bitmap = it,
                         contentDescription = "Scan to login",
