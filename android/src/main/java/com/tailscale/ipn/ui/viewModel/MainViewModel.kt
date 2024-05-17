@@ -54,7 +54,6 @@ class MainViewModel : IpnViewModel() {
   private val peerCategorizer = PeerCategorizer()
 
   init {
-
     viewModelScope.launch {
       var previousState: State? = null
 
@@ -108,6 +107,8 @@ class MainViewModel : IpnViewModel() {
     val vpnIntent = VpnService.prepare(App.get())
     if (vpnIntent != null) {
       vpnPermissionLauncher?.launch(vpnIntent)
+    } else {
+      setVpnPrepared(true)
     }
   }
 
@@ -127,6 +128,7 @@ class MainViewModel : IpnViewModel() {
   }
 
   fun setVpnPermissionLauncher(launcher: ActivityResultLauncher<Intent>) {
+    // No intent means we're already authorized
     vpnPermissionLauncher = launcher
   }
 }
