@@ -404,10 +404,22 @@ open class UninitializedApp : Application() {
     val action =
         if (vpnRunning) IPNReceiver.INTENT_DISCONNECT_VPN else IPNReceiver.INTENT_CONNECT_VPN
     val actionLabel = getString(if (vpnRunning) R.string.disconnect else R.string.connect)
-    val intent = Intent(this, IPNReceiver::class.java).apply { this.action = action }
-    val pendingIntent: PendingIntent =
+    val buttonIntent = Intent(this, IPNReceiver::class.java).apply { this.action = action }
+    val pendingButtonIntent: PendingIntent =
         PendingIntent.getBroadcast(
-            this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+            this,
+            0,
+            buttonIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+
+    val intent =
+        Intent(this, MainActivity::class.java).apply {
+          flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+    val pendingIntent: PendingIntent =
+        PendingIntent.getActivity(
+            this, 1, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+
     return NotificationCompat.Builder(this, STATUS_CHANNEL_ID)
         .setSmallIcon(icon)
         .setContentTitle("Tailscale")
@@ -417,7 +429,8 @@ open class UninitializedApp : Application() {
         .setOngoing(vpnRunning)
         .setSilent(true)
         .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-        .addAction(NotificationCompat.Action.Builder(0, actionLabel, pendingIntent).build())
+        .addAction(NotificationCompat.Action.Builder(0, actionLabel, pendingButtonIntent).build())
+        .setContentIntent(pendingIntent)
         .build()
   }
 }
