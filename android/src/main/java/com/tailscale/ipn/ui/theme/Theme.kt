@@ -152,6 +152,18 @@ val ColorScheme.off: Color
 val ColorScheme.link: Color
   get() = onPrimaryContainer
 
+  val ColorScheme.exitOff: Color
+  get() = Color(0xFFEF5350) // red-400
+
+  val ColorScheme.exitOffContainer : Color
+  get() = Color(0xFFB22C30) // red-500
+
+  val ColorScheme.runExit: Color
+  get() = Color(0xFFD97917) // yellow-300
+
+  val ColorScheme.runExitContainer : Color
+  get() = Color(0xFFefc078) // yellow-100
+
 /**
  * Main color scheme for list items, uses onPrimaryContainer color for leading and trailing icons.
  */
@@ -256,6 +268,41 @@ val ColorScheme.warningListItem: ListItemColors
         disabledTrailingIconColor = default.disabledTrailingIconColor)
   }
 
+/** Color scheme for list items that should be styled as an item with status off. */
+val ColorScheme.offListItem: ListItemColors
+@Composable
+get() {
+  val default = ListItemDefaults.colors()
+  return ListItemColors(
+      containerColor = MaterialTheme.colorScheme.exitOff,
+      headlineColor = MaterialTheme.colorScheme.onPrimary,
+      leadingIconColor = MaterialTheme.colorScheme.onPrimary,
+      overlineColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
+      supportingTextColor = MaterialTheme.colorScheme.onPrimary,
+      trailingIconColor = MaterialTheme.colorScheme.onPrimary,
+      disabledHeadlineColor = default.disabledHeadlineColor,
+      disabledLeadingIconColor = default.disabledLeadingIconColor,
+      disabledTrailingIconColor = default.disabledTrailingIconColor)
+}
+
+/** Color scheme for list items that should be styled as an item where an exit node is being run. */
+val ColorScheme.runExitNodeListItem: ListItemColors
+@Composable
+get() {
+  val default = ListItemDefaults.colors()
+  return ListItemColors(
+      containerColor = MaterialTheme.colorScheme.runExit,
+      headlineColor = MaterialTheme.colorScheme.onPrimary,
+      leadingIconColor = MaterialTheme.colorScheme.onPrimary,
+      overlineColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
+      supportingTextColor = MaterialTheme.colorScheme.onPrimary,
+      trailingIconColor = MaterialTheme.colorScheme.onPrimary,
+      disabledHeadlineColor = default.disabledHeadlineColor,
+      disabledLeadingIconColor = default.disabledLeadingIconColor,
+      disabledTrailingIconColor = default.disabledTrailingIconColor)
+      }
+
+
 /** Main color scheme for top app bar, styles it as a surface container. */
 @OptIn(ExperimentalMaterial3Api::class)
 val ColorScheme.topAppBar: TopAppBarColors
@@ -281,6 +328,44 @@ val ColorScheme.secondaryButton: ButtonColors
     } else {
       return ButtonColors(
           containerColor = Color(0xFF5A82DC), // blue-400
+          contentColor = Color(0xFFFFFFFF), // white
+          disabledContainerColor = defaults.disabledContainerColor,
+          disabledContentColor = defaults.disabledContentColor)
+    }
+  }
+
+  val ColorScheme.offButton: ButtonColors
+  @Composable
+  get() {
+    val defaults = ButtonDefaults.buttonColors()
+    if (isSystemInDarkTheme()) {
+      return ButtonColors(
+          containerColor = Color(0xFFF68F87), // red-200
+          contentColor = Color(0xFFFFFFFF), // white
+          disabledContainerColor = defaults.disabledContainerColor,
+          disabledContentColor = defaults.disabledContentColor)
+    } else {
+      return ButtonColors(
+          containerColor = Color(0xFFF68F87), // red-200
+          contentColor = Color(0xFFFFFFFF), // white
+          disabledContainerColor = defaults.disabledContainerColor,
+          disabledContentColor = defaults.disabledContentColor)
+    }
+  }
+
+  val ColorScheme.runExitNodeButton: ButtonColors
+  @Composable
+  get() {
+    val defaults = ButtonDefaults.buttonColors()
+    if (isSystemInDarkTheme()) {
+      return ButtonColors(
+          containerColor = Color(0xFFE5993E), // yellow-200
+          contentColor = Color(0xFFFFFFFF), // white
+          disabledContainerColor = defaults.disabledContainerColor,
+          disabledContentColor = defaults.disabledContentColor)
+    } else {
+      return ButtonColors(
+          containerColor = Color(0xFFE5993E), // yellow-200
           contentColor = Color(0xFFFFFFFF), // white
           disabledContainerColor = defaults.disabledContainerColor,
           disabledContentColor = defaults.disabledContentColor)

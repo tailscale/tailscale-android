@@ -3,6 +3,7 @@
 
 package com.tailscale.ipn.ui.view
 
+import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -72,10 +73,13 @@ import com.tailscale.ipn.ui.model.Netmap
 import com.tailscale.ipn.ui.model.Permissions
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.theme.disabled
-import com.tailscale.ipn.ui.theme.exitNodeToggleButton
 import com.tailscale.ipn.ui.theme.listItem
 import com.tailscale.ipn.ui.theme.minTextSize
+import com.tailscale.ipn.ui.theme.offButton
+import com.tailscale.ipn.ui.theme.offListItem
 import com.tailscale.ipn.ui.theme.primaryListItem
+import com.tailscale.ipn.ui.theme.runExitNodeButton
+import com.tailscale.ipn.ui.theme.runExitNodeListItem
 import com.tailscale.ipn.ui.theme.searchBarColors
 import com.tailscale.ipn.ui.theme.secondaryButton
 import com.tailscale.ipn.ui.theme.short
@@ -85,7 +89,6 @@ import com.tailscale.ipn.ui.util.AutoResizingText
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.PeerSet
-import com.tailscale.ipn.ui.util.flag
 import com.tailscale.ipn.ui.util.itemsWithDividers
 import com.tailscale.ipn.ui.viewModel.MainViewModel
 
@@ -202,10 +205,20 @@ fun MainView(
   }
 }
 
+enum class NodeState {
+  NONE,
+  ACTIVE_AND_RUNNING,
+  OFFLINE,
+  OFFLINE_MDM,
+  RUNNING_AS_EXIT_NODE
+}
+
 @Composable
 fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
   val maybePrefs by viewModel.prefs.collectAsState()
   val netmap by viewModel.netmap.collectAsState()
+
+  var nodeState by remember { mutableStateOf(NodeState.NONE) }
 
   // There's nothing to render if we haven't loaded the prefs yet
   val prefs = maybePrefs ?: return
@@ -215,11 +228,27 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
   val chosenExitNodeId = prefs.activeExitNodeID ?: prefs.selectedExitNodeID
 
   val exitNodePeer = chosenExitNodeId?.let { id -> netmap?.Peers?.find { it.StableID == id } }
-  val location = exitNodePeer?.Hostinfo?.Location
   val name = exitNodePeer?.ComputedName
 
-  // We're connected to an exit node if we found an active peer for the *active* exit node
-  val activeAndRunning = (exitNodePeer != null) && !prefs.activeExitNodeID.isNullOrEmpty()
+  LaunchedEffect(exitNodePeer?.Online) {
+    when {
+      exitNodePeer?.Online == false -> {
+        nodeState = NodeState.OFFLINE
+        if (MDMSettings.exitNodeID.flow.value != null) {
+          nodeState = NodeState.OFFLINE_MDM
+        }
+      }
+      (exitNodePeer != null) && !prefs.activeExitNodeID.isNullOrEmpty() -> {
+        nodeState = NodeState.ACTIVE_AND_RUNNING
+      }
+      viewModel.isRunningExitNode.value -> {
+        nodeState = NodeState.RUNNING_AS_EXIT_NODE
+      }
+      else -> {
+        nodeState = NodeState.NONE
+      }
+    }
+  }
 
   // (jonathan) TODO: We will block the "enable/disable" button for an exit node for which we cannot
   // find a peer  on purpose and render the "No Exit Node" state, however, that should
@@ -234,11 +263,20 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
           ListItem(
               modifier = Modifier.clickable { navAction() },
               colors =
-                  if (activeAndRunning) MaterialTheme.colorScheme.primaryListItem
-                  else ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surface),
+                  when (nodeState) {
+                    NodeState.ACTIVE_AND_RUNNING -> MaterialTheme.colorScheme.primaryListItem
+                    NodeState.RUNNING_AS_EXIT_NODE -> MaterialTheme.colorScheme.runExitNodeListItem
+                    NodeState.OFFLINE -> MaterialTheme.colorScheme.offListItem
+                    NodeState.OFFLINE_MDM -> MaterialTheme.colorScheme.offListItem
+                    else ->
+                        ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surface)
+                  },
               overlineContent = {
                 Text(
-                    stringResource(R.string.exit_node),
+                    text =
+                        if (nodeState == NodeState.OFFLINE || nodeState == NodeState.OFFLINE_MDM)
+                            stringResource(R.string.exit_node_offline)
+                        else stringResource(R.string.exit_node),
                     style = MaterialTheme.typography.bodySmall,
                 )
               },
@@ -246,9 +284,12 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                   Text(
                       text =
-                          location?.let { "${it.CountryCode?.flag()} ${it.Country}: ${it.City}" }
-                              ?: name
-                              ?: stringResource(id = R.string.none),
+                          when (nodeState) {
+                            NodeState.NONE -> stringResource(id = R.string.none)
+                            NodeState.RUNNING_AS_EXIT_NODE ->
+                                stringResource(id = R.string.running_exit_node)
+                            else -> name ?: ""
+                          },
                       style = MaterialTheme.typography.bodyMedium,
                       maxLines = 1,
                       overflow = TextOverflow.Ellipsis)
@@ -256,24 +297,34 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
                       imageVector = Icons.Outlined.ArrowDropDown,
                       contentDescription = null,
                       tint =
-                          if (activeAndRunning)
-                              MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
-                          else MaterialTheme.colorScheme.onSurfaceVariant,
+                          if (nodeState == NodeState.NONE)
+                              MaterialTheme.colorScheme.onSurfaceVariant
+                          else MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
                   )
                 }
               },
               trailingContent = {
-                if (exitNodePeer != null) {
+                if (nodeState != NodeState.NONE) {
                   Button(
                       colors =
-                          if (prefs.activeExitNodeID.isNullOrEmpty())
-                              MaterialTheme.colorScheme.exitNodeToggleButton
-                          else MaterialTheme.colorScheme.secondaryButton,
-                      onClick = { viewModel.toggleExitNode() }) {
+                          when (nodeState) {
+                            NodeState.OFFLINE -> MaterialTheme.colorScheme.offButton
+                            NodeState.OFFLINE_MDM -> MaterialTheme.colorScheme.offButton
+                            NodeState.RUNNING_AS_EXIT_NODE ->
+                                MaterialTheme.colorScheme.runExitNodeButton
+                            else -> MaterialTheme.colorScheme.secondaryButton
+                          },
+                      onClick = {
+                        if (nodeState == NodeState.RUNNING_AS_EXIT_NODE)
+                            viewModel.setRunningExitNode(false)
+                        else viewModel.toggleExitNode()
+                      }) {
                         Text(
-                            if (prefs.activeExitNodeID.isNullOrEmpty())
-                                stringResource(id = R.string.enable)
-                            else stringResource(id = R.string.disable))
+                            when (nodeState) {
+                              NodeState.OFFLINE -> stringResource(id = R.string.enable)
+                              NodeState.OFFLINE_MDM -> stringResource(id = R.string.enable)
+                              else -> stringResource(id = R.string.disable)
+                            })
                       }
                 }
               })

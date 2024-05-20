@@ -51,6 +51,8 @@
 
     <!-- Strings for the main screen -->
     <string name="exit_node">EXIT NODE</string>
+    <string name="exit_node_offline">EXIT NODE OFFLINE</string>
+    <string name="running_exit_node">Running on this device</string>
     <string name="starting">Starting…</string>
     <string name="connect_to_tailnet_prefix">"Connect again to talk to the other devices in the "</string>
     <string name="connect_to_tailnet_suffix">" tailnet."</string>

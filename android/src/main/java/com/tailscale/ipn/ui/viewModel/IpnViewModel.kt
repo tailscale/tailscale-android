@@ -31,11 +31,15 @@ open class IpnViewModel : ViewModel() {
 
   val loggedInUser: StateFlow<IpnLocal.LoginProfile?> = MutableStateFlow(null)
   val loginProfiles: StateFlow<List<IpnLocal.LoginProfile>?> = MutableStateFlow(null)
+
   private val _vpnPrepared = MutableStateFlow(false)
   val vpnPrepared: StateFlow<Boolean> = _vpnPrepared
 
   // The userId associated with the current node. ie: The logged in user.
   private var selfNodeUserId: UserID? = null
+
+  val isRunningExitNode: StateFlow<Boolean> = MutableStateFlow(false)
+  var lastPrefs: Ipn.Prefs? = null
 
   init {
     // Check if the user has granted permission yet.
@@ -68,11 +72,19 @@ open class IpnViewModel : ViewModel() {
       }
     }
 
+    viewModelScope.launch {
+      Notifier.prefs.collect {
+        it?.let{lastPrefs = it}
+        isRunningExitNode.set(it?.let { AdvertisedRoutesHelper.exitNodeOnFromPrefs(it) })
+      }
+    }
+
     viewModelScope.launch { loadUserProfiles() }
     Log.d(TAG, "Created")
   }
 
   // VPN Control
+
   fun setVpnPrepared(prepared: Boolean) {
     _vpnPrepared.value = prepared
   }
@@ -208,6 +220,24 @@ open class IpnViewModel : ViewModel() {
 
   // Exit Node Manipulation
 
+  class AdvertisedRoutesHelper() {
+    companion object {
+      fun exitNodeOnFromPrefs(prefs: Ipn.Prefs): Boolean {
+        var v4 = false
+        var v6 = false
+        prefs.AdvertiseRoutes?.forEach {
+          if (it == "0.0.0.0/0") {
+            v4 = true
+          }
+          if (it == "::/0") {
+            v6 = true
+          }
+        }
+        return v4 && v6
+      }
+    }
+  }
+
   fun toggleExitNode() {
     val prefs = prefs.value ?: return
 
@@ -222,5 +252,42 @@ open class IpnViewModel : ViewModel() {
       // This should not be possible.  In this state the button is hidden
       Log.e(TAG, "No exit node to disable and no prior exit node to enable")
     }
+  }
+
+  fun setRunningExitNode(isOn: Boolean) {
+    LoadingIndicator.start()
+    lastPrefs?.let { currentPrefs ->
+      val newPrefs: Ipn.MaskedPrefs
+      if (isOn) {
+        newPrefs = setZeroRoutes(currentPrefs)
+      } else {
+        newPrefs = removeAllZeroRoutes(currentPrefs)
+      }
+      Client(viewModelScope).editPrefs(newPrefs) { result ->
+        LoadingIndicator.stop()
+        Log.d("RunExitNodeViewModel", "Edited prefs: $result")
+      }
+    }
+  }
+
+  private fun setZeroRoutes(prefs: Ipn.Prefs): Ipn.MaskedPrefs {
+    val newRoutes = (removeAllZeroRoutes(prefs).AdvertiseRoutes ?: emptyList()).toMutableList()
+    newRoutes.add("0.0.0.0/0")
+    newRoutes.add("::/0")
+    val newPrefs = Ipn.MaskedPrefs()
+    newPrefs.AdvertiseRoutes = newRoutes
+    return newPrefs
+  }
+
+  private fun removeAllZeroRoutes(prefs: Ipn.Prefs): Ipn.MaskedPrefs {
+    val newRoutes = emptyList<String>().toMutableList()
+    (prefs.AdvertiseRoutes ?: emptyList()).forEach {
+      if (it != "0.0.0.0/0" && it != "::/0") {
+        newRoutes.add(it)
+      }
+    }
+    val newPrefs = Ipn.MaskedPrefs()
+    newPrefs.AdvertiseRoutes = newRoutes
+    return newPrefs
   }
 }
