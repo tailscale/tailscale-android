@@ -32,14 +32,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerNav
-import com.tailscale.ipn.ui.viewModel.RunExitNodeViewModel
-import com.tailscale.ipn.ui.viewModel.RunExitNodeViewModelFactory
+import com.tailscale.ipn.ui.viewModel.IpnViewModel
 
 @Composable
-fun RunExitNodeView(
-    nav: ExitNodePickerNav,
-    model: RunExitNodeViewModel = viewModel(factory = RunExitNodeViewModelFactory())
-) {
+fun RunExitNodeView(nav: ExitNodePickerNav, model: IpnViewModel = viewModel()) {
   val isRunningExitNode by model.isRunningExitNode.collectAsState()
 
   Scaffold(
