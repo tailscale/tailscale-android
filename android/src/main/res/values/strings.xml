@@ -283,4 +283,10 @@
     <string name="specifies_a_list_of_apps_that_will_always_use_tailscale_routes_and_dns_when_tailscale_is_running_all_other_apps_won_t_use_tailscale_if_this_value_is_non_empty">Specifies a list of apps that will always use Tailscale routes and DNS when Tailscale is running. All other apps won\'t use Tailscale if this value is non-empty.</string>
     <string name="included_packages">Included packages</string>
     <string name="excluded_packages">Excluded packages</string>
+
+    <!-- Strings for the Mullvad info view -->
+    <string name="enable_in_the_admin_console">Enable in the admin console</string>
+    <string name="mullvad_info_explainer">Once you enable Mullvad VPN on the admin console, you\'ll be able to encrypt and route your traffic using Mullvad’s global network of servers as exit nodes.</string>
+    <string name="mullvad_info_title">Mullvad VPN is not configured</string>
+    <string name="the_mullvad_vpn_logo">The Mullvad VPN logo</string>
 </resources>

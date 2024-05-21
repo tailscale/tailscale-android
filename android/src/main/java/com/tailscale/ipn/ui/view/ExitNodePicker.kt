@@ -49,6 +49,7 @@ fun ExitNodePicker(
       val mullvadExitNodesByCountryCode by model.mullvadExitNodesByCountryCode.collectAsState()
       val mullvadExitNodeCount by model.mullvadExitNodeCount.collectAsState()
       val anyActive by model.anyActive.collectAsState()
+      val shouldShowMullvadInfo by model.shouldShowMullvadInfo.collectAsState()
       val allowLANAccess = Notifier.prefs.collectAsState().value?.ExitNodeAllowLANAccess == true
       val showRunAsExitNode by MDMSettings.runExitNode.flow.collectAsState()
       val allowLanAccessMDMDisposition by MDMSettings.exitNodeAllowLANAccess.flow.collectAsState()
@@ -90,6 +91,11 @@ fun ExitNodePicker(
             Lists.SectionDivider()
             MullvadItem(
                 nav, mullvadExitNodesByCountryCode.size, mullvadExitNodesByCountryCode.selected)
+          }
+        } else if (shouldShowMullvadInfo) {
+          item(key = "mullvad_info") {
+            Lists.SectionDivider()
+            MullvadInfoItem(nav)
           }
         }
 
@@ -163,6 +169,24 @@ fun MullvadItem(nav: ExitNodePickerNav, count: Int, selected: Boolean) {
           if (selected) {
             Icon(Icons.Outlined.Check, null)
           }
+        })
+  }
+}
+
+@Composable
+fun MullvadInfoItem(nav: ExitNodePickerNav) {
+  Box {
+    ListItem(
+        modifier = Modifier.clickable { nav.onNavigateToMullvadInfo() },
+        headlineContent = {
+          Text(
+              stringResource(R.string.mullvad_exit_nodes),
+              style = MaterialTheme.typography.bodyMedium)
+        },
+        supportingContent = {
+          Text(
+              stringResource(R.string.enable_in_the_admin_console),
+              style = MaterialTheme.typography.bodyMedium)
         })
   }
 }

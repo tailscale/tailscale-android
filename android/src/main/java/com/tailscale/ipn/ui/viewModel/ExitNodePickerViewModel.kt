@@ -23,6 +23,7 @@ data class ExitNodePickerNav(
     val onNavigateBackHome: () -> Unit,
     val onNavigateBackToExitNodes: () -> Unit,
     val onNavigateToMullvad: () -> Unit,
+    val onNavigateToMullvadInfo: () -> Unit,
     val onNavigateBackToMullvad: () -> Unit,
     val onNavigateToMullvadCountry: (String) -> Unit,
     val onNavigateToRunAsExitNode: () -> Unit,
@@ -55,6 +56,7 @@ class ExitNodePickerViewModel(private val nav: ExitNodePickerNav) : IpnViewModel
   val mullvadBestAvailableByCountry: StateFlow<Map<String, ExitNode>> = MutableStateFlow(TreeMap())
   val mullvadExitNodeCount: StateFlow<Int> = MutableStateFlow(0)
   val anyActive: StateFlow<Boolean> = MutableStateFlow(false)
+  val shouldShowMullvadInfo: StateFlow<Boolean> = MutableStateFlow(false)
 
   init {
     viewModelScope.launch {
@@ -128,6 +130,13 @@ class ExitNodePickerViewModel(private val nav: ExitNodePickerNav) : IpnViewModel
               mullvadBestAvailableByCountry.set(bestAvailableByCountry)
 
               anyActive.set(allNodes.any { it.selected })
+
+              prefs?.let { prefs ->
+                // Only show the Mullvad info view if the user is an admin and is using a Tailscale
+                // control server, as it wouldn't be actionable information otherwise.
+                shouldShowMullvadInfo.set(
+                    netmap.SelfNode.isAdmin && prefs.ControlURL.endsWith(".tailscale.com"))
+              }
             }
           }
     }
