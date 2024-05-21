@@ -18,6 +18,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -40,7 +43,7 @@ fun ExitNodePicker(
     nav: ExitNodePickerNav,
     model: ExitNodePickerViewModel = viewModel(factory = ExitNodePickerViewModelFactory(nav))
 ) {
-  LoadingIndicator.Wrap {
+  LoadingIndicator.Wrap { 
     Scaffold(topBar = { Header(R.string.choose_exit_node, onBack = nav.onNavigateBackHome) }) {
         innerPadding ->
       val tailnetExitNodes by model.tailnetExitNodes.collectAsState()
@@ -99,21 +102,23 @@ fun ExitNodeItem(
     viewModel: ExitNodePickerViewModel,
     node: ExitNodePickerViewModel.ExitNode,
 ) {
+  val online by rememberUpdatedState(newValue = node.online)
+
   Box {
     var modifier: Modifier = Modifier
-    if (node.online) {
+    if (online) {
       modifier = modifier.clickable { viewModel.setExitNode(node) }
     }
     ListItem(
         modifier = modifier,
         colors =
-            if (node.online) MaterialTheme.colorScheme.listItem
+            if (online) MaterialTheme.colorScheme.listItem
             else MaterialTheme.colorScheme.disabledListItem,
         headlineContent = {
           Text(node.city.ifEmpty { node.label }, style = MaterialTheme.typography.bodyMedium)
         },
         supportingContent = {
-          if (!node.online)
+          if (!online)
               Text(stringResource(R.string.offline), style = MaterialTheme.typography.bodyMedium)
         },
         trailingContent = {
