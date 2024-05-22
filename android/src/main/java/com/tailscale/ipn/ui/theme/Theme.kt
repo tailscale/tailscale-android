@@ -114,7 +114,13 @@ private val DarkColors =
     )
 
 val ColorScheme.warning: Color
-  get() = Color(0xFFD97916) // yellow-300
+  @Composable
+  get() =
+      if (isSystemInDarkTheme()) {
+        Color(0xFFBB5504) // yellow-400
+      } else {
+        Color(0xFFD97917) // yellow-300
+      }
 
 val ColorScheme.onWarning: Color
   get() = Color(0xFFFFFFFF) // white
@@ -151,6 +157,15 @@ val ColorScheme.off: Color
 
 val ColorScheme.link: Color
   get() = onPrimaryContainer
+
+val ColorScheme.customError: Color
+  @Composable
+  get() =
+      if (isSystemInDarkTheme()) {
+       Color(0xFF940821) // red-600
+      } else {
+        Color(0xFFB22D30) // red-500
+      }
 
 /**
  * Main color scheme for list items, uses onPrimaryContainer color for leading and trailing icons.
@@ -256,6 +271,23 @@ val ColorScheme.warningListItem: ListItemColors
         disabledTrailingIconColor = default.disabledTrailingIconColor)
   }
 
+/** Color scheme for list items that should be styled as an error item. */
+val ColorScheme.errorListItem: ListItemColors
+  @Composable
+  get() {
+    val default = ListItemDefaults.colors()
+    return ListItemColors(
+        containerColor = MaterialTheme.colorScheme.customError,
+        headlineColor = MaterialTheme.colorScheme.onPrimary,
+        leadingIconColor = MaterialTheme.colorScheme.onPrimary,
+        overlineColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
+        supportingTextColor = MaterialTheme.colorScheme.onPrimary,
+        trailingIconColor = MaterialTheme.colorScheme.onPrimary,
+        disabledHeadlineColor = default.disabledHeadlineColor,
+        disabledLeadingIconColor = default.disabledLeadingIconColor,
+        disabledTrailingIconColor = default.disabledTrailingIconColor)
+  }
+
 /** Main color scheme for top app bar, styles it as a surface container. */
 @OptIn(ExperimentalMaterial3Api::class)
 val ColorScheme.topAppBar: TopAppBarColors
@@ -281,6 +313,44 @@ val ColorScheme.secondaryButton: ButtonColors
     } else {
       return ButtonColors(
           containerColor = Color(0xFF5A82DC), // blue-400
+          contentColor = Color(0xFFFFFFFF), // white
+          disabledContainerColor = defaults.disabledContainerColor,
+          disabledContentColor = defaults.disabledContentColor)
+    }
+  }
+
+val ColorScheme.errorButton: ButtonColors
+  @Composable
+  get() {
+    val defaults = ButtonDefaults.buttonColors()
+    if (isSystemInDarkTheme()) {
+      return ButtonColors(
+          containerColor = Color(0xFFB22D30), // red-500  
+          contentColor = Color(0xFFFFFFFF), // white
+          disabledContainerColor = defaults.disabledContainerColor,
+          disabledContentColor = defaults.disabledContentColor)
+    } else {
+      return ButtonColors(
+          containerColor = Color(0xFFD04841), // red-400
+          contentColor = Color(0xFFFFFFFF), // white
+          disabledContainerColor = defaults.disabledContainerColor,
+          disabledContentColor = defaults.disabledContentColor)
+    }
+  }
+
+val ColorScheme.warningButton: ButtonColors
+  @Composable
+  get() {
+    val defaults = ButtonDefaults.buttonColors()
+    if (isSystemInDarkTheme()) {
+      return ButtonColors(
+          containerColor = Color(0xFFD97917), // yellow-300
+          contentColor = Color(0xFFFFFFFF), // white
+          disabledContainerColor = defaults.disabledContainerColor,
+          disabledContentColor = defaults.disabledContentColor)
+    } else {
+      return ButtonColors(
+          containerColor = Color(0xFFE5993E), // yellow-200
           contentColor = Color(0xFFFFFFFF), // white
           disabledContainerColor = defaults.disabledContainerColor,
           disabledContentColor = defaults.disabledContentColor)

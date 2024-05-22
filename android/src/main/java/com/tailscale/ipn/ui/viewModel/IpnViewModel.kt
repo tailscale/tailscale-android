@@ -16,6 +16,7 @@ import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.UserID
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.notifier.Notifier.prefs
+import com.tailscale.ipn.ui.util.AdvertisedRoutesHelper
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.set
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,11 +32,15 @@ open class IpnViewModel : ViewModel() {
 
   val loggedInUser: StateFlow<IpnLocal.LoginProfile?> = MutableStateFlow(null)
   val loginProfiles: StateFlow<List<IpnLocal.LoginProfile>?> = MutableStateFlow(null)
+
   private val _vpnPrepared = MutableStateFlow(false)
   val vpnPrepared: StateFlow<Boolean> = _vpnPrepared
 
   // The userId associated with the current node. ie: The logged in user.
   private var selfNodeUserId: UserID? = null
+
+  val isRunningExitNode: StateFlow<Boolean> = MutableStateFlow(false)
+  var lastPrefs: Ipn.Prefs? = null
 
   init {
     // Check if the user has granted permission yet.
@@ -68,11 +73,19 @@ open class IpnViewModel : ViewModel() {
       }
     }
 
+    viewModelScope.launch {
+      Notifier.prefs.collect {
+        it?.let { lastPrefs = it }
+        isRunningExitNode.set(it?.let { AdvertisedRoutesHelper.exitNodeOnFromPrefs(it) })
+      }
+    }
+
     viewModelScope.launch { loadUserProfiles() }
     Log.d(TAG, "Created")
   }
 
   // VPN Control
+
   fun setVpnPrepared(prepared: Boolean) {
     _vpnPrepared.value = prepared
   }
@@ -222,5 +235,42 @@ open class IpnViewModel : ViewModel() {
       // This should not be possible.  In this state the button is hidden
       Log.e(TAG, "No exit node to disable and no prior exit node to enable")
     }
+  }
+
+  fun setRunningExitNode(isOn: Boolean) {
+    LoadingIndicator.start()
+    lastPrefs?.let { currentPrefs ->
+      val newPrefs: Ipn.MaskedPrefs
+      if (isOn) {
+        newPrefs = setZeroRoutes(currentPrefs)
+      } else {
+        newPrefs = removeAllZeroRoutes(currentPrefs)
+      }
+      Client(viewModelScope).editPrefs(newPrefs) { result ->
+        LoadingIndicator.stop()
+        Log.d("RunExitNodeViewModel", "Edited prefs: $result")
+      }
+    }
+  }
+
+  private fun setZeroRoutes(prefs: Ipn.Prefs): Ipn.MaskedPrefs {
+    val newRoutes = (removeAllZeroRoutes(prefs).AdvertiseRoutes ?: emptyList()).toMutableList()
+    newRoutes.add("0.0.0.0/0")
+    newRoutes.add("::/0")
+    val newPrefs = Ipn.MaskedPrefs()
+    newPrefs.AdvertiseRoutes = newRoutes
+    return newPrefs
+  }
+
+  private fun removeAllZeroRoutes(prefs: Ipn.Prefs): Ipn.MaskedPrefs {
+    val newRoutes = emptyList<String>().toMutableList()
+    (prefs.AdvertiseRoutes ?: emptyList()).forEach {
+      if (it != "0.0.0.0/0" && it != "::/0") {
+        newRoutes.add(it)
+      }
+    }
+    val newPrefs = Ipn.MaskedPrefs()
+    newPrefs.AdvertiseRoutes = newRoutes
+    return newPrefs
   }
 }

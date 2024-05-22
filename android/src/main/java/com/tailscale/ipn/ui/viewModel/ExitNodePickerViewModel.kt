@@ -54,7 +54,6 @@ class ExitNodePickerViewModel(private val nav: ExitNodePickerNav) : IpnViewModel
   val mullvadBestAvailableByCountry: StateFlow<Map<String, ExitNode>> = MutableStateFlow(TreeMap())
   val mullvadExitNodeCount: StateFlow<Int> = MutableStateFlow(0)
   val anyActive: StateFlow<Boolean> = MutableStateFlow(false)
-  val isRunningExitNode: StateFlow<Boolean> = MutableStateFlow(false)
 
   init {
     viewModelScope.launch {
@@ -62,7 +61,6 @@ class ExitNodePickerViewModel(private val nav: ExitNodePickerNav) : IpnViewModel
           .combine(Notifier.prefs) { netmap, prefs -> Pair(netmap, prefs) }
           .stateIn(viewModelScope)
           .collect { (netmap, prefs) ->
-            isRunningExitNode.set(prefs?.let { AdvertisedRoutesHelper.exitNodeOnFromPrefs(it) })
             val exitNodeId = prefs?.activeExitNodeID ?: prefs?.selectedExitNodeID
             netmap?.Peers?.let { peers ->
               val allNodes =

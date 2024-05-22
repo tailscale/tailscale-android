@@ -72,7 +72,8 @@ import com.tailscale.ipn.ui.model.Netmap
 import com.tailscale.ipn.ui.model.Permissions
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.theme.disabled
-import com.tailscale.ipn.ui.theme.exitNodeToggleButton
+import com.tailscale.ipn.ui.theme.errorButton
+import com.tailscale.ipn.ui.theme.errorListItem
 import com.tailscale.ipn.ui.theme.listItem
 import com.tailscale.ipn.ui.theme.minTextSize
 import com.tailscale.ipn.ui.theme.primaryListItem
@@ -80,12 +81,12 @@ import com.tailscale.ipn.ui.theme.searchBarColors
 import com.tailscale.ipn.ui.theme.secondaryButton
 import com.tailscale.ipn.ui.theme.short
 import com.tailscale.ipn.ui.theme.surfaceContainerListItem
+import com.tailscale.ipn.ui.theme.warningButton
 import com.tailscale.ipn.ui.theme.warningListItem
 import com.tailscale.ipn.ui.util.AutoResizingText
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.PeerSet
-import com.tailscale.ipn.ui.util.flag
 import com.tailscale.ipn.ui.util.itemsWithDividers
 import com.tailscale.ipn.ui.viewModel.MainViewModel
 
@@ -202,10 +203,28 @@ fun MainView(
   }
 }
 
+enum class NodeState {
+  NONE,
+  ACTIVE_AND_RUNNING,
+  // Last selected exit node is active but is not being used.
+  ACTIVE_NOT_RUNNING,
+  // Last selected exit node is currently offline.
+  OFFLINE_ENABLED,
+  // Last selected exit node has been de-selected and is currently offline.
+  OFFLINE_DISABLED,
+  // Exit node selection is managed by an administrator, and last selected exit node is currently
+  // offline
+  OFFLINE_MDM,
+  RUNNING_AS_EXIT_NODE
+}
+
 @Composable
 fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
   val maybePrefs by viewModel.prefs.collectAsState()
   val netmap by viewModel.netmap.collectAsState()
+  val isRunningExitNode by viewModel.isRunningExitNode.collectAsState()
+
+  var nodeState by remember { mutableStateOf(NodeState.NONE) }
 
   // There's nothing to render if we haven't loaded the prefs yet
   val prefs = maybePrefs ?: return
@@ -215,11 +234,36 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
   val chosenExitNodeId = prefs.activeExitNodeID ?: prefs.selectedExitNodeID
 
   val exitNodePeer = chosenExitNodeId?.let { id -> netmap?.Peers?.find { it.StableID == id } }
-  val location = exitNodePeer?.Hostinfo?.Location
   val name = exitNodePeer?.ComputedName
 
-  // We're connected to an exit node if we found an active peer for the *active* exit node
-  val activeAndRunning = (exitNodePeer != null) && !prefs.activeExitNodeID.isNullOrEmpty()
+  val online = exitNodePeer?.Online
+
+  LaunchedEffect(prefs.ExitNodeID, exitNodePeer?.Online, isRunningExitNode) {
+    when {
+      exitNodePeer?.Online == false -> {
+        if (MDMSettings.exitNodeID.flow.value != null) {
+          nodeState = NodeState.OFFLINE_MDM
+        } else if (prefs.activeExitNodeID != null) {
+          nodeState = NodeState.OFFLINE_ENABLED
+        } else {
+          nodeState = NodeState.OFFLINE_DISABLED
+        }
+      }
+      exitNodePeer != null -> {
+        if (!prefs.activeExitNodeID.isNullOrEmpty()) {
+          nodeState = NodeState.ACTIVE_AND_RUNNING
+        } else {
+          nodeState = NodeState.ACTIVE_NOT_RUNNING
+        }
+      }
+      isRunningExitNode -> {
+        nodeState = NodeState.RUNNING_AS_EXIT_NODE
+      }
+      else -> {
+        nodeState = NodeState.NONE
+      }
+    }
+  }
 
   // (jonathan) TODO: We will block the "enable/disable" button for an exit node for which we cannot
   // find a peer  on purpose and render the "No Exit Node" state, however, that should
@@ -234,11 +278,24 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
           ListItem(
               modifier = Modifier.clickable { navAction() },
               colors =
-                  if (activeAndRunning) MaterialTheme.colorScheme.primaryListItem
-                  else ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surface),
+                  when (nodeState) {
+                    NodeState.ACTIVE_AND_RUNNING -> MaterialTheme.colorScheme.primaryListItem
+                    NodeState.ACTIVE_NOT_RUNNING -> MaterialTheme.colorScheme.primaryListItem
+                    NodeState.RUNNING_AS_EXIT_NODE -> MaterialTheme.colorScheme.warningListItem
+                    NodeState.OFFLINE_ENABLED -> MaterialTheme.colorScheme.errorListItem
+                    NodeState.OFFLINE_DISABLED -> MaterialTheme.colorScheme.errorListItem
+                    NodeState.OFFLINE_MDM -> MaterialTheme.colorScheme.errorListItem
+                    else ->
+                        ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surface)
+                  },
               overlineContent = {
                 Text(
-                    stringResource(R.string.exit_node),
+                    text =
+                        if (nodeState == NodeState.OFFLINE_ENABLED ||
+                            nodeState == NodeState.OFFLINE_DISABLED ||
+                            nodeState == NodeState.OFFLINE_MDM)
+                            stringResource(R.string.exit_node_offline)
+                        else stringResource(R.string.exit_node),
                     style = MaterialTheme.typography.bodySmall,
                 )
               },
@@ -246,9 +303,12 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                   Text(
                       text =
-                          location?.let { "${it.CountryCode?.flag()} ${it.Country}: ${it.City}" }
-                              ?: name
-                              ?: stringResource(id = R.string.none),
+                          when (nodeState) {
+                            NodeState.NONE -> stringResource(id = R.string.none)
+                            NodeState.RUNNING_AS_EXIT_NODE ->
+                                stringResource(id = R.string.running_exit_node)
+                            else -> name ?: ""
+                          },
                       style = MaterialTheme.typography.bodyMedium,
                       maxLines = 1,
                       overflow = TextOverflow.Ellipsis)
@@ -256,24 +316,36 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
                       imageVector = Icons.Outlined.ArrowDropDown,
                       contentDescription = null,
                       tint =
-                          if (activeAndRunning)
-                              MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
-                          else MaterialTheme.colorScheme.onSurfaceVariant,
+                          if (nodeState == NodeState.NONE)
+                              MaterialTheme.colorScheme.onSurfaceVariant
+                          else MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
                   )
                 }
               },
               trailingContent = {
-                if (exitNodePeer != null) {
+                if (nodeState != NodeState.NONE) {
                   Button(
                       colors =
-                          if (prefs.activeExitNodeID.isNullOrEmpty())
-                              MaterialTheme.colorScheme.exitNodeToggleButton
-                          else MaterialTheme.colorScheme.secondaryButton,
-                      onClick = { viewModel.toggleExitNode() }) {
+                          when (nodeState) {
+                            NodeState.OFFLINE_ENABLED -> MaterialTheme.colorScheme.errorButton
+                            NodeState.OFFLINE_DISABLED -> MaterialTheme.colorScheme.errorButton
+                            NodeState.OFFLINE_MDM -> MaterialTheme.colorScheme.errorButton
+                            NodeState.RUNNING_AS_EXIT_NODE ->
+                                MaterialTheme.colorScheme.warningButton
+                            else -> MaterialTheme.colorScheme.secondaryButton
+                          },
+                      onClick = {
+                        if (nodeState == NodeState.RUNNING_AS_EXIT_NODE)
+                            viewModel.setRunningExitNode(false)
+                        else viewModel.toggleExitNode()
+                      }) {
                         Text(
-                            if (prefs.activeExitNodeID.isNullOrEmpty())
-                                stringResource(id = R.string.enable)
-                            else stringResource(id = R.string.disable))
+                            when (nodeState) {
+                              NodeState.OFFLINE_DISABLED -> stringResource(id = R.string.enable)
+                              NodeState.ACTIVE_NOT_RUNNING -> stringResource(id = R.string.enable)
+                              NodeState.RUNNING_AS_EXIT_NODE -> stringResource(id = R.string.stop)
+                              else -> stringResource(id = R.string.disable)
+                            })
                       }
                 }
               })
