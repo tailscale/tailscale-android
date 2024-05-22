@@ -39,7 +39,7 @@ class ExitNodePickerViewModel(private val nav: ExitNodePickerNav) : IpnViewModel
   data class ExitNode(
       val id: StableNodeID? = null,
       val label: String,
-      val online: Boolean,
+      val online: StateFlow<Boolean>,
       val selected: Boolean,
       val mullvad: Boolean = false,
       val priority: Int = 0,
@@ -72,7 +72,7 @@ class ExitNodePickerViewModel(private val nav: ExitNodePickerNav) : IpnViewModel
                         ExitNode(
                             id = it.StableID,
                             label = it.displayName,
-                            online = it.Online ?: false,
+                            online = MutableStateFlow(it.Online ?: false),
                             selected = it.StableID == exitNodeId,
                             mullvad = it.Name.endsWith(".mullvad.ts.net."),
                             priority = it.Hostinfo.Location?.Priority ?: 0,
@@ -86,9 +86,10 @@ class ExitNodePickerViewModel(private val nav: ExitNodePickerNav) : IpnViewModel
               tailnetExitNodes.set(tailnetNodes.sortedWith { a, b -> a.label.compareTo(b.label) })
 
               val allMullvadExitNodes =
-                  allNodes.filter {
+                  allNodes.filter { node ->
                     // Pick all mullvad nodes that are online or the currently selected
-                    it.mullvad && (it.selected || it.online)
+                    val online = node.online.value
+                    node.mullvad && (node.selected || online)
                   }
               val mullvadExitNodes =
                   allMullvadExitNodes
