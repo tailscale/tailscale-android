@@ -69,6 +69,15 @@ android {
             buildConfigField "String", "GITHUB_PASSWORD", "\"" + getLocalProperty("githubPassword")+"\""
             buildConfigField "String", "GITHUB_2FA_SECRET", "\"" + getLocalProperty("github2FASecret")+"\""
         }
+        release {
+            minifyEnabled true
+
+            shrinkResources true
+
+            proguardFiles getDefaultProguardFile(
+                    'proguard-android-optimize.txt'),
+                    'proguard-rules.pro'
+        }
     }
 
     testBuildType "applicationTest"
