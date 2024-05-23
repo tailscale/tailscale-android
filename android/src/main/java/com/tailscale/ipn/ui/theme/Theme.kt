@@ -162,9 +162,18 @@ val ColorScheme.customError: Color
   @Composable
   get() =
       if (isSystemInDarkTheme()) {
-       Color(0xFF940821) // red-600
+        Color(0xFF940821) // red-600
       } else {
         Color(0xFFB22D30) // red-500
+      }
+
+val ColorScheme.customErrorContainer: Color
+    @Composable
+    get() = 
+      if (isSystemInDarkTheme()) {
+        Color(0xFF760012) // red-700
+      } else {
+        Color(0xFF940821) // red-600
       }
 
 /**

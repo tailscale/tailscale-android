@@ -27,7 +27,6 @@ class PeerDetailsViewModelFactory(private val nodeId: StableNodeID, private val 
 }
 
 class PeerDetailsViewModel(val nodeId: StableNodeID, val filesDir: File) : IpnViewModel() {
-  val netmap: StateFlow<Netmap.NetworkMap?> = MutableStateFlow(null)
   val node: StateFlow<Tailcfg.Node?> = MutableStateFlow(null)
 
   init {

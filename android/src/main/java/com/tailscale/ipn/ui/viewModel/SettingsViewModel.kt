@@ -29,7 +29,6 @@ data class SettingsNav(
 class SettingsViewModel : IpnViewModel() {
   // Display name for the logged in user
   val isAdmin: StateFlow<Boolean> = MutableStateFlow(false)
-  val managedByOrganization = MDMSettings.managedByOrganizationName.flow
   // True if tailnet lock is enabled.  nil if not yet known.
   val tailNetLockEnabled: StateFlow<Boolean?> = MutableStateFlow(null)
   // True if tailscaleDNS is enabled. nil if not yet known.
