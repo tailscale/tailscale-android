@@ -5,8 +5,8 @@ package com.tailscale.ipn.ui.view
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
@@ -18,9 +18,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -37,13 +34,14 @@ import com.tailscale.ipn.ui.viewModel.ExitNodePickerNav
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerViewModel
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerViewModelFactory
 import com.tailscale.ipn.ui.viewModel.selected
+import kotlinx.coroutines.flow.MutableStateFlow
 
 @Composable
 fun ExitNodePicker(
     nav: ExitNodePickerNav,
     model: ExitNodePickerViewModel = viewModel(factory = ExitNodePickerViewModelFactory(nav))
 ) {
-  LoadingIndicator.Wrap { 
+  LoadingIndicator.Wrap {
     Scaffold(topBar = { Header(R.string.choose_exit_node, onBack = nav.onNavigateBackHome) }) {
         innerPadding ->
       val tailnetExitNodes by model.tailnetExitNodes.collectAsState()
@@ -60,13 +58,13 @@ fun ExitNodePicker(
               model,
               ExitNodePickerViewModel.ExitNode(
                   label = stringResource(R.string.none),
-                  online = true,
+                  online = MutableStateFlow(true),
                   selected = !anyActive,
               ))
 
           if (showRunAsExitNode == ShowHide.Show) {
             Lists.ItemDivider()
-            RunAsExitNodeItem(nav = nav, viewModel = model)
+            RunAsExitNodeItem(nav = nav, viewModel = model, anyActive)
           }
         }
 
@@ -102,17 +100,18 @@ fun ExitNodeItem(
     viewModel: ExitNodePickerViewModel,
     node: ExitNodePickerViewModel.ExitNode,
 ) {
-  val online by rememberUpdatedState(newValue = node.online)
+  val online by node.online.collectAsState()
+  val isRunningExitNode = viewModel.isRunningExitNode.collectAsState().value
 
   Box {
     var modifier: Modifier = Modifier
-    if (online) {
+    if (online && !isRunningExitNode) {
       modifier = modifier.clickable { viewModel.setExitNode(node) }
     }
     ListItem(
         modifier = modifier,
         colors =
-            if (online) MaterialTheme.colorScheme.listItem
+            if (online && !isRunningExitNode) MaterialTheme.colorScheme.listItem
             else MaterialTheme.colorScheme.disabledListItem,
         headlineContent = {
           Text(node.city.ifEmpty { node.label }, style = MaterialTheme.typography.bodyMedium)
@@ -155,12 +154,19 @@ fun MullvadItem(nav: ExitNodePickerNav, count: Int, selected: Boolean) {
 }
 
 @Composable
-fun RunAsExitNodeItem(nav: ExitNodePickerNav, viewModel: ExitNodePickerViewModel) {
+fun RunAsExitNodeItem(nav: ExitNodePickerNav, viewModel: ExitNodePickerViewModel, anyActive: Boolean) {
   val isRunningExitNode = viewModel.isRunningExitNode.collectAsState().value
 
   Box {
+    var modifier: Modifier = Modifier
+    if (!anyActive) {
+      modifier = modifier.clickable { nav.onNavigateToRunAsExitNode() }
+    }
     ListItem(
-        modifier = Modifier.clickable { nav.onNavigateToRunAsExitNode() },
+        modifier = modifier,
+        colors =
+            if (!anyActive) MaterialTheme.colorScheme.listItem
+            else MaterialTheme.colorScheme.disabledListItem,
         headlineContent = {
           Text(
               stringResource(id = R.string.run_as_exit_node),
