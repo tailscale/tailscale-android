@@ -117,12 +117,13 @@ class MainActivity : ComponentActivity() {
           if (granted) {
             Log.d("VpnPermission", "VPN permission granted")
             viewModel.setVpnPrepared(true)
+            App.get().startVPN()
           } else {
             Log.d("VpnPermission", "VPN permission denied")
             viewModel.setVpnPrepared(false)
           }
         }
-        viewModel.setVpnPermissionLauncher(vpnPermissionLauncher)
+    viewModel.setVpnPermissionLauncher(vpnPermissionLauncher)
 
     setContent {
       AppTheme {
