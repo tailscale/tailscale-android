@@ -109,6 +109,7 @@ class MainViewModel : IpnViewModel() {
       vpnPermissionLauncher?.launch(vpnIntent)
     } else {
       setVpnPrepared(true)
+      startVPN()
     }
   }
 

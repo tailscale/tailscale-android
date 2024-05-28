@@ -109,7 +109,7 @@ fun MainView(
       Column(
           modifier = Modifier.fillMaxWidth().padding(paddingInsets),
           verticalArrangement = Arrangement.Center) {
-            // Assume VPN has been prepared. Whether or not it has been prepared cannot be known
+            // Assume VPN has been prepared for optimistic UI. Whether or not it has been prepared cannot be known
             // until permission has been granted to prepare the VPN.
             val isPrepared by viewModel.vpnPrepared.collectAsState(initial = true)
             val isOn by viewModel.vpnToggleState.collectAsState(initial = false)
@@ -169,6 +169,8 @@ fun MainView(
               Ipn.State.Running -> {
 
                 PromptPermissionsIfNecessary()
+
+                viewModel.showVPNPermissionLauncherIfUnauthorized()
 
                 if (showKeyExpiry) {
                   ExpiryNotification(netmap = netmap, action = { viewModel.login() })
