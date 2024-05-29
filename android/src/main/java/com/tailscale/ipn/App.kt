@@ -99,6 +99,7 @@ class App : UninitializedApp(), libtailscale.AppContext {
   override fun onTerminate() {
     super.onTerminate()
     Notifier.stop()
+    notificationManager.cancelAll()
     applicationScope.cancel()
   }
 
@@ -127,8 +128,12 @@ class App : UninitializedApp(), libtailscale.AppContext {
     applicationScope.launch {
       Notifier.state.collect { state ->
         val ableToStartVPN = state > Ipn.State.NeedsMachineAuth
+        // If VPN is stopped, show a disconnected notification. If it is running as a foregrround service, IPNService will show a connected notification.
+        if (state == Ipn.State.Stopped){
+          notifyStatus(false)
+        }
         val vpnRunning = state == Ipn.State.Starting || state == Ipn.State.Running
-        updateConnStatus(ableToStartVPN, vpnRunning)
+        updateConnStatus(ableToStartVPN)
         QuickToggleService.setVPNRunning(vpnRunning)
       }
     }
@@ -212,11 +217,10 @@ class App : UninitializedApp(), libtailscale.AppContext {
    * by storing this in a shared preference. This allows us to check this
    * value without needing a fully initialized instance of the application.
    */
-  private fun updateConnStatus(ableToStartVPN: Boolean, vpnRunning: Boolean) {
+  private fun updateConnStatus(ableToStartVPN: Boolean) {
     setAbleToStartVPN(ableToStartVPN)
     QuickToggleService.updateTile()
     Log.d("App", "Set Tile Ready: $ableToStartVPN")
-    notifyStatus(vpnRunning)
   }
 
   override fun getModelName(): String {
@@ -341,6 +345,7 @@ open class UninitializedApp : Application() {
     private const val UNENCRYPTED_PREFERENCES = "unencrypted"
 
     private lateinit var appInstance: UninitializedApp
+    lateinit var notificationManager: NotificationManagerCompat
 
     @JvmStatic
     fun get(): UninitializedApp {
@@ -378,11 +383,11 @@ open class UninitializedApp : Application() {
   fun createNotificationChannel(id: String, name: String, description: String, importance: Int) {
     val channel = NotificationChannel(id, name, importance)
     channel.description = description
-    val nm: NotificationManagerCompat = NotificationManagerCompat.from(this)
-    nm.createNotificationChannel(channel)
+    notificationManager = NotificationManagerCompat.from(this)
+    notificationManager.createNotificationChannel(channel)
   }
 
-  protected fun notifyStatus(vpnRunning: Boolean) {
+  fun notifyStatus(vpnRunning: Boolean) {
     if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
         PackageManager.PERMISSION_GRANTED) {
       // TODO: Consider calling
@@ -394,8 +399,7 @@ open class UninitializedApp : Application() {
       // for ActivityCompat#requestPermissions for more details.
       return
     }
-    val nm: NotificationManagerCompat = NotificationManagerCompat.from(this)
-    nm.notify(STATUS_NOTIFICATION_ID, buildStatusNotification(vpnRunning))
+    notificationManager.notify(STATUS_NOTIFICATION_ID, buildStatusNotification(vpnRunning))
   }
 
   fun buildStatusNotification(vpnRunning: Boolean): Notification {
