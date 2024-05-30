@@ -75,8 +75,10 @@ open class IpnViewModel : ViewModel() {
 
     viewModelScope.launch {
       Notifier.prefs.collect {
-        it?.let { lastPrefs = it }
-        isRunningExitNode.set(it?.let { AdvertisedRoutesHelper.exitNodeOnFromPrefs(it) })
+        it?.let {
+          lastPrefs = it
+          isRunningExitNode.set(AdvertisedRoutesHelper.exitNodeOnFromPrefs(it))
+        }
       }
     }
 
