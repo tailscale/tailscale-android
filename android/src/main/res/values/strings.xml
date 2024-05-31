@@ -53,6 +53,8 @@
     <string name="exit_node">EXIT NODE</string>
     <string name="exit_node_offline">EXIT NODE OFFLINE</string>
     <string name="running_exit_node">Running on this device</string>
+    <string name="exit_node_offline_mdm_orgname">The exit node selected by %1$s is currently offline. Internet traffic is blocked. Contact a network administrator for help.</string>
+    <string name="exit_node_offline_mdm">The exit node selected by your organization is currently offline. Internet traffic is blocked. Contact a network administrator for help.</string>
     <string name="starting">Starting…</string>
     <string name="connect_to_tailnet_prefix">"Connect again to talk to the other devices in the "</string>
     <string name="connect_to_tailnet_suffix">" tailnet."</string>
@@ -142,6 +144,8 @@
     <string name="run_exit_node_explainer_running">Other devices in your tailnet can now route their internet traffic through this Android device. Make sure to approve this exit node in the admin console in order for other devices to see it.</string>
     <string name="enabled">Enabled</string>
     <string name="disabled">Disabled</string>
+    <string name="exit_node_mdm_orgname">%1$s requires you to use an exit node.</string>
+    <string name="exit_node_mdm">Your organization requires you to use an exit node.</string>
 
     <!-- Strings for the tailnet lock screen -->
     <string name="tailnet_lock">Tailnet lock</string>

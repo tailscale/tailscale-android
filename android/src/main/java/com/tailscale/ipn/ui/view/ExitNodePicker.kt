@@ -18,8 +18,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
 import com.tailscale.ipn.mdm.MDMSettings
@@ -27,6 +29,7 @@ import com.tailscale.ipn.mdm.ShowHide
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.theme.disabledListItem
 import com.tailscale.ipn.ui.theme.listItem
+import com.tailscale.ipn.ui.theme.off
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.itemsWithDividers
@@ -51,17 +54,27 @@ fun ExitNodePicker(
       val allowLANAccess = Notifier.prefs.collectAsState().value?.ExitNodeAllowLANAccess == true
       val showRunAsExitNode by MDMSettings.runExitNode.flow.collectAsState()
       val allowLanAccessMDMDisposition by MDMSettings.exitNodeAllowLANAccess.flow.collectAsState()
+      val managedByOrganization by model.managedByOrganization.collectAsState()
 
       LazyColumn(modifier = Modifier.padding(innerPadding)) {
         item(key = "header") {
-          ExitNodeItem(
-              model,
-              ExitNodePickerViewModel.ExitNode(
-                  label = stringResource(R.string.none),
-                  online = MutableStateFlow(true),
-                  selected = !anyActive,
-              ))
-
+          if (MDMSettings.exitNodeID.flow.value != null){
+            Text(
+                text =
+                    managedByOrganization?.let {
+                      stringResource(R.string.exit_node_mdm_orgname, it)
+                    } ?: stringResource(R.string.exit_node_mdm) ,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp))
+            ExitNodeItem(
+                model,
+                ExitNodePickerViewModel.ExitNode(
+                    label = stringResource(R.string.none),
+                    online = MutableStateFlow(true),
+                    selected = !anyActive,
+                ))
+          }
           if (showRunAsExitNode == ShowHide.Show) {
             Lists.ItemDivider()
             RunAsExitNodeItem(nav = nav, viewModel = model, anyActive)
@@ -105,7 +118,7 @@ fun ExitNodeItem(
 
   Box {
     var modifier: Modifier = Modifier
-    if (online && !isRunningExitNode) {
+    if (online && !isRunningExitNode && MDMSettings.exitNodeID.flow.value != null) {
       modifier = modifier.clickable { viewModel.setExitNode(node) }
     }
     ListItem(

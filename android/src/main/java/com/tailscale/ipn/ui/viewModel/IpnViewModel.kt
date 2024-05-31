@@ -15,12 +15,12 @@ import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.UserID
 import com.tailscale.ipn.ui.notifier.Notifier
-import com.tailscale.ipn.ui.notifier.Notifier.prefs
 import com.tailscale.ipn.ui.util.AdvertisedRoutesHelper
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.set
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 /**
@@ -40,7 +40,28 @@ open class IpnViewModel : ViewModel() {
   private var selfNodeUserId: UserID? = null
 
   val isRunningExitNode: StateFlow<Boolean> = MutableStateFlow(false)
-  var lastPrefs: Ipn.Prefs? = null
+  private var lastPrefs: Ipn.Prefs? = null
+
+  val prefs = Notifier.prefs
+  val netmap = Notifier.netmap
+  private val _nodeState = MutableStateFlow(NodeState.NONE)
+  val nodeState: StateFlow<NodeState> = _nodeState
+  val managedByOrganization = MDMSettings.managedByOrganizationName.flow
+
+  enum class NodeState {
+    NONE,
+    ACTIVE_AND_RUNNING,
+    // Last selected exit node is active but is not being used.
+    ACTIVE_NOT_RUNNING,
+    // Last selected exit node is currently offline.
+    OFFLINE_ENABLED,
+    // Last selected exit node has been de-selected and is currently offline.
+    OFFLINE_DISABLED,
+    // Exit node selection is managed by an administrator, and last selected exit node is currently
+    // offline
+    OFFLINE_MDM,
+    RUNNING_AS_EXIT_NODE
+  }
 
   init {
     // Check if the user has granted permission yet.
@@ -83,6 +104,44 @@ open class IpnViewModel : ViewModel() {
     }
 
     viewModelScope.launch { loadUserProfiles() }
+
+    viewModelScope.launch {
+      combine(prefs, netmap, isRunningExitNode) { prefs, netmap, isRunningExitNode ->
+            // Handle nullability for prefs and netmap
+            val validPrefs = prefs ?: return@combine NodeState.NONE
+            val validNetmap = netmap ?: return@combine NodeState.NONE
+
+            val chosenExitNodeId = validPrefs.activeExitNodeID ?: validPrefs.selectedExitNodeID
+            val exitNodePeer =
+                chosenExitNodeId?.let { id -> validNetmap.Peers?.find { it.StableID == id } }
+
+            when {
+              exitNodePeer?.Online == false -> {
+                if (MDMSettings.exitNodeID.flow.value != null) {
+                  NodeState.OFFLINE_MDM
+                } else if (validPrefs.activeExitNodeID != null) {
+                  NodeState.OFFLINE_ENABLED
+                } else {
+                  NodeState.OFFLINE_DISABLED
+                }
+              }
+              exitNodePeer != null -> {
+                if (!validPrefs.activeExitNodeID.isNullOrEmpty()) {
+                  NodeState.ACTIVE_AND_RUNNING
+                } else {
+                  NodeState.ACTIVE_NOT_RUNNING
+                }
+              }
+              isRunningExitNode == true -> {
+                NodeState.RUNNING_AS_EXIT_NODE
+              }
+              else -> {
+                NodeState.NONE
+              }
+            }
+          }
+          .collect { nodeState -> _nodeState.value = nodeState }
+    }
     Log.d(TAG, "Created")
   }
 

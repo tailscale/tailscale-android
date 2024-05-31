@@ -5,7 +5,6 @@ package com.tailscale.ipn.ui.viewModel
 
 import android.content.Intent
 import android.net.VpnService
-import android.util.Log
 import androidx.activity.result.ActivityResultLauncher
 import androidx.lifecycle.viewModelScope
 import com.tailscale.ipn.App
@@ -41,9 +40,6 @@ class MainViewModel : IpnViewModel() {
 
   // The current state of the IPN for determining view visibility
   val ipnState = Notifier.state
-
-  val prefs = Notifier.prefs
-  val netmap = Notifier.netmap
 
   // The active search term for filtering peers
   val searchTerm: StateFlow<String> = MutableStateFlow("")
@@ -96,10 +92,6 @@ class MainViewModel : IpnViewModel() {
 
     viewModelScope.launch {
       searchTerm.collect { term -> peers.set(peerCategorizer.groupedAndFilteredPeers(term)) }
-    }
-
-    viewModelScope.launch {
-      Notifier.prefs.collect { prefs -> Log.d(TAG, "Main VM - prefs = ${prefs}") }
     }
   }
 
