@@ -76,6 +76,7 @@ import com.tailscale.ipn.ui.theme.customErrorContainer
 import com.tailscale.ipn.ui.theme.disabled
 import com.tailscale.ipn.ui.theme.errorButton
 import com.tailscale.ipn.ui.theme.errorListItem
+import com.tailscale.ipn.ui.theme.exitNodeToggleButton
 import com.tailscale.ipn.ui.theme.listItem
 import com.tailscale.ipn.ui.theme.minTextSize
 import com.tailscale.ipn.ui.theme.primaryListItem
@@ -223,7 +224,7 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
   val chosenExitNodeId = prefs.activeExitNodeID ?: prefs.selectedExitNodeID
 
   val exitNodePeer = chosenExitNodeId?.let { id -> netmap?.Peers?.find { it.StableID == id } }
-  val name = exitNodePeer?.ComputedName
+  val name = exitNodePeer?.exitNodeName
 
   val managedByOrganization by viewModel.managedByOrganization.collectAsState()
 
@@ -262,7 +263,7 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
                   colors =
                       when (nodeState) {
                         NodeState.ACTIVE_AND_RUNNING -> MaterialTheme.colorScheme.primaryListItem
-                        NodeState.ACTIVE_NOT_RUNNING -> MaterialTheme.colorScheme.primaryListItem
+                        NodeState.ACTIVE_NOT_RUNNING -> MaterialTheme.colorScheme.listItem
                         NodeState.RUNNING_AS_EXIT_NODE -> MaterialTheme.colorScheme.warningListItem
                         NodeState.OFFLINE_ENABLED -> MaterialTheme.colorScheme.errorListItem
                         NodeState.OFFLINE_DISABLED -> MaterialTheme.colorScheme.errorListItem
@@ -315,6 +316,7 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
                                 NodeState.OFFLINE_MDM -> MaterialTheme.colorScheme.errorButton
                                 NodeState.RUNNING_AS_EXIT_NODE ->
                                     MaterialTheme.colorScheme.warningButton
+                                NodeState.ACTIVE_NOT_RUNNING -> MaterialTheme.colorScheme.exitNodeToggleButton
                                 else -> MaterialTheme.colorScheme.secondaryButton
                               },
                           onClick = {
