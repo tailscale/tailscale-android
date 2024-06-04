@@ -5,8 +5,8 @@ package com.tailscale.ipn.ui.view
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
@@ -18,7 +18,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -29,7 +28,6 @@ import com.tailscale.ipn.mdm.ShowHide
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.theme.disabledListItem
 import com.tailscale.ipn.ui.theme.listItem
-import com.tailscale.ipn.ui.theme.off
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.itemsWithDividers
@@ -55,18 +53,20 @@ fun ExitNodePicker(
       val showRunAsExitNode by MDMSettings.runExitNode.flow.collectAsState()
       val allowLanAccessMDMDisposition by MDMSettings.exitNodeAllowLANAccess.flow.collectAsState()
       val managedByOrganization by model.managedByOrganization.collectAsState()
+      val forcedExitNodeId = MDMSettings.exitNodeID.flow.collectAsState().value
 
       LazyColumn(modifier = Modifier.padding(innerPadding)) {
         item(key = "header") {
-          if (MDMSettings.exitNodeID.flow.value != null){
+          if (forcedExitNodeId != null) {
             Text(
                 text =
                     managedByOrganization?.let {
                       stringResource(R.string.exit_node_mdm_orgname, it)
-                    } ?: stringResource(R.string.exit_node_mdm) ,
+                    } ?: stringResource(R.string.exit_node_mdm),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp))
+          } else {
             ExitNodeItem(
                 model,
                 ExitNodePickerViewModel.ExitNode(
@@ -115,10 +115,11 @@ fun ExitNodeItem(
 ) {
   val online by node.online.collectAsState()
   val isRunningExitNode = viewModel.isRunningExitNode.collectAsState().value
+  val forcedExitNodeId = MDMSettings.exitNodeID.flow.collectAsState().value
 
   Box {
     var modifier: Modifier = Modifier
-    if (online && !isRunningExitNode && MDMSettings.exitNodeID.flow.value != null) {
+    if (online && !isRunningExitNode && forcedExitNodeId == null) {
       modifier = modifier.clickable { viewModel.setExitNode(node) }
     }
     ListItem(
@@ -167,7 +168,11 @@ fun MullvadItem(nav: ExitNodePickerNav, count: Int, selected: Boolean) {
 }
 
 @Composable
-fun RunAsExitNodeItem(nav: ExitNodePickerNav, viewModel: ExitNodePickerViewModel, anyActive: Boolean) {
+fun RunAsExitNodeItem(
+    nav: ExitNodePickerNav,
+    viewModel: ExitNodePickerViewModel,
+    anyActive: Boolean
+) {
   val isRunningExitNode = viewModel.isRunningExitNode.collectAsState().value
 
   Box {

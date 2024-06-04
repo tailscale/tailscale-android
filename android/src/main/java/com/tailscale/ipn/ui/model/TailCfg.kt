@@ -13,6 +13,7 @@ import com.tailscale.ipn.ui.theme.on
 import com.tailscale.ipn.ui.util.ComposableStringFormatter
 import com.tailscale.ipn.ui.util.DisplayAddress
 import com.tailscale.ipn.ui.util.TimeUtil
+import com.tailscale.ipn.ui.util.flag
 import com.tailscale.ipn.ui.viewModel.PeerSettingInfo
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
@@ -111,6 +112,17 @@ class Tailcfg {
 
     val displayName: String
       get() = ComputedName ?: Name
+
+    val exitNodeName: String
+      get() {
+        if (isMullvadNode &&
+                Hostinfo.Location?.Country != null &&
+                Hostinfo.Location?.City != null &&
+                Hostinfo.Location?.CountryCode != null) {
+          return "${Hostinfo.Location!!.CountryCode!!.flag()} ${Hostinfo.Location!!.Country!!}: ${Hostinfo.Location!!.City!!}"
+        }
+        return displayName
+      }
 
     val keyDoesNotExpire: Boolean
       get() = KeyExpiry == "0001-01-01T00:00:00Z"
