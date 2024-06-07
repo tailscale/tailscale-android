@@ -7,7 +7,7 @@ require (
 	golang.org/x/mobile v0.0.0-20240319015410-c58ccf4b0c87
 	golang.org/x/sys v0.19.0
 	inet.af/netaddr v0.0.0-20220617031823-097006376321
-	tailscale.com v1.67.0-pre.0.20240604173137-82576190a765
+	tailscale.com v1.67.0-pre.0.20240607145513-916c4db75bc4
 )
 
 require (
@@ -65,7 +65,7 @@ require (
 	github.com/safchain/ethtool v0.3.0 // indirect
 	github.com/tailscale/certstore v0.1.1-0.20231202035212-d3fa0460f47e // indirect
 	github.com/tailscale/go-winio v0.0.0-20231025203758-c4f33415bf55 // indirect
-	github.com/tailscale/golang-x-crypto v0.0.0-20240108194725-7ce1f622c780 // indirect
+	github.com/tailscale/golang-x-crypto v0.0.0-20240604161659-3fde5e568aa4 // indirect
 	github.com/tailscale/goupnp v1.0.1-0.20210804011211-c64d0f06ea05 // indirect
 	github.com/tailscale/hujson v0.0.0-20221223112325-20486734a56a // indirect
 	github.com/tailscale/netlink v1.1.1-0.20211101221916-cabfb018fe85 // indirect
