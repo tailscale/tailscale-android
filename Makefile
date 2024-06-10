@@ -3,7 +3,7 @@
 # license that can be found in the LICENSE file.
 
 ## For signed release build JKS_PASSWORD must be set to the password for the jks keystore
-## and tailscale.jks must be present in the repo root.
+## and JKS_PATH must be set to the path to the jks keystore.
 
 DEBUG_APK=tailscale-debug.apk
 RELEASE_AAB=tailscale-release.aab
@@ -84,8 +84,8 @@ apk: $(DEBUG_APK) ## Build the debug APK
 tailscale-debug: $(DEBUG_APK) ## Build the debug APK
 
 .PHONY: release
-release: tailscale.jks $(RELEASE_AAB) ## Build the release AAB
-	jarsigner -sigalg SHA256withRSA -digestalg SHA-256 -keystore tailscale.jks -storepass $(JKS_PASSWORD) $(RELEASE_AAB) tailscale
+release: jarsign-env $(RELEASE_AAB) ## Build the release AAB
+	jarsigner -sigalg SHA256withRSA -digestalg SHA-256 -keystore $(JKS_PATH) -storepass $(JKS_PASSWORD) $(RELEASE_AAB) tailscale
 
 # gradle-dependencies groups together the android sources and libtailscale needed to assemble tests/debug/release builds.
 .PHONY: gradle-dependencies
@@ -139,6 +139,21 @@ env:
 	@echo ANDROID_STUDIO_ROOT=$(ANDROID_STUDIO_ROOT)
 	@echo JAVA_HOME=$(JAVA_HOME)
 	@echo TOOLCHAINDIR=$(TOOLCHAINDIR)
+
+# Ensure that JKS_PATH and JKS_PASSWORD are set before we attempt a build
+# that requires signing.
+.PHONY: jarsign-env
+jarsign-env:
+ifeq ($(JKS_PATH),)
+	$(error JKS_PATH is not set.  export JKS_PATH=/path/to/tailcale.jks)
+endif
+ifeq ($(JKS_PASSWORD),)
+	$(error JKS_PASSWORD is not set.  export JKS_PASSWORD=passwordForTailcale.jks)
+endif
+ifeq ($(wildcard $(JKS_PATH)),)
+	$(error JKS_PATH does not point to a file)
+endif
+	@echo "keystore path set to $(JKS_PATH)"
 
 .PHONY: androidpath
 androidpath:
@@ -204,8 +219,8 @@ docker-build-image: ## Builds the docker image for the android build environment
 	docker build  -f docker/DockerFile.amd64-build -t tailscale-android-build-amd64 .
 
 .PHONY: docker-run-build
-docker-run-build: tailscale.jks docker-build-image  ## Runs the docker image for the android build environment and builds release
-	@docker run -v $(CURDIR):/build/tailscale-android --env JKS_PASSWORD=$(JKS_PASSWORD) tailscale-android-build-amd64
+docker-run-build: jarsign-env docker-build-image  ## Runs the docker image for the android build environment and builds release
+	@docker run -v $(CURDIR):/build/tailscale-android --env JKS_PASSWORD=$(JKS_PASSWORD) --env JKS_PATH=$(JKS_PATH) tailscale-android-build-amd64
 
 .PHONY: docker-remove-build-image
 docker-remove-build-image: ## Removes all docker build image
