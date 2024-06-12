@@ -37,8 +37,8 @@ android {
     defaultConfig {
         minSdkVersion 26
         targetSdkVersion 34
-        versionCode 225
-        versionName "1.67.105-t916c4db75-g0e82e54ffb6"
+        versionCode 227
+        versionName "1.69.1-td0f1a838a-g80864fec12b-dirty"
     }
 
     compileOptions {
