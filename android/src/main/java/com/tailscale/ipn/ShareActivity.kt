@@ -14,9 +14,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.lifecycleScope
 import com.tailscale.ipn.ui.model.Ipn
-import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.theme.AppTheme
 import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.util.universalFit
@@ -45,13 +43,9 @@ class ShareActivity : ComponentActivity() {
 
   override fun onStart() {
     super.onStart()
-    Notifier.start(lifecycleScope)
+    // Ensure our app instance is initialized
+    App.get()
     loadFiles()
-  }
-
-  override fun onStop() {
-    super.onStop()
-    Notifier.stop()
   }
 
   override fun onNewIntent(intent: Intent?) {
