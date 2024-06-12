@@ -23,7 +23,13 @@ public final class StopVPNWorker extends Worker {
     @NonNull
     @Override
     public Result doWork() {
-        UninitializedApp.get().stopVPN();
+        UninitializedApp app = UninitializedApp.get();
+        if (app == null) {
+            android.util.Log.e("StopVPNWorker", "App is not yet initialized, returning failure.");
+            return Result.failure();
+        }
+
+        app.stopVPN();
         return Result.success();
     }
 }

@@ -55,15 +55,15 @@ class App : UninitializedApp(), libtailscale.AppContext {
             .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
             .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
             .build()
-    private lateinit var appInstance: App
+    private var appInstance: App? = null
 
     /**
      * Initializes the app (if necessary) and returns the singleton app instance. Always use this
      * function to obtain an App reference to make sure the app initializes.
      */
     @JvmStatic
-    fun get(): App {
-      appInstance.initOnce()
+    fun get(): App? {
+      appInstance?.initOnce()
       return appInstance
     }
   }
@@ -82,6 +82,8 @@ class App : UninitializedApp(), libtailscale.AppContext {
 
   override fun onCreate() {
     super.onCreate()
+    appInstance = this
+
     createNotificationChannel(
         STATUS_CHANNEL_ID,
         getString(R.string.vpn_status),
@@ -92,7 +94,7 @@ class App : UninitializedApp(), libtailscale.AppContext {
         getString(R.string.taildrop_file_transfers),
         getString(R.string.notifications_delivered_when_a_file_is_received_using_taildrop),
         NotificationManagerCompat.IMPORTANCE_DEFAULT)
-    appInstance = this
+
     setUnprotectedInstance(this)
   }
 
@@ -128,8 +130,9 @@ class App : UninitializedApp(), libtailscale.AppContext {
     applicationScope.launch {
       Notifier.state.collect { state ->
         val ableToStartVPN = state > Ipn.State.NeedsMachineAuth
-        // If VPN is stopped, show a disconnected notification. If it is running as a foregrround service, IPNService will show a connected notification.
-        if (state == Ipn.State.Stopped){
+        // If VPN is stopped, show a disconnected notification. If it is running as a foregrround
+        // service, IPNService will show a connected notification.
+        if (state == Ipn.State.Stopped) {
           notifyStatus(false)
         }
         val vpnRunning = state == Ipn.State.Starting || state == Ipn.State.Running
@@ -345,11 +348,11 @@ open class UninitializedApp : Application() {
     // File for shared preferences that are not encrypted.
     private const val UNENCRYPTED_PREFERENCES = "unencrypted"
 
-    private lateinit var appInstance: UninitializedApp
+    private var appInstance: UninitializedApp? = null
     lateinit var notificationManager: NotificationManagerCompat
 
     @JvmStatic
-    fun get(): UninitializedApp {
+    fun get(): UninitializedApp? {
       return appInstance
     }
   }
@@ -389,7 +392,7 @@ open class UninitializedApp : Application() {
   }
 
   fun notifyStatus(vpnRunning: Boolean) {
-      notifyStatus(buildStatusNotification(vpnRunning))
+    notifyStatus(buildStatusNotification(vpnRunning))
   }
 
   fun notifyStatus(notification: Notification) {

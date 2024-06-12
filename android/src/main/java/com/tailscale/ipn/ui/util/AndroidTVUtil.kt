@@ -14,7 +14,11 @@ import com.tailscale.ipn.ui.util.AndroidTVUtil.isAndroidTV
 
 object AndroidTVUtil {
   fun isAndroidTV(): Boolean {
-    val pm = UninitializedApp.get().packageManager
+    // Not ideal, but this is invoked from a Composable, at which point,
+    // we *will* have an Uninitialized app instance.  If this method is being
+    // called extremely early in the app lifecycle, you may get the wrong
+    // answer here.
+    val pm = UninitializedApp.get()?.packageManager ?: return false
     return (pm.hasSystemFeature(PackageManager.FEATURE_TELEVISION) ||
         pm.hasSystemFeature(PackageManager.FEATURE_LEANBACK))
   }

@@ -27,13 +27,13 @@ open class IPNService : VpnService(), libtailscale.IPNService {
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int =
       when (intent?.action) {
         ACTION_STOP_VPN -> {
-          App.get().setWantRunning(false)
+          App.get()?.setWantRunning(false)
           close()
           START_NOT_STICKY
         }
         ACTION_START_VPN -> {
           showForegroundNotification()
-          App.get().setWantRunning(true)
+          App.get()?.setWantRunning(true)
           Libtailscale.requestVPN(this)
           START_STICKY
         }
@@ -41,15 +41,15 @@ open class IPNService : VpnService(), libtailscale.IPNService {
           // This means we were started by Android due to Always On VPN.
           // We show a non-foreground notification because we weren't
           // started as a foreground service.
-          App.get().notifyStatus(true)
-          App.get().setWantRunning(true)
+          App.get()?.notifyStatus(true)
+          App.get()?.setWantRunning(true)
           Libtailscale.requestVPN(this)
           START_STICKY
         }
         else -> {
           // This means that we were restarted after the service was killed
           // (potentially due to OOM).
-          if (UninitializedApp.get().isAbleToStartVPN()) {
+          if (UninitializedApp.get()?.isAbleToStartVPN() == true) {
             showForegroundNotification()
             App.get()
             Libtailscale.requestVPN(this)
@@ -78,7 +78,7 @@ open class IPNService : VpnService(), libtailscale.IPNService {
   private fun showForegroundNotification() {
     startForeground(
         UninitializedApp.STATUS_NOTIFICATION_ID,
-        UninitializedApp.get().buildStatusNotification(true))
+        UninitializedApp.get()?.buildStatusNotification(true))
   }
 
   private fun configIntent(): PendingIntent {

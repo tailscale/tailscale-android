@@ -28,8 +28,12 @@ public final class StartVPNWorker extends Worker {
     @Override
     public Result doWork() {
         UninitializedApp app = UninitializedApp.get();
-        boolean ableToStartVPN = app.isAbleToStartVPN();
-        if (ableToStartVPN) {
+        if (app == null) {
+            android.util.Log.e("StartVPNWorker", "App is not yet initialized, returning failure.");
+            return Result.failure();
+        }
+
+        if (app.isAbleToStartVPN()) {
             if (VpnService.prepare(app) == null) {
                 // We're ready and have permissions, start the VPN
                 app.startVPN();

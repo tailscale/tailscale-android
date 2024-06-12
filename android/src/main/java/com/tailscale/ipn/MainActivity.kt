@@ -11,7 +11,6 @@ import android.content.RestrictionsManager
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration.SCREENLAYOUT_SIZE_LARGE
 import android.content.res.Configuration.SCREENLAYOUT_SIZE_MASK
-import android.net.VpnService
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
@@ -117,7 +116,7 @@ class MainActivity : ComponentActivity() {
           if (granted) {
             Log.d("VpnPermission", "VPN permission granted")
             viewModel.setVpnPrepared(true)
-            App.get().startVPN()
+            App.get()?.startVPN()
           } else {
             Log.d("VpnPermission", "VPN permission denied")
             viewModel.setVpnPrepared(false)
@@ -285,7 +284,7 @@ class MainActivity : ComponentActivity() {
   private fun login(urlString: String) {
     // Launch coroutine to listen for state changes. When the user completes login, relaunch
     // MainActivity to bring the app back to focus.
-    App.get().applicationScope.launch {
+    App.get()?.applicationScope?.launch {
       try {
         Notifier.state.collect { state ->
           if (state > Ipn.State.NeedsMachineAuth) {
@@ -324,20 +323,20 @@ class MainActivity : ComponentActivity() {
 
   override fun onResume() {
     super.onResume()
-    val restrictionsManager =
-        this.getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
-    lifecycleScope.launch(Dispatchers.IO) { MDMSettings.update(App.get(), restrictionsManager) }
-  }
-
-  override fun onStart() {
-    super.onStart()
+    App.get()?.let {
+      val restrictionsManager =
+          this.getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
+      lifecycleScope.launch(Dispatchers.IO) { MDMSettings.update(it, restrictionsManager) }
+    }
   }
 
   override fun onStop() {
     super.onStop()
-    val restrictionsManager =
-        this.getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
-    lifecycleScope.launch(Dispatchers.IO) { MDMSettings.update(App.get(), restrictionsManager) }
+    App.get()?.let {
+      val restrictionsManager =
+          this.getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
+      lifecycleScope.launch(Dispatchers.IO) { MDMSettings.update(it, restrictionsManager) }
+    }
   }
 
   private fun openApplicationSettings() {

@@ -152,11 +152,11 @@ open class IpnViewModel : ViewModel() {
   }
 
   fun startVPN() {
-    UninitializedApp.get().startVPN()
+    UninitializedApp.get()?.startVPN()
   }
 
   fun stopVPN() {
-    UninitializedApp.get().stopVPN()
+    UninitializedApp.get()?.stopVPN()
   }
 
   // Login/Logout

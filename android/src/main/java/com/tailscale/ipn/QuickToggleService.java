@@ -64,11 +64,17 @@ public class QuickToggleService extends TileService {
     public void onClick() {
         boolean r;
         synchronized (lock) {
-            r = UninitializedApp.get().isAbleToStartVPN();
+            UninitializedApp app = UninitializedApp.get();
+            if (app == null) {
+                return;
+            }
+            r = app.isAbleToStartVPN();
         }
         if (r) {
             // Get the application to make sure it initializes
-            App.get();
+            if (App.get() == null) {
+                return;
+            }
             onTileClick();
         } else {
             // Start main activity.
