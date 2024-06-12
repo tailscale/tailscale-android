@@ -3,6 +3,7 @@
 
 package com.tailscale.ipn.ui.util
 
+import androidx.compose.ui.util.fastAny
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.model.Netmap
 import com.tailscale.ipn.ui.model.Tailcfg
@@ -111,7 +112,10 @@ class PeerCategorizer {
               }
 
               val matchingPeers =
-                  peers.filter { it.displayName.contains(searchTerm, ignoreCase = true) }
+                  peers.filter {
+                    it.displayName.contains(searchTerm, ignoreCase = true) ||
+                        (it.Addresses ?: emptyList()).fastAny { addr -> addr.contains(searchTerm) }
+                  }
               if (matchingPeers.isNotEmpty()) {
                 PeerSet(user, matchingPeers)
               } else {
