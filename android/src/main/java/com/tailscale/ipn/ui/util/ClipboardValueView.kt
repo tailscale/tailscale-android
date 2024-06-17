@@ -20,13 +20,21 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.theme.titledListItem
+import com.tailscale.ipn.ui.util.AndroidTVUtil.isAndroidTV
 
 @Composable
 fun ClipboardValueView(value: String, title: String? = null, subtitle: String? = null) {
   val localClipboardManager = LocalClipboardManager.current
+  val modifier =
+      if (isAndroidTV()) {
+        Modifier
+      } else {
+        Modifier.clickable { localClipboardManager.setText(AnnotatedString(value)) }
+      }
+
   ListItem(
       colors = MaterialTheme.colorScheme.titledListItem,
-      modifier = Modifier.clickable { localClipboardManager.setText(AnnotatedString(value)) },
+      modifier = modifier,
       overlineContent = title?.let { { Text(it, style = MaterialTheme.typography.titleMedium) } },
       headlineContent = { Text(text = value, style = MaterialTheme.typography.bodyMedium) },
       supportingContent =
