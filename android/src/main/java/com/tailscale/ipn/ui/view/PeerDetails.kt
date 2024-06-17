@@ -5,6 +5,7 @@ package com.tailscale.ipn.ui.view
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -33,6 +34,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.theme.listItem
 import com.tailscale.ipn.ui.theme.short
+import com.tailscale.ipn.ui.util.AndroidTVUtil.isAndroidTV
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.itemsWithDividers
 import com.tailscale.ipn.ui.viewModel.PeerDetailsViewModel
@@ -101,14 +103,24 @@ fun PeerDetails(
 fun AddressRow(address: String, type: String) {
   val localClipboardManager = LocalClipboardManager.current
 
+  // Android TV doesn't have a clipboard, nor any way to use the values, so visible only.
+  val modifier =
+      if (isAndroidTV()) {
+        Modifier.focusable(false)
+      } else {
+        Modifier.clickable { localClipboardManager.setText(AnnotatedString(address)) }
+      }
+
   ListItem(
-      modifier = Modifier.clickable { localClipboardManager.setText(AnnotatedString(address)) },
+      modifier = modifier,
       colors = MaterialTheme.colorScheme.listItem,
       headlineContent = { Text(text = address) },
       supportingContent = { Text(text = type) },
       trailingContent = {
         // TODO: there is some overlap with other uses of clipboard, DRY
-        Icon(painter = painterResource(id = R.drawable.clipboard), null)
+        if (!isAndroidTV()) {
+          Icon(painter = painterResource(id = R.drawable.clipboard), null)
+        }
       })
 }
 
