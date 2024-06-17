@@ -22,12 +22,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.tailscale.ipn.ui.theme.topAppBar
 import com.tailscale.ipn.ui.theme.ts_color_light_blue
+import com.tailscale.ipn.ui.util.AndroidTVUtil.isAndroidTV
 
 typealias BackNavigation = () -> Unit
 
@@ -41,6 +45,12 @@ fun Header(
     actions: @Composable RowScope.() -> Unit = {},
     onBack: (() -> Unit)? = null
 ) {
+  val f = FocusRequester()
+
+  if (isAndroidTV()) {
+    LaunchedEffect(Unit) { f.requestFocus() }
+  }
+
   TopAppBar(
       title = {
         title?.let { title() }
@@ -51,21 +61,23 @@ fun Header(
       },
       colors = MaterialTheme.colorScheme.topAppBar,
       actions = actions,
-      navigationIcon = { onBack?.let { BackArrow(action = it) } },
+      navigationIcon = { onBack?.let { BackArrow(action = it, focusRequester = f) } },
   )
 }
 
 @Composable
-fun BackArrow(action: () -> Unit) {
+fun BackArrow(action: () -> Unit, focusRequester: FocusRequester) {
+
   Box(modifier = Modifier.padding(start = 8.dp, end = 8.dp)) {
     Icon(
         Icons.AutoMirrored.Filled.ArrowBack,
         contentDescription = "Go back to the previous screen",
         modifier =
-            Modifier.clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = rememberRipple(bounded = false),
-                onClick = { action() }))
+            Modifier.focusRequester(focusRequester)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = rememberRipple(bounded = false),
+                    onClick = { action() }))
   }
 }
 

@@ -4,6 +4,7 @@
 package com.tailscale.ipn.ui.util
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -41,7 +42,8 @@ object Lists {
       title: String,
       bottomPadding: Dp = 0.dp,
       style: TextStyle = MaterialTheme.typography.titleMedium,
-      fontWeight: FontWeight? = null
+      fontWeight: FontWeight? = null,
+      focusable: Boolean = false
   ) {
     Box(
         modifier =
@@ -50,7 +52,8 @@ object Lists {
           Text(
               title,
               modifier =
-                  Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = bottomPadding),
+                  Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = bottomPadding)
+                      .focusable(focusable),
               style = style,
               fontWeight = fontWeight)
         }

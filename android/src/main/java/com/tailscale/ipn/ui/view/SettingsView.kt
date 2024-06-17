@@ -32,6 +32,7 @@ import com.tailscale.ipn.mdm.ShowHide
 import com.tailscale.ipn.ui.Links
 import com.tailscale.ipn.ui.theme.link
 import com.tailscale.ipn.ui.theme.listItem
+import com.tailscale.ipn.ui.util.AndroidTVUtil.isAndroidTV
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.viewModel.SettingsNav
@@ -61,7 +62,7 @@ fun SettingsView(settingsNav: SettingsNav, viewModel: SettingsViewModel = viewMo
                 onClick = settingsNav.onNavigateToUserSwitcher)
           }
 
-          if (isAdmin) {
+          if (isAdmin && !isAndroidTV()) {
             Lists.ItemDivider()
             AdminTextView { handler.openUri(Links.ADMIN_URL) }
           }

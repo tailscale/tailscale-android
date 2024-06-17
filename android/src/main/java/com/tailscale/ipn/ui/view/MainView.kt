@@ -6,6 +6,7 @@ package com.tailscale.ipn.ui.view
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -86,6 +87,7 @@ import com.tailscale.ipn.ui.theme.short
 import com.tailscale.ipn.ui.theme.surfaceContainerListItem
 import com.tailscale.ipn.ui.theme.warningButton
 import com.tailscale.ipn.ui.theme.warningListItem
+import com.tailscale.ipn.ui.util.AndroidTVUtil.isAndroidTV
 import com.tailscale.ipn.ui.util.AutoResizingText
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.LoadingIndicator
@@ -316,7 +318,8 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
                                 NodeState.OFFLINE_MDM -> MaterialTheme.colorScheme.errorButton
                                 NodeState.RUNNING_AS_EXIT_NODE ->
                                     MaterialTheme.colorScheme.warningButton
-                                NodeState.ACTIVE_NOT_RUNNING -> MaterialTheme.colorScheme.exitNodeToggleButton
+                                NodeState.ACTIVE_NOT_RUNNING ->
+                                    MaterialTheme.colorScheme.exitNodeToggleButton
                                 else -> MaterialTheme.colorScheme.secondaryButton
                               },
                           onClick = {
@@ -493,49 +496,61 @@ fun PeerList(
   val focusManager = LocalFocusManager.current
   var isFocussed by remember { mutableStateOf(false) }
 
-  Box(modifier = Modifier.fillMaxWidth().background(color = MaterialTheme.colorScheme.surface)) {
-    OutlinedTextField(
-        modifier =
-            Modifier.fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 0.dp)
-                .onFocusChanged { isFocussed = it.isFocused },
-        singleLine = true,
-        shape = MaterialTheme.shapes.extraLarge,
-        colors = MaterialTheme.colorScheme.searchBarColors,
-        leadingIcon = { Icon(imageVector = Icons.Outlined.Search, contentDescription = "search") },
-        trailingIcon = {
-          if (isFocussed) {
-            IconButton(
-                onClick = {
-                  focusManager.clearFocus()
-                  onSearch("")
-                }) {
-                  Icon(
-                      imageVector =
-                          if (searchTermStr.isEmpty()) Icons.Outlined.Close
-                          else Icons.Outlined.Clear,
-                      contentDescription = "clear search",
-                      tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-          }
-        },
-        placeholder = {
-          Text(
-              text = stringResource(id = R.string.search),
-              style = MaterialTheme.typography.bodyLarge,
-              maxLines = 1)
-        },
-        value = searchTermStr,
-        onValueChange = { onSearch(it) })
+  var isListFocussed by remember { mutableStateOf(false) }
+
+  val enableSearch = !isAndroidTV()
+
+  if (enableSearch) {
+    Box(modifier = Modifier.fillMaxWidth().background(color = MaterialTheme.colorScheme.surface)) {
+      OutlinedTextField(
+          modifier =
+              Modifier.fillMaxWidth()
+                  .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 0.dp)
+                  .onFocusChanged { isFocussed = it.isFocused },
+          singleLine = true,
+          shape = MaterialTheme.shapes.extraLarge,
+          colors = MaterialTheme.colorScheme.searchBarColors,
+          leadingIcon = {
+            Icon(imageVector = Icons.Outlined.Search, contentDescription = "search")
+          },
+          trailingIcon = {
+            if (isFocussed) {
+              IconButton(
+                  onClick = {
+                    focusManager.clearFocus()
+                    onSearch("")
+                  }) {
+                    Icon(
+                        imageVector =
+                            if (searchTermStr.isEmpty()) Icons.Outlined.Close
+                            else Icons.Outlined.Clear,
+                        contentDescription = "clear search",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                  }
+            }
+          },
+          placeholder = {
+            Text(
+                text = stringResource(id = R.string.search),
+                style = MaterialTheme.typography.bodyLarge,
+                maxLines = 1)
+          },
+          value = searchTermStr,
+          onValueChange = { onSearch(it) })
+    }
   }
 
   LazyColumn(
-      modifier = Modifier.fillMaxSize().background(color = MaterialTheme.colorScheme.surface)) {
+      modifier =
+          Modifier.fillMaxSize()
+              .onFocusChanged { isListFocussed = it.isFocused }
+              .background(color = MaterialTheme.colorScheme.surface)) {
         if (showNoResults) {
           item {
             Spacer(
                 Modifier.height(16.dp)
                     .fillMaxSize()
+                    .focusable(false)
                     .background(color = MaterialTheme.colorScheme.surface))
 
             Lists.LargeTitle(
@@ -553,17 +568,11 @@ fun PeerList(
           }
           first = false
 
-          stickyHeader {
-            Spacer(
-                Modifier.height(16.dp)
-                    .fillMaxSize()
-                    .background(color = MaterialTheme.colorScheme.surface))
-
-            Lists.LargeTitle(
-                peerSet.user?.DisplayName ?: stringResource(id = R.string.unknown_user),
-                bottomPadding = 8.dp,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold)
+          // Sticky headers are a bit broken on Android TV - they hide their content
+          if (isAndroidTV()) {
+            item { NodesSectionHeader(peerSet = peerSet) }
+          } else {
+            stickyHeader { NodesSectionHeader(peerSet = peerSet) }
           }
 
           itemsWithDividers(peerSet.peers, key = { it.StableID }) { peer ->
@@ -593,6 +602,18 @@ fun PeerList(
           }
         }
       }
+}
+
+@Composable
+fun NodesSectionHeader(peerSet: PeerSet) {
+  Spacer(Modifier.height(16.dp).fillMaxSize().background(color = MaterialTheme.colorScheme.surface))
+
+  Lists.LargeTitle(
+      peerSet.user?.DisplayName ?: stringResource(id = R.string.unknown_user),
+      bottomPadding = 8.dp,
+      focusable = isAndroidTV(),
+      style = MaterialTheme.typography.titleLarge,
+      fontWeight = FontWeight.SemiBold)
 }
 
 @Composable
