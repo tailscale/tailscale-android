@@ -13,6 +13,7 @@ import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.Ipn.State
 import com.tailscale.ipn.ui.notifier.Notifier
+import com.tailscale.ipn.ui.util.AndroidTVUtil.isAndroidTV
 import com.tailscale.ipn.ui.util.PeerCategorizer
 import com.tailscale.ipn.ui.util.PeerSet
 import com.tailscale.ipn.ui.util.TimeUtil
@@ -112,6 +113,7 @@ class MainViewModel : IpnViewModel() {
     when {
       !isPrepared -> showVPNPermissionLauncherIfUnauthorized()
       state == Ipn.State.Running -> stopVPN()
+      state == Ipn.State.NeedsLogin && isAndroidTV() -> login()
       else -> startVPN()
     }
   }
