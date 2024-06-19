@@ -46,6 +46,7 @@ class Ipn {
       var IncomingFiles: List<PartialFile>? = null,
       var ClientVersion: Tailcfg.ClientVersion? = null,
       var TailFSShares: List<String>? = null,
+      var Health: Health.State? = null,
   )
 
   @Serializable
