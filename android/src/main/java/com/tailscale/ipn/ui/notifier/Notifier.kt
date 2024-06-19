@@ -6,6 +6,7 @@ package com.tailscale.ipn.ui.notifier
 import android.util.Log
 import com.tailscale.ipn.App
 import com.tailscale.ipn.ui.model.Empty
+import com.tailscale.ipn.ui.model.Health
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.Ipn.Notify
 import com.tailscale.ipn.ui.model.Netmap
@@ -40,6 +41,7 @@ object Notifier {
   val browseToURL: StateFlow<String?> = MutableStateFlow(null)
   val loginFinished: StateFlow<String?> = MutableStateFlow(null)
   val version: StateFlow<String?> = MutableStateFlow(null)
+  val health: StateFlow<Health.State?> = MutableStateFlow(null)
 
   // Taildrop-specific State
   val outgoingFiles: StateFlow<List<Ipn.OutgoingFile>?> = MutableStateFlow(null)
@@ -64,7 +66,8 @@ object Notifier {
       val mask =
           NotifyWatchOpt.Netmap.value or
               NotifyWatchOpt.Prefs.value or
-              NotifyWatchOpt.InitialState.value
+              NotifyWatchOpt.InitialState.value or
+                  NotifyWatchOpt.InitialHealthState.value
       manager =
           app.watchNotifications(mask.toLong()) { notification ->
             val notify = decoder.decodeFromStream<Notify>(notification.inputStream())
@@ -79,6 +82,7 @@ object Notifier {
             notify.OutgoingFiles?.let(outgoingFiles::set)
             notify.FilesWaiting?.let(filesWaiting::set)
             notify.IncomingFiles?.let(incomingFiles::set)
+            notify.Health?.let(health::set)
           }
     }
   }
@@ -99,6 +103,8 @@ object Notifier {
     Prefs(4),
     Netmap(8),
     NoPrivateKey(16),
-    InitialTailFSShares(32)
+    InitialTailFSShares(32),
+    InitialOutgoingFiles(64),
+    InitialHealthState(128),
   }
 }

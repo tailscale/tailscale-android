@@ -11,7 +11,6 @@ import android.content.RestrictionsManager
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration.SCREENLAYOUT_SIZE_LARGE
 import android.content.res.Configuration.SCREENLAYOUT_SIZE_MASK
-import android.net.VpnService
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
@@ -77,7 +76,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
-  private lateinit var requestVpnPermission: ActivityResultLauncher<Unit>
   private lateinit var navController: NavHostController
   private lateinit var vpnPermissionLauncher: ActivityResultLauncher<Intent>
   private val viewModel: MainViewModel by viewModels()

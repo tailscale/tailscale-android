@@ -28,6 +28,7 @@ import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.localapi.Client
 import com.tailscale.ipn.ui.localapi.Request
 import com.tailscale.ipn.ui.model.Ipn
+import com.tailscale.ipn.ui.notifier.HealthNotifier
 import com.tailscale.ipn.ui.notifier.Notifier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -71,6 +72,7 @@ class App : UninitializedApp(), libtailscale.AppContext {
   val dns = DnsConfig()
   private lateinit var connectivityManager: ConnectivityManager
   private lateinit var app: libtailscale.Application
+  private var healthNotifier: HealthNotifier? = null
 
   override fun getPlatformDNSConfig(): String = dns.dnsConfigAsString
 
@@ -92,6 +94,11 @@ class App : UninitializedApp(), libtailscale.AppContext {
         getString(R.string.taildrop_file_transfers),
         getString(R.string.notifications_delivered_when_a_file_is_received_using_taildrop),
         NotificationManagerCompat.IMPORTANCE_DEFAULT)
+    createNotificationChannel(
+        HealthNotifier.HEALTH_CHANNEL_ID,
+        getString(R.string.health_channel_name),
+        getString(R.string.health_channel_description),
+        NotificationManagerCompat.IMPORTANCE_HIGH)
     appInstance = this
     setUnprotectedInstance(this)
   }
@@ -123,13 +130,15 @@ class App : UninitializedApp(), libtailscale.AppContext {
     Request.setApp(app)
     Notifier.setApp(app)
     Notifier.start(applicationScope)
+    healthNotifier = HealthNotifier(Notifier.health, applicationScope)
     connectivityManager = this.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     setAndRegisterNetworkCallbacks()
     applicationScope.launch {
       Notifier.state.collect { state ->
         val ableToStartVPN = state > Ipn.State.NeedsMachineAuth
-        // If VPN is stopped, show a disconnected notification. If it is running as a foregrround service, IPNService will show a connected notification.
-        if (state == Ipn.State.Stopped){
+        // If VPN is stopped, show a disconnected notification. If it is running as a foregrround
+        // service, IPNService will show a connected notification.
+        if (state == Ipn.State.Stopped) {
           notifyStatus(false)
         }
         val vpnRunning = state == Ipn.State.Starting || state == Ipn.State.Running
@@ -389,7 +398,7 @@ open class UninitializedApp : Application() {
   }
 
   fun notifyStatus(vpnRunning: Boolean) {
-      notifyStatus(buildStatusNotification(vpnRunning))
+    notifyStatus(buildStatusNotification(vpnRunning))
   }
 
   fun notifyStatus(notification: Notification) {
