@@ -129,17 +129,22 @@ fun MainView(
             val disableToggle by MDMSettings.forceEnabled.flow.collectAsState(initial = true)
             val showKeyExpiry by viewModel.showExpiry.collectAsState(initial = false)
 
+            // Hide the header only on Android TV when the user needs to login
+            val hideHeader = (isAndroidTV() && state == Ipn.State.NeedsLogin)
+
             ListItem(
                 colors = MaterialTheme.colorScheme.surfaceContainerListItem,
                 leadingContent = {
-                  TintedSwitch(
-                      onCheckedChange = {
-                        if (!disableToggle) {
-                          viewModel.toggleVpn()
-                        }
-                      },
-                      enabled = !disableToggle,
-                      checked = isOn)
+                  if (!hideHeader) {
+                    TintedSwitch(
+                        onCheckedChange = {
+                          if (!disableToggle) {
+                            viewModel.toggleVpn()
+                          }
+                        },
+                        enabled = !disableToggle,
+                        checked = isOn)
+                  }
                 },
                 headlineContent = {
                   user?.NetworkProfile?.DomainName?.let { domain ->
@@ -151,7 +156,9 @@ fun MainView(
                   }
                 },
                 supportingContent = {
-                  Text(text = stateStr, style = MaterialTheme.typography.bodyMedium.short)
+                  if (!hideHeader) {
+                    Text(text = stateStr, style = MaterialTheme.typography.bodyMedium.short)
+                  }
                 },
                 trailingContent = {
                   Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
