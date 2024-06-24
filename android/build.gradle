@@ -120,6 +120,8 @@ dependencies {
     // Supporting libraries.
     implementation("io.coil-kt:coil-compose:2.6.0")
     implementation("com.google.zxing:core:3.5.1")
+    implementation("com.patrykandpatrick.vico:compose:1.15.0")
+    implementation("com.patrykandpatrick.vico:compose-m3:1.15.0")
 
     // Tailscale dependencies.
     implementation ':libtailscale@aar'

@@ -6,6 +6,7 @@ package com.tailscale.ipn.ui.view
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,12 +32,15 @@ import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -54,6 +58,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -93,6 +98,7 @@ import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.PeerSet
 import com.tailscale.ipn.ui.util.itemsWithDividers
+import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.viewModel.IpnViewModel.NodeState
 import com.tailscale.ipn.ui.viewModel.MainViewModel
 
@@ -103,13 +109,15 @@ data class MainViewNavigation(
     val onNavigateToExitNodes: () -> Unit
 )
 
-@OptIn(ExperimentalPermissionsApi::class)
+@OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun MainView(
     loginAtUrl: (String) -> Unit,
     navigation: MainViewNavigation,
     viewModel: MainViewModel
 ) {
+  val currentPingDevice by viewModel.pingViewModel.peer.collectAsState()
+
   LoadingIndicator.Wrap {
     Scaffold(contentWindowInsets = WindowInsets.Companion.statusBars) { paddingInsets ->
       Column(
@@ -215,6 +223,10 @@ fun MainView(
               }
             }
           }
+
+      currentPingDevice?.let { peer ->
+        ModalBottomSheet(onDismissRequest = { viewModel.onPingDismissal() }) { PingView(model = viewModel.pingViewModel) }
+      }
     }
   }
 }
@@ -505,6 +517,9 @@ fun PeerList(
 
   var isListFocussed by remember { mutableStateOf(false) }
 
+  val expandedPeer = viewModel.expandedMenuPeer.collectAsState()
+  val localClipboardManager = LocalClipboardManager.current
+
   val enableSearch = !isAndroidTV()
 
   if (enableSearch) {
@@ -584,7 +599,10 @@ fun PeerList(
 
           itemsWithDividers(peerSet.peers, key = { it.StableID }) { peer ->
             ListItem(
-                modifier = Modifier.clickable { onNavigateToPeerDetails(peer) },
+                modifier =
+                    Modifier.combinedClickable(
+                        onClick = { onNavigateToPeerDetails(peer) },
+                        onLongClick = { viewModel.expandedMenuPeer.set(peer) }),
                 colors = MaterialTheme.colorScheme.listItem,
                 headlineContent = {
                   Row(verticalAlignment = Alignment.CenterVertically) {
@@ -597,6 +615,38 @@ fun PeerList(
                                     shape = RoundedCornerShape(percent = 50))) {}
                     Spacer(modifier = Modifier.size(8.dp))
                     Text(text = peer.displayName, style = MaterialTheme.typography.titleMedium)
+                    DropdownMenu(
+                        expanded = expandedPeer.value?.StableID == peer.StableID,
+                        onDismissRequest = { viewModel.hidePeerDropdownMenu() }) {
+                          DropdownMenuItem(
+                              leadingIcon = {
+                                Icon(
+                                    painter = painterResource(R.drawable.clipboard),
+                                    contentDescription = null)
+                              },
+                              text = { Text(text = stringResource(R.string.copy_ip_address)) },
+                              onClick = {
+                                viewModel.copyIpAddress(peer, localClipboardManager)
+                                viewModel.hidePeerDropdownMenu()
+                              })
+
+                          netmap.value?.let { netMap ->
+                            if (!peer.isSelfNode(netMap)) {
+                              // Don't show the ping item for the self-node
+                              DropdownMenuItem(
+                                  leadingIcon = {
+                                    Icon(
+                                        painter = painterResource(R.drawable.timer),
+                                        contentDescription = null)
+                                  },
+                                  text = { Text(text = stringResource(R.string.ping)) },
+                                  onClick = {
+                                    viewModel.hidePeerDropdownMenu()
+                                    viewModel.startPing(peer)
+                                  })
+                            }
+                          }
+                        }
                   }
                 },
                 supportingContent = {

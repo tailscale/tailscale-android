@@ -6,12 +6,15 @@ package com.tailscale.ipn.ui.viewModel
 import android.content.Intent
 import android.net.VpnService
 import androidx.activity.result.ActivityResultLauncher
+import androidx.compose.ui.platform.ClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.lifecycle.viewModelScope
 import com.tailscale.ipn.App
 import com.tailscale.ipn.R
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.Ipn.State
+import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.util.AndroidTVUtil.isAndroidTV
 import com.tailscale.ipn.ui.util.PeerCategorizer
@@ -47,6 +50,27 @@ class MainViewModel : IpnViewModel() {
 
   // True if we should render the key expiry bannder
   val showExpiry: StateFlow<Boolean> = MutableStateFlow(false)
+
+  // The peer for which the dropdown menu is currently expanded. Null if no menu is expanded
+  var expandedMenuPeer: StateFlow<Tailcfg.Node?> = MutableStateFlow(null)
+
+  var pingViewModel: PingViewModel = PingViewModel()
+
+  fun hidePeerDropdownMenu() {
+    expandedMenuPeer.set(null)
+  }
+
+  fun copyIpAddress(peer: Tailcfg.Node, clipboardManager: ClipboardManager) {
+    clipboardManager.setText(AnnotatedString(peer.primaryIPv4Address ?: ""))
+  }
+
+  fun startPing(peer: Tailcfg.Node) {
+    this.pingViewModel.startPing(peer)
+  }
+
+  fun onPingDismissal() {
+    this.pingViewModel.handleDismissal()
+  }
 
   private val peerCategorizer = PeerCategorizer()
 

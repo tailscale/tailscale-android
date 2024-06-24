@@ -68,6 +68,7 @@ import com.tailscale.ipn.ui.view.UserSwitcherNav
 import com.tailscale.ipn.ui.view.UserSwitcherView
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerNav
 import com.tailscale.ipn.ui.viewModel.MainViewModel
+import com.tailscale.ipn.ui.viewModel.PingViewModel
 import com.tailscale.ipn.ui.viewModel.SettingsNav
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
@@ -206,7 +207,10 @@ class MainActivity : ComponentActivity() {
                   composable(
                       "peerDetails/{nodeId}",
                       arguments = listOf(navArgument("nodeId") { type = NavType.StringType })) {
-                        PeerDetails(backTo("main"), it.arguments?.getString("nodeId") ?: "")
+                        PeerDetails(
+                            backTo("main"),
+                            it.arguments?.getString("nodeId") ?: "",
+                            PingViewModel())
                       }
                   composable("bugReport") { BugReportView(backTo("settings")) }
                   composable("dnsSettings") { DNSSettingsView(backTo("settings")) }
