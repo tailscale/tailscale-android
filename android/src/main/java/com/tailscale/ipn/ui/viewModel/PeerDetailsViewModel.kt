@@ -6,7 +6,6 @@ package com.tailscale.ipn.ui.viewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.tailscale.ipn.ui.model.Netmap
 import com.tailscale.ipn.ui.model.StableNodeID
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.notifier.Notifier
@@ -19,15 +18,23 @@ import java.io.File
 
 data class PeerSettingInfo(val titleRes: Int, val value: ComposableStringFormatter)
 
-class PeerDetailsViewModelFactory(private val nodeId: StableNodeID, private val filesDir: File) :
-    ViewModelProvider.Factory {
+class PeerDetailsViewModelFactory(
+    private val nodeId: StableNodeID,
+    private val filesDir: File,
+    private val pingViewModel: PingViewModel
+) : ViewModelProvider.Factory {
   override fun <T : ViewModel> create(modelClass: Class<T>): T {
-    return PeerDetailsViewModel(nodeId, filesDir) as T
+    return PeerDetailsViewModel(nodeId, filesDir, pingViewModel) as T
   }
 }
 
-class PeerDetailsViewModel(val nodeId: StableNodeID, val filesDir: File) : IpnViewModel() {
+class PeerDetailsViewModel(
+    val nodeId: StableNodeID,
+    val filesDir: File,
+    val pingViewModel: PingViewModel
+) : IpnViewModel() {
   val node: StateFlow<Tailcfg.Node?> = MutableStateFlow(null)
+  val isPinging: StateFlow<Boolean> = MutableStateFlow(false)
 
   init {
     viewModelScope.launch {
@@ -36,5 +43,15 @@ class PeerDetailsViewModel(val nodeId: StableNodeID, val filesDir: File) : IpnVi
         nm?.getPeer(nodeId)?.let { peer -> node.set(peer) }
       }
     }
+  }
+
+  fun startPing() {
+    isPinging.set(true)
+    node.value?.let { this.pingViewModel.startPing(it) }
+  }
+
+  fun onPingDismissal() {
+    isPinging.set(false)
+    this.pingViewModel.handleDismissal()
   }
 }

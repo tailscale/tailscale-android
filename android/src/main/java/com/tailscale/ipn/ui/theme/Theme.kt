@@ -168,8 +168,8 @@ val ColorScheme.customError: Color
       }
 
 val ColorScheme.customErrorContainer: Color
-    @Composable
-    get() = 
+  @Composable
+  get() =
       if (isSystemInDarkTheme()) {
         Color(0xFF760012) // red-700
       } else {
@@ -334,7 +334,7 @@ val ColorScheme.errorButton: ButtonColors
     val defaults = ButtonDefaults.buttonColors()
     if (isSystemInDarkTheme()) {
       return ButtonColors(
-          containerColor = Color(0xFFB22D30), // red-500  
+          containerColor = Color(0xFFB22D30), // red-500
           contentColor = Color(0xFFFFFFFF), // white
           disabledContainerColor = defaults.disabledContainerColor,
           disabledContentColor = defaults.disabledContentColor)

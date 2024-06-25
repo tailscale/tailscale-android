@@ -11,6 +11,7 @@ import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.IpnState
 import com.tailscale.ipn.ui.model.StableNodeID
+import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.util.InputStreamAdapter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -57,6 +58,8 @@ typealias BugReportIdHandler = (Result<BugReportID>) -> Unit
 
 typealias PrefsHandler = (Result<Ipn.Prefs>) -> Unit
 
+typealias PingResultHandler = (Result<IpnState.PingResult>) -> Unit
+
 /**
  * Client provides a mechanism for calling Go's LocalAPIClient. Every LocalAPI endpoint has a
  * corresponding method on this Client.
@@ -71,6 +74,17 @@ class Client(private val scope: CoroutineScope) {
 
   fun status(responseHandler: StatusResponseHandler) {
     get(Endpoint.STATUS, responseHandler = responseHandler)
+  }
+
+  fun ping(peer: Tailcfg.Node, responseHandler: PingResultHandler) {
+    val ip = peer.primaryIPv4Address.orEmpty()
+    if (ip.isEmpty()) {
+      responseHandler(Result.failure(Exception("No IP address for peer $peer")))
+      return
+    }
+
+    val path = "${Endpoint.PING}?ip=${ip}&type=disco"
+    post(path, timeoutMillis = 2000L, responseHandler = responseHandler)
   }
 
   fun bugReportId(responseHandler: BugReportIdHandler) {
@@ -206,6 +220,7 @@ class Client(private val scope: CoroutineScope) {
   private inline fun <reified T> post(
       path: String,
       body: ByteArray? = null,
+      timeoutMillis: Long = 30000,
       noinline responseHandler: (Result<T>) -> Unit
   ) {
     Request(
@@ -213,6 +228,7 @@ class Client(private val scope: CoroutineScope) {
             method = "POST",
             path = path,
             body = body,
+            timeoutMillis = timeoutMillis,
             responseType = typeOf<T>(),
             responseHandler = responseHandler)
         .execute()
