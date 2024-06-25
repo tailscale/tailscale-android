@@ -271,9 +271,9 @@ class MainActivity : ComponentActivity() {
     return AndroidTVUtil.isAndroidTV()
   }
 
-  override fun onNewIntent(intent: Intent?) {
+  override fun onNewIntent(intent: Intent) {
     super.onNewIntent(intent)
-    if (intent?.getBooleanExtra(START_AT_ROOT, false) == true) {
+    if (intent.getBooleanExtra(START_AT_ROOT, false)) {
       if (this::navController.isInitialized) {
         navController.popBackStack(route = "main", inclusive = false)
       }
