@@ -55,7 +55,7 @@ fun SettingsView(settingsNav: SettingsNav, viewModel: SettingsViewModel = viewMo
         Header(titleRes = R.string.settings_title, onBack = settingsNav.onNavigateBackHome)
       }) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding).verticalScroll(rememberScrollState())) {
-          if (isVPNPrepared){
+          if (isVPNPrepared) {
             UserView(
                 profile = user,
                 actionState = UserActionState.NAV,
@@ -76,6 +76,12 @@ fun SettingsView(settingsNav: SettingsNav, viewModel: SettingsViewModel = viewMo
                         if (it) R.string.using_tailscale_dns else R.string.not_using_tailscale_dns)
                   },
               onClick = settingsNav.onNavigateToDNSSettings)
+
+          Lists.ItemDivider()
+          Setting.Text(
+              R.string.split_tunneling,
+              subtitle = stringResource(R.string.exclude_certain_apps_from_using_tailscale),
+              onClick = settingsNav.onNavigateToSplitTunneling)
 
           if (showTailnetLock == ShowHide.Show) {
             Lists.ItemDivider()
@@ -199,5 +205,5 @@ fun SettingsPreview() {
   vm.tailNetLockEnabled.set(true)
   vm.isAdmin.set(true)
   vm.managedByOrganization.set("Tails and Scales Inc.")
-  SettingsView(SettingsNav({}, {}, {}, {}, {}, {}, {}, {}, {}, {}), vm)
+  SettingsView(SettingsNav({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}), vm)
 }
