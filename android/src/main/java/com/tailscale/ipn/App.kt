@@ -72,7 +72,7 @@ class App : UninitializedApp(), libtailscale.AppContext {
   val dns = DnsConfig()
   private lateinit var connectivityManager: ConnectivityManager
   private lateinit var app: libtailscale.Application
-  private var healthNotifier: HealthNotifier? = null
+  var healthNotifier: HealthNotifier? = null
 
   override fun getPlatformDNSConfig(): String = dns.dnsConfigAsString
 

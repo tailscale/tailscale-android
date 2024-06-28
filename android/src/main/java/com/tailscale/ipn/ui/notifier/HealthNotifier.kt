@@ -13,8 +13,10 @@ import com.tailscale.ipn.R
 import com.tailscale.ipn.UninitializedApp.Companion.notificationManager
 import com.tailscale.ipn.ui.model.Health
 import com.tailscale.ipn.ui.model.Health.UnhealthyState
+import com.tailscale.ipn.ui.util.set
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -53,31 +55,36 @@ class HealthNotifier(
     }
   }
 
-  private val currentWarnings: MutableSet<String> = mutableSetOf()
+  val currentWarnings: StateFlow<Set<UnhealthyState>> = MutableStateFlow(setOf())
 
   private fun notifyHealthUpdated(warnings: Array<UnhealthyState>) {
-    val warningsBeforeAdd = currentWarnings
+    val warningsBeforeAdd = currentWarnings.value
     val currentWarnableCodes = warnings.map { it.WarnableCode }.toSet()
+    val addedWarnings: MutableSet<UnhealthyState> = mutableSetOf()
+    val isWarmingUp = warnings.any { it.WarnableCode == "warming-up" }
 
-    val addedWarnings: MutableSet<String> = mutableSetOf()
     for (warning in warnings) {
       if (ignoredWarnableCodes.contains(warning.WarnableCode)) {
         continue
       }
 
-      addedWarnings.add(warning.WarnableCode)
+      addedWarnings.add(warning)
 
-      if (this.currentWarnings.contains(warning.WarnableCode)) {
+      if (this.currentWarnings.value.contains(warning)) {
         // Already notified, skip
         continue
       } else if (warning.hiddenByDependencies(currentWarnableCodes)) {
         // Ignore this warning because a dependency is also unhealthy
         Log.d(TAG, "Ignoring ${warning.WarnableCode} because of dependency")
         continue
-      } else {
+      } else if (!isWarmingUp) {
         Log.d(TAG, "Adding health warning: ${warning.WarnableCode}")
-        this.currentWarnings.add(warning.WarnableCode)
-        this.sendNotification(warning.Title, warning.Text, warning.WarnableCode)
+        this.currentWarnings.set(this.currentWarnings.value + warning)
+        if (warning.Severity == Health.Severity.high) {
+          this.sendNotification(warning.Title, warning.Text, warning.WarnableCode)
+        }
+      } else {
+        Log.d(TAG, "Ignoring ${warning.WarnableCode} because warming up")
       }
     }
 
@@ -86,7 +93,7 @@ class HealthNotifier(
       Log.d(TAG, "Dropping health warnings with codes $warningsToDrop")
       this.removeNotifications(warningsToDrop)
     }
-    currentWarnings.subtract(warningsToDrop)
+    currentWarnings.set(this.currentWarnings.value.subtract(warningsToDrop))
   }
 
   private fun sendNotification(title: String, text: String, code: String) {
@@ -108,10 +115,10 @@ class HealthNotifier(
     notificationManager.notify(code.hashCode(), notification)
   }
 
-  private fun removeNotifications(codes: Set<String>) {
-    Log.d(TAG, "Removing notifications for $codes")
-    for (code in codes) {
-      notificationManager.cancel(code.hashCode())
+  private fun removeNotifications(warnings: Set<UnhealthyState>) {
+    Log.d(TAG, "Removing notifications for $warnings")
+    for (warning in warnings) {
+      notificationManager.cancel(warning.WarnableCode.hashCode())
     }
   }
 }
