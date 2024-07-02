@@ -73,6 +73,7 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.tailscale.ipn.R
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.mdm.ShowHide
+import com.tailscale.ipn.ui.model.Health
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.Netmap
@@ -117,6 +118,7 @@ fun MainView(
     viewModel: MainViewModel
 ) {
   val currentPingDevice by viewModel.pingViewModel.peer.collectAsState()
+  val healthWarnings by viewModel.healthWarnings.collectAsState()
 
   LoadingIndicator.Wrap {
     Scaffold(contentWindowInsets = WindowInsets.Companion.statusBars) { paddingInsets ->
@@ -198,6 +200,10 @@ fun MainView(
                   ExpiryNotification(netmap = netmap, action = { viewModel.login() })
                 }
 
+                for (warning in healthWarnings) {
+                  HealthNotification(warning = warning)
+                }
+
                 if (showExitNodePicker == ShowHide.Show) {
                   ExitNodeStatus(
                       navAction = navigation.onNavigateToExitNodes, viewModel = viewModel)
@@ -225,7 +231,9 @@ fun MainView(
           }
 
       currentPingDevice?.let { peer ->
-        ModalBottomSheet(onDismissRequest = { viewModel.onPingDismissal() }) { PingView(model = viewModel.pingViewModel) }
+        ModalBottomSheet(onDismissRequest = { viewModel.onPingDismissal() }) {
+          PingView(model = viewModel.pingViewModel)
+        }
       }
     }
   }
@@ -696,6 +704,29 @@ fun ExpiryNotification(netmap: Netmap.NetworkMap?, action: () -> Unit = {}) {
                 Text(
                     stringResource(id = R.string.keyExpiryExplainer),
                     style = MaterialTheme.typography.bodyMedium)
+              })
+        }
+  }
+}
+
+@Composable
+fun HealthNotification(warning: Health.UnhealthyState) {
+  Box(modifier = Modifier.background(color = MaterialTheme.colorScheme.surfaceContainerLow)) {
+    Box(
+        modifier =
+            Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp)
+                .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
+                .fillMaxWidth()) {
+          ListItem(
+              colors = warning.Severity.listItemColors(),
+              headlineContent = {
+                Text(
+                    warning.Title,
+                    style = MaterialTheme.typography.titleMedium,
+                )
+              },
+              supportingContent = {
+                Text(warning.Text, style = MaterialTheme.typography.bodyMedium)
               })
         }
   }

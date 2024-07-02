@@ -12,6 +12,7 @@ import androidx.lifecycle.viewModelScope
 import com.tailscale.ipn.App
 import com.tailscale.ipn.R
 import com.tailscale.ipn.mdm.MDMSettings
+import com.tailscale.ipn.ui.model.Health
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.Ipn.State
 import com.tailscale.ipn.ui.model.Tailcfg
@@ -55,6 +56,9 @@ class MainViewModel : IpnViewModel() {
   var expandedMenuPeer: StateFlow<Tailcfg.Node?> = MutableStateFlow(null)
 
   var pingViewModel: PingViewModel = PingViewModel()
+
+  // Health warnings displayed in the UI, if any
+  val healthWarnings: StateFlow<List<Health.UnhealthyState>> = MutableStateFlow(listOf())
 
   fun hidePeerDropdownMenu() {
     expandedMenuPeer.set(null)
@@ -117,6 +121,12 @@ class MainViewModel : IpnViewModel() {
 
     viewModelScope.launch {
       searchTerm.collect { term -> peers.set(peerCategorizer.groupedAndFilteredPeers(term)) }
+    }
+
+    viewModelScope.launch {
+      App.get().healthNotifier?.currentWarnings?.collect { warnings ->
+        healthWarnings.set(warnings.sorted())
+      }
     }
   }
 
