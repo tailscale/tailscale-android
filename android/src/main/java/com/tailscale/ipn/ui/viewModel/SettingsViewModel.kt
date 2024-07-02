@@ -4,7 +4,6 @@
 package com.tailscale.ipn.ui.viewModel
 
 import androidx.lifecycle.viewModelScope
-import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.localapi.Client
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.util.LoadingIndicator
@@ -17,6 +16,7 @@ data class SettingsNav(
     val onNavigateToBugReport: () -> Unit,
     val onNavigateToAbout: () -> Unit,
     val onNavigateToDNSSettings: () -> Unit,
+    val onNavigateToSplitTunneling: () -> Unit,
     val onNavigateToTailnetLock: () -> Unit,
     val onNavigateToMDMSettings: () -> Unit,
     val onNavigateToManagedBy: () -> Unit,

@@ -273,4 +273,8 @@
     <string name="pingFailed">Ping failed</string>
     <string name="an_unknown_error_occurred_please_try_again">An unknown error occurred. Please try again.</string>
     <string name="request_timed_out_make_sure_that_is_online">Request timed out. Make sure that \'%1$s\' is online.</string>
+    <string name="split_tunneling">App split tunneling</string>
+    <string name="exclude_certain_apps_from_using_tailscale">Exclude certain apps from using Tailscale</string>
+    <string name="selected_apps_will_access_the_internet_directly_without_using_tailscale">Apps selected here will access the Internet directly, without using Tailscale.</string>
+    <string name="count_excluded_apps">Excluded apps (%1$s)</string>
 </resources>
