@@ -343,6 +343,8 @@ class App : UninitializedApp(), libtailscale.AppContext {
  */
 open class UninitializedApp : Application() {
   companion object {
+    const val TAG = "UninitializedApp"
+
     const val STATUS_NOTIFICATION_ID = 1
     const val STATUS_EXIT_NODE_FAILURE_NOTIFICATION_ID = 2
     const val STATUS_CHANNEL_ID = "tailscale-status"
@@ -350,6 +352,8 @@ open class UninitializedApp : Application() {
     // Key for shared preference that tracks whether or not we're able to start
     // the VPN (i.e. we're logged in and machine is authorized).
     private const val ABLE_TO_START_VPN_KEY = "ableToStartVPN"
+
+    private const val DISALLOWED_APPS_KEY = "disallowedApps"
 
     // File for shared preferences that are not encrypted.
     private const val UNENCRYPTED_PREFERENCES = "unencrypted"
@@ -382,12 +386,34 @@ open class UninitializedApp : Application() {
 
   fun startVPN() {
     val intent = Intent(this, IPNService::class.java).apply { action = IPNService.ACTION_START_VPN }
-    startForegroundService(intent)
+    try {
+      startForegroundService(intent)
+    } catch (foregroundServiceStartException: IllegalStateException) {
+      Log.e(
+          TAG,
+          "startVPN hit ForegroundServiceStartNotAllowedException in startForegroundService(): $foregroundServiceStartException")
+    } catch (securityException: SecurityException) {
+      Log.e(TAG, "startVPN hit SecurityException in startForegroundService(): $securityException")
+    } catch (e: Exception) {
+      Log.e(TAG, "startVPN hit exception in startForegroundService(): $e")
+    }
   }
 
   fun stopVPN() {
     val intent = Intent(this, IPNService::class.java).apply { action = IPNService.ACTION_STOP_VPN }
-    startService(intent)
+    try {
+      startService(intent)
+    } catch (illegalStateException: IllegalStateException) {
+      Log.e(TAG, "stopVPN hit IllegalStateException in startService(): $illegalStateException")
+    } catch (e: Exception) {
+      Log.e(TAG, "stopVPN hit exception in startService(): $e")
+    }
+  }
+
+  // Calls stopVPN() followed by startVPN() to restart the VPN.
+  fun restartVPN() {
+    stopVPN()
+    startVPN()
   }
 
   fun createNotificationChannel(id: String, name: String, description: String, importance: Int) {
@@ -451,4 +477,58 @@ open class UninitializedApp : Application() {
         .setContentIntent(pendingIntent)
         .build()
   }
+
+  fun addUserDisallowedPackageName(packageName: String) {
+    if (packageName.isEmpty()) {
+      Log.e(TAG, "addUserDisallowedPackageName called with empty packageName")
+      return
+    }
+
+    getUnencryptedPrefs()
+        .edit()
+        .putStringSet(
+            DISALLOWED_APPS_KEY, disallowedPackageNames().toMutableSet().union(setOf(packageName)))
+        .apply()
+
+    this.restartVPN()
+  }
+
+  fun removeUserDisallowedPackageName(packageName: String) {
+    if (packageName.isEmpty()) {
+      Log.e(TAG, "removeUserDisallowedPackageName called with empty packageName")
+      return
+    }
+
+    getUnencryptedPrefs()
+        .edit()
+        .putStringSet(
+            DISALLOWED_APPS_KEY,
+            disallowedPackageNames().toMutableSet().subtract(setOf(packageName)))
+        .apply()
+
+    this.restartVPN()
+  }
+
+  fun disallowedPackageNames(): List<String> {
+    val userDisallowed =
+        getUnencryptedPrefs().getStringSet(DISALLOWED_APPS_KEY, emptySet())?.toList() ?: emptyList()
+    return builtInDisallowedPackageNames + userDisallowed
+  }
+
+  val builtInDisallowedPackageNames: List<String> =
+      listOf(
+          // RCS/Jibe https://github.com/tailscale/tailscale/issues/2322
+          "com.google.android.apps.messaging",
+          // Stadia https://github.com/tailscale/tailscale/issues/3460
+          "com.google.stadia.android",
+          // Android Auto https://github.com/tailscale/tailscale/issues/3828
+          "com.google.android.projection.gearhead",
+          // GoPro https://github.com/tailscale/tailscale/issues/2554
+          "com.gopro.smarty",
+          // Sonos https://github.com/tailscale/tailscale/issues/2548
+          "com.sonos.acr",
+          "com.sonos.acr2",
+          // Google Chromecast https://github.com/tailscale/tailscale/issues/3636
+          "com.google.android.apps.chromecast.app",
+      )
 }
