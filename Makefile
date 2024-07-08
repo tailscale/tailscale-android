@@ -5,6 +5,11 @@
 ## For signed release build JKS_PASSWORD must be set to the password for the jks keystore
 ## and JKS_PATH must be set to the path to the jks keystore.
 
+# The docker image to use for the build environment.  Changing this
+# will force a rebuild of the docker image.  If there is an existing image
+# with this name, it will be used.
+DOCKER_IMAGE=tailscale-android-build-amd64-1
+
 DEBUG_APK=tailscale-debug.apk
 RELEASE_AAB=tailscale-release.aab
 LIBTAILSCALE=android/libs/libtailscale.aar
@@ -215,24 +220,28 @@ run: install ## Run the debug APK on a connected device
 	adb shell am start -n com.tailscale.ipn/com.tailscale.ipn.MainActivity
 
 .PHONY: docker-build-image
-docker-build-image: ## Builds the docker image for the android build environment
-	docker build  -f docker/DockerFile.amd64-build -t tailscale-android-build-amd64 .
+docker-build-image: ## Builds the docker image for the android build environment if it does not exist
+	@echo "Checking if docker image $(DOCKER_IMAGE) already exists..."
+	@if ! docker images $(DOCKER_IMAGE) -q | grep -q . ; then \
+		echo "Image does not exist. Building..."; \
+		docker build -f docker/DockerFile.amd64-build -t $(DOCKER_IMAGE) .; \
+	fi
 
 .PHONY: docker-run-build
-docker-run-build: jarsign-env docker-build-image  ## Runs the docker image for the android build environment and builds release
-	@docker run -v $(CURDIR):/build/tailscale-android --env JKS_PASSWORD=$(JKS_PASSWORD) --env JKS_PATH=$(JKS_PATH) tailscale-android-build-amd64
+docker-run-build: clean jarsign-env docker-build-image  ## Runs the docker image for the android build environment and builds release
+	@docker run --rm -v $(CURDIR):/build/tailscale-android --env JKS_PASSWORD=$(JKS_PASSWORD) --env JKS_PATH=$(JKS_PATH) $(DOCKER_IMAGE)
 
 .PHONY: docker-remove-build-image
-docker-remove-build-image: ## Removes all docker build image
-	docker rmi --force tailscale-android-build-amd64
+docker-remove-build-image: ## Removes the current docker build image
+	docker rmi --force $(DOCKER_IMAGE)
 
 .PHONY: docker-all ## Makes a fresh docker environment, builds docker and cleans up.  For CI.
-docker-all: docker-build-image docker-run-build docker-remove-build-image
+docker-all: docker-build-image docker-run-build $(DOCKER_IMAGE)
 
 .PHONY: docker-shell
 docker-shell: ## Builds a docker image with the android build env and opens a shell
 	docker build  -f docker/DockerFile.amd64-shell -t tailscale-android-shell-amd64 .
-	docker run -v $(CURDIR):/build/tailscale-android -it tailscale-android-shell-amd64
+	docker run -v --rm $(CURDIR):/build/tailscale-android -it tailscale-android-shell-amd64
 
 .PHONY: docker-remove-shell-image
 docker-remove-shell-image: ## Removes all docker shell image
