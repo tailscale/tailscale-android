@@ -110,4 +110,16 @@
         android:key="RunExitNode"
         android:restrictionType="choice"
         android:title="@string/run_as_exit_node_visibility" />
+
+    <restriction
+        android:description="@string/specifies_a_list_of_apps_that_will_be_excluded_from_tailscale_routes_and_dns_even_when_tailscale_is_running_all_other_apps_will_use_tailscale"
+        android:key="ExcludedPackageNames"
+        android:restrictionType="string"
+        android:title="@string/excluded_packages" />
+
+    <restriction
+        android:description="@string/specifies_a_list_of_apps_that_will_always_use_tailscale_routes_and_dns_when_tailscale_is_running_all_other_apps_won_t_use_tailscale_if_this_value_is_non_empty"
+        android:key="IncludedPackageNames"
+        android:restrictionType="string"
+        android:title="@string/included_packages" />
 </restrictions>
