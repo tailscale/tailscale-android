@@ -16,7 +16,8 @@ import com.tailscale.ipn.ui.util.set
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
-class TailnetLockSetupViewModelFactory() : ViewModelProvider.Factory {
+class TailnetLockSetupViewModelFactory : ViewModelProvider.Factory {
+  @Suppress("UNCHECKED_CAST")
   override fun <T : ViewModel> create(modelClass: Class<T>): T {
     return TailnetLockSetupViewModel() as T
   }
@@ -24,7 +25,7 @@ class TailnetLockSetupViewModelFactory() : ViewModelProvider.Factory {
 
 data class StatusItem(@StringRes val title: Int, @DrawableRes val icon: Int)
 
-class TailnetLockSetupViewModel() : IpnViewModel() {
+class TailnetLockSetupViewModel : IpnViewModel() {
 
   val statusItems: StateFlow<List<StatusItem>> = MutableStateFlow(emptyList())
   val nodeKey: StateFlow<String> = MutableStateFlow("unknown")

@@ -23,6 +23,7 @@ class PeerDetailsViewModelFactory(
     private val filesDir: File,
     private val pingViewModel: PingViewModel
 ) : ViewModelProvider.Factory {
+  @Suppress("UNCHECKED_CAST")
   override fun <T : ViewModel> create(modelClass: Class<T>): T {
     return PeerDetailsViewModel(nodeId, filesDir, pingViewModel) as T
   }

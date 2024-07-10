@@ -30,6 +30,7 @@ data class ExitNodePickerNav(
 
 class ExitNodePickerViewModelFactory(private val nav: ExitNodePickerNav) :
     ViewModelProvider.Factory {
+  @Suppress("UNCHECKED_CAST")
   override fun <T : ViewModel> create(modelClass: Class<T>): T {
     return ExitNodePickerViewModel(nav) as T
   }
