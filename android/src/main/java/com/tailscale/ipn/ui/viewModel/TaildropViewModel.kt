@@ -36,13 +36,14 @@ class TaildropViewModelFactory(
     private val requestedTransfers: StateFlow<List<Ipn.OutgoingFile>>,
     private val applicationScope: CoroutineScope
 ) : ViewModelProvider.Factory {
+  @Suppress("UNCHECKED_CAST")
   override fun <T : ViewModel> create(modelClass: Class<T>): T {
     return TaildropViewModel(requestedTransfers, applicationScope) as T
   }
 }
 
 class TaildropViewModel(
-    val requestedTransfers: StateFlow<List<Ipn.OutgoingFile>>,
+    private val requestedTransfers: StateFlow<List<Ipn.OutgoingFile>>,
     private val applicationScope: CoroutineScope
 ) : IpnViewModel() {
 

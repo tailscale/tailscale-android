@@ -25,13 +25,14 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-class DNSSettingsViewModelFactory() : ViewModelProvider.Factory {
+class DNSSettingsViewModelFactory : ViewModelProvider.Factory {
+  @Suppress("UNCHECKED_CAST")
   override fun <T : ViewModel> create(modelClass: Class<T>): T {
     return DNSSettingsViewModel() as T
   }
 }
 
-class DNSSettingsViewModel() : IpnViewModel() {
+class DNSSettingsViewModel : IpnViewModel() {
   val enablementState: StateFlow<DNSEnablementState> =
       MutableStateFlow(DNSEnablementState.NOT_RUNNING)
   val dnsConfig: StateFlow<Tailcfg.DNSConfig?> = MutableStateFlow(null)

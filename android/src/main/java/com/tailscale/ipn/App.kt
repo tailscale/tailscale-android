@@ -326,7 +326,7 @@ class App : UninitializedApp(), libtailscale.AppContext {
   @Throws(
       IOException::class, GeneralSecurityException::class, MDMSettings.NoSuchKeyException::class)
   override fun getSyspolicyStringArrayJSONValue(key: String): String {
-    val list = MDMSettings.allSettingsByKey[key]?.flow?.value as? List<String>
+    val list = MDMSettings.allSettingsByKey[key]?.flow?.value as? List<*>
     try {
       return Json.encodeToString(list)
     } catch (e: Exception) {

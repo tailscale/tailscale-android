@@ -28,8 +28,8 @@ class ShareActivity : ComponentActivity() {
 
   private val requestedTransfers: StateFlow<List<Ipn.OutgoingFile>> = MutableStateFlow(emptyList())
 
-  override fun onCreate(state: Bundle?) {
-    super.onCreate(state)
+  override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
     setContent {
       AppTheme {
         Surface(color = MaterialTheme.colorScheme.inverseSurface) { // Background for the letterbox
@@ -62,14 +62,14 @@ class ShareActivity : ComponentActivity() {
     }
 
     val act = intent.action
-    val uris: List<Uri?>?
 
-    uris =
+    val uris: List<Uri?>? =
         when (act) {
           Intent.ACTION_SEND -> {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
               listOf(intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java))
             } else {
+              @Suppress("DEPRECATION")
               listOf(intent.getParcelableExtra(Intent.EXTRA_STREAM) as? Uri)
             }
           }
@@ -77,7 +77,7 @@ class ShareActivity : ComponentActivity() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
               intent.getParcelableArrayListExtra<Uri?>(Intent.EXTRA_STREAM, Uri::class.java)
             } else {
-              intent.getParcelableArrayListExtra<Uri?>(Intent.EXTRA_STREAM)
+              @Suppress("DEPRECATION") intent.getParcelableArrayListExtra<Uri?>(Intent.EXTRA_STREAM)
             }
           }
           else -> {

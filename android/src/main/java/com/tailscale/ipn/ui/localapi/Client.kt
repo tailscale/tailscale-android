@@ -320,6 +320,8 @@ class Request<T>(
         // TODO: use the streaming body for performance
         // An empty body is a perfectly valid response and indicates success
         val respData = resp.bodyBytes() ?: ByteArray(0)
+
+        @Suppress("UNCHECKED_CAST")
         val response: Result<T> =
             when (responseType) {
               typeOf<String>() -> Result.success(respData.decodeToString() as T)
