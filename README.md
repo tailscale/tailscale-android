@@ -66,6 +66,12 @@ If you wish to avoid installing software on your host system, a Docker based dev
 make dockershell
 ```
 
+Several other makefile recipes are available for setting up the proper build environment and running builds.
+
+Note that the docker makefile recipes s will preserve the image and remove container on completion. 
+If changes are made to the build environment or toolchain, cached docker images may need to be rebuilt.  
+The docker build image name is parameterized in the makefile and changing it provides a simple means to do this.
+
 ### Nix
 
 If you have Nix 2.4 or later installed, a Nix development environment can
