@@ -65,11 +65,27 @@ android {
     buildTypes {
         applicationTest {
             initWith debug
+            manifestPlaceholders.leanbackRequired = false
             buildConfigField "String", "GITHUB_USERNAME", "\"" + getLocalProperty("githubUsername")+"\""
             buildConfigField "String", "GITHUB_PASSWORD", "\"" + getLocalProperty("githubPassword")+"\""
             buildConfigField "String", "GITHUB_2FA_SECRET", "\"" + getLocalProperty("github2FASecret")+"\""
         }
+        debug {
+            manifestPlaceholders.leanbackRequired = false
+        }
         release {
+            manifestPlaceholders.leanbackRequired = false
+            minifyEnabled true
+
+            shrinkResources true
+
+            proguardFiles getDefaultProguardFile(
+                    'proguard-android-optimize.txt'),
+                    'proguard-rules.pro'
+        }
+        release_tv {
+            manifestPlaceholders.leanbackRequired = true
+
             minifyEnabled true
 
             shrinkResources true

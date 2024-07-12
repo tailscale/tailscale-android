@@ -19,12 +19,8 @@ android/local.properties
 .idea
 
 # Output files from the Makefile:
-tailscale-debug.apk
-tailscale-release.aab
-tailscale-fdroid.apk
-tailscale-new-fdroid.apk
-tailscale-new-debug.apk
-tailscale-test.apk
+*.apk
+*.aab
 
 # Signing key
 tailscale.jks
