@@ -125,7 +125,9 @@ class MainViewModel : IpnViewModel() {
 
     viewModelScope.launch {
       App.get().healthNotifier?.currentWarnings?.collect { warnings ->
-        healthWarnings.set(warnings.sorted())
+        healthWarnings.set(warnings
+          .filter { it.Severity == Health.Severity.high }
+          .sorted())
       }
     }
   }
