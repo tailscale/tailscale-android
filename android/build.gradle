@@ -75,6 +75,7 @@ android {
         }
         release {
             manifestPlaceholders.leanbackRequired = false
+
             minifyEnabled true
 
             shrinkResources true
@@ -84,15 +85,8 @@ android {
                     'proguard-rules.pro'
         }
         release_tv {
+            initWith release
             manifestPlaceholders.leanbackRequired = true
-
-            minifyEnabled true
-
-            shrinkResources true
-
-            proguardFiles getDefaultProguardFile(
-                    'proguard-android-optimize.txt'),
-                    'proguard-rules.pro'
         }
     }
 
