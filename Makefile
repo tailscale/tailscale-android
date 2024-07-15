@@ -108,10 +108,12 @@ $(DEBUG_APK): gradle-dependencies
 	install -C android/build/outputs/apk/debug/android-debug.apk $@
 
 $(RELEASE_AAB): gradle-dependencies
+	@echo "Building release AAB"
 	(cd android && ./gradlew test bundleRelease)
 	install -C ./android/build/outputs/bundle/release/android-release.aab $@
 
 $(RELEASE_TV_AAB): gradle-dependencies
+	@echo "Building TV release AAB"
 	(cd android && ./gradlew test bundleRelease_tv)
 	install -C ./android/build/outputs/bundle/release_tv/android-release_tv.aab $@
 
