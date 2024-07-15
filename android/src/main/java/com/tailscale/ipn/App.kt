@@ -510,6 +510,11 @@ open class UninitializedApp : Application() {
   }
 
   fun disallowedPackageNames(): List<String> {
+    val mdmDisallowed = MDMSettings.excludedPackages.flow.value?.split(",")?.map { it.trim() } ?: emptyList()
+    if (mdmDisallowed.isNotEmpty()) {
+      Log.d(TAG, "Excluded application packages were set via MDM: $mdmDisallowed")
+      return builtInDisallowedPackageNames + mdmDisallowed
+    }
     val userDisallowed =
         getUnencryptedPrefs().getStringSet(DISALLOWED_APPS_KEY, emptySet())?.toList() ?: emptyList()
     return builtInDisallowedPackageNames + userDisallowed

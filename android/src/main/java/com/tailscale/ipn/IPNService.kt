@@ -9,6 +9,7 @@ import android.net.VpnService
 import android.os.Build
 import android.system.OsConstants
 import android.util.Log
+import com.tailscale.ipn.mdm.MDMSettings
 import libtailscale.Libtailscale
 import java.util.UUID
 
@@ -114,12 +115,24 @@ open class IPNService : VpnService(), libtailscale.IPNService {
     }
     b.setUnderlyingNetworks(null) // Use all available networks.
 
-    // Prevent certain apps from getting their traffic + DNS routed via Tailscale:
-    // - any app that the user manually disallowed in the GUI
-    // - any app that we disallowed via hard-coding
-    for (disallowedPackageName in UninitializedApp.get().disallowedPackageNames()) {
-      Log.d(TAG, "Disallowing app: $disallowedPackageName")
-      disallowApp(b, disallowedPackageName)
+    val includedPackages: List<String> =
+        MDMSettings.includedPackages.flow.value?.split(",")?.map { it.trim() } ?: emptyList()
+    if (includedPackages.isNotEmpty()) {
+      // If an admin defined a list of packages that are exclusively allowed to be used via
+      // Tailscale,
+      // then only allow those apps.
+      for (packageName in includedPackages) {
+        Log.d(TAG, "Including app: $packageName")
+        b.addAllowedApplication(packageName)
+      }
+    } else {
+      // Otherwise, prevent certain apps from getting their traffic + DNS routed via Tailscale:
+      // - any app that the user manually disallowed in the GUI
+      // - any app that we disallowed via hard-coding
+      for (disallowedPackageName in UninitializedApp.get().disallowedPackageNames()) {
+        Log.d(TAG, "Disallowing app: $disallowedPackageName")
+        disallowApp(b, disallowedPackageName)
+      }
     }
 
     return VPNServiceBuilder(b)

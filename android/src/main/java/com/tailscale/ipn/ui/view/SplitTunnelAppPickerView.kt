@@ -37,6 +37,8 @@ fun SplitTunnelAppPickerView(
   val installedApps by model.installedApps.collectAsState()
   val excludedPackageNames by model.excludedPackageNames.collectAsState()
   val builtInDisallowedPackageNames: List<String> = App.get().builtInDisallowedPackageNames
+  val mdmIncludedPackages by model.mdmIncludedPackages.collectAsState()
+  val mdmExcludedPackages by model.mdmExcludedPackages.collectAsState()
 
   Scaffold(topBar = { Header(titleRes = R.string.split_tunneling, onBack = backToSettings) }) {
       innerPadding ->
@@ -50,43 +52,59 @@ fun SplitTunnelAppPickerView(
                           .selected_apps_will_access_the_internet_directly_without_using_tailscale))
             })
       }
-      item("resolversHeader") {
-        Lists.SectionDivider(
-            stringResource(R.string.count_excluded_apps, excludedPackageNames.count()))
-      }
-      items(installedApps) { app ->
-        ListItem(
-            headlineContent = { Text(app.name, fontWeight = FontWeight.SemiBold) },
-            leadingContent = {
-              Image(
-                  bitmap =
-                      model.installedAppsManager.packageManager
-                          .getApplicationIcon(app.packageName)
-                          .toBitmap()
-                          .asImageBitmap(),
-                  contentDescription = null,
-                  modifier = Modifier.width(40.dp).height(40.dp))
-            },
-            supportingContent = {
-              Text(
-                  app.packageName,
-                  color = MaterialTheme.colorScheme.secondary,
-                  fontSize = MaterialTheme.typography.bodySmall.fontSize,
-                  letterSpacing = MaterialTheme.typography.bodySmall.letterSpacing)
-            },
-            trailingContent = {
-              Checkbox(
-                  checked = excludedPackageNames.contains(app.packageName),
-                  enabled = !builtInDisallowedPackageNames.contains(app.packageName),
-                  onCheckedChange = { checked ->
-                    if (checked) {
-                      model.exclude(packageName = app.packageName)
-                    } else {
-                      model.unexclude(packageName = app.packageName)
-                    }
-                  })
-            })
-        Lists.ItemDivider()
+      if (mdmExcludedPackages?.isNotEmpty() == true) {
+        item("mdmExcludedNotice") {
+          ListItem(
+              headlineContent = {
+                Text(stringResource(R.string.certain_apps_are_not_routed_via_tailscale))
+              })
+        }
+      } else if (mdmIncludedPackages?.isNotEmpty() == true) {
+        item("mdmIncludedNotice") {
+          ListItem(
+              headlineContent = {
+                Text(stringResource(R.string.only_specific_apps_are_routed_via_tailscale))
+              })
+        }
+      } else {
+        item("resolversHeader") {
+          Lists.SectionDivider(
+              stringResource(R.string.count_excluded_apps, excludedPackageNames.count()))
+        }
+        items(installedApps) { app ->
+          ListItem(
+              headlineContent = { Text(app.name, fontWeight = FontWeight.SemiBold) },
+              leadingContent = {
+                Image(
+                    bitmap =
+                        model.installedAppsManager.packageManager
+                            .getApplicationIcon(app.packageName)
+                            .toBitmap()
+                            .asImageBitmap(),
+                    contentDescription = null,
+                    modifier = Modifier.width(40.dp).height(40.dp))
+              },
+              supportingContent = {
+                Text(
+                    app.packageName,
+                    color = MaterialTheme.colorScheme.secondary,
+                    fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                    letterSpacing = MaterialTheme.typography.bodySmall.letterSpacing)
+              },
+              trailingContent = {
+                Checkbox(
+                    checked = excludedPackageNames.contains(app.packageName),
+                    enabled = !builtInDisallowedPackageNames.contains(app.packageName),
+                    onCheckedChange = { checked ->
+                      if (checked) {
+                        model.exclude(packageName = app.packageName)
+                      } else {
+                        model.unexclude(packageName = app.packageName)
+                      }
+                    })
+              })
+          Lists.ItemDivider()
+        }
       }
     }
   }

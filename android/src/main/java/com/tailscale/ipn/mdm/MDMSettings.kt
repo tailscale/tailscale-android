@@ -83,6 +83,12 @@ object MDMSettings {
   val allowedSuggestedExitNodes =
       StringArrayListMDMSetting("AllowedSuggestedExitNodes", "Allowed Suggested Exit Nodes")
 
+  // Allows admins to define a list of packages that won't be routed via Tailscale.
+  val excludedPackages = StringMDMSetting("ExcludedPackageNames", "Excluded Package Names")
+  // Allows admins to define a list of packages that will be routed via Tailscale, letting all other
+  // apps skip the VPN tunnel.
+  val includedPackages = StringMDMSetting("IncludedPackageNames", "Included Package Names")
+
   val allSettings by lazy {
     MDMSettings::class
         .declaredMemberProperties
