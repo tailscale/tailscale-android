@@ -3,11 +3,11 @@ module github.com/tailscale/tailscale-android
 go 1.22.0
 
 require (
-	github.com/tailscale/wireguard-go v0.0.0-20240627171225-cfa45674af86
+	github.com/tailscale/wireguard-go v0.0.0-20240705152531-2f5d148bcfe1
 	golang.org/x/mobile v0.0.0-20240319015410-c58ccf4b0c87
 	golang.org/x/sys v0.21.0
 	inet.af/netaddr v0.0.0-20220617031823-097006376321
-	tailscale.com v1.69.0-pre.0.20240703201906-309afa53cfd7
+	tailscale.com v1.69.0-pre.0.20240715093413-fec41e490419
 )
 
 require (
@@ -34,7 +34,7 @@ require (
 	github.com/digitalocean/go-smbios v0.0.0-20180907143718-390a4f403a8e // indirect
 	github.com/djherbis/times v1.6.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.6.0 // indirect
-	github.com/gaissmai/bart v0.4.1 // indirect
+	github.com/gaissmai/bart v0.11.1 // indirect
 	github.com/go-json-experiment/json v0.0.0-20231102232822-2e55bd4e08b0 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/godbus/dbus/v5 v5.1.1-0.20230522191255-76236955d466 // indirect
