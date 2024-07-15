@@ -44,4 +44,8 @@ RUN ./android/gradlew
 # Build the android app
 CMD make clean
 CMD make release
+# Build the android tv app.  We need to bump the version code by 1
+# so the AAB is unique.
+CMD make bump_version_code
+CMD make release-tv
 

@@ -8,10 +8,11 @@
 # The docker image to use for the build environment.  Changing this
 # will force a rebuild of the docker image.  If there is an existing image
 # with this name, it will be used.
-DOCKER_IMAGE=tailscale-android-build-amd64-1
+DOCKER_IMAGE=tailscale-android-build-amd64-2
 
 DEBUG_APK=tailscale-debug.apk
 RELEASE_AAB=tailscale-release.aab
+RELEASE_TV_AAB=tailscale-tv-release.aab
 LIBTAILSCALE=android/libs/libtailscale.aar
 TAILSCALE_VERSION=$(shell ./version/tailscale-version.sh 200)
 OUR_VERSION=$(shell git describe --dirty --exclude "*" --always --abbrev=200)
@@ -88,9 +89,15 @@ apk: $(DEBUG_APK) ## Build the debug APK
 .PHONY: tailscale-debug
 tailscale-debug: $(DEBUG_APK) ## Build the debug APK
 
+# Builds the release AAB and signs it (phone/tablet/chromeOS variant)
 .PHONY: release
 release: jarsign-env $(RELEASE_AAB) ## Build the release AAB
 	@jarsigner -sigalg SHA256withRSA -digestalg SHA-256 -keystore $(JKS_PATH) -storepass $(JKS_PASSWORD) $(RELEASE_AAB) tailscale
+
+# Builds the release AAB and signs it (androidTV variant)
+.PHONY: release-tv
+release-tv: jarsign-env $(RELEASE_TV_AAB) ## Build the release AAB
+	@jarsigner -sigalg SHA256withRSA -digestalg SHA-256 -keystore $(JKS_PATH) -storepass $(JKS_PASSWORD) $(RELEASE_TV_AAB) tailscale
 
 # gradle-dependencies groups together the android sources and libtailscale needed to assemble tests/debug/release builds.
 .PHONY: gradle-dependencies
@@ -103,6 +110,10 @@ $(DEBUG_APK): gradle-dependencies
 $(RELEASE_AAB): gradle-dependencies
 	(cd android && ./gradlew test bundleRelease)
 	install -C ./android/build/outputs/bundle/release/android-release.aab $@
+
+$(RELEASE_TV_AAB): gradle-dependencies
+	(cd android && ./gradlew test bundleRelease_tv)
+	install -C ./android/build/outputs/bundle/release_tv/android-release_tv.aab $@
 
 tailscale-test.apk: gradle-dependencies
 	(cd android && ./gradlew assembleApplicationTestAndroidTest)
@@ -166,9 +177,16 @@ androidpath:
 	@echo "export ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT)"
 	@echo 'export PATH=$(ANDROID_HOME)/cmdline-tools/latest/bin:$(ANDROID_HOME)/platform-tools:$$PATH'
 
-.PHONY: tag_release
-tag_release: ## Tag a release
+.PHONY: bump_version_code
+bump_version_code: ## Bump the version code in the android build.gradle
+	@echo "Current Version Code:"
+	@grep "versionCode" android/build.gradle
 	sed -i'.bak' 's/versionCode $(VERSIONCODE)/versionCode $(VERSIONCODE_PLUSONE)/' android/build.gradle && rm android/build.gradle.bak
+	@echo "New Version Code:"
+	@grep "versionCode" android/build.gradle
+
+.PHONY: tag_release
+tag_release: bump_version_code ## Increment the playstore version code by 1
 	sed -i'.bak' 's/versionName .*/versionName "$(VERSION_LONG)"/' android/build.gradle && rm android/build.gradle.bak
 	git commit -sm "android: bump version code" android/build.gradle
 	git tag -a "$(VERSION_LONG)"
@@ -249,7 +267,7 @@ docker-remove-shell-image: ## Removes all docker shell image
 
 .PHONY: clean
 clean: ## Remove build artifacts.  Does not purge docker build envs.  Use dockerRemoveEnv for that.
-	-rm -rf android/build $(DEBUG_APK) $(RELEASE_AAB) $(LIBTAILSCALE) android/libs *.apk *.aab
+	-rm -rf android/build $(DEBUG_APK) $(RELEASE_AAB) $(RELEASE_TV_AAB) $(LIBTAILSCALE) android/libs *.apk *.aab
 	-pkill -f gradle
 
 .PHONY: help
