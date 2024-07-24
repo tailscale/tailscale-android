@@ -11,7 +11,7 @@ buildscript {
         }
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.5.0'
+        classpath 'com.android.tools.build:gradle:8.5.1'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         classpath "org.jetbrains.kotlin:kotlin-serialization:$kotlin_version"
         classpath("com.ncorti.ktfmt.gradle:plugin:0.17.0")
@@ -116,7 +116,7 @@ dependencies {
     implementation 'androidx.compose.material:material-icons-core:1.6.8'
     implementation "androidx.compose.ui:ui:1.6.8"
     implementation "androidx.compose.ui:ui-tooling:1.6.8"
-    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.2'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.3'
     implementation 'androidx.activity:activity-compose:1.9.0'
     implementation "com.google.accompanist:accompanist-permissions:$accompanist_version"
     implementation "com.google.accompanist:accompanist-systemuicontroller:$accompanist_version"
@@ -138,10 +138,10 @@ dependencies {
 
     // Integration Tests
     androidTestImplementation composeBom
-    androidTestImplementation 'androidx.test:runner:1.6.0'
-    androidTestImplementation 'androidx.test.ext:junit-ktx:1.2.0'
-    androidTestImplementation 'androidx.test.ext:junit:1.2.0'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.0'
+    androidTestImplementation 'androidx.test:runner:1.6.1'
+    androidTestImplementation 'androidx.test.ext:junit-ktx:1.2.1'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
     implementation 'androidx.test.uiautomator:uiautomator:2.3.0'
 
 
