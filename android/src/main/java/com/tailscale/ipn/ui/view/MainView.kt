@@ -70,6 +70,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.tailscale.ipn.App
 import com.tailscale.ipn.R
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.mdm.ShowHide
@@ -101,6 +102,7 @@ import com.tailscale.ipn.ui.util.itemsWithDividers
 import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.viewModel.IpnViewModel.NodeState
 import com.tailscale.ipn.ui.viewModel.MainViewModel
+import com.tailscale.ipn.ui.viewModel.VpnViewModel
 
 // Navigation actions for the MainView
 data class MainViewNavigation(
@@ -128,7 +130,7 @@ fun MainView(
             // Assume VPN has been prepared for optimistic UI. Whether or not it has been prepared
             // cannot be known
             // until permission has been granted to prepare the VPN.
-            val isPrepared by viewModel.vpnPrepared.collectAsState(initial = true)
+            val isPrepared by viewModel.isVpnPrepared.collectAsState(initial = true)
             val isOn by viewModel.vpnToggleState.collectAsState(initial = false)
             val state by viewModel.ipnState.collectAsState(initial = Ipn.State.NoState)
             val user by viewModel.loggedInUser.collectAsState(initial = null)
@@ -283,7 +285,7 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
                         Modifier.padding(start = 16.dp, end = 16.dp, top = 36.dp, bottom = 16.dp)) {
                       Text(
                           text =
-                              managedByOrganization.value?.let {
+                              managedByOrganization?.let {
                                 stringResource(R.string.exit_node_offline_mdm_orgname, it)
                               } ?: stringResource(R.string.exit_node_offline_mdm),
                           style = MaterialTheme.typography.bodyMedium,
@@ -735,7 +737,9 @@ fun PromptPermissionsIfNecessary() {
 @Preview
 @Composable
 fun MainViewPreview() {
-  val vm = MainViewModel()
+  val vpnViewModel = VpnViewModel(App.get())
+  val vm = MainViewModel(vpnViewModel)
+
   MainView(
       {},
       MainViewNavigation(

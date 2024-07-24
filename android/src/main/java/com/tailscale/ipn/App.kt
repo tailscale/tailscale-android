@@ -9,7 +9,6 @@ import android.app.NotificationChannel
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.LinkProperties
@@ -22,6 +21,9 @@ import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.ViewModelStoreOwner
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.tailscale.ipn.mdm.MDMSettings
@@ -30,6 +32,8 @@ import com.tailscale.ipn.ui.localapi.Request
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.notifier.HealthNotifier
 import com.tailscale.ipn.ui.notifier.Notifier
+import com.tailscale.ipn.ui.viewModel.VpnViewModel
+import com.tailscale.ipn.ui.viewModel.VpnViewModelFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -45,7 +49,7 @@ import java.net.NetworkInterface
 import java.security.GeneralSecurityException
 import java.util.Locale
 
-class App : UninitializedApp(), libtailscale.AppContext {
+class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
   val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
   companion object {
@@ -72,6 +76,15 @@ class App : UninitializedApp(), libtailscale.AppContext {
   val dns = DnsConfig()
   private lateinit var connectivityManager: ConnectivityManager
   private lateinit var app: libtailscale.Application
+
+  override val viewModelStore: ViewModelStore
+    get() = appViewModelStore
+
+  lateinit var vpnViewModel: VpnViewModel
+    private set
+
+  private val appViewModelStore: ViewModelStore by lazy { ViewModelStore() }
+
   var healthNotifier: HealthNotifier? = null
 
   override fun getPlatformDNSConfig(): String = dns.dnsConfigAsString
@@ -108,6 +121,7 @@ class App : UninitializedApp(), libtailscale.AppContext {
     Notifier.stop()
     notificationManager.cancelAll()
     applicationScope.cancel()
+    viewModelStore.clear()
   }
 
   private var isInitialized = false
@@ -146,6 +160,11 @@ class App : UninitializedApp(), libtailscale.AppContext {
         QuickToggleService.setVPNRunning(vpnRunning)
       }
     }
+    initViewModels()
+  }
+
+  private fun initViewModels() {
+    vpnViewModel = ViewModelProvider(this, VpnViewModelFactory(this)).get(VpnViewModel::class.java)
   }
 
   fun setWantRunning(wantRunning: Boolean) {
@@ -518,7 +537,8 @@ open class UninitializedApp : Application() {
   }
 
   fun disallowedPackageNames(): List<String> {
-    val mdmDisallowed = MDMSettings.excludedPackages.flow.value.value?.split(",")?.map { it.trim() } ?: emptyList()
+    val mdmDisallowed =
+        MDMSettings.excludedPackages.flow.value.value?.split(",")?.map { it.trim() } ?: emptyList()
     if (mdmDisallowed.isNotEmpty()) {
       Log.d(TAG, "Excluded application packages were set via MDM: $mdmDisallowed")
       return builtInDisallowedPackageNames + mdmDisallowed

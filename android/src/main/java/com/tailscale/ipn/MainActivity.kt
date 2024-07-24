@@ -18,7 +18,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContract
-import androidx.activity.viewModels
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -31,6 +30,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.core.net.toUri
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -71,8 +71,10 @@ import com.tailscale.ipn.ui.view.UserSwitcherNav
 import com.tailscale.ipn.ui.view.UserSwitcherView
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerNav
 import com.tailscale.ipn.ui.viewModel.MainViewModel
+import com.tailscale.ipn.ui.viewModel.MainViewModelFactory
 import com.tailscale.ipn.ui.viewModel.PingViewModel
 import com.tailscale.ipn.ui.viewModel.SettingsNav
+import com.tailscale.ipn.ui.viewModel.VpnViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -82,7 +84,12 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
   private lateinit var navController: NavHostController
   private lateinit var vpnPermissionLauncher: ActivityResultLauncher<Intent>
-  private val viewModel: MainViewModel by viewModels()
+  private val viewModel: MainViewModel by lazy {
+    val app = App.get()
+    vpnViewModel = app.vpnViewModel
+    ViewModelProvider(this, MainViewModelFactory(vpnViewModel)).get(MainViewModel::class.java)
+  }
+  private lateinit var vpnViewModel: VpnViewModel
 
   companion object {
     private const val TAG = "Main Activity"
@@ -105,6 +112,7 @@ class MainActivity : ComponentActivity() {
 
     // grab app to make sure it initializes
     App.get()
+    vpnViewModel = ViewModelProvider(App.get()).get(VpnViewModel::class.java)
 
     // (jonathan) TODO: Force the app to be portrait on small screens until we have
     // proper landscape layout support
@@ -118,11 +126,11 @@ class MainActivity : ComponentActivity() {
         registerForActivityResult(VpnPermissionContract()) { granted ->
           if (granted) {
             Log.d("VpnPermission", "VPN permission granted")
-            viewModel.setVpnPrepared(true)
+            vpnViewModel.setVpnPrepared(true)
             App.get().startVPN()
           } else {
             Log.d("VpnPermission", "VPN permission denied")
-            viewModel.setVpnPrepared(false)
+            vpnViewModel.setVpnPrepared(false)
           }
         }
     viewModel.setVpnPermissionLauncher(vpnPermissionLauncher)
