@@ -181,6 +181,23 @@ class App : UninitializedApp(), libtailscale.AppContext {
               sb.append(searchDomains)
             }
 
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+              val isUsingPrivateDNS = linkProperties?.isPrivateDnsActive == true
+              if (isUsingPrivateDNS) {
+                Log.d(
+                    "App", "Using private DNS, extracting validated DoT DNS server(s) IP addresses")
+                linkProperties?.let {
+                  val stringDescription = it.toString()
+                  val dotServersIPAddresses = extractPrivateDNSIPAddresses(stringDescription)
+                  Log.d("App", "Private DNS IP addresses: $dotServersIPAddresses")
+                    if (dotServersIPAddresses.isNotEmpty()) {
+                        sb.append("\n")
+                        sb.append(dotServersIPAddresses.joinToString(","))
+                    }
+                }
+              }
+            }
+
             if (dns.updateDNSFromNetwork(sb.toString())) {
               Libtailscale.onDNSConfigChanged(linkProperties?.interfaceName)
             }
@@ -193,6 +210,14 @@ class App : UninitializedApp(), libtailscale.AppContext {
             }
           }
         })
+  }
+
+  private fun extractPrivateDNSIPAddresses(stringDescription: String): List<String> {
+    val regex = "ValidatedPrivateDnsAddresses: \\[(.*?)]".toRegex()
+    val matchResult = regex.find(stringDescription)
+    val ipAddressString = matchResult?.groupValues?.get(1)
+
+    return ipAddressString?.split(",")?.map { it.trim() } ?: emptyList()
   }
 
   // encryptToPref a byte array of data using the Jetpack Security
@@ -510,7 +535,8 @@ open class UninitializedApp : Application() {
   }
 
   fun disallowedPackageNames(): List<String> {
-    val mdmDisallowed = MDMSettings.excludedPackages.flow.value?.split(",")?.map { it.trim() } ?: emptyList()
+    val mdmDisallowed =
+        MDMSettings.excludedPackages.flow.value?.split(",")?.map { it.trim() } ?: emptyList()
     if (mdmDisallowed.isNotEmpty()) {
       Log.d(TAG, "Excluded application packages were set via MDM: $mdmDisallowed")
       return builtInDisallowedPackageNames + mdmDisallowed

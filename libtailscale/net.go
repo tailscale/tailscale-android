@@ -171,6 +171,14 @@ func (b *backend) updateTUN(service IPNService, rcfg *router.Config, dcfg *dns.O
 		}
 	}
 
+	for _, dotIPAddr := range b.getDoTServerAddresses() {
+		b.logger.Logf("updateTUN: adding DoT server %s", dotIPAddr)
+		if err := builder.AddRoute(dotIPAddr, 32); err != nil {
+			b.logger.Logf("updateTUN: failed to add DoT server %s: %v", dotIPAddr, err)
+			return err
+		}
+	}
+
 	for _, route := range rcfg.LocalRoutes {
 		addr := route.Addr()
 		if addr.IsLoopback() {
@@ -290,6 +298,16 @@ func (b *backend) getDNSBaseConfig() (ret dns.OSConfig, _ error) {
 	}
 
 	return config, nil
+}
+
+// getDoTServerAddresses returns the DoT server addresses by extracting them from the string defining the Android DNS config.
+func (b *backend) getDoTServerAddresses() []string {
+	str := b.appCtx.GetPlatformDNSConfig()
+	lines := strings.Split(str, "\n")
+	if len(lines) < 3 {
+		return []string{}
+	}
+	return strings.Split(strings.Trim(lines[2], " \n"), ",")
 }
 
 func (b *backend) getPlatformDNSConfig() string {
