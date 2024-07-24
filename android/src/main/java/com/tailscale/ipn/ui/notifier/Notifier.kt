@@ -43,6 +43,10 @@ object Notifier {
   val version: StateFlow<String?> = MutableStateFlow(null)
   val health: StateFlow<Health.State?> = MutableStateFlow(null)
 
+  // Whether the VPN is prepared
+  val _vpnPrepared = MutableStateFlow(false)
+  val vpnPrepared: StateFlow<Boolean> = _vpnPrepared
+
   // Taildrop-specific State
   val outgoingFiles: StateFlow<List<Ipn.OutgoingFile>?> = MutableStateFlow(null)
   val incomingFiles: StateFlow<List<Ipn.PartialFile>?> = MutableStateFlow(null)
@@ -93,6 +97,10 @@ object Notifier {
       it.stop()
       manager = null
     }
+  }
+
+  fun setVpnPrepared(prepared: Boolean) {
+    _vpnPrepared.value = prepared
   }
 
   // NotifyWatchOpt is a bitmask of options supplied to the notifier to specify which

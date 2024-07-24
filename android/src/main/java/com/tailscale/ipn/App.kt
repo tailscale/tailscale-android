@@ -16,6 +16,7 @@ import android.net.LinkProperties
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
+import android.net.VpnService
 import android.os.Build
 import android.os.Environment
 import android.util.Log
@@ -144,6 +145,19 @@ class App : UninitializedApp(), libtailscale.AppContext {
         val vpnRunning = state == Ipn.State.Starting || state == Ipn.State.Running
         updateConnStatus(ableToStartVPN)
         QuickToggleService.setVPNRunning(vpnRunning)
+      }
+    }
+    prepareVpn()
+  }
+
+  fun prepareVpn() {
+    // Check if the user has granted permission yet.
+    if (!Notifier.vpnPrepared.value) {
+      val vpnIntent = VpnService.prepare(App.get())
+      if (vpnIntent != null) {
+        Notifier.setVpnPrepared(false)
+      } else {
+        Notifier.setVpnPrepared(true)
       }
     }
   }
@@ -510,7 +524,8 @@ open class UninitializedApp : Application() {
   }
 
   fun disallowedPackageNames(): List<String> {
-    val mdmDisallowed = MDMSettings.excludedPackages.flow.value?.split(",")?.map { it.trim() } ?: emptyList()
+    val mdmDisallowed =
+        MDMSettings.excludedPackages.flow.value?.split(",")?.map { it.trim() } ?: emptyList()
     if (mdmDisallowed.isNotEmpty()) {
       Log.d(TAG, "Excluded application packages were set via MDM: $mdmDisallowed")
       return builtInDisallowedPackageNames + mdmDisallowed
