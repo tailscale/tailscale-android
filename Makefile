@@ -17,7 +17,7 @@ LIBTAILSCALE=android/libs/libtailscale.aar
 TAILSCALE_VERSION=$(shell ./version/tailscale-version.sh 200)
 OUR_VERSION=$(shell git describe --dirty --exclude "*" --always --abbrev=200)
 TAILSCALE_VERSION_ABBREV=$(shell ./version/tailscale-version.sh 11)
-OUR_VERSION_ABBREV=$(shell git describe --dirty --exclude "*" --always --abbrev=11)
+OUR_VERSION_ABBREV=$(shell git describe --exclude "*" --always --abbrev=11)
 VERSION_LONG=$(TAILSCALE_VERSION_ABBREV)-g$(OUR_VERSION_ABBREV)
 # Extract the long version build.gradle's versionName and strip quotes.
 VERSIONNAME=$(patsubst "%",%,$(lastword $(shell grep versionName android/build.gradle)))
@@ -91,12 +91,12 @@ tailscale-debug: $(DEBUG_APK) ## Build the debug APK
 
 # Builds the release AAB and signs it (phone/tablet/chromeOS variant)
 .PHONY: release
-release: jarsign-env $(RELEASE_AAB) ## Build the release AAB
+release: update-version jarsign-env $(RELEASE_AAB) ## Build the release AAB
 	@jarsigner -sigalg SHA256withRSA -digestalg SHA-256 -keystore $(JKS_PATH) -storepass $(JKS_PASSWORD) $(RELEASE_AAB) tailscale
 
 # Builds the release AAB and signs it (androidTV variant)
 .PHONY: release-tv
-release-tv: jarsign-env $(RELEASE_TV_AAB) ## Build the release AAB
+release-tv: update-version jarsign-env $(RELEASE_TV_AAB) ## Build the release AAB
 	@jarsigner -sigalg SHA256withRSA -digestalg SHA-256 -keystore $(JKS_PATH) -storepass $(JKS_PASSWORD) $(RELEASE_TV_AAB) tailscale
 
 # gradle-dependencies groups together the android sources and libtailscale needed to assemble tests/debug/release builds.
@@ -179,25 +179,24 @@ androidpath:
 	@echo "export ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT)"
 	@echo 'export PATH=$(ANDROID_HOME)/cmdline-tools/latest/bin:$(ANDROID_HOME)/platform-tools:$$PATH'
 
-.PHONY: bump_version_code
-bump_version_code: ## Bump the version code in the android build.gradle
-	@echo "Current Version Code:"
-	@grep "versionCode" android/build.gradle
-	sed -i'.bak' 's/versionCode $(VERSIONCODE)/versionCode $(VERSIONCODE_PLUSONE)/' android/build.gradle && rm android/build.gradle.bak
-	@echo "New Version Code:"
-	@grep "versionCode" android/build.gradle
-
-.PHONY: tag_release
-tag_release: bump_version_code ## Increment the playstore version code by 1
+.PHONY: update_version
+update-version: ## Update the version in build.gradle
 	sed -i'.bak' 's/versionName .*/versionName "$(VERSION_LONG)"/' android/build.gradle && rm android/build.gradle.bak
-	git commit -sm "android: bump version code" android/build.gradle
-	git tag -a "$(VERSION_LONG)"
 
 .PHONY: bumposs
-bumposs: ## Update the tailscale.com go module
+bumposs: ## Update the tailscale.com go module and update the version in build.gradle
 	GOPROXY=direct go get tailscale.com@main
 	go run tailscale.com/cmd/printdep --go > go.toolchain.rev
 	go mod tidy -compat=1.22
+	
+	OUR_VERSION=$(shell git describe --dirty --exclude "*" --always --abbrev=200)
+	TAILSCALE_VERSION_ABBREV=$(shell ./version/tailscale-version.sh 11)
+	OUR_VERSION_ABBREV=$(shell git describe --exclude "*" --always --abbrev=11)
+	VERSION_LONG=$(TAILSCALE_VERSION_ABBREV)-g$(OUR_VERSION_ABBREV)
+
+	sed -i'.bak' 's/versionName .*/versionName "$(VERSION_LONG)"/' android/build.gradle && rm android/build.gradle.bak
+	git commit -sm "android: bumping OSS" -m "OSS and Version updated to ${VERSION_LONG}" android/build.gradle go.mod go.sum
+	git tag -a "$(VERSION_LONG)" -m "OSS and Version updated to ${VERSION_LONG}"
 
 # Get the commandline tools package, this provides (among other things) the sdkmanager binary.
 $(ANDROID_HOME)/cmdline-tools/latest/bin/sdkmanager:
