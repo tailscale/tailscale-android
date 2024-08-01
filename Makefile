@@ -179,24 +179,21 @@ androidpath:
 	@echo "export ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT)"
 	@echo 'export PATH=$(ANDROID_HOME)/cmdline-tools/latest/bin:$(ANDROID_HOME)/platform-tools:$$PATH'
 
-.PHONY: update_version
+
+.PHONY: bumposs ## Bump to the latest oss and update teh versions.
+bumposs: update-oss update-version
+	git commit -sm "android: bumping OSS" -m "OSS and Version updated to ${VERSION_LONG}" android/build.gradle go.mod go.sum
+	git tag -a "$(VERSION_LONG)" -m "OSS and Version updated to ${VERSION_LONG}"
+
+.PHONY: update-version
 update-version: ## Update the version in build.gradle
 	sed -i'.bak' 's/versionName .*/versionName "$(VERSION_LONG)"/' android/build.gradle && rm android/build.gradle.bak
 
-.PHONY: bumposs
-bumposs: ## Update the tailscale.com go module and update the version in build.gradle
+.PHONY: update-oss
+update-oss: ## Update the tailscale.com go module and update the version in build.gradle
 	GOPROXY=direct go get tailscale.com@main
 	go run tailscale.com/cmd/printdep --go > go.toolchain.rev
 	go mod tidy -compat=1.22
-	
-	OUR_VERSION=$(shell git describe --dirty --exclude "*" --always --abbrev=200)
-	TAILSCALE_VERSION_ABBREV=$(shell ./version/tailscale-version.sh 11)
-	OUR_VERSION_ABBREV=$(shell git describe --exclude "*" --always --abbrev=11)
-	VERSION_LONG=$(TAILSCALE_VERSION_ABBREV)-g$(OUR_VERSION_ABBREV)
-
-	sed -i'.bak' 's/versionName .*/versionName "$(VERSION_LONG)"/' android/build.gradle && rm android/build.gradle.bak
-	git commit -sm "android: bumping OSS" -m "OSS and Version updated to ${VERSION_LONG}" android/build.gradle go.mod go.sum
-	git tag -a "$(VERSION_LONG)" -m "OSS and Version updated to ${VERSION_LONG}"
 
 # Get the commandline tools package, this provides (among other things) the sdkmanager binary.
 $(ANDROID_HOME)/cmdline-tools/latest/bin/sdkmanager:
