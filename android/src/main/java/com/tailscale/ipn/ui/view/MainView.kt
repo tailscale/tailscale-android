@@ -73,7 +73,6 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.tailscale.ipn.R
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.mdm.ShowHide
-import com.tailscale.ipn.ui.model.Health
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.Netmap
@@ -107,7 +106,8 @@ import com.tailscale.ipn.ui.viewModel.MainViewModel
 data class MainViewNavigation(
     val onNavigateToSettings: () -> Unit,
     val onNavigateToPeerDetails: (Tailcfg.Node) -> Unit,
-    val onNavigateToExitNodes: () -> Unit
+    val onNavigateToExitNodes: () -> Unit,
+    val onNavigateToHealth: () -> Unit
 )
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
@@ -118,7 +118,7 @@ fun MainView(
     viewModel: MainViewModel
 ) {
   val currentPingDevice by viewModel.pingViewModel.peer.collectAsState()
-  val healthWarnings by viewModel.healthWarnings.collectAsState()
+  val healthIcon by viewModel.healthIcon.collectAsState()
 
   LoadingIndicator.Wrap {
     Scaffold(contentWindowInsets = WindowInsets.Companion.statusBars) { paddingInsets ->
@@ -167,7 +167,21 @@ fun MainView(
                 },
                 supportingContent = {
                   if (!hideHeader) {
-                    Text(text = stateStr, style = MaterialTheme.typography.bodyMedium.short)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                      Text(text = stateStr, style = MaterialTheme.typography.bodyMedium.short)
+                      healthIcon?.let {
+                        Spacer(modifier = Modifier.size(4.dp))
+                        IconButton(
+                            onClick = { navigation.onNavigateToHealth() },
+                            modifier = Modifier.size(16.dp)) {
+                              Icon(
+                                  painterResource(id = it),
+                                  contentDescription = null,
+                                  modifier = Modifier.size(16.dp),
+                                  tint = MaterialTheme.colorScheme.error)
+                            }
+                      }
+                    }
                   }
                 },
                 trailingContent = {
@@ -198,10 +212,6 @@ fun MainView(
 
                 if (showKeyExpiry) {
                   ExpiryNotification(netmap = netmap, action = { viewModel.login() })
-                }
-
-                for (warning in healthWarnings) {
-                  HealthNotification(warning = warning)
                 }
 
                 if (showExitNodePicker.value == ShowHide.Show) {
@@ -709,29 +719,6 @@ fun ExpiryNotification(netmap: Netmap.NetworkMap?, action: () -> Unit = {}) {
   }
 }
 
-@Composable
-fun HealthNotification(warning: Health.UnhealthyState) {
-  Box(modifier = Modifier.background(color = MaterialTheme.colorScheme.surfaceContainerLow)) {
-    Box(
-        modifier =
-            Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp)
-                .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
-                .fillMaxWidth()) {
-          ListItem(
-              colors = warning.Severity.listItemColors(),
-              headlineContent = {
-                Text(
-                    warning.Title,
-                    style = MaterialTheme.typography.titleMedium,
-                )
-              },
-              supportingContent = {
-                Text(warning.Text, style = MaterialTheme.typography.bodyMedium)
-              })
-        }
-  }
-}
-
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun PromptPermissionsIfNecessary() {
@@ -752,6 +739,9 @@ fun MainViewPreview() {
   MainView(
       {},
       MainViewNavigation(
-          onNavigateToSettings = {}, onNavigateToPeerDetails = {}, onNavigateToExitNodes = {}),
+          onNavigateToSettings = {},
+          onNavigateToPeerDetails = {},
+          onNavigateToExitNodes = {},
+          onNavigateToHealth = {}),
       vm)
 }

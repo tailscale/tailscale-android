@@ -49,6 +49,7 @@ import com.tailscale.ipn.ui.view.AboutView
 import com.tailscale.ipn.ui.view.BugReportView
 import com.tailscale.ipn.ui.view.DNSSettingsView
 import com.tailscale.ipn.ui.view.ExitNodePicker
+import com.tailscale.ipn.ui.view.HealthView
 import com.tailscale.ipn.ui.view.IntroView
 import com.tailscale.ipn.ui.view.LoginQRView
 import com.tailscale.ipn.ui.view.LoginWithAuthKeyView
@@ -157,7 +158,7 @@ class MainActivity : ComponentActivity() {
                             navController.navigate("peerDetails/${it.StableID}")
                           },
                           onNavigateToExitNodes = { navController.navigate("exitNodes") },
-                      )
+                          onNavigateToHealth = { navController.navigate("health") })
 
                   val settingsNav =
                       SettingsNav(
@@ -199,6 +200,7 @@ class MainActivity : ComponentActivity() {
                   }
                   composable("settings") { SettingsView(settingsNav) }
                   composable("exitNodes") { ExitNodePicker(exitNodePickerNav) }
+                  composable("health") { HealthView(backTo("main")) }
                   composable("mullvad") { MullvadExitNodePickerList(exitNodePickerNav) }
                   composable("mullvad_info") { MullvadInfoView(exitNodePickerNav) }
                   composable(

@@ -25,6 +25,7 @@ class Health {
       var Text: String,
       var BrokenSince: String? = null,
       var Args: Map<String, String>? = null,
+      var ImpactsConnectivity: Boolean? = false,
       var DependsOn: List<String>? = null, // an array of WarnableCodes this depends on
   ) : Comparable<UnhealthyState> {
     fun hiddenByDependencies(currentWarnableCodes: Set<String>): Boolean {
