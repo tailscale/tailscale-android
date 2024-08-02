@@ -524,8 +524,6 @@ open class UninitializedApp : Application() {
       listOf(
           // RCS/Jibe https://github.com/tailscale/tailscale/issues/2322
           "com.google.android.apps.messaging",
-          // Stadia https://github.com/tailscale/tailscale/issues/3460
-          "com.google.stadia.android",
           // Android Auto https://github.com/tailscale/tailscale/issues/3828
           "com.google.android.projection.gearhead",
           // GoPro https://github.com/tailscale/tailscale/issues/2554
