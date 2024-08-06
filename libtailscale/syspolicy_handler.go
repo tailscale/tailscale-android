@@ -6,7 +6,6 @@ package libtailscale
 import (
 	"encoding/json"
 	"errors"
-	"log"
 
 	"tailscale.com/util/syspolicy"
 )
@@ -22,10 +21,7 @@ func (h syspolicyHandler) ReadString(key string) (string, error) {
 		return "", syspolicy.ErrNoSuchKey
 	}
 	retVal, err := h.a.appCtx.GetSyspolicyStringValue(key)
-	if err != nil && !errors.Is(err, syspolicy.ErrNoSuchKey) {
-		log.Printf("syspolicy: %s (str) will not be set: %v", key, err)
-	}
-	return retVal, err
+	return retVal, translateHandlerError(err)
 }
 
 func (h syspolicyHandler) ReadBoolean(key string) (bool, error) {
@@ -33,19 +29,15 @@ func (h syspolicyHandler) ReadBoolean(key string) (bool, error) {
 		return false, syspolicy.ErrNoSuchKey
 	}
 	retVal, err := h.a.appCtx.GetSyspolicyBooleanValue(key)
-	if err != nil && !errors.Is(err, syspolicy.ErrNoSuchKey) {
-		log.Printf("syspolicy: %s (bool) will not be set: %v", key, err)
-	}
-	return retVal, err
+	return retVal, translateHandlerError(err)
 }
 
 func (h syspolicyHandler) ReadUInt64(key string) (uint64, error) {
 	if key == "" {
 		return 0, syspolicy.ErrNoSuchKey
 	}
-	// TODO(angott): drop ReadUInt64 everywhere. We are not using it.
-	log.Fatalf("ReadUInt64 is not implemented on Android")
-	return 0, nil
+	// We don't have any UInt64 policy settings as of 2024-08-06.
+	return 0, errors.New("ReadUInt64 is not implemented on Android")
 }
 
 func (h syspolicyHandler) ReadStringArray(key string) ([]string, error) {
@@ -53,8 +45,7 @@ func (h syspolicyHandler) ReadStringArray(key string) ([]string, error) {
 		return nil, syspolicy.ErrNoSuchKey
 	}
 	retVal, err := h.a.appCtx.GetSyspolicyStringArrayJSONValue(key)
-	if err != nil && !errors.Is(err, syspolicy.ErrNoSuchKey) {
-		log.Printf("syspolicy: %s (strArr) will not be set: %v", key, err)
+	if err := translateHandlerError(err); err != nil {
 		return nil, err
 	}
 	if retVal == "" {
@@ -66,4 +57,11 @@ func (h syspolicyHandler) ReadStringArray(key string) ([]string, error) {
 		return nil, jsonErr
 	}
 	return arr, err
+}
+
+func translateHandlerError(err error) error {
+	if err != nil && !errors.Is(err, syspolicy.ErrNoSuchKey) && err.Error() == syspolicy.ErrNoSuchKey.Error() {
+		return syspolicy.ErrNoSuchKey
+	}
+	return err // may be nil or non-nil
 }
