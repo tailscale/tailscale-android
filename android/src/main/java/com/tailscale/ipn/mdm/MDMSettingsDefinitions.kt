@@ -85,9 +85,17 @@ enum class AlwaysNeverUserDecides(val value: String) {
     get() {
       return this != UserDecides
     }
+
+  override fun toString(): String {
+    return value
+  }
 }
 
 enum class ShowHide(val value: String) {
   Show("show"),
-  Hide("hide")
+  Hide("hide");
+
+  override fun toString(): String {
+    return value
+  }
 }
