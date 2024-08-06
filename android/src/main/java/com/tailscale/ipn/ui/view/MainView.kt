@@ -136,7 +136,7 @@ fun MainView(
             val stateStr = stringResource(id = stateVal)
             val netmap by viewModel.netmap.collectAsState(initial = null)
             val showExitNodePicker by MDMSettings.exitNodesPicker.flow.collectAsState()
-            val disableToggle by MDMSettings.forceEnabled.flow.collectAsState(initial = true)
+            val disableToggle by MDMSettings.forceEnabled.flow.collectAsState()
             val showKeyExpiry by viewModel.showExpiry.collectAsState(initial = false)
 
             // Hide the header only on Android TV when the user needs to login
@@ -148,11 +148,11 @@ fun MainView(
                   if (!hideHeader) {
                     TintedSwitch(
                         onCheckedChange = {
-                          if (!disableToggle) {
+                          if (!disableToggle.value) {
                             viewModel.toggleVpn()
                           }
                         },
-                        enabled = !disableToggle,
+                        enabled = !disableToggle.value,
                         checked = isOn)
                   }
                 },
@@ -204,7 +204,7 @@ fun MainView(
                   HealthNotification(warning = warning)
                 }
 
-                if (showExitNodePicker == ShowHide.Show) {
+                if (showExitNodePicker.value == ShowHide.Show) {
                   ExitNodeStatus(
                       navAction = navigation.onNavigateToExitNodes, viewModel = viewModel)
                 }
@@ -273,7 +273,7 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
                         Modifier.padding(start = 16.dp, end = 16.dp, top = 36.dp, bottom = 16.dp)) {
                       Text(
                           text =
-                              managedByOrganization?.let {
+                              managedByOrganization.value?.let {
                                 stringResource(R.string.exit_node_offline_mdm_orgname, it)
                               } ?: stringResource(R.string.exit_node_offline_mdm),
                           style = MaterialTheme.typography.bodyMedium,

@@ -50,7 +50,7 @@ fun MDMSettingView(setting: MDMSetting<*>) {
       },
       trailingContent = {
         Text(
-            value.toString(),
+            if (value.isSet) value.value.toString() else "[not set]",
             fontFamily = FontFamily.Monospace,
             maxLines = 1,
             fontWeight = FontWeight.SemiBold)

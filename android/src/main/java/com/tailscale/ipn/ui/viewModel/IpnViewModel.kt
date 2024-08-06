@@ -117,7 +117,7 @@ open class IpnViewModel : ViewModel() {
 
             when {
               exitNodePeer?.Online == false -> {
-                if (MDMSettings.exitNodeID.flow.value != null) {
+                if (MDMSettings.exitNodeID.flow.value.value != null) {
                   NodeState.OFFLINE_MDM
                 } else if (validPrefs.activeExitNodeID != null) {
                   NodeState.OFFLINE_ENABLED
@@ -194,7 +194,7 @@ open class IpnViewModel : ViewModel() {
 
     // If an MDM control URL is set, we will always use that in lieu of anything the user sets.
     var prefs = maskedPrefs
-    val mdmControlURL = MDMSettings.loginURL.flow.value
+    val mdmControlURL = MDMSettings.loginURL.flow.value.value
 
     if (mdmControlURL != null) {
       prefs = prefs ?: Ipn.MaskedPrefs()

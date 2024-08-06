@@ -116,7 +116,7 @@ open class IPNService : VpnService(), libtailscale.IPNService {
     b.setUnderlyingNetworks(null) // Use all available networks.
 
     val includedPackages: List<String> =
-        MDMSettings.includedPackages.flow.value?.split(",")?.map { it.trim() } ?: emptyList()
+        MDMSettings.includedPackages.flow.value.value?.split(",")?.map { it.trim() } ?: emptyList()
     if (includedPackages.isNotEmpty()) {
       // If an admin defined a list of packages that are exclusively allowed to be used via
       // Tailscale,

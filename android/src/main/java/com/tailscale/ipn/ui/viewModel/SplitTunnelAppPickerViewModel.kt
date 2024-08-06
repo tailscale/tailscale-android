@@ -6,6 +6,7 @@ package com.tailscale.ipn.ui.viewModel
 import androidx.lifecycle.ViewModel
 import com.tailscale.ipn.App
 import com.tailscale.ipn.mdm.MDMSettings
+import com.tailscale.ipn.mdm.SettingState
 import com.tailscale.ipn.ui.util.InstalledApp
 import com.tailscale.ipn.ui.util.InstalledAppsManager
 import com.tailscale.ipn.ui.util.set
@@ -16,8 +17,8 @@ class SplitTunnelAppPickerViewModel : ViewModel() {
   val installedAppsManager = InstalledAppsManager(packageManager = App.get().packageManager)
   val excludedPackageNames: StateFlow<List<String>> = MutableStateFlow(listOf())
   val installedApps: StateFlow<List<InstalledApp>> = MutableStateFlow(listOf())
-  val mdmExcludedPackages: StateFlow<String?> = MDMSettings.excludedPackages.flow
-  val mdmIncludedPackages: StateFlow<String?> = MDMSettings.includedPackages.flow
+  val mdmExcludedPackages: StateFlow<SettingState<String?>> = MDMSettings.excludedPackages.flow
+  val mdmIncludedPackages: StateFlow<SettingState<String?>> = MDMSettings.includedPackages.flow
 
   init {
     installedApps.set(installedAppsManager.fetchInstalledApps())

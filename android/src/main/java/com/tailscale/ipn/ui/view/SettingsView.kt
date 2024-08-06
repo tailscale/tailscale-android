@@ -83,7 +83,7 @@ fun SettingsView(settingsNav: SettingsNav, viewModel: SettingsViewModel = viewMo
               subtitle = stringResource(R.string.exclude_certain_apps_from_using_tailscale),
               onClick = settingsNav.onNavigateToSplitTunneling)
 
-          if (showTailnetLock == ShowHide.Show) {
+          if (showTailnetLock.value == ShowHide.Show) {
             Lists.ItemDivider()
             Setting.Text(
                 R.string.tailnet_lock,
@@ -97,7 +97,7 @@ fun SettingsView(settingsNav: SettingsNav, viewModel: SettingsViewModel = viewMo
           Lists.ItemDivider()
           Setting.Text(R.string.permissions, onClick = settingsNav.onNavigateToPermissions)
 
-          managedByOrganization?.let {
+          managedByOrganization.value?.let {
             Lists.ItemDivider()
             Setting.Text(
                 title = stringResource(R.string.managed_by_orgName, it),

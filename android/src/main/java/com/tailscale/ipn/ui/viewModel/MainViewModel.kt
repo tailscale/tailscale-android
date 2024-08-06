@@ -108,7 +108,7 @@ class MainViewModel : IpnViewModel() {
             showExpiry.set(false)
             return@let
           } else {
-            val expiryNotificationWindowMDM = MDMSettings.keyExpirationNotice.flow.value
+            val expiryNotificationWindowMDM = MDMSettings.keyExpirationNotice.flow.value.value
             val window =
                 expiryNotificationWindowMDM?.let { TimeUtil.duration(it) } ?: Duration.ofHours(24)
             val expiresSoon =
