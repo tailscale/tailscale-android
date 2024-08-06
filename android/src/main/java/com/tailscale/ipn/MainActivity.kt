@@ -117,11 +117,11 @@ class MainActivity : ComponentActivity() {
         registerForActivityResult(VpnPermissionContract()) { granted ->
           if (granted) {
             Log.d("VpnPermission", "VPN permission granted")
-            viewModel.setVpnPrepared(true)
+            Notifier.setVpnPrepared(true)
             App.get().startVPN()
           } else {
             Log.d("VpnPermission", "VPN permission denied")
-            viewModel.setVpnPrepared(false)
+            Notifier.setVpnPrepared(false)
           }
         }
     viewModel.setVpnPermissionLauncher(vpnPermissionLauncher)

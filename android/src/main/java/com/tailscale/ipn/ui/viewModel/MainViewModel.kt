@@ -82,7 +82,7 @@ class MainViewModel : IpnViewModel() {
     viewModelScope.launch {
       var previousState: State? = null
 
-      combine(Notifier.state, vpnPrepared) { state, prepared -> state to prepared }
+      combine(Notifier.state, Notifier.vpnPrepared) { state, prepared -> state to prepared }
           .collect { (currentState, prepared) ->
             stateRes.set(userStringRes(currentState, previousState, prepared))
 
@@ -137,14 +137,14 @@ class MainViewModel : IpnViewModel() {
     if (vpnIntent != null) {
       vpnPermissionLauncher?.launch(vpnIntent)
     } else {
-      setVpnPrepared(true)
+      Notifier.setVpnPrepared(true)
       startVPN()
     }
   }
 
   fun toggleVpn() {
     val state = Notifier.state.value
-    val isPrepared = vpnPrepared.value
+    val isPrepared = Notifier.vpnPrepared.value
 
     when {
       !isPrepared -> showVPNPermissionLauncherIfUnauthorized()
