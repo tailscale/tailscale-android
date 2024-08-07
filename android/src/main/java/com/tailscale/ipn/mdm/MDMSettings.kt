@@ -107,5 +107,6 @@ object MDMSettings {
     val bundle = restrictionsManager?.applicationRestrictions
     val preferences = lazy { app.getEncryptedPrefs() }
     allSettings.forEach { it.setFrom(bundle, preferences) }
+    app.notifyPolicyChanged()
   }
 }

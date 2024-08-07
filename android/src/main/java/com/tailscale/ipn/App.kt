@@ -338,6 +338,10 @@ class App : UninitializedApp(), libtailscale.AppContext {
       throw MDMSettings.NoSuchKeyException()
     }
   }
+
+  fun notifyPolicyChanged() {
+    app.notifyPolicyChanged()
+  }
 }
 
 /**

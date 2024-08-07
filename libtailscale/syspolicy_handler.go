@@ -6,17 +6,21 @@ package libtailscale
 import (
 	"encoding/json"
 	"errors"
+	"sync"
 
+	"tailscale.com/util/set"
 	"tailscale.com/util/syspolicy"
 )
 
 // syspolicyHandler is a syspolicy handler for the Android version of the Tailscale client,
 // which lets the main networking code read values set via the Android RestrictionsManager.
 type syspolicyHandler struct {
-	a *App
+	a   *App
+	mu  sync.RWMutex
+	cbs set.HandleSet[func()]
 }
 
-func (h syspolicyHandler) ReadString(key string) (string, error) {
+func (h *syspolicyHandler) ReadString(key string) (string, error) {
 	if key == "" {
 		return "", syspolicy.ErrNoSuchKey
 	}
@@ -24,7 +28,7 @@ func (h syspolicyHandler) ReadString(key string) (string, error) {
 	return retVal, translateHandlerError(err)
 }
 
-func (h syspolicyHandler) ReadBoolean(key string) (bool, error) {
+func (h *syspolicyHandler) ReadBoolean(key string) (bool, error) {
 	if key == "" {
 		return false, syspolicy.ErrNoSuchKey
 	}
@@ -32,7 +36,7 @@ func (h syspolicyHandler) ReadBoolean(key string) (bool, error) {
 	return retVal, translateHandlerError(err)
 }
 
-func (h syspolicyHandler) ReadUInt64(key string) (uint64, error) {
+func (h *syspolicyHandler) ReadUInt64(key string) (uint64, error) {
 	if key == "" {
 		return 0, syspolicy.ErrNoSuchKey
 	}
@@ -40,7 +44,7 @@ func (h syspolicyHandler) ReadUInt64(key string) (uint64, error) {
 	return 0, errors.New("ReadUInt64 is not implemented on Android")
 }
 
-func (h syspolicyHandler) ReadStringArray(key string) ([]string, error) {
+func (h *syspolicyHandler) ReadStringArray(key string) ([]string, error) {
 	if key == "" {
 		return nil, syspolicy.ErrNoSuchKey
 	}
@@ -57,6 +61,25 @@ func (h syspolicyHandler) ReadStringArray(key string) ([]string, error) {
 		return nil, jsonErr
 	}
 	return arr, err
+}
+
+func (h *syspolicyHandler) RegisterChangeCallback(cb func()) (unregister func(), err error) {
+	h.mu.Lock()
+	handle := h.cbs.Add(cb)
+	h.mu.Unlock()
+	return func() {
+		h.mu.Lock()
+		delete(h.cbs, handle)
+		h.mu.Unlock()
+	}, nil
+}
+
+func (h *syspolicyHandler) notifyChanged() {
+	h.mu.RLock()
+	for _, cb := range h.cbs {
+		go cb()
+	}
+	h.mu.RUnlock()
 }
 
 func translateHandlerError(err error) error {

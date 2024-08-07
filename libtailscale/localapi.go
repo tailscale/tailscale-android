@@ -107,6 +107,10 @@ func (app *App) CallLocalAPIMultipart(timeoutMillis int, method, endpoint string
 	}
 }
 
+func (app *App) NotifyPolicyChanged() {
+	app.policyStore.notifyChanged()
+}
+
 func (app *App) EditPrefs(prefs ipn.MaskedPrefs) (LocalAPIResponse, error) {
 	r, w := io.Pipe()
 	go func() {
