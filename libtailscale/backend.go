@@ -45,6 +45,7 @@ type App struct {
 	appCtx AppContext
 
 	store             *stateStore
+	policyStore       *syspolicyHandler
 	logIDPublicAtomic atomic.Pointer[logid.PublicID]
 
 	localAPIHandler http.Handler

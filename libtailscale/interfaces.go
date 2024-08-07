@@ -102,6 +102,10 @@ type Application interface {
 	// it accepts multiple FileParts that get encoded as multipart/form-data.
 	CallLocalAPIMultipart(timeoutMillis int, method, endpoint string, parts FileParts) (LocalAPIResponse, error)
 
+	// NotifyPolicyChanged notifies the backend about a changed MDM policy,
+	// so it can re-read it via the [syspolicyHandler].
+	NotifyPolicyChanged()
+
 	// WatchNotifications provides a mechanism for subscribing to ipn.Notify
 	// updates. The given NotificationCallback's OnNotify function is invoked
 	// on every new ipn.Notify message. The returned NotificationManager
