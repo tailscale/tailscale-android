@@ -54,7 +54,7 @@ fun ExitNodePicker(
       val showRunAsExitNode by MDMSettings.runExitNode.flow.collectAsState()
       val allowLanAccessMDMDisposition by MDMSettings.exitNodeAllowLANAccess.flow.collectAsState()
       val managedByOrganization by model.managedByOrganization.collectAsState()
-      val forcedExitNodeId = MDMSettings.exitNodeID.flow.collectAsState().value
+      val forcedExitNodeId = MDMSettings.exitNodeID.flow.collectAsState().value.value
 
       LazyColumn(modifier = Modifier.padding(innerPadding)) {
         item(key = "header") {
@@ -76,7 +76,7 @@ fun ExitNodePicker(
                     selected = !anyActive,
                 ))
           }
-          if (showRunAsExitNode == ShowHide.Show) {
+          if (showRunAsExitNode.value == ShowHide.Show) {
             Lists.ItemDivider()
             RunAsExitNodeItem(nav = nav, viewModel = model, anyActive)
           }
@@ -99,7 +99,7 @@ fun ExitNodePicker(
           }
         }
 
-        if (!allowLanAccessMDMDisposition.hiddenFromUser) {
+        if (!allowLanAccessMDMDisposition.value.hiddenFromUser) {
           item(key = "allowLANAccess") {
             Lists.SectionDivider()
 
@@ -121,7 +121,7 @@ fun ExitNodeItem(
 ) {
   val online by node.online.collectAsState()
   val isRunningExitNode = viewModel.isRunningExitNode.collectAsState().value
-  val forcedExitNodeId = MDMSettings.exitNodeID.flow.collectAsState().value
+  val forcedExitNodeId = MDMSettings.exitNodeID.flow.collectAsState().value.value
 
   Box {
     var modifier: Modifier = Modifier

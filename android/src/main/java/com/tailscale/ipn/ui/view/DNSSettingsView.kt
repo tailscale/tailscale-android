@@ -69,7 +69,7 @@ fun DNSSettingsView(
               },
               supportingContent = { Text(stringResource(state.caption)) })
 
-          if (!dnsSettingsMDMDisposition.hiddenFromUser) {
+          if (!dnsSettingsMDMDisposition.value.hiddenFromUser) {
             Lists.ItemDivider()
             Setting.Switch(
                 R.string.use_ts_dns,

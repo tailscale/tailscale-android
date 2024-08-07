@@ -52,14 +52,14 @@ fun SplitTunnelAppPickerView(
                           .selected_apps_will_access_the_internet_directly_without_using_tailscale))
             })
       }
-      if (mdmExcludedPackages?.isNotEmpty() == true) {
+      if (mdmExcludedPackages.value?.isNotEmpty() == true) {
         item("mdmExcludedNotice") {
           ListItem(
               headlineContent = {
                 Text(stringResource(R.string.certain_apps_are_not_routed_via_tailscale))
               })
         }
-      } else if (mdmIncludedPackages?.isNotEmpty() == true) {
+      } else if (mdmIncludedPackages.value?.isNotEmpty() == true) {
         item("mdmIncludedNotice") {
           ListItem(
               headlineContent = {

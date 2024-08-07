@@ -21,7 +21,7 @@ class PeerCategorizer {
     val selfNode = netmap.SelfNode
     var grouped = mutableMapOf<UserID, MutableList<Tailcfg.Node>>()
 
-    val mdm = MDMSettings.hiddenNetworkDevices.flow.value
+    val mdm = MDMSettings.hiddenNetworkDevices.flow.value.value
     val hideMyDevices = mdm?.contains("current-user") ?: false
     val hideOtherDevices = mdm?.contains("other-users") ?: false
     val hideTaggedDevices = mdm?.contains("tagged-devices") ?: false

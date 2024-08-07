@@ -32,9 +32,9 @@ fun ManagedByView(backToSettings: BackNavigation, model: IpnViewModel = viewMode
         horizontalAlignment = Alignment.Start,
         modifier = Modifier.fillMaxWidth().safeContentPadding().verticalScroll(rememberScrollState())) {
           val managedByOrganization =
-              MDMSettings.managedByOrganizationName.flow.collectAsState().value
-          val managedByCaption = MDMSettings.managedByCaption.flow.collectAsState().value
-          val managedByURL = MDMSettings.managedByURL.flow.collectAsState().value
+              MDMSettings.managedByOrganizationName.flow.collectAsState().value.value
+          val managedByCaption = MDMSettings.managedByCaption.flow.collectAsState().value.value
+          val managedByURL = MDMSettings.managedByURL.flow.collectAsState().value.value
           managedByOrganization?.let {
             Text(stringResource(R.string.managed_by_explainer_orgName, it))
           } ?: run { Text(stringResource(R.string.managed_by_explainer)) }

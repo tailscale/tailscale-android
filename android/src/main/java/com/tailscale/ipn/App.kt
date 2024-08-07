@@ -316,21 +316,25 @@ class App : UninitializedApp(), libtailscale.AppContext {
   @Throws(
       IOException::class, GeneralSecurityException::class, MDMSettings.NoSuchKeyException::class)
   override fun getSyspolicyStringValue(key: String): String {
-    return MDMSettings.allSettingsByKey[key]?.flow?.value?.toString()
-        ?: run {
-          Log.d("MDM", "$key is not defined on Android. Throwing NoSuchKeyException.")
-          throw MDMSettings.NoSuchKeyException()
-        }
+    val setting = MDMSettings.allSettingsByKey[key]?.flow?.value
+    if (setting?.isSet != true) {
+      throw MDMSettings.NoSuchKeyException()
+    }
+    return setting.value?.toString() ?: ""
   }
 
   @Throws(
       IOException::class, GeneralSecurityException::class, MDMSettings.NoSuchKeyException::class)
   override fun getSyspolicyStringArrayJSONValue(key: String): String {
-    val list = MDMSettings.allSettingsByKey[key]?.flow?.value as? List<*>
+    val setting = MDMSettings.allSettingsByKey[key]?.flow?.value
+    if (setting?.isSet != true) {
+      throw MDMSettings.NoSuchKeyException()
+    }
     try {
+      val list = setting.value as? List<*>
       return Json.encodeToString(list)
     } catch (e: Exception) {
-      Log.d("MDM", "$key is not defined on Android. Throwing NoSuchKeyException.")
+      Log.d("MDM", "$key value cannot be serialized to JSON. Throwing NoSuchKeyException.")
       throw MDMSettings.NoSuchKeyException()
     }
   }
@@ -510,7 +514,7 @@ open class UninitializedApp : Application() {
   }
 
   fun disallowedPackageNames(): List<String> {
-    val mdmDisallowed = MDMSettings.excludedPackages.flow.value?.split(",")?.map { it.trim() } ?: emptyList()
+    val mdmDisallowed = MDMSettings.excludedPackages.flow.value.value?.split(",")?.map { it.trim() } ?: emptyList()
     if (mdmDisallowed.isNotEmpty()) {
       Log.d(TAG, "Excluded application packages were set via MDM: $mdmDisallowed")
       return builtInDisallowedPackageNames + mdmDisallowed
