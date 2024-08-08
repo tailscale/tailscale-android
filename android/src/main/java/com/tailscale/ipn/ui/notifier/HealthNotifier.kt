@@ -56,6 +56,7 @@ class HealthNotifier(
   }
 
   val currentWarnings: StateFlow<Set<UnhealthyState>> = MutableStateFlow(setOf())
+  val currentIcon: StateFlow<Int?> = MutableStateFlow(null)
 
   private fun notifyHealthUpdated(warnings: Array<UnhealthyState>) {
     val warningsBeforeAdd = currentWarnings.value
@@ -94,6 +95,21 @@ class HealthNotifier(
       this.removeNotifications(warningsToDrop)
     }
     currentWarnings.set(this.currentWarnings.value.subtract(warningsToDrop))
+    this.updateIcon()
+  }
+
+  private fun updateIcon() {
+    if (currentWarnings.value.isEmpty()) {
+      this.currentIcon.set(null)
+      return
+    }
+    if (currentWarnings.value.any {
+      (it.Severity == Health.Severity.high || it.ImpactsConnectivity == true)
+    }) {
+      this.currentIcon.set(R.drawable.warning_rounded)
+    } else {
+      this.currentIcon.set(R.drawable.info)
+    }
   }
 
   private fun sendNotification(title: String, text: String, code: String) {
