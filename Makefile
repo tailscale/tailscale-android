@@ -185,6 +185,10 @@ bumposs: update-oss update-version
 	git commit -sm "android: bumping OSS" -m "OSS and Version updated to ${VERSION_LONG}" android/build.gradle go.mod go.sum
 	git tag -a "$(VERSION_LONG)" -m "OSS and Version updated to ${VERSION_LONG}"
 
+.PHONY: bump_version_code
+bump_version_code: ## Bump the version code in build.gradle
+	sed -i'.bak' 's/versionCode .*/versionCode $(VERSIONCODE_PLUSONE)/' android/build.gradle && rm android/build.gradle.bak
+
 .PHONY: update-version
 update-version: ## Update the version in build.gradle
 	sed -i'.bak' 's/versionName .*/versionName "$(VERSION_LONG)"/' android/build.gradle && rm android/build.gradle.bak
