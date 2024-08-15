@@ -4,11 +4,15 @@
 package com.tailscale.ipn
 
 import android.net.VpnService
+import android.os.Build
+import android.util.Log
 import libtailscale.ParcelFileDescriptor
 import java.net.InetAddress
 import android.net.IpPrefix as AndroidIpPrefix
 
 class VPNServiceBuilder(private val builder: VpnService.Builder) : libtailscale.VPNServiceBuilder {
+  private val TAG = "VPNServiceBuilder"
+
   override fun addAddress(p0: String, p1: Int) {
     builder.addAddress(p0, p1)
   }
@@ -22,9 +26,14 @@ class VPNServiceBuilder(private val builder: VpnService.Builder) : libtailscale.
   }
 
   override fun excludeRoute(p0: String, p1: Int) {
-    val inetAddress = InetAddress.getByName(p0)
-    val prefix = AndroidIpPrefix(inetAddress, p1)
-    builder.excludeRoute(prefix)
+    // excludeRoute requires API 33 (Android 13)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+      val inetAddress = InetAddress.getByName(p0)
+      val prefix = AndroidIpPrefix(inetAddress, p1)
+      builder.excludeRoute(prefix)
+    } else {
+      Log.d(TAG, "excludeRoute is not supported on Android API < 33, 'Allow LAN Access' will be ignored")
+    }
   }
 
   override fun addSearchDomain(p0: String) {
