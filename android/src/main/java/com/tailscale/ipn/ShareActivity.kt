@@ -9,6 +9,7 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.OpenableColumns
 import android.util.Log
+import android.webkit.MimeTypeMap
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
@@ -21,6 +22,7 @@ import com.tailscale.ipn.ui.util.universalFit
 import com.tailscale.ipn.ui.view.TaildropView
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlin.random.Random
 
 // ShareActivity is the entry point for Taildrop share intents
 class ShareActivity : ComponentActivity() {
@@ -92,7 +94,20 @@ class ShareActivity : ComponentActivity() {
             val nameCol = c.getColumnIndex(OpenableColumns.DISPLAY_NAME)
             val sizeCol = c.getColumnIndex(OpenableColumns.SIZE)
             c.moveToFirst()
-            val name = c.getString(nameCol)
+            val name: String =
+                c.getString(nameCol)
+                    ?: run {
+                      // For some reason, some content resolvers don't return a name.
+                      // Try to build a name from a random integer plus file extension
+                      // (if type can be determined), else just a random integer.
+                      val rand = Random.nextLong()
+                      contentResolver.getType(it)?.let { mimeType ->
+                        MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType)?.let {
+                            extension ->
+                          "$rand.$extension"
+                        } ?: "$rand"
+                      } ?: "$rand"
+                    }
             val size = c.getLong(sizeCol)
             c.close()
             val file = Ipn.OutgoingFile(Name = name, DeclaredSize = size)
