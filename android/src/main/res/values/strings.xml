@@ -292,4 +292,6 @@
     <string name="health_warnings">Health warnings</string>
     <string name="no_issues_found">No issues found</string>
     <string name="tailscale_is_operating_normally">Tailscale is operating normally.</string>
+    <string name="magicdns_unavailable">MagicDNS unavailable</string>
+    <string name="magicdns_privatedns_explainer">Tailscale MagicDNS won\'t work because Android\'s Private DNS overrides it. To access tailnet resources using their *.ts.net name, disable Private DNS or set it to Automatic mode in the Android network settings.</string>
 </resources>

@@ -181,6 +181,13 @@ class App : UninitializedApp(), libtailscale.AppContext {
               sb.append(searchDomains)
             }
 
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+              val isUsingStrictPrivateDNS =
+                  linkProperties?.privateDnsServerName?.isNotEmpty() == true
+              Log.d(TAG, "Strict Private DNS active: $isUsingStrictPrivateDNS")
+              notifyPrivateDNSEnabled(isUsingStrictPrivateDNS)
+            }
+
             if (dns.updateDNSFromNetwork(sb.toString())) {
               Libtailscale.onDNSConfigChanged(linkProperties?.interfaceName)
             }
@@ -355,6 +362,7 @@ open class UninitializedApp : Application() {
 
     const val STATUS_NOTIFICATION_ID = 1
     const val STATUS_EXIT_NODE_FAILURE_NOTIFICATION_ID = 2
+    const val STATUS_PRIVATE_DNS_INCOMPATIBILITY_NOTIFICATION_ID = 3
     const val STATUS_CHANNEL_ID = "tailscale-status"
 
     // Key for shared preference that tracks whether or not we're able to start
@@ -518,7 +526,8 @@ open class UninitializedApp : Application() {
   }
 
   fun disallowedPackageNames(): List<String> {
-    val mdmDisallowed = MDMSettings.excludedPackages.flow.value.value?.split(",")?.map { it.trim() } ?: emptyList()
+    val mdmDisallowed =
+        MDMSettings.excludedPackages.flow.value.value?.split(",")?.map { it.trim() } ?: emptyList()
     if (mdmDisallowed.isNotEmpty()) {
       Log.d(TAG, "Excluded application packages were set via MDM: $mdmDisallowed")
       return builtInDisallowedPackageNames + mdmDisallowed
@@ -542,4 +551,27 @@ open class UninitializedApp : Application() {
           // Google Chromecast https://github.com/tailscale/tailscale/issues/3636
           "com.google.android.apps.chromecast.app",
       )
+
+  fun notifyPrivateDNSEnabled(enabled: Boolean) {
+    if (!enabled) {
+      notificationManager.cancel(STATUS_PRIVATE_DNS_INCOMPATIBILITY_NOTIFICATION_ID)
+      return
+    }
+
+    val notification =
+        NotificationCompat.Builder(this, HealthNotifier.HEALTH_CHANNEL_ID)
+            .setSmallIcon(R.drawable.warning_rounded)
+            .setContentTitle(getString(R.string.magicdns_unavailable))
+            .setStyle(
+                NotificationCompat.BigTextStyle()
+                    .bigText(getString(R.string.magicdns_privatedns_explainer)))
+            .setSilent(false)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .build()
+
+    if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) ==
+        PackageManager.PERMISSION_GRANTED) {
+      notificationManager.notify(STATUS_PRIVATE_DNS_INCOMPATIBILITY_NOTIFICATION_ID, notification)
+    }
+  }
 }
