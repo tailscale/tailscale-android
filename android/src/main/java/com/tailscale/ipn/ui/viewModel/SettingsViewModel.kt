@@ -47,7 +47,11 @@ class SettingsViewModel : IpnViewModel() {
 
     viewModelScope.launch {
       Notifier.prefs.collect {
-        it?.let { corpDNSEnabled.set(it.CorpDNS) } ?: run { corpDNSEnabled.set(null) }
+        it?.let {
+          corpDNSEnabled.set(it.CorpDNS)
+        } ?: run {
+          corpDNSEnabled.set(null)
+        }
       }
     }
   }

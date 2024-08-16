@@ -8,8 +8,6 @@ import android.net.VpnService
 import androidx.activity.result.ActivityResultLauncher
 import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.text.AnnotatedString
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.tailscale.ipn.App
 import com.tailscale.ipn.R
@@ -29,16 +27,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import java.time.Duration
 
-class MainViewModelFactory(private val vpnViewModel: VpnViewModel) : ViewModelProvider.Factory {
-  override fun <T : ViewModel> create(modelClass: Class<T>): T {
-    if (modelClass.isAssignableFrom(MainViewModel::class.java)) {
-      return MainViewModel(vpnViewModel) as T
-    }
-    throw IllegalArgumentException("Unknown ViewModel class")
-  }
-}
-
-class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
+class MainViewModel : IpnViewModel() {
 
   // The user readable state of the system
   val stateRes: StateFlow<Int> = MutableStateFlow(userStringRes(State.NoState, State.NoState, true))
@@ -67,8 +56,6 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
 
   var pingViewModel: PingViewModel = PingViewModel()
 
-  val isVpnPrepared: StateFlow<Boolean> = vpnViewModel.vpnPrepared
-
   // Icon displayed in the button to present the health view
   val healthIcon: StateFlow<Int?> = MutableStateFlow(null)
 
@@ -94,8 +81,7 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
     viewModelScope.launch {
       var previousState: State? = null
 
-      combine(Notifier.state, isVpnPrepared) { state, prepared -> state to prepared }
-      combine(Notifier.state, isVpnPrepared) { state, prepared -> state to prepared }
+      combine(Notifier.state, vpnPrepared) { state, prepared -> state to prepared }
           .collect { (currentState, prepared) ->
             stateRes.set(userStringRes(currentState, previousState, prepared))
 
@@ -130,14 +116,14 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
           }
         }
       }
+    }
 
-      viewModelScope.launch {
-        searchTerm.collect { term -> peers.set(peerCategorizer.groupedAndFilteredPeers(term)) }
-      }
+    viewModelScope.launch {
+      searchTerm.collect { term -> peers.set(peerCategorizer.groupedAndFilteredPeers(term)) }
+    }
 
-      viewModelScope.launch {
-        App.get().healthNotifier?.currentIcon?.collect { icon -> healthIcon.set(icon) }
-      }
+    viewModelScope.launch {
+      App.get().healthNotifier?.currentIcon?.collect { icon -> healthIcon.set(icon) }
     }
   }
 
@@ -146,15 +132,14 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
     if (vpnIntent != null) {
       vpnPermissionLauncher?.launch(vpnIntent)
     } else {
-      vpnViewModel.setVpnPrepared(true)
-      vpnViewModel.setVpnPrepared(true)
+      setVpnPrepared(true)
       startVPN()
     }
   }
 
   fun toggleVpn() {
     val state = Notifier.state.value
-    val isPrepared = vpnViewModel.vpnPrepared.value
+    val isPrepared = vpnPrepared.value
 
     when {
       !isPrepared -> showVPNPermissionLauncherIfUnauthorized()

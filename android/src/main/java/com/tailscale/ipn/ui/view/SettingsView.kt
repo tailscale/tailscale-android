@@ -37,11 +37,9 @@ import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.viewModel.SettingsNav
 import com.tailscale.ipn.ui.viewModel.SettingsViewModel
-import com.tailscale.ipn.ui.viewModel.VpnViewModel
-import com.tailscale.ipn.ui.notifier.Notifier
 
 @Composable
-fun SettingsView(settingsNav: SettingsNav, viewModel: SettingsViewModel = viewModel(), vpnViewModel: VpnViewModel = viewModel()) {
+fun SettingsView(settingsNav: SettingsNav, viewModel: SettingsViewModel = viewModel()) {
   val handler = LocalUriHandler.current
 
   val user by viewModel.loggedInUser.collectAsState()
@@ -49,7 +47,7 @@ fun SettingsView(settingsNav: SettingsNav, viewModel: SettingsViewModel = viewMo
   val managedByOrganization by viewModel.managedByOrganization.collectAsState()
   val tailnetLockEnabled by viewModel.tailNetLockEnabled.collectAsState()
   val corpDNSEnabled by viewModel.corpDNSEnabled.collectAsState()
-  val isVPNPrepared by vpnViewModel.vpnPrepared.collectAsState()
+  val isVPNPrepared by viewModel.vpnPrepared.collectAsState()
   val showTailnetLock by MDMSettings.manageTailnetLock.flow.collectAsState()
 
   Scaffold(
