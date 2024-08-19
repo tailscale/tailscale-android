@@ -8,11 +8,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -31,6 +32,7 @@ import coil.compose.AsyncImage
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.Tailcfg
+import com.tailscale.ipn.ui.util.Lists.SectionDivider
 import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.viewModel.TaildropViewModel
 import com.tailscale.ipn.ui.viewModel.TaildropViewModelFactory
@@ -44,33 +46,36 @@ fun TaildropView(
     viewModel: TaildropViewModel =
         viewModel(factory = TaildropViewModelFactory(requestedTransfers, applicationScope))
 ) {
-  Scaffold(topBar = { Header(R.string.share) }) { paddingInsets ->
-    val showDialog = viewModel.showDialog.collectAsState().value
+  Scaffold(
+      contentWindowInsets = WindowInsets.Companion.statusBars,
+      topBar = { Header(R.string.share) }) { paddingInsets ->
+        val showDialog = viewModel.showDialog.collectAsState().value
 
-    // Show the error overlay
-    showDialog?.let { ErrorDialog(type = it, action = { viewModel.showDialog.set(null) }) }
+        // Show the error overlay
+        showDialog?.let { ErrorDialog(type = it, action = { viewModel.showDialog.set(null) }) }
 
-    Column(modifier = Modifier.padding(paddingInsets)) {
-      FileShareHeader(
-          fileTransfers = requestedTransfers.collectAsState().value,
-          totalSize = viewModel.totalSize)
-      Spacer(modifier = Modifier.size(8.dp))
+        Column(modifier = Modifier.padding(paddingInsets)) {
+          FileShareHeader(
+              fileTransfers = requestedTransfers.collectAsState().value,
+              totalSize = viewModel.totalSize)
 
-      when (viewModel.state.collectAsState().value) {
-        Ipn.State.Running -> {
-          val peers by viewModel.myPeers.collectAsState()
-          val context = LocalContext.current
-          FileSharePeerList(
-              peers = peers,
-              stateViewGenerator = { peerId -> viewModel.TrailingContentForPeer(peerId = peerId) },
-              onShare = { viewModel.share(context, it) })
-        }
-        else -> {
-          FileShareConnectView { viewModel.startVPN() }
+          when (viewModel.state.collectAsState().value) {
+            Ipn.State.Running -> {
+              val peers by viewModel.myPeers.collectAsState()
+              val context = LocalContext.current
+              FileSharePeerList(
+                  peers = peers,
+                  stateViewGenerator = { peerId ->
+                    viewModel.TrailingContentForPeer(peerId = peerId)
+                  },
+                  onShare = { viewModel.share(context, it) })
+            }
+            else -> {
+              FileShareConnectView { viewModel.startVPN() }
+            }
+          }
         }
       }
-    }
-  }
 }
 
 @Composable
@@ -79,9 +84,7 @@ fun FileSharePeerList(
     stateViewGenerator: @Composable (String) -> Unit,
     onShare: (Tailcfg.Node) -> Unit
 ) {
-  Column(modifier = Modifier.padding(horizontal = 8.dp)) {
-    Text(stringResource(R.string.my_devices), style = MaterialTheme.typography.titleMedium)
-  }
+  SectionDivider(stringResource(R.string.my_devices))
 
   when (peers.isEmpty()) {
     true -> {
@@ -113,8 +116,8 @@ fun FileSharePeerList(
 @Composable
 fun FileShareConnectView(onToggle: () -> Unit) {
   Column(
-      modifier = Modifier.padding(horizontal = 8.dp).fillMaxHeight(),
-      verticalArrangement = Arrangement.Center,
+      modifier = Modifier.padding(horizontal = 16.dp).fillMaxHeight(),
+      verticalArrangement = Arrangement.spacedBy(6.dp, alignment = Alignment.CenterVertically),
       horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             stringResource(R.string.connect_to_your_tailnet_to_share_files),
@@ -130,7 +133,7 @@ fun FileShareConnectView(onToggle: () -> Unit) {
 
 @Composable
 fun FileShareHeader(fileTransfers: List<Ipn.OutgoingFile>, totalSize: Long) {
-  Column(modifier = Modifier.padding(horizontal = 8.dp)) {
+  Column(modifier = Modifier.padding(horizontal = 12.dp)) {
     Row(verticalAlignment = Alignment.CenterVertically) {
       IconForTransfer(fileTransfers)
       Column(modifier = Modifier.padding(horizontal = 8.dp)) {
@@ -151,10 +154,12 @@ fun FileShareHeader(fileTransfers: List<Ipn.OutgoingFile>, totalSize: Long) {
           }
         }
         val size = Formatter.formatFileSize(LocalContext.current, totalSize.toLong())
-        Text(size, style = MaterialTheme.typography.titleMedium)
+        Text(
+            size,
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.secondary)
       }
     }
-    HorizontalDivider()
   }
 }
 
