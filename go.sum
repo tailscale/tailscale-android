@@ -258,5 +258,5 @@ inet.af/netaddr v0.0.0-20220617031823-097006376321 h1:B4dC8ySKTQXasnjDTMsoCMf1sQ
 inet.af/netaddr v0.0.0-20220617031823-097006376321/go.mod h1:OIezDfdzOgFhuw4HuWapWq2e9l0H9tK4F1j+ETRtF3k=
 software.sslmate.com/src/go-pkcs12 v0.4.0 h1:H2g08FrTvSFKUj+D309j1DPfk5APnIdAQAB8aEykJ5k=
 software.sslmate.com/src/go-pkcs12 v0.4.0/go.mod h1:Qiz0EyvDRJjjxGyUQa2cCNZn/wMyzrRJ/qcDXOQazLI=
-tailscale.com v1.71.0-pre.0.20240815215425-ccf091e4a6b1 h1:6tcD0JKqQVB1GUkWdI/JB5f5o5HwbjCC/BpN2Dxbfy4=
-tailscale.com v1.71.0-pre.0.20240815215425-ccf091e4a6b1/go.mod h1:v7OHtg0KLAnhOVf81Z8WrjNefj238QbFhgkWJQoKxbs=
+tailscale.com v1.73.0-pre h1:l2Untm8MV8pqZEpcyy6OAJZ9TvKNWPK2VD/oes8STvk=
+tailscale.com v1.73.0-pre/go.mod h1:v7OHtg0KLAnhOVf81Z8WrjNefj238QbFhgkWJQoKxbs=
