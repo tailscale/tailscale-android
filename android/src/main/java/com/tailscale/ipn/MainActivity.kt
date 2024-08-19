@@ -5,12 +5,15 @@ package com.tailscale.ipn
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.content.RestrictionsManager
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration.SCREENLAYOUT_SIZE_LARGE
 import android.content.res.Configuration.SCREENLAYOUT_SIZE_MASK
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
@@ -129,8 +132,13 @@ class MainActivity : ComponentActivity() {
             vpnViewModel.setVpnPrepared(true)
             App.get().startVPN()
           } else {
-            Log.d("VpnPermission", "VPN permission denied")
-            vpnViewModel.setVpnPrepared(false)
+            if (isAnotherVpnActive(this)) {
+              Log.d("VpnPermission", "Another VPN is likely active")
+              showOtherVPNConflictDialog()
+            } else {
+              Log.d("VpnPermission", "Permission was denied by the user")
+              viewModel.setVpnPrepared(false)
+            }
           }
         }
     viewModel.setVpnPermissionLauncher(vpnPermissionLauncher)
@@ -283,6 +291,34 @@ class MainActivity : ComponentActivity() {
 
     // Once we see a loginFinished event, clear the QR code which will dismiss the QR dialog.
     lifecycleScope.launch { Notifier.loginFinished.collect { _ -> loginQRCode.set(null) } }
+  }
+
+  private fun showOtherVPNConflictDialog() {
+    AlertDialog.Builder(this)
+        .setTitle(R.string.vpn_permission_denied)
+        .setMessage(R.string.multiple_vpn_explainer)
+        .setPositiveButton(R.string.go_to_settings) { _, _ ->
+          // Intent to open the VPN settings
+          val intent = Intent(Settings.ACTION_VPN_SETTINGS)
+          startActivity(intent)
+        }
+        .setNegativeButton(R.string.cancel, null)
+        .show()
+  }
+
+  fun isAnotherVpnActive(context: Context): Boolean {
+    val connectivityManager =
+        context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+
+    val activeNetwork = connectivityManager.activeNetwork
+    if (activeNetwork != null) {
+      val networkCapabilities = connectivityManager.getNetworkCapabilities(activeNetwork)
+      if (networkCapabilities != null &&
+          networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) {
+        return true
+      }
+    }
+    return false
   }
 
   // Returns true if we should render a QR code instead of launching a browser

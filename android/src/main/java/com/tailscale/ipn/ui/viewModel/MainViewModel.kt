@@ -100,8 +100,10 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
 
             val isOn =
                 when {
-                  currentState == State.Running || currentState == State.Starting -> true
-                  previousState == State.NoState && currentState == State.Starting -> true
+                  prepared && currentState == State.Running || currentState == State.Starting ->
+                      true
+                  previousState == State.NoState && currentState == State.Starting ->
+                      true
                   else -> false
                 }
 
@@ -182,7 +184,7 @@ private fun userStringRes(currentState: State?, previousState: State?, vpnPrepar
     currentState == State.NeedsMachineAuth -> R.string.needs_machine_auth
     currentState == State.Stopped -> R.string.stopped
     currentState == State.Starting -> R.string.starting
-    currentState == State.Running -> R.string.connected
+    currentState == State.Running -> if (vpnPrepared) R.string.connected else R.string.placeholder
     else -> R.string.placeholder
   }
 }
