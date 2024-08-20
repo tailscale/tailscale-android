@@ -12,10 +12,6 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
-import android.net.LinkProperties
-import android.net.Network
-import android.net.NetworkCapabilities
-import android.net.NetworkRequest
 import android.os.Build
 import android.os.Environment
 import android.util.Log
@@ -45,7 +41,6 @@ import kotlinx.serialization.json.Json
 import libtailscale.Libtailscale
 import java.io.File
 import java.io.IOException
-import java.net.InetAddress
 import java.net.NetworkInterface
 import java.security.GeneralSecurityException
 import java.util.Locale
@@ -56,11 +51,6 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
   companion object {
     private const val FILE_CHANNEL_ID = "tailscale-files"
     private const val TAG = "App"
-    private val networkConnectivityRequest =
-        NetworkRequest.Builder()
-            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-            .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
-            .build()
     private lateinit var appInstance: App
 
     /**
@@ -80,9 +70,6 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
 
   override val viewModelStore: ViewModelStore
     get() = appViewModelStore
-
-  lateinit var vpnViewModel: VpnViewModel
-    private set
 
   private val appViewModelStore: ViewModelStore by lazy { ViewModelStore() }
 
@@ -147,7 +134,8 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     Notifier.start(applicationScope)
     healthNotifier = HealthNotifier(Notifier.health, applicationScope)
     connectivityManager = this.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-    setAndRegisterNetworkCallbacks()
+    NetworkChangeCallback.monitorDnsChanges(connectivityManager, dns)
+    initViewModels()
     applicationScope.launch {
       Notifier.state.collect { state ->
         val ableToStartVPN = state > Ipn.State.NeedsMachineAuth
@@ -161,14 +149,13 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
         QuickToggleService.setVPNRunning(vpnRunning)
       }
     }
-    initViewModels()
   }
 
   private fun initViewModels() {
     vpnViewModel = ViewModelProvider(this, VpnViewModelFactory(this)).get(VpnViewModel::class.java)
   }
 
-  fun setWantRunning(wantRunning: Boolean) {
+  fun setWantRunning(wantRunning: Boolean, onSuccess: (() -> Unit)? = null) {
     val callback: (Result<Ipn.Prefs>) -> Unit = { result ->
       result.fold(
           onSuccess = {},
@@ -178,41 +165,6 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     }
     Client(applicationScope)
         .editPrefs(Ipn.MaskedPrefs().apply { WantRunning = wantRunning }, callback)
-  }
-
-  // requestNetwork attempts to find the best network that matches the passed NetworkRequest. It is
-  // possible that this might return an unusuable network, eg a captive portal.
-  private fun setAndRegisterNetworkCallbacks() {
-    connectivityManager.requestNetwork(
-        networkConnectivityRequest,
-        object : ConnectivityManager.NetworkCallback() {
-          override fun onAvailable(network: Network) {
-            super.onAvailable(network)
-
-            val sb = StringBuilder()
-            val linkProperties: LinkProperties? = connectivityManager.getLinkProperties(network)
-            val dnsList: MutableList<InetAddress> = linkProperties?.dnsServers ?: mutableListOf()
-            for (ip in dnsList) {
-              sb.append(ip.hostAddress).append(" ")
-            }
-            val searchDomains: String? = linkProperties?.domains
-            if (searchDomains != null) {
-              sb.append("\n")
-              sb.append(searchDomains)
-            }
-
-            if (dns.updateDNSFromNetwork(sb.toString())) {
-              Libtailscale.onDNSConfigChanged(linkProperties?.interfaceName)
-            }
-          }
-
-          override fun onLost(network: Network) {
-            super.onLost(network)
-            if (dns.updateDNSFromNetwork("")) {
-              Libtailscale.onDNSConfigChanged("")
-            }
-          }
-        })
   }
 
   // encryptToPref a byte array of data using the Jetpack Security
@@ -389,6 +341,8 @@ open class UninitializedApp : Application() {
     private lateinit var appInstance: UninitializedApp
     lateinit var notificationManager: NotificationManagerCompat
 
+    lateinit var vpnViewModel: VpnViewModel
+
     @JvmStatic
     fun get(): UninitializedApp {
       return appInstance
@@ -548,6 +502,10 @@ open class UninitializedApp : Application() {
     val userDisallowed =
         getUnencryptedPrefs().getStringSet(DISALLOWED_APPS_KEY, emptySet())?.toList() ?: emptyList()
     return builtInDisallowedPackageNames + userDisallowed
+  }
+
+  fun getAppScopedViewModel(): VpnViewModel {
+    return vpnViewModel
   }
 
   val builtInDisallowedPackageNames: List<String> =

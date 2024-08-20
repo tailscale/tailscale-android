@@ -134,11 +134,6 @@ open class IpnViewModel : ViewModel() {
   }
 
   // VPN Control
-
-  fun setVpnPrepared(prepared: Boolean) {
-    _vpnPrepared.value = prepared
-  }
-
   fun startVPN() {
     UninitializedApp.get().startVPN()
   }

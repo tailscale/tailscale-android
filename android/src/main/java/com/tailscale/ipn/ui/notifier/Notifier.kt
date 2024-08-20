@@ -33,7 +33,8 @@ object Notifier {
   private val decoder = Json { ignoreUnknownKeys = true }
 
   // General IPN Bus State
-  val state: StateFlow<Ipn.State> = MutableStateFlow(Ipn.State.NoState)
+  private val _state = MutableStateFlow(Ipn.State.NoState)
+  val state: StateFlow<Ipn.State> = _state
   val netmap: StateFlow<Netmap.NetworkMap?> = MutableStateFlow(null)
   val prefs: StateFlow<Ipn.Prefs?> = MutableStateFlow(null)
   val engineStatus: StateFlow<Ipn.EngineStatus?> = MutableStateFlow(null)
@@ -68,22 +69,22 @@ object Notifier {
               NotifyWatchOpt.Prefs.value or
               NotifyWatchOpt.InitialState.value or
                   NotifyWatchOpt.InitialHealthState.value
-      manager =
-          app.watchNotifications(mask.toLong()) { notification ->
-            val notify = decoder.decodeFromStream<Notify>(notification.inputStream())
-            notify.State?.let { state.set(Ipn.State.fromInt(it)) }
-            notify.NetMap?.let(netmap::set)
-            notify.Prefs?.let(prefs::set)
-            notify.Engine?.let(engineStatus::set)
-            notify.TailFSShares?.let(tailFSShares::set)
-            notify.BrowseToURL?.let(browseToURL::set)
-            notify.LoginFinished?.let { loginFinished.set(it.property) }
-            notify.Version?.let(version::set)
-            notify.OutgoingFiles?.let(outgoingFiles::set)
-            notify.FilesWaiting?.let(filesWaiting::set)
-            notify.IncomingFiles?.let(incomingFiles::set)
-            notify.Health?.let(health::set)
-          }
+                  manager =
+                  app.watchNotifications(mask.toLong()) { notification ->
+                      val notify = decoder.decodeFromStream<Notify>(notification.inputStream())
+                      notify.State?.let { state.set(Ipn.State.fromInt(it)) }
+                      notify.NetMap?.let(netmap::set)
+                      notify.Prefs?.let(prefs::set)
+                      notify.Engine?.let(engineStatus::set)
+                      notify.TailFSShares?.let(tailFSShares::set)
+                      notify.BrowseToURL?.let(browseToURL::set)
+                      notify.LoginFinished?.let { loginFinished.set(it.property) }
+                      notify.Version?.let(version::set)
+                      notify.OutgoingFiles?.let(outgoingFiles::set)
+                      notify.FilesWaiting?.let(filesWaiting::set)
+                      notify.IncomingFiles?.let(incomingFiles::set)
+                      notify.Health?.let(health::set)
+                  }
     }
   }
 
@@ -107,4 +108,8 @@ object Notifier {
     InitialOutgoingFiles(64),
     InitialHealthState(128),
   }
+
+  fun setState(newState: Ipn.State) {
+    _state.value = newState
+}
 }

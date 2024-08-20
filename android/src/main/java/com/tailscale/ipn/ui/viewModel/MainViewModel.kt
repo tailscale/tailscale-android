@@ -72,6 +72,8 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
 
   val isVpnPrepared: StateFlow<Boolean> = vpnViewModel.vpnPrepared
 
+  val isVpnActive: StateFlow<Boolean> = vpnViewModel.vpnActive
+
   // Icon displayed in the button to present the health view
   val healthIcon: StateFlow<Int?> = MutableStateFlow(null)
 
@@ -97,30 +99,32 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
     viewModelScope.launch {
       var previousState: State? = null
 
-      combine(Notifier.state, isVpnPrepared) { state, prepared -> state to prepared }
-          .collect { (currentState, prepared) ->
-            stateRes.set(userStringRes(currentState, previousState, prepared))
+      combine(Notifier.state, isVpnActive) { state, active -> state to active }
+          .collect { (currentState, active) ->
+            // Determine the correct state resource string
+            stateRes.set(userStringRes(currentState, previousState, active))
 
+            // Determine if the VPN toggle should be on
             val isOn =
                 when {
-                  prepared && currentState == State.Running || currentState == State.Starting ->
+                  active && (currentState == State.Running || currentState == State.Starting) ->
                       true
-                  previousState == State.NoState && currentState == State.Starting ->
-                      true
+                  previousState == State.NoState && currentState == State.Starting -> true
                   else -> false
                 }
 
+            // Update the VPN toggle state
             _vpnToggleState.value = isOn
+
+            // Update the previous state
             previousState = currentState
           }
     }
 
     viewModelScope.launch {
-      searchTerm
-        .debounce(250L)
-        .collect { term ->
-          peers.set(peerCategorizer.groupedAndFilteredPeers(term))
-        }
+      searchTerm.debounce(250L).collect { term ->
+        peers.set(peerCategorizer.groupedAndFilteredPeers(term))
+      }
     }
 
     viewModelScope.launch {
@@ -181,17 +185,17 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
   }
 }
 
-private fun userStringRes(currentState: State?, previousState: State?, vpnPrepared: Boolean): Int {
+private fun userStringRes(currentState: State?, previousState: State?, vpnActive: Boolean): Int {
   return when {
     previousState == State.NoState && currentState == State.Starting -> R.string.starting
     currentState == State.NoState -> R.string.placeholder
     currentState == State.InUseOtherUser -> R.string.placeholder
     currentState == State.NeedsLogin ->
-        if (vpnPrepared) R.string.please_login else R.string.connect_to_vpn
+        if (vpnActive) R.string.please_login else R.string.connect_to_vpn
     currentState == State.NeedsMachineAuth -> R.string.needs_machine_auth
     currentState == State.Stopped -> R.string.stopped
     currentState == State.Starting -> R.string.starting
-    currentState == State.Running -> if (vpnPrepared) R.string.connected else R.string.placeholder
+    currentState == State.Running -> if (vpnActive) R.string.connected else R.string.placeholder
     else -> R.string.placeholder
   }
 }

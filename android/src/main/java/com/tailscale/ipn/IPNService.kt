@@ -10,33 +10,40 @@ import android.os.Build
 import android.system.OsConstants
 import android.util.Log
 import com.tailscale.ipn.mdm.MDMSettings
+import com.tailscale.ipn.ui.model.Ipn
+import com.tailscale.ipn.ui.notifier.Notifier
 import libtailscale.Libtailscale
 import java.util.UUID
 
 open class IPNService : VpnService(), libtailscale.IPNService {
   private val TAG = "IPNService"
   private val randomID: String = UUID.randomUUID().toString()
+  private lateinit var app: App
 
   override fun id(): String {
     return randomID
   }
 
+  override fun updateVpnStatus(status: Boolean) {
+    app.getAppScopedViewModel().setVpnActive(status)
+  }
+
   override fun onCreate() {
     super.onCreate()
     // grab app to make sure it initializes
-    App.get()
+    app = App.get()
   }
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int =
       when (intent?.action) {
         ACTION_STOP_VPN -> {
-          App.get().setWantRunning(false)
+          app.setWantRunning(false)
           close()
           START_NOT_STICKY
         }
         ACTION_START_VPN -> {
           showForegroundNotification()
-          App.get().setWantRunning(true)
+          app.setWantRunning(true)
           Libtailscale.requestVPN(this)
           START_STICKY
         }
@@ -44,8 +51,8 @@ open class IPNService : VpnService(), libtailscale.IPNService {
           // This means we were started by Android due to Always On VPN.
           // We show a non-foreground notification because we weren't
           // started as a foreground service.
-          App.get().notifyStatus(true)
-          App.get().setWantRunning(true)
+          app.notifyStatus(true)
+          app.setWantRunning(true)
           Libtailscale.requestVPN(this)
           START_STICKY
         }
@@ -64,6 +71,8 @@ open class IPNService : VpnService(), libtailscale.IPNService {
       }
 
   override fun close() {
+    app.setWantRunning(false) { updateVpnStatus(false) }
+    Notifier.setState(Ipn.State.Stopping)
     stopForeground(STOP_FOREGROUND_REMOVE)
     Libtailscale.serviceDisconnect(this)
   }
@@ -76,6 +85,10 @@ open class IPNService : VpnService(), libtailscale.IPNService {
   override fun onRevoke() {
     close()
     super.onRevoke()
+  }
+
+  private fun setVpnPrepared(isPrepared: Boolean) {
+    app.getAppScopedViewModel().setVpnPrepared(isPrepared)
   }
 
   private fun showForegroundNotification() {

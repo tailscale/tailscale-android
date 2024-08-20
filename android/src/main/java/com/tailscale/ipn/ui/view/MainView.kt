@@ -232,6 +232,9 @@ fun MainView(
                 ConnectView(
                     state,
                     isPrepared,
+                    // If Tailscale is stopping, don't automatically restart; wait for user to take
+                    // action (eg, if the user connected to another VPN).
+                    state != Ipn.State.Stopping,
                     user,
                     { viewModel.toggleVpn() },
                     { viewModel.login() },
@@ -407,6 +410,7 @@ fun StartingView() {
 fun ConnectView(
     state: Ipn.State,
     isPrepared: Boolean,
+    shouldStartAutomatically: Boolean,
     user: IpnLocal.LoginProfile?,
     connectAction: () -> Unit,
     loginAction: () -> Unit,
@@ -415,7 +419,7 @@ fun ConnectView(
     showVPNPermissionLauncherIfUnauthorized: () -> Unit
 ) {
   LaunchedEffect(isPrepared) {
-    if (!isPrepared) {
+    if (!isPrepared && shouldStartAutomatically) {
       showVPNPermissionLauncherIfUnauthorized()
     }
   }
