@@ -292,4 +292,11 @@
     <string name="health_warnings">Health warnings</string>
     <string name="no_issues_found">No issues found</string>
     <string name="tailscale_is_operating_normally">Tailscale is operating normally.</string>
+
+    <!-- Strings for the multiple VPNs dialog -->
+    <string name="vpn_permission_denied">VPN permission denied</string>
+    <string name="multiple_vpn_explainer">Only one VPN can be active, and it appears another is already running. Before starting Tailscale, disable the other VPN.</string>
+    <string name="go_to_settings">Go to Settings</string>
+    <string name="cancel">Cancel</string>
+
 </resources>
