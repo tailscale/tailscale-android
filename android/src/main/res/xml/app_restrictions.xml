@@ -122,4 +122,10 @@
         android:key="IncludedPackageNames"
         android:restrictionType="string"
         android:title="@string/included_packages" />
+
+    <restriction
+        android:description="@string/defines_an_auth_key_that_will_be_used_for_login"
+        android:key="AuthKey"
+        android:restrictionType="string"
+        android:title="@string/auth_key" />
 </restrictions>

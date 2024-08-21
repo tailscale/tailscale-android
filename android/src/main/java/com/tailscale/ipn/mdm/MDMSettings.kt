@@ -91,6 +91,9 @@ object MDMSettings {
   // apps skip the VPN tunnel.
   val includedPackages = StringMDMSetting("IncludedPackageNames", "Included Package Names")
 
+  // Handled on the backend
+  val authKey = StringMDMSetting("AuthKey", "Auth Key for login")
+
   val allSettings by lazy {
     MDMSettings::class
         .declaredMemberProperties

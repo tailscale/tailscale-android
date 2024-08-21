@@ -298,5 +298,7 @@
     <string name="multiple_vpn_explainer">Only one VPN can be active, and it appears another is already running. Before starting Tailscale, disable the other VPN.</string>
     <string name="go_to_settings">Go to Settings</string>
     <string name="cancel">Cancel</string>
+    <string name="defines_an_auth_key_that_will_be_used_for_login">Defines an auth key that will be used for login.</string>
+    <string name="auth_key">Auth Key</string>
 
 </resources>
