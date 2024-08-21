@@ -500,6 +500,7 @@ open class UninitializedApp : Application() {
         .setOnlyAlertOnce(!vpnRunning)
         .setOngoing(vpnRunning)
         .setSilent(true)
+        .setOngoing(false)
         .setPriority(NotificationCompat.PRIORITY_DEFAULT)
         .addAction(NotificationCompat.Action.Builder(0, actionLabel, pendingButtonIntent).build())
         .setContentIntent(pendingIntent)
