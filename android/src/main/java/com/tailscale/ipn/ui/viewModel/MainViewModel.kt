@@ -23,9 +23,11 @@ import com.tailscale.ipn.ui.util.PeerCategorizer
 import com.tailscale.ipn.ui.util.PeerSet
 import com.tailscale.ipn.ui.util.TimeUtil
 import com.tailscale.ipn.ui.util.set
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
 import java.time.Duration
 
@@ -38,6 +40,7 @@ class MainViewModelFactory(private val vpnViewModel: VpnViewModel) : ViewModelPr
   }
 }
 
+@OptIn(FlowPreview::class)
 class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
 
   // The user readable state of the system
@@ -113,6 +116,14 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
     }
 
     viewModelScope.launch {
+      searchTerm
+        .debounce(250L)
+        .collect { term ->
+          peers.set(peerCategorizer.groupedAndFilteredPeers(term))
+        }
+    }
+
+    viewModelScope.launch {
       Notifier.netmap.collect { it ->
         it?.let { netmap ->
           peerCategorizer.regenerateGroupedPeers(netmap)
@@ -131,14 +142,10 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
           }
         }
       }
+    }
 
-      viewModelScope.launch {
-        searchTerm.collect { term -> peers.set(peerCategorizer.groupedAndFilteredPeers(term)) }
-      }
-
-      viewModelScope.launch {
-        App.get().healthNotifier?.currentIcon?.collect { icon -> healthIcon.set(icon) }
-      }
+    viewModelScope.launch {
+      App.get().healthNotifier?.currentIcon?.collect { icon -> healthIcon.set(icon) }
     }
   }
 
