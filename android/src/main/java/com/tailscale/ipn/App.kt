@@ -563,5 +563,14 @@ open class UninitializedApp : Application() {
           "com.sonos.acr2",
           // Google Chromecast https://github.com/tailscale/tailscale/issues/3636
           "com.google.android.apps.chromecast.app",
+          // Voicemail https://github.com/tailscale/tailscale/issues/13199
+          "com.samsung.attvvm",
+          "com.att.mobile.android.vvm",
+          "com.tmobile.vvm.application",
+          "com.metropcs.service.vvm",
+          "com.mizmowireless.vvm",
+          "com.vna.service.vvm",
+          "com.dish.vvm",
+          "com.comcast.modesto.vvm.client",
       )
 }
