@@ -179,6 +179,10 @@ androidpath:
 	@echo "export ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT)"
 	@echo 'export PATH=$(ANDROID_HOME)/cmdline-tools/latest/bin:$(ANDROID_HOME)/platform-tools:$$PATH'
 
+.PHONY: tag_release
+tag_release: ## Tag the current commit with the current version
+	git tag -a "$(VERSION_LONG)" -m "OSS and Version updated to ${VERSION_LONG}"
+
 
 .PHONY: bumposs ## Bump to the latest oss and update teh versions.
 bumposs: update-oss update-version
