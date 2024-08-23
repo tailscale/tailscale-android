@@ -102,8 +102,7 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
                 when {
                   prepared && currentState == State.Running || currentState == State.Starting ->
                       true
-                  previousState == State.NoState && currentState == State.Starting ->
-                      true
+                  previousState == State.NoState && currentState == State.Starting -> true
                   else -> false
                 }
 
@@ -131,14 +130,14 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
           }
         }
       }
+    }
 
-      viewModelScope.launch {
-        searchTerm.collect { term -> peers.set(peerCategorizer.groupedAndFilteredPeers(term)) }
-      }
+    viewModelScope.launch {
+      searchTerm.collect { term -> peers.set(peerCategorizer.groupedAndFilteredPeers(term)) }
+    }
 
-      viewModelScope.launch {
-        App.get().healthNotifier?.currentIcon?.collect { icon -> healthIcon.set(icon) }
-      }
+    viewModelScope.launch {
+      App.get().healthNotifier?.currentIcon?.collect { icon -> healthIcon.set(icon) }
     }
   }
 
