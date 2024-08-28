@@ -42,89 +42,96 @@ fun TailnetLockSetupView(
     backToSettings: BackNavigation,
     model: TailnetLockSetupViewModel = viewModel(factory = TailnetLockSetupViewModelFactory())
 ) {
-  val statusItems by model.statusItems.collectAsState()
-  val nodeKey by model.nodeKey.collectAsState()
-  val tailnetLockKey by model.tailnetLockKey.collectAsState()
-  val tailnetLockTlPubKey = tailnetLockKey.replace("nlpub", "tlpub")
+    val statusItems by model.statusItems.collectAsState()
+    val nodeKey by model.nodeKey.collectAsState()
+    val tailnetLockKey by model.tailnetLockKey.collectAsState()
+    val tailnetLockTlPubKey = tailnetLockKey.replace("nlpub", "tlpub")
 
-  Scaffold(topBar = { Header(R.string.tailnet_lock, onBack = backToSettings) }) { innerPadding ->
-    LoadingIndicator.Wrap {
-      LazyColumn(modifier = Modifier.padding(innerPadding)) {
-        item(key = "header") { ExplainerView() }
+    Scaffold(topBar = { Header(R.string.tailnet_lock, onBack = backToSettings) }) { innerPadding ->
+        LoadingIndicator.Wrap {
+            Column(
+                modifier = Modifier
+                    .padding(innerPadding)
+                    .focusable()
+                    .verticalScroll(rememberScrollState())
+                    .fillMaxSize()
+            ) {
+                ExplainerView()
 
-        items(items = statusItems, key = { "status_${it.title}" }) { statusItem ->
-          Lists.ItemDivider()
+                statusItems.forEach { statusItem ->
+                    Lists.ItemDivider()
 
-          ListItem(
-              leadingContent = {
-                Icon(
-                    painter = painterResource(id = statusItem.icon),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant)
-              },
-              headlineContent = { Text(stringResource(statusItem.title)) })
+                    ListItem(
+                        leadingContent = {
+                            Icon(
+                                painter = painterResource(id = statusItem.icon),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        headlineContent = { Text(stringResource(statusItem.title)) }
+                    )
+                }
+                //Node key
+                Lists.SectionDivider()
+                ClipboardValueView(
+                    value = nodeKey,
+                    title = stringResource(R.string.node_key),
+                    subtitle = stringResource(R.string.node_key_explainer)
+                )
+
+                // Tailnet lock key
+                Lists.SectionDivider()
+                ClipboardValueView(
+                    value = tailnetLockTlPubKey,
+                    title = stringResource(R.string.tailnet_lock_key),
+                    subtitle = stringResource(R.string.tailnet_lock_key_explainer)
+                )
+            }
         }
-
-        item(key = "nodeKey") {
-          Lists.SectionDivider()
-
-          ClipboardValueView(
-              value = nodeKey,
-              title = stringResource(R.string.node_key),
-              subtitle = stringResource(R.string.node_key_explainer))
-        }
-
-        item(key = "tailnetLockKey") {
-          Lists.SectionDivider()
-
-          ClipboardValueView(
-              value = tailnetLockTlPubKey,
-              title = stringResource(R.string.tailnet_lock_key),
-              subtitle = stringResource(R.string.tailnet_lock_key_explainer))
-        }
-      }
     }
-  }
 }
 
 @Composable
 private fun ExplainerView() {
-  val handler = LocalUriHandler.current
+    val handler = LocalUriHandler.current
 
-  Lists.MultilineDescription {
-    ClickableText(
-        explainerText(),
-        onClick = { handler.openUri(Links.TAILNET_LOCK_KB_URL) },
-        style = MaterialTheme.typography.bodyMedium)
-  }
+    Lists.MultilineDescription {
+        ClickableText(
+            explainerText(),
+            onClick = { handler.openUri(Links.TAILNET_LOCK_KB_URL) },
+            style = MaterialTheme.typography.bodyMedium
+        )
+    }
 }
 
 @Composable
 fun explainerText(): AnnotatedString {
-  val annotatedString = buildAnnotatedString {
-    withStyle(SpanStyle(color = MaterialTheme.colorScheme.defaultTextColor)) {
-      append(stringResource(id = R.string.tailnet_lock_explainer))
-    }
-
-    pushStringAnnotation(tag = "tailnetLockSupportURL", annotation = Links.TAILNET_LOCK_KB_URL)
-
-    withStyle(
-        style =
-            SpanStyle(
-                color = MaterialTheme.colorScheme.link,
-                textDecoration = TextDecoration.Underline)) {
-          append(stringResource(id = R.string.learn_more))
+    val annotatedString = buildAnnotatedString {
+        withStyle(SpanStyle(color = MaterialTheme.colorScheme.defaultTextColor)) {
+            append(stringResource(id = R.string.tailnet_lock_explainer))
         }
-    pop()
-  }
-  return annotatedString
+
+        pushStringAnnotation(tag = "tailnetLockSupportURL", annotation = Links.TAILNET_LOCK_KB_URL)
+
+        withStyle(
+            style = SpanStyle(
+                color = MaterialTheme.colorScheme.link,
+                textDecoration = TextDecoration.Underline
+            )
+        ) {
+            append(stringResource(id = R.string.learn_more))
+        }
+        pop()
+    }
+    return annotatedString
 }
 
 @Composable
 @Preview
 fun TailnetLockSetupViewPreview() {
-  val vm = TailnetLockSetupViewModel()
-  vm.nodeKey.set("8BADF00D-EA7-1337-DEAD-BEEF")
-  vm.tailnetLockKey.set("C0FFEE-CAFE-50DA")
-  TailnetLockSetupView(backToSettings = {}, vm)
+    val vm = TailnetLockSetupViewModel()
+    vm.nodeKey.set("8BADF00D-EA7-1337-DEAD-BEEF")
+    vm.tailnetLockKey.set("C0FFEE-CAFE-50DA")
+    TailnetLockSetupView(backToSettings = {}, vm)
 }

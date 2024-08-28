@@ -4,6 +4,7 @@
 package com.tailscale.ipn.ui.util
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -20,17 +21,15 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.theme.titledListItem
-import com.tailscale.ipn.ui.util.AndroidTVUtil.isAndroidTV
 
 @Composable
 fun ClipboardValueView(value: String, title: String? = null, subtitle: String? = null) {
   val localClipboardManager = LocalClipboardManager.current
   val modifier =
-      if (isAndroidTV()) {
-        Modifier
-      } else {
-        Modifier.clickable { localClipboardManager.setText(AnnotatedString(value)) }
-      }
+      Modifier.focusable()
+          .clickable {
+            localClipboardManager.setText(AnnotatedString(value))
+          }
 
   ListItem(
       colors = MaterialTheme.colorScheme.titledListItem,
