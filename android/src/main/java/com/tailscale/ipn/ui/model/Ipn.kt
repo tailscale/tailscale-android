@@ -158,7 +158,7 @@ class Ipn {
         ForceDaemonSet = true
       }
 
-    var Hostname: Boolean? = null
+    var Hostname: String? = null
       set(value) {
         field = value
         HostnameSet = true
