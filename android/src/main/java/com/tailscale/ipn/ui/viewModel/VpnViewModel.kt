@@ -26,9 +26,12 @@ class VpnViewModelFactory(private val application: Application) : ViewModelProvi
 // application scoped because Tailscale might be toggled on and off outside of the activity
 // lifecycle.
 class VpnViewModel(application: Application) : AndroidViewModel(application) {
-  // Whether the VPN is prepared
+  // Whether the VPN is prepared. This is set to true if the VPN application is already prepared, or if the user has previously consented to the VPN application. This is used to determine whether a VPN permission launcher needs to be shown. 
   val _vpnPrepared = MutableStateFlow(false)
   val vpnPrepared: StateFlow<Boolean> = _vpnPrepared
+  // Whether a VPN interface has been established. This is set by net.updateTUN upon VpnServiceBuilder.establish, and consumed by UI to reflect VPN state. 
+  val _vpnActive = MutableStateFlow(false)
+  val vpnActive: StateFlow<Boolean> = _vpnActive
   val TAG = "VpnViewModel"
 
   init {
@@ -49,7 +52,11 @@ class VpnViewModel(application: Application) : AndroidViewModel(application) {
     }
   }
 
-  fun setVpnPrepared(prepared: Boolean) {
-    _vpnPrepared.value = prepared
+  fun setVpnActive(isActive: Boolean) {
+    _vpnActive.value = isActive
+  }
+
+  fun setVpnPrepared(isPrepared: Boolean) {
+    _vpnPrepared.value = isPrepared
   }
 }

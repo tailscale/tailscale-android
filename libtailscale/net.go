@@ -12,9 +12,9 @@ import (
 	"reflect"
 	"runtime/debug"
 	"strings"
+	"syscall"
 
 	"github.com/tailscale/wireguard-go/tun"
-	"golang.org/x/sys/unix"
 	"inet.af/netaddr"
 	"tailscale.com/net/dns"
 	"tailscale.com/net/netmon"
@@ -32,6 +32,15 @@ var errVPNNotPrepared = errors.New("VPN service not prepared or was revoked")
 //
 //	https://github.com/tailscale/tailscale/issues/2180
 var errMultipleUsers = errors.New("VPN cannot be created on this device due to an Android bug with multiple users")
+
+// VpnService contains the IPNService class from Android, the file descriptor, and whether the descriptor has been detached.
+type VpnService struct {
+	service    IPNService
+	fd         int32
+	fdDetached bool
+}
+
+var vpnService = &VpnService{}
 
 // Report interfaces in the device in net.Interface format.
 func (a *App) getInterfaces() ([]netmon.Interface, error) {
@@ -138,7 +147,8 @@ func (b *backend) updateTUN(service IPNService, rcfg *router.Config, dcfg *dns.O
 	if len(rcfg.LocalAddrs) == 0 {
 		return nil
 	}
-	builder := service.NewBuilder()
+	vpnService.service = service
+	builder := vpnService.service.NewBuilder()
 	b.logger.Logf("updateTUN: got new builder")
 
 	if err := builder.SetMTU(defaultMTU); err != nil {
@@ -193,10 +203,15 @@ func (b *backend) updateTUN(service IPNService, rcfg *router.Config, dcfg *dns.O
 	parcelFD, err := builder.Establish()
 	if err != nil {
 		if strings.Contains(err.Error(), "INTERACT_ACROSS_USERS") {
+			// Update VPN status if VPN interface cannot be created
+			b.logger.Logf("updateTUN: could not establish VPN because %v", err)
+			vpnService.service.UpdateVpnStatus(false)
 			return errMultipleUsers
 		}
 		return fmt.Errorf("VpnService.Builder.establish: %v", err)
 	}
+	log.Printf("Setting vpn activity status to true")
+	vpnService.service.UpdateVpnStatus(true)
 	b.logger.Logf("updateTUN: established VPN")
 
 	if parcelFD == nil {
@@ -205,6 +220,9 @@ func (b *backend) updateTUN(service IPNService, rcfg *router.Config, dcfg *dns.O
 
 	// detachFd.
 	tunFD, err := parcelFD.Detach()
+	vpnService.fdDetached = true
+	vpnService.fd = tunFD
+
 	if err != nil {
 		return fmt.Errorf("detachFd: %v", err)
 	}
@@ -213,7 +231,7 @@ func (b *backend) updateTUN(service IPNService, rcfg *router.Config, dcfg *dns.O
 	// Create TUN device.
 	tunDev, _, err := tun.CreateUnmonitoredTUNFromFD(int(tunFD))
 	if err != nil {
-		unix.Close(int(tunFD))
+		closeFileDescriptor()
 		return err
 	}
 	b.logger.Logf("updateTUN: created TUN device")
@@ -226,10 +244,21 @@ func (b *backend) updateTUN(service IPNService, rcfg *router.Config, dcfg *dns.O
 	return nil
 }
 
+func closeFileDescriptor() error {
+	if vpnService.fd != -1 && vpnService.fdDetached {
+		err := syscall.Close(int(vpnService.fd))
+		vpnService.fd = -1
+		vpnService.fdDetached = false
+		return fmt.Errorf("error closing file descriptor: %w", err)
+	}
+	return nil
+}
+
 // CloseVPN closes any active TUN devices.
 func (b *backend) CloseTUNs() {
 	b.lastCfg = nil
 	b.devices.Shutdown()
+	vpnService.service = nil
 }
 
 // ifname is the interface name retrieved from LinkProperties on network change. If a network is lost, an empty string is passed in.

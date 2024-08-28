@@ -150,7 +150,6 @@ func (a *App) runBackend(ctx context.Context) error {
 		cfg        configPair
 		state      ipn.State
 		networkMap *netmap.NetworkMap
-		service    IPNService
 	)
 
 	stateCh := make(chan ipn.State)
@@ -168,9 +167,9 @@ func (a *App) runBackend(ctx context.Context) error {
 		select {
 		case s := <-stateCh:
 			state = s
-			if cfg.rcfg != nil && state >= ipn.Starting && service != nil {
+			if cfg.rcfg != nil && state >= ipn.Starting && vpnService.service != nil {
 				// On state change, check if there are router or config changes requiring an update to VPNBuilder
-				if err := b.updateTUN(service, cfg.rcfg, cfg.dcfg); err != nil {
+				if err := b.updateTUN(vpnService.service, cfg.rcfg, cfg.dcfg); err != nil {
 					if errors.Is(err, errMultipleUsers) {
 						// TODO: surface error to user
 					}
@@ -193,13 +192,13 @@ func (a *App) runBackend(ctx context.Context) error {
 			networkMap = n
 		case c := <-configs:
 			cfg = c
-			if b == nil || service == nil || cfg.rcfg == nil {
+			if b == nil || vpnService.service == nil || cfg.rcfg == nil {
 				configErrs <- nil
 				break
 			}
-			configErrs <- b.updateTUN(service, cfg.rcfg, cfg.dcfg)
+			configErrs <- b.updateTUN(vpnService.service, cfg.rcfg, cfg.dcfg)
 		case s := <-onVPNRequested:
-			if service != nil && service.ID() == s.ID() {
+			if vpnService.service != nil && vpnService.service.ID() == s.ID() {
 				// Still the same VPN instance, do nothing
 				break
 			}
@@ -228,24 +227,24 @@ func (a *App) runBackend(ctx context.Context) error {
 			// See https://github.com/tailscale/corp/issues/13814
 			b.backend.DebugRebind()
 
-			service = s
+			vpnService.service = s
 
 			if networkMap != nil {
 				// TODO
 			}
 			if cfg.rcfg != nil && state >= ipn.Starting {
-				if err := b.updateTUN(service, cfg.rcfg, cfg.dcfg); err != nil {
+				if err := b.updateTUN(vpnService.service, cfg.rcfg, cfg.dcfg); err != nil {
 					log.Printf("VPN update failed: %v", err)
-					service.Close()
+					vpnService.service.Close()
 					b.lastCfg = nil
 					b.CloseTUNs()
 				}
 			}
 		case s := <-onDisconnect:
 			b.CloseTUNs()
-			if service != nil && service.ID() == s.ID() {
+			if vpnService.service != nil && vpnService.service.ID() == s.ID() {
 				netns.SetAndroidProtectFunc(nil)
-				service = nil
+				vpnService.service = nil
 			}
 		case i := <-onDNSConfigChanged:
 			if b != nil {

@@ -3,7 +3,9 @@
 
 package libtailscale
 
-import _ "golang.org/x/mobile/bind"
+import (
+	_ "golang.org/x/mobile/bind"
+)
 
 // Start starts the application, storing state in the given dataDir and using
 // the given appCtx.
@@ -73,6 +75,8 @@ type IPNService interface {
 	NewBuilder() VPNServiceBuilder
 
 	Close()
+
+	UpdateVpnStatus(bool)
 }
 
 // VPNServiceBuilder corresponds to Android's VpnService.Builder.

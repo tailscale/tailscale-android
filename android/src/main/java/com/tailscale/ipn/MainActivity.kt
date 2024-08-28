@@ -89,7 +89,7 @@ class MainActivity : ComponentActivity() {
   private lateinit var vpnPermissionLauncher: ActivityResultLauncher<Intent>
   private val viewModel: MainViewModel by lazy {
     val app = App.get()
-    vpnViewModel = app.vpnViewModel
+    vpnViewModel = app.getAppScopedViewModel()
     ViewModelProvider(this, MainViewModelFactory(vpnViewModel)).get(MainViewModel::class.java)
   }
   private lateinit var vpnViewModel: VpnViewModel
@@ -137,7 +137,7 @@ class MainActivity : ComponentActivity() {
               showOtherVPNConflictDialog()
             } else {
               Log.d("VpnPermission", "Permission was denied by the user")
-              viewModel.setVpnPrepared(false)
+              vpnViewModel.setVpnPrepared(false)
             }
           }
         }
