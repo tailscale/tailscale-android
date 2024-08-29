@@ -40,6 +40,7 @@ fun LoginQRView(onDismiss: () -> Unit = {}, model: LoginQRViewModel = viewModel(
   Surface(color = MaterialTheme.colorScheme.scrim, modifier = Modifier.fillMaxSize()) {
     Dialog(onDismissRequest = onDismiss) {
       val image by model.qrCode.collectAsState()
+      val numCode by model.numCode.collectAsState()
 
       Column(
           modifier =
@@ -65,6 +66,12 @@ fun LoginQRView(onDismiss: () -> Unit = {}, model: LoginQRViewModel = viewModel(
                         modifier = Modifier.fillMaxSize())
                   }
                 }
+            numCode?.let { it ->
+              Text(
+                  text = stringResource(R.string.enter_code_to_connect_to_tailnet, it),
+                  style = MaterialTheme.typography.titleMedium,
+                  color = MaterialTheme.colorScheme.onSurface)
+            }
             Button(onClick = onDismiss) { Text(text = stringResource(R.string.dismiss)) }
           }
     }
@@ -76,5 +83,6 @@ fun LoginQRView(onDismiss: () -> Unit = {}, model: LoginQRViewModel = viewModel(
 fun LoginQRViewPreview() {
   val vm = LoginQRViewModel()
   vm.qrCode.set(vm.generateQRCode("https://tailscale.com", 200, 0))
+  vm.numCode.set("123456789")
   AppTheme { LoginQRView({}, vm) }
 }
