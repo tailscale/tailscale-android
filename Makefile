@@ -201,7 +201,7 @@ update-version: ## Update the version in build.gradle
 update-oss: ## Update the tailscale.com go module and update the version in build.gradle
 	GOPROXY=direct go get tailscale.com@main
 	go run tailscale.com/cmd/printdep --go > go.toolchain.rev
-	go mod tidy -compat=1.22
+	go mod tidy -compat=1.23
 
 # Get the commandline tools package, this provides (among other things) the sdkmanager binary.
 $(ANDROID_HOME)/cmdline-tools/latest/bin/sdkmanager:
