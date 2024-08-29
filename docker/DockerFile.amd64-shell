@@ -24,7 +24,7 @@ ENV PATH $PATH:$HOME/bin:$ANDROID_HOME/platform-tools
 # We need some version of Go new enough to support the "embed" package
 # to run "go run tailscale.com/cmd/printdep" to figure out which Tailscale Go
 # version we need later, but otherwise this toolchain isn't used:
-RUN curl -L https://go.dev/dl/go1.22.0.linux-amd64.tar.gz | tar -C /usr/local -zxv
+RUN curl -L https://go.dev/dl/go1.23.0.linux-amd64.tar.gz | tar -C /usr/local -zxv
 RUN ln -s /usr/local/go/bin/go /usr/bin
 
 RUN mkdir -p $HOME/tailscale-android
