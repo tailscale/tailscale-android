@@ -187,22 +187,28 @@ fun MainView(
                   }
                 },
                 trailingContent = {
-                  Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
-                    when (user) {
-                      null -> SettingsButton { navigation.onNavigateToSettings() }
-                      else ->
-                          Box(
-                              contentAlignment = Alignment.Center,
-                              modifier =
-                                  Modifier.size(42.dp).clip(CircleShape).clickable {
-                                    navigation.onNavigateToSettings()
-                                  }) {
-                                Avatar(profile = user, size = 36) {
-                                  navigation.onNavigateToSettings()
-                                }
-                              }
-                    }
-                  }
+                  Box(
+                      modifier =
+                          Modifier.weight(1f)
+                              .focusable()
+                              .clickable { navigation.onNavigateToSettings() }
+                              .padding(8.dp), 
+                      contentAlignment = Alignment.CenterEnd) {
+                        when (user) {
+                          null -> SettingsButton { navigation.onNavigateToSettings() }
+                          else ->
+                              Box(
+                                  contentAlignment = Alignment.Center,
+                                  modifier =
+                                      Modifier.size(42.dp).clip(CircleShape).focusable().clickable {
+                                        navigation.onNavigateToSettings()
+                                      }) {
+                                    Avatar(profile = user, size = 36) {
+                                      navigation.onNavigateToSettings()
+                                    }
+                                  }
+                        }
+                      }
                 })
 
             when (state) {
