@@ -87,48 +87,46 @@ fun TailnetLockSetupView(
                 subtitle = stringResource(R.string.tailnet_lock_key_explainer))
           }
     }
+  }
 }
 
 @Composable
 private fun ExplainerView() {
-    val handler = LocalUriHandler.current
+  val handler = LocalUriHandler.current
 
-    Lists.MultilineDescription {
-        ClickableText(
-            explainerText(),
-            onClick = { handler.openUri(Links.TAILNET_LOCK_KB_URL) },
-            style = MaterialTheme.typography.bodyMedium
-        )
-    }
+  Lists.MultilineDescription {
+    ClickableText(
+        explainerText(),
+        onClick = { handler.openUri(Links.TAILNET_LOCK_KB_URL) },
+        style = MaterialTheme.typography.bodyMedium)
+  }
 }
 
 @Composable
 fun explainerText(): AnnotatedString {
-    val annotatedString = buildAnnotatedString {
-        withStyle(SpanStyle(color = MaterialTheme.colorScheme.defaultTextColor)) {
-            append(stringResource(id = R.string.tailnet_lock_explainer))
-        }
-
-        pushStringAnnotation(tag = "tailnetLockSupportURL", annotation = Links.TAILNET_LOCK_KB_URL)
-
-        withStyle(
-            style = SpanStyle(
-                color = MaterialTheme.colorScheme.link,
-                textDecoration = TextDecoration.Underline
-            )
-        ) {
-            append(stringResource(id = R.string.learn_more))
-        }
-        pop()
+  return buildAnnotatedString {
+    withStyle(SpanStyle(color = MaterialTheme.colorScheme.defaultTextColor)) {
+      append(stringResource(id = R.string.tailnet_lock_explainer))
     }
-    return annotatedString
+
+    pushStringAnnotation(tag = "tailnetLockSupportURL", annotation = Links.TAILNET_LOCK_KB_URL)
+
+    withStyle(
+        style =
+            SpanStyle(
+                color = MaterialTheme.colorScheme.link,
+                textDecoration = TextDecoration.Underline)) {
+          append(stringResource(id = R.string.learn_more))
+        }
+    pop()
+  }
 }
 
 @Composable
 @Preview
 fun TailnetLockSetupViewPreview() {
-    val vm = TailnetLockSetupViewModel()
-    vm.nodeKey.set("8BADF00D-EA7-1337-DEAD-BEEF")
-    vm.tailnetLockKey.set("C0FFEE-CAFE-50DA")
-    TailnetLockSetupView(backToSettings = {}, vm)
+  val vm = TailnetLockSetupViewModel()
+  vm.nodeKey.set("8BADF00D-EA7-1337-DEAD-BEEF")
+  vm.tailnetLockKey.set("C0FFEE-CAFE-50DA")
+  TailnetLockSetupView(backToSettings = {}, vm)
 }
