@@ -1,12 +1,14 @@
 module github.com/tailscale/tailscale-android
 
-go 1.22.0
+go 1.23
+
+toolchain go1.23.0
 
 require (
 	github.com/tailscale/wireguard-go v0.0.0-20240731203015-71393c576b98
 	golang.org/x/mobile v0.0.0-20240319015410-c58ccf4b0c87
 	inet.af/netaddr v0.0.0-20220617031823-097006376321
-	tailscale.com v1.73.0-pre.0.20240821174438-af3d3c433b67
+	tailscale.com v1.73.0-pre.0.20240829184338-a584d04f8a20
 )
 
 require (
@@ -46,7 +48,7 @@ require (
 	github.com/gorilla/csrf v1.7.2 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
 	github.com/hdevalence/ed25519consensus v0.2.0 // indirect
-	github.com/illarion/gonotify v1.0.1 // indirect
+	github.com/illarion/gonotify/v2 v2.0.2 // indirect
 	github.com/insomniacslk/dhcp v0.0.0-20231206064809-8c70d406f6d2 // indirect
 	github.com/jellydator/ttlcache/v3 v3.1.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
@@ -68,13 +70,12 @@ require (
 	github.com/tailscale/golang-x-crypto v0.0.0-20240604161659-3fde5e568aa4 // indirect
 	github.com/tailscale/goupnp v1.0.1-0.20210804011211-c64d0f06ea05 // indirect
 	github.com/tailscale/hujson v0.0.0-20221223112325-20486734a56a // indirect
-	github.com/tailscale/netlink v1.1.1-0.20211101221916-cabfb018fe85 // indirect
+	github.com/tailscale/netlink v1.1.1-0.20240822203006-4d49adab4de7 // indirect
 	github.com/tailscale/peercred v0.0.0-20240214030740-b535050b2aa4 // indirect
 	github.com/tailscale/web-client-prebuilt v0.0.0-20240226180453-5db17b287bf1 // indirect
 	github.com/tailscale/xnet v0.0.0-20240729143630-8497ac4dab2e // indirect
 	github.com/tcnksm/go-httpstat v0.2.0 // indirect
 	github.com/u-root/uio v0.0.0-20240118234441-a3c409a6018e // indirect
-	github.com/vishvananda/netlink v1.2.1-beta.2 // indirect
 	github.com/vishvananda/netns v0.0.4 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	go4.org/intern v0.0.0-20211027215823-ae77deb06f29 // indirect
