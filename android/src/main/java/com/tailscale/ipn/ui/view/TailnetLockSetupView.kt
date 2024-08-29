@@ -3,10 +3,13 @@
 
 package com.tailscale.ipn.ui.view
 
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.ClickableText
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
@@ -42,53 +45,47 @@ fun TailnetLockSetupView(
     backToSettings: BackNavigation,
     model: TailnetLockSetupViewModel = viewModel(factory = TailnetLockSetupViewModelFactory())
 ) {
-    val statusItems by model.statusItems.collectAsState()
-    val nodeKey by model.nodeKey.collectAsState()
-    val tailnetLockKey by model.tailnetLockKey.collectAsState()
-    val tailnetLockTlPubKey = tailnetLockKey.replace("nlpub", "tlpub")
+  val statusItems by model.statusItems.collectAsState()
+  val nodeKey by model.nodeKey.collectAsState()
+  val tailnetLockKey by model.tailnetLockKey.collectAsState()
+  val tailnetLockTlPubKey = tailnetLockKey.replace("nlpub", "tlpub")
 
-    Scaffold(topBar = { Header(R.string.tailnet_lock, onBack = backToSettings) }) { innerPadding ->
-        LoadingIndicator.Wrap {
-            Column(
-                modifier = Modifier
-                    .padding(innerPadding)
-                    .focusable()
-                    .verticalScroll(rememberScrollState())
-                    .fillMaxSize()
-            ) {
-                ExplainerView()
+  Scaffold(topBar = { Header(R.string.tailnet_lock, onBack = backToSettings) }) { innerPadding ->
+    LoadingIndicator.Wrap {
+      Column(
+          modifier =
+              Modifier.padding(innerPadding)
+                  .focusable()
+                  .verticalScroll(rememberScrollState())
+                  .fillMaxSize()) {
+            ExplainerView()
 
-                statusItems.forEach { statusItem ->
-                    Lists.ItemDivider()
+            statusItems.forEach { statusItem ->
+              Lists.ItemDivider()
 
-                    ListItem(
-                        leadingContent = {
-                            Icon(
-                                painter = painterResource(id = statusItem.icon),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        headlineContent = { Text(stringResource(statusItem.title)) }
-                    )
-                }
-                //Node key
-                Lists.SectionDivider()
-                ClipboardValueView(
-                    value = nodeKey,
-                    title = stringResource(R.string.node_key),
-                    subtitle = stringResource(R.string.node_key_explainer)
-                )
-
-                // Tailnet lock key
-                Lists.SectionDivider()
-                ClipboardValueView(
-                    value = tailnetLockTlPubKey,
-                    title = stringResource(R.string.tailnet_lock_key),
-                    subtitle = stringResource(R.string.tailnet_lock_key_explainer)
-                )
+              ListItem(
+                  leadingContent = {
+                    Icon(
+                        painter = painterResource(id = statusItem.icon),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                  },
+                  headlineContent = { Text(stringResource(statusItem.title)) })
             }
-        }
+            // Node key
+            Lists.SectionDivider()
+            ClipboardValueView(
+                value = nodeKey,
+                title = stringResource(R.string.node_key),
+                subtitle = stringResource(R.string.node_key_explainer))
+
+            // Tailnet lock key
+            Lists.SectionDivider()
+            ClipboardValueView(
+                value = tailnetLockTlPubKey,
+                title = stringResource(R.string.tailnet_lock_key),
+                subtitle = stringResource(R.string.tailnet_lock_key_explainer))
+          }
     }
 }
 
