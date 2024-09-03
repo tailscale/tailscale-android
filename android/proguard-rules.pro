@@ -3,6 +3,10 @@
     native <methods>;
 }
 
+# Keep the classes with syspolicy MDM keys, some of which
+# get used only by the Go backend.
+-keep class com.tailscale.ipn.mdm.** { *; }
+
 # Keep specific classes from Tink library
 -keep class com.google.crypto.tink.** { *; }
 
