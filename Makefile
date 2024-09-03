@@ -265,7 +265,7 @@ docker-all: docker-build-image docker-run-build $(DOCKER_IMAGE)
 .PHONY: docker-shell
 docker-shell: ## Builds a docker image with the android build env and opens a shell
 	docker build  -f docker/DockerFile.amd64-shell -t tailscale-android-shell-amd64 .
-	docker run -v --rm $(CURDIR):/build/tailscale-android -it tailscale-android-shell-amd64
+	docker run --rm -v $(CURDIR):/build/tailscale-android -it tailscale-android-shell-amd64
 
 .PHONY: docker-remove-shell-image
 docker-remove-shell-image: ## Removes all docker shell image
