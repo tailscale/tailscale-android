@@ -8,7 +8,8 @@
 # The docker image to use for the build environment.  Changing this
 # will force a rebuild of the docker image.  If there is an existing image
 # with this name, it will be used.
-DOCKER_IMAGE=tailscale-android-build-amd64
+DOCKER_IMAGE=tailscale-android-build-amd64-go1.23
+export TS_USE_TOOLCHAIN=1
 
 DEBUG_APK=tailscale-debug.apk
 RELEASE_AAB=tailscale-release.aab

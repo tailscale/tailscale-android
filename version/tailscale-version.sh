@@ -9,6 +9,9 @@
 
 set -euo pipefail
 
+# use the go toolchain from the tailscale.com
+export TS_USE_TOOLCHAIN=1
+
 go_list=$(go list -m tailscale.com)
 # go list outputs `tailscale.com <version>`. Extract the version.
 mod_version=${go_list#tailscale.com}
