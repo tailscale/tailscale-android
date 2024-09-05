@@ -156,8 +156,8 @@ github.com/tailscale/peercred v0.0.0-20240214030740-b535050b2aa4 h1:Gz0rz40FvFVL
 github.com/tailscale/peercred v0.0.0-20240214030740-b535050b2aa4/go.mod h1:phI29ccmHQBc+wvroosENp1IF9195449VDnFDhJ4rJU=
 github.com/tailscale/web-client-prebuilt v0.0.0-20240226180453-5db17b287bf1 h1:tdUdyPqJ0C97SJfjB9tW6EylTtreyee9C44de+UBG0g=
 github.com/tailscale/web-client-prebuilt v0.0.0-20240226180453-5db17b287bf1/go.mod h1:agQPE6y6ldqCOui2gkIh7ZMztTkIQKH049tv8siLuNQ=
-github.com/tailscale/wireguard-go v0.0.0-20240731203015-71393c576b98 h1:RNpJrXfI5u6e+uzyIzvmnXbhmhdRkVf//90sMBH3lso=
-github.com/tailscale/wireguard-go v0.0.0-20240731203015-71393c576b98/go.mod h1:BOm5fXUBFM+m9woLNBoxI9TaBXXhGNP50LX/TGIvGb4=
+github.com/tailscale/wireguard-go v0.0.0-20240905161824-799c1978fafc h1:cezaQN9pvKVaw56Ma5qr/G646uKIYP0yQf+OyWN/okc=
+github.com/tailscale/wireguard-go v0.0.0-20240905161824-799c1978fafc/go.mod h1:BOm5fXUBFM+m9woLNBoxI9TaBXXhGNP50LX/TGIvGb4=
 github.com/tailscale/xnet v0.0.0-20240729143630-8497ac4dab2e h1:zOGKqN5D5hHhiYUp091JqK7DPCqSARyUfduhGUY8Bek=
 github.com/tailscale/xnet v0.0.0-20240729143630-8497ac4dab2e/go.mod h1:orPd6JZXXRyuDusYilywte7k094d7dycXXU5YnWsrwg=
 github.com/tc-hib/winres v0.2.1 h1:YDE0FiP0VmtRaDn7+aaChp1KiF4owBiJa5l964l5ujA=
@@ -256,5 +256,5 @@ inet.af/netaddr v0.0.0-20220617031823-097006376321 h1:B4dC8ySKTQXasnjDTMsoCMf1sQ
 inet.af/netaddr v0.0.0-20220617031823-097006376321/go.mod h1:OIezDfdzOgFhuw4HuWapWq2e9l0H9tK4F1j+ETRtF3k=
 software.sslmate.com/src/go-pkcs12 v0.4.0 h1:H2g08FrTvSFKUj+D309j1DPfk5APnIdAQAB8aEykJ5k=
 software.sslmate.com/src/go-pkcs12 v0.4.0/go.mod h1:Qiz0EyvDRJjjxGyUQa2cCNZn/wMyzrRJ/qcDXOQazLI=
-tailscale.com v1.73.0-pre.0.20240829222721-959285e0c540 h1:nike4kuThT/9ehqnIkGlx3zWeRyx1aJe3E7iUyed0ng=
-tailscale.com v1.73.0-pre.0.20240829222721-959285e0c540/go.mod h1:PdTJH9Hv0Bn2PguIZh1vfqiKmcRgp6MoE2PnxET1B3E=
+tailscale.com v1.73.0-pre.0.20240905180038-e7b5e8c8cd9f h1:6nKO3Qt1da0I2XiK06I7cI4SYY4iSKxGHRFWoqB7YCA=
+tailscale.com v1.73.0-pre.0.20240905180038-e7b5e8c8cd9f/go.mod h1:8e0mb1njzhKGS7DXY1q0PhVGrlFjZYW+eNQkC6Mb2BE=
