@@ -86,8 +86,8 @@ github.com/gorilla/securecookie v1.1.2 h1:YCIWL56dvtr73r6715mJs5ZvhtnY73hBvEF8kX
 github.com/gorilla/securecookie v1.1.2/go.mod h1:NfCASbcHqRSY+3a8tlWJwsQap2VX5pwzwo4h3eOamfo=
 github.com/hdevalence/ed25519consensus v0.2.0 h1:37ICyZqdyj0lAZ8P4D1d1id3HqbbG1N3iBb1Tb4rdcU=
 github.com/hdevalence/ed25519consensus v0.2.0/go.mod h1:w3BHWjwJbFU29IRHL1Iqkw3sus+7FctEyM4RqDxYNzo=
-github.com/illarion/gonotify/v2 v2.0.2 h1:oDH5yvxq9oiQGWUeut42uShcWzOy/hsT9E7pvO95+kQ=
-github.com/illarion/gonotify/v2 v2.0.2/go.mod h1:38oIJTgFqupkEydkkClkbL6i5lXV/bxdH9do5TALPEE=
+github.com/illarion/gonotify/v2 v2.0.3 h1:B6+SKPo/0Sw8cRJh1aLzNEeNVFfzE3c6N+o+vyxM+9A=
+github.com/illarion/gonotify/v2 v2.0.3/go.mod h1:38oIJTgFqupkEydkkClkbL6i5lXV/bxdH9do5TALPEE=
 github.com/insomniacslk/dhcp v0.0.0-20231206064809-8c70d406f6d2 h1:9K06NfxkBh25x56yVhWWlKFE8YpicaSfHwoV8SFbueA=
 github.com/insomniacslk/dhcp v0.0.0-20231206064809-8c70d406f6d2/go.mod h1:3A9PQ1cunSDF/1rbTq99Ts4pVnycWg+vlPkfeD2NLFI=
 github.com/jellydator/ttlcache/v3 v3.1.0 h1:0gPFG0IHHP6xyUyXq+JaD8fwkDCqgqwohXNJBcYE71g=
@@ -256,5 +256,5 @@ inet.af/netaddr v0.0.0-20220617031823-097006376321 h1:B4dC8ySKTQXasnjDTMsoCMf1sQ
 inet.af/netaddr v0.0.0-20220617031823-097006376321/go.mod h1:OIezDfdzOgFhuw4HuWapWq2e9l0H9tK4F1j+ETRtF3k=
 software.sslmate.com/src/go-pkcs12 v0.4.0 h1:H2g08FrTvSFKUj+D309j1DPfk5APnIdAQAB8aEykJ5k=
 software.sslmate.com/src/go-pkcs12 v0.4.0/go.mod h1:Qiz0EyvDRJjjxGyUQa2cCNZn/wMyzrRJ/qcDXOQazLI=
-tailscale.com v1.73.0-pre.0.20240905180038-e7b5e8c8cd9f h1:6nKO3Qt1da0I2XiK06I7cI4SYY4iSKxGHRFWoqB7YCA=
-tailscale.com v1.73.0-pre.0.20240905180038-e7b5e8c8cd9f/go.mod h1:8e0mb1njzhKGS7DXY1q0PhVGrlFjZYW+eNQkC6Mb2BE=
+tailscale.com v1.73.0-pre.0.20240909191529-0970615b1b45 h1:3SgcY+JsyhIPYvFqgAWfPnQak2DHpFtsKrEMVJH1i+Q=
+tailscale.com v1.73.0-pre.0.20240909191529-0970615b1b45/go.mod h1:3iACpCONQ4lauDXvwfoGlwNCpfbVxjdc2j6G9EuFOW8=
