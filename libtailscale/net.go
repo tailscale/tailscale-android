@@ -287,7 +287,7 @@ func (b *backend) getDNSBaseConfig() (ret dns.OSConfig, _ error) {
 		// DNS config are lacking, and almost all Android phones use Google
 		// services anyway, so it's a reasonable default: it's an ecosystem the
 		// user has selected by having an Android device.
-		if len(ret.Nameservers) == 0 && b.appCtx.IsPlayVersion() {
+		if len(ret.Nameservers) == 0 && b.buildConfig.UseGoogleDNSFallback {
 			log.Printf("getDNSBaseConfig: none found; falling back to Google public DNS")
 			ret.Nameservers = append(ret.Nameservers, googleDNSServers...)
 		}
