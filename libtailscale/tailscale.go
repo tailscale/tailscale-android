@@ -38,6 +38,11 @@ func newApp(dataDir, directFileRoot string, appCtx AppContext) Application {
 	}
 	a.ready.Add(2)
 
+	// Get the build configuration, if any.
+	if bc := appCtx.GetBuildConfig(); bc != nil {
+		a.buildConfig = bc
+	}
+
 	a.store = newStateStore(a.appCtx)
 	a.policyStore = &syspolicyHandler{a: a}
 	netmon.RegisterInterfaceGetter(a.getInterfaces)

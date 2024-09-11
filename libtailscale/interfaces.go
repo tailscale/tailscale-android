@@ -57,6 +57,12 @@ type AppContext interface {
 	// GetSyspolicyStringArrayValue returns the current string array value for the given system policy,
 	// expressed as a JSON string.
 	GetSyspolicyStringArrayJSONValue(key string) (string, error)
+
+	// GetBuildConfig gets the build configuration of the Android app.
+	//
+	// The returned BuildConfig should not change during the lifetime of
+	// the app.
+	GetBuildConfig() *BuildConfig
 }
 
 // IPNService corresponds to our IPNService in Java.
@@ -165,4 +171,12 @@ func RequestVPN(service IPNService) {
 
 func ServiceDisconnect(service IPNService) {
 	onDisconnect <- service
+}
+
+// BuildConfig is a struct that represents the build configuration of the
+// Android application, as set in BuildConfig.java.
+type BuildConfig struct {
+	// UseGoogleDNSFallback is whether to fall back to the Google public
+	// DNS servers if the platform's DNS servers cannot be determined.
+	UseGoogleDNSFallback bool
 }

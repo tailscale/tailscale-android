@@ -39,6 +39,14 @@ android {
         targetSdkVersion 34
         versionCode 241
         versionName "1.73.114-t0970615b1-gab7ab737364"
+
+        // This setting, which defaults to 'true', will cause Tailscale to fall
+        // back to the Google DNS servers if it cannot determine what the
+        // operating system's DNS configuration is.
+        //
+        // Set it to false either here or in your local.properties file to
+        // disable this behaviour.
+        buildConfigField "boolean", "USE_GOOGLE_DNS_FALLBACK", getLocalProperty("tailscale.useGoogleDnsFallback", "true")
     }
 
     compileOptions {
@@ -54,6 +62,7 @@ android {
         jvmTarget = "17"
     }
     buildFeatures {
+        buildConfig true
         compose true
     }
     composeOptions {
@@ -66,9 +75,9 @@ android {
         applicationTest {
             initWith debug
             manifestPlaceholders.leanbackRequired = false
-            buildConfigField "String", "GITHUB_USERNAME", "\"" + getLocalProperty("githubUsername")+"\""
-            buildConfigField "String", "GITHUB_PASSWORD", "\"" + getLocalProperty("githubPassword")+"\""
-            buildConfigField "String", "GITHUB_2FA_SECRET", "\"" + getLocalProperty("github2FASecret")+"\""
+            buildConfigField "String", "GITHUB_USERNAME", "\"" + getLocalProperty("githubUsername", "")+"\""
+            buildConfigField "String", "GITHUB_PASSWORD", "\"" + getLocalProperty("githubPassword", "")+"\""
+            buildConfigField "String", "GITHUB_2FA_SECRET", "\"" + getLocalProperty("github2FASecret", "")+"\""
         }
         debug {
             manifestPlaceholders.leanbackRequired = false
@@ -156,12 +165,12 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
 }
 
-def getLocalProperty(key) {
+def getLocalProperty(key, defaultValue) {
     try {
         Properties properties = new Properties()
         properties.load(project.file('local.properties').newDataInputStream())
-        return properties.getProperty(key)
+        return properties.getProperty(key) ?: defaultValue
     } catch(Throwable ignored) {
-        return ""
+        return defaultValue
     }
 }
