@@ -44,9 +44,6 @@ type App struct {
 	// appCtx is a global reference to the com.tailscale.ipn.App instance.
 	appCtx AppContext
 
-	// buildConfig is the build configuration for the app.
-	buildConfig *BuildConfig
-
 	store             *stateStore
 	policyStore       *syspolicyHandler
 	logIDPublicAtomic atomic.Pointer[logid.PublicID]
@@ -100,8 +97,7 @@ type backend struct {
 	// when no nameservers are provided by Tailscale.
 	avoidEmptyDNS bool
 
-	appCtx      AppContext
-	buildConfig *BuildConfig
+	appCtx AppContext
 }
 
 type settingsFunc func(*router.Config, *dns.OSConfig) error
@@ -266,10 +262,9 @@ func (a *App) newBackend(dataDir, directFileRoot string, appCtx AppContext, stor
 
 	logf := logger.RusagePrefixLog(log.Printf)
 	b := &backend{
-		devices:     newTUNDevices(),
-		settings:    settings,
-		appCtx:      appCtx,
-		buildConfig: a.buildConfig,
+		devices:  newTUNDevices(),
+		settings: settings,
+		appCtx:   appCtx,
 	}
 	var logID logid.PrivateID
 	logID.UnmarshalText([]byte("dead0000dead0000dead0000dead0000dead0000dead0000dead0000dead0000"))
