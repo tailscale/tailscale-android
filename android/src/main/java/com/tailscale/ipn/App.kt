@@ -38,7 +38,6 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import libtailscale.BuildConfig as GoBuildConfig
 import libtailscale.Libtailscale
 import java.io.File
 import java.io.IOException
@@ -79,6 +78,8 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
   override fun getPlatformDNSConfig(): String = dns.dnsConfigAsString
 
   override fun isPlayVersion(): Boolean = MaybeGoogle.isGoogle()
+
+  override fun shouldUseGoogleDNSFallback() : Boolean = BuildConfig.USE_GOOGLE_DNS_FALLBACK
 
   override fun log(s: String, s1: String) {
     Log.d(s, s1)
@@ -310,13 +311,6 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
       Log.d("MDM", "$key value cannot be serialized to JSON. Throwing NoSuchKeyException.")
       throw MDMSettings.NoSuchKeyException()
     }
-  }
-
-  // getBuildConfig implements the libtailscale.AppContext interface.
-  override fun getBuildConfig(): GoBuildConfig {
-    var buildConfig = GoBuildConfig()
-    buildConfig.useGoogleDNSFallback = BuildConfig.USE_GOOGLE_DNS_FALLBACK
-    return buildConfig
   }
 
   fun notifyPolicyChanged() {
