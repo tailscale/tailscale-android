@@ -61,7 +61,7 @@ if [[ -z "${TOOLCHAINDIR}" ]]; then
         esac
     fi
 else
-    # fdroid supplies it's own toolchain, rather than using ours.
+    # fdroid supplies its own toolchain, rather than using ours.
     toolchain="${TOOLCHAINDIR}"
 fi
 
