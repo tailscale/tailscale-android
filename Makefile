@@ -8,7 +8,9 @@
 # The docker image to use for the build environment.  Changing this
 # will force a rebuild of the docker image.  If there is an existing image
 # with this name, it will be used.
-DOCKER_IMAGE=tailscale-android-build-amd64-go1.23
+#
+# The convention here is tailscale-android-build-amd64-<date>
+DOCKER_IMAGE=tailscale-android-build-amd64-120924
 export TS_USE_TOOLCHAIN=1
 
 DEBUG_APK=tailscale-debug.apk
@@ -274,7 +276,11 @@ docker-remove-shell-image: ## Removes all docker shell image
 
 .PHONY: clean
 clean: ## Remove build artifacts.  Does not purge docker build envs.  Use dockerRemoveEnv for that.
-	-rm -rf android/build $(DEBUG_APK) $(RELEASE_AAB) $(RELEASE_TV_AAB) $(LIBTAILSCALE) android/libs *.apk *.aab
+clean: ## Remove build artifacts.  Does not purge docker build envs.  Use dockerRemoveEnv for that.
+	@echo "Cleaning up old build artifacts"
+	-rm -rf android/build $(DEBUG_APK) $(RELEASE_AAB) $(RELEASE_TV_AAB) $(LIBTAILSCALE) android/libs *.apk *.aab 
+	@echo "Cleaning cached toolchain"
+	-rm -rf $(HOME)/.cache/tailscale-go
 	-pkill -f gradle
 
 .PHONY: help
