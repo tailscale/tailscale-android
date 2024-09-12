@@ -6,6 +6,7 @@ import android.net.ConnectivityManager
 import android.net.LinkProperties
 import android.net.Network
 import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import android.util.Log
 import libtailscale.Libtailscale
 import java.net.InetAddress
@@ -94,6 +95,82 @@ object NetworkChangeCallback {
     }
     if (dns.updateDNSFromNetwork(sb.toString())) {
       Libtailscale.onDNSConfigChanged(linkProperties.interfaceName)
+    }
+  }
+
+
+  // logLinkChanges creates a NetworkCallback to log changes to the network
+  // link properties.
+  fun logLinkChanges(connectivityManager: ConnectivityManager) {
+    connectivityManager.registerDefaultNetworkCallback(defaultLoggingNetworkCallback)
+
+    val networkConnectivityRequest =
+      NetworkRequest.Builder()
+      .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+      .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
+      .build()
+    connectivityManager.registerNetworkCallback(networkConnectivityRequest, loggingNetworkCallback)
+  }
+
+  fun stopLoggingLinkChanges(connectivityManager: ConnectivityManager) {
+    connectivityManager.unregisterNetworkCallback(defaultLoggingNetworkCallback)
+    connectivityManager.unregisterNetworkCallback(loggingNetworkCallback)
+  }
+
+  private val capabilityConsts = mutableMapOf(
+      "MMS" to NetworkCapabilities.NET_CAPABILITY_MMS,
+      "SUPL" to NetworkCapabilities.NET_CAPABILITY_SUPL,
+      "DUN" to NetworkCapabilities.NET_CAPABILITY_DUN,
+      "FOTA" to NetworkCapabilities.NET_CAPABILITY_FOTA,
+      "IMS" to NetworkCapabilities.NET_CAPABILITY_IMS,
+      "WIFI_P2P" to NetworkCapabilities.NET_CAPABILITY_WIFI_P2P,
+      "IA" to NetworkCapabilities.NET_CAPABILITY_IA,
+      "XCAP" to NetworkCapabilities.NET_CAPABILITY_XCAP,
+      "NOT_METERED" to NetworkCapabilities.NET_CAPABILITY_NOT_METERED,
+      "INTERNET" to NetworkCapabilities.NET_CAPABILITY_INTERNET,
+      "NOT_VPN" to NetworkCapabilities.NET_CAPABILITY_NOT_VPN,
+      "TRUSTED" to NetworkCapabilities.NET_CAPABILITY_TRUSTED,
+      "TEMP NOT METERED" to NetworkCapabilities.NET_CAPABILITY_TEMPORARILY_NOT_METERED,
+      "NOT SUSPENDED" to NetworkCapabilities.NET_CAPABILITY_MCX,
+      "VALIDATED" to NetworkCapabilities.NET_CAPABILITY_VALIDATED,
+      "CAPTIVE PORTAL" to NetworkCapabilities.NET_CAPABILITY_CAPTIVE_PORTAL,
+  ) as Map<String, Int>
+
+  private val defaultLoggingNetworkCallback = makeNetworkCallback("default: ")
+  private val loggingNetworkCallback = makeNetworkCallback("all: ")
+
+  private fun makeNetworkCallback(prefix: String): ConnectivityManager.NetworkCallback {
+    return object : ConnectivityManager.NetworkCallback() {
+      override fun onAvailable(network: Network) {
+        super.onAvailable(network)
+        Log.i(TAG, prefix + "network available: ${network.toString()}")
+      }
+
+      override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) {
+        super.onCapabilitiesChanged(network, capabilities)
+
+        val newCapabilities = capabilityConsts.mapValues {
+          capabilities.hasCapability(it.value)
+        }
+
+        Log.i(TAG, prefix + "capabilities changed for network ${network.toString()}; new capabilities: ${newCapabilities}")
+      }
+
+      override fun onLinkPropertiesChanged(network: Network, linkProperties: LinkProperties) {
+        super.onLinkPropertiesChanged(network, linkProperties)
+
+        Log.i(TAG, prefix + "link properties changed for network ${network.toString()}; new link properties: ${linkProperties.toString()}")
+      }
+
+      override fun onLosing(network: Network, maxMsToLive: Int) {
+        super.onLosing(network, maxMsToLive)
+        Log.i(TAG, prefix + "losing network: ${network.toString()}; maxMsToLive: ${maxMsToLive}")
+      }
+
+      override fun onLost(network: Network) {
+        super.onLost(network)
+        Log.i(TAG, prefix + "network lost: ${network.toString()}")
+      }
     }
   }
 }

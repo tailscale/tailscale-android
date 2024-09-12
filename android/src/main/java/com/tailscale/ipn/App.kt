@@ -108,6 +108,7 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
 
   override fun onTerminate() {
     super.onTerminate()
+    NetworkChangeCallback.stopLoggingLinkChanges(connectivityManager)
     Notifier.stop()
     notificationManager.cancelAll()
     applicationScope.cancel()
@@ -137,6 +138,7 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     healthNotifier = HealthNotifier(Notifier.health, applicationScope)
     connectivityManager = this.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     NetworkChangeCallback.monitorDnsChanges(connectivityManager, dns)
+    NetworkChangeCallback.logLinkChanges(connectivityManager)
     initViewModels()
     applicationScope.launch {
       Notifier.state.collect { state ->
