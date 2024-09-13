@@ -149,13 +149,13 @@ android/libs:
 	mkdir -p android/libs
 
 $(GOBIN)/gomobile: $(GOBIN)/gobind go.mod go.sum
-	go install golang.org/x/mobile/cmd/gomobile
+	./tool/go install golang.org/x/mobile/cmd/gomobile
 
 $(GOBIN)/gobind: go.mod go.sum
-	go install golang.org/x/mobile/cmd/gobind
+	./tool/go install golang.org/x/mobile/cmd/gobind
 
 $(LIBTAILSCALE): Makefile android/libs $(shell find libtailscale -name *.go) go.mod go.sum $(GOBIN)/gomobile
-	gomobile bind -target android -androidapi 26 \
+	$(GOBIN)/gomobile bind -target android -androidapi 26 \
 		-ldflags "$(FULL_LDFLAGS)" \
 		-o $@ ./libtailscale
 
@@ -220,9 +220,9 @@ update-version: ## Update the version in build.gradle
 
 .PHONY: update-oss
 update-oss: ## Update the tailscale.com go module and update the version in build.gradle
-	GOPROXY=direct go get tailscale.com@main
-	go run tailscale.com/cmd/printdep --go > go.toolchain.rev
-	go mod tidy -compat=1.23
+	GOPROXY=direct ./tool/go get tailscale.com@main
+	./tool/go run tailscale.com/cmd/printdep --go > go.toolchain.rev
+	./tool/go mod tidy -compat=1.23
 
 # Get the commandline tools package, this provides (among other things) the sdkmanager binary.
 $(ANDROID_HOME)/cmdline-tools/latest/bin/sdkmanager:
