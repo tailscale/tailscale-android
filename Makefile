@@ -72,6 +72,19 @@ else
 	export PATH := $(JAVA_HOME)/bin:$(PATH)
 endif
 
+AVD_BASE_IMAGE := "system-images;android-33;google_apis;"
+export HOST_ARCH=$(shell uname -m)
+ifeq ($(HOST_ARCH),aarch64)
+	AVD_IMAGE := "$(AVD_BASE_IMAGE)arm64-v8a"
+else ifeq ($(HOST_ARCH),arm64)
+	AVD_IMAGE := "$(AVD_BASE_IMAGE)arm64-v8a"
+else
+	AVD_IMAGE := "$(AVD_BASE_IMAGE)x86_64"
+endif
+AVD ?= tailscale-$(HOST_ARCH)
+export AVD_IMAGE
+export AVD
+
 # TOOLCHAINDIR is set by fdoid CI and used by tool/* scripts.
 TOOLCHAINDIR ?=
 export TOOLCHAINDIR
@@ -160,6 +173,7 @@ env:
 	@echo ANDROID_STUDIO_ROOT=$(ANDROID_STUDIO_ROOT)
 	@echo JAVA_HOME=$(JAVA_HOME)
 	@echo TOOLCHAINDIR=$(TOOLCHAINDIR)
+	@echo AVD_IMAGE="$(AVD_IMAGE)"
 
 # Ensure that JKS_PATH and JKS_PASSWORD are set before we attempt a build
 # that requires signing.
@@ -238,6 +252,21 @@ checkandroidsdk: ## Check that Android SDK is installed
 test: gradle-dependencies ## Run the Android tests
 	(cd android && ./gradlew test)
 
+.PHONY: emulator
+emulator: ## Start an android emulator instance
+	@echo "Checking installed SDK packages..."
+	@if ! $(ANDROID_HOME)/cmdline-tools/latest/bin/sdkmanager --list_installed | grep -q "$(AVD_IMAGE)"; then \
+		echo "$(AVD_IMAGE) not found, installing..."; \
+		$(ANDROID_HOME)/cmdline-tools/latest/bin/sdkmanager "$(AVD_IMAGE)"; \
+	fi
+	@echo "Checking if AVD exists..."
+	@if ! $(ANDROID_HOME)/cmdline-tools/latest/bin/avdmanager list avd | grep -q "$(AVD)"; then \
+		echo "AVD $(AVD) not found, creating..."; \
+		$(ANDROID_HOME)/cmdline-tools/latest/bin/avdmanager create avd -n "$(AVD)" -k "$(AVD_IMAGE)"; \
+	fi
+	@echo "Starting emulator..."
+	@$(ANDROID_HOME)/emulator/emulator -avd "$(AVD)" -logcat-output /dev/stdout -netdelay none -netspeed full
+
 .PHONY: install
 install: $(DEBUG_APK) ## Install the debug APK on a connected device
 	adb install -r $<
@@ -278,7 +307,7 @@ docker-remove-shell-image: ## Removes all docker shell image
 clean: ## Remove build artifacts.  Does not purge docker build envs.  Use dockerRemoveEnv for that.
 clean: ## Remove build artifacts.  Does not purge docker build envs.  Use dockerRemoveEnv for that.
 	@echo "Cleaning up old build artifacts"
-	-rm -rf android/build $(DEBUG_APK) $(RELEASE_AAB) $(RELEASE_TV_AAB) $(LIBTAILSCALE) android/libs *.apk *.aab 
+	-rm -rf android/build $(DEBUG_APK) $(RELEASE_AAB) $(RELEASE_TV_AAB) $(LIBTAILSCALE) android/libs *.apk *.aab
 	@echo "Cleaning cached toolchain"
 	-rm -rf $(HOME)/.cache/tailscale-go
 	-pkill -f gradle
