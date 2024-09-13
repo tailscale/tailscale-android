@@ -85,6 +85,10 @@ AVD ?= tailscale-$(HOST_ARCH)
 export AVD_IMAGE
 export AVD
 
+# Use our toolchain or the one that is specified, do not perform dynamic toolchain switching.
+GOTOOLCHAIN=local
+export GOTOOLCHAIN
+
 # TOOLCHAINDIR is set by fdoid CI and used by tool/* scripts.
 TOOLCHAINDIR ?=
 export TOOLCHAINDIR
