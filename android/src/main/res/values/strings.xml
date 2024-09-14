@@ -49,6 +49,9 @@
     <string name="use_ts_dns">Use Tailscale DNS</string>
     <string name="internal_debug_options">Internal debug options</string>
 
+    <!-- Strings for the QR code scanner screen -->
+    <string name="qr_code_scanner_title">Scan QR code</string>
+
     <!-- Strings for the main screen -->
     <string name="exit_node">EXIT NODE</string>
     <string name="exit_node_offline">EXIT NODE OFFLINE</string>
@@ -72,6 +75,7 @@
     <string name="disable">Disable</string>
     <string name="enable">Enable</string>
     <string name="stop">Stop</string>
+    <string name="scan_qr_code">Scan QR code</string>
 
     <!-- Strings for peer details -->
     <string name="os">OS</string>

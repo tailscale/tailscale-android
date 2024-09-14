@@ -3,6 +3,14 @@
 
 package com.tailscale.ipn.ui.view
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.provider.Settings
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -59,6 +67,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -69,6 +78,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.tailscale.ipn.App
 import com.tailscale.ipn.R
@@ -109,7 +119,8 @@ data class MainViewNavigation(
     val onNavigateToSettings: () -> Unit,
     val onNavigateToPeerDetails: (Tailcfg.Node) -> Unit,
     val onNavigateToExitNodes: () -> Unit,
-    val onNavigateToHealth: () -> Unit
+    val onNavigateToHealth: () -> Unit,
+    val onNavigateToQRCodeScanner: () -> Unit,
 )
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
@@ -244,6 +255,7 @@ fun MainView(
                     user,
                     { viewModel.toggleVpn() },
                     { viewModel.login() },
+                    { navigation.onNavigateToQRCodeScanner() },
                     loginAtUrl,
                     netmap?.SelfNode,
                     { viewModel.showVPNPermissionLauncherIfUnauthorized() })
@@ -420,15 +432,55 @@ fun ConnectView(
     user: IpnLocal.LoginProfile?,
     connectAction: () -> Unit,
     loginAction: () -> Unit,
+    qrAction: () -> Unit,
     loginAtUrlAction: (String) -> Unit,
     selfNode: Tailcfg.Node?,
     showVPNPermissionLauncherIfUnauthorized: () -> Unit
 ) {
+  val context = LocalContext.current
+  var shouldRequestQRAction by remember { mutableStateOf(false) }
+
+  // Permission launcher to request camera permission
+  val permissionLauncher = rememberLauncherForActivityResult(
+      contract = ActivityResultContracts.RequestPermission()
+  ) { isGranted ->
+      if (isGranted) {
+          qrAction()
+      } else {
+          val intent = Intent(
+              Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+              Uri.fromParts("package", context.packageName, null)
+          )
+          context.startActivity(intent)
+          Toast.makeText(context, "Enable camera permissions", Toast.LENGTH_LONG).show()
+      }
+  }
+
+  // Check if we have camera permission
+  val hasCameraPermission = remember {
+      ContextCompat.checkSelfPermission(
+          context,
+          Manifest.permission.CAMERA
+      ) == PackageManager.PERMISSION_GRANTED
+  }
+
   LaunchedEffect(isPrepared) {
     if (!isPrepared && shouldStartAutomatically) {
       showVPNPermissionLauncherIfUnauthorized()
     }
   }
+
+  LaunchedEffect(shouldRequestQRAction) {
+      if (shouldRequestQRAction) {
+          if (hasCameraPermission) {
+              qrAction()
+          } else {
+              permissionLauncher.launch(Manifest.permission.CAMERA)
+          }
+          shouldRequestQRAction = false
+      }
+  }
+
   Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
       Column(
@@ -521,6 +573,14 @@ fun ConnectView(
             Text(
                 text = stringResource(id = R.string.log_in),
                 fontSize = MaterialTheme.typography.titleMedium.fontSize)
+          }
+          PrimaryActionButton(
+              onClick = { shouldRequestQRAction = true }
+          ) {
+              Text(
+                  text = stringResource(id = R.string.scan_qr_code),
+                  fontSize = MaterialTheme.typography.titleMedium.fontSize
+              )
           }
         }
       }
@@ -756,6 +816,8 @@ fun MainViewPreview() {
           onNavigateToSettings = {},
           onNavigateToPeerDetails = {},
           onNavigateToExitNodes = {},
-          onNavigateToHealth = {}),
+          onNavigateToHealth = {},
+          onNavigateToQRCodeScanner = {},
+          ),
       vm)
 }

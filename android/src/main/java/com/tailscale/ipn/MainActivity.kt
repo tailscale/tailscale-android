@@ -66,6 +66,7 @@ import com.tailscale.ipn.ui.view.MullvadExitNodePickerList
 import com.tailscale.ipn.ui.view.MullvadInfoView
 import com.tailscale.ipn.ui.view.PeerDetails
 import com.tailscale.ipn.ui.view.PermissionsView
+import com.tailscale.ipn.ui.view.QRCodeScannerScreen
 import com.tailscale.ipn.ui.view.RunExitNodeView
 import com.tailscale.ipn.ui.view.SettingsView
 import com.tailscale.ipn.ui.view.SplitTunnelAppPickerView
@@ -174,7 +175,9 @@ class MainActivity : ComponentActivity() {
                             navController.navigate("peerDetails/${it.StableID}")
                           },
                           onNavigateToExitNodes = { navController.navigate("exitNodes") },
-                          onNavigateToHealth = { navController.navigate("health") })
+                          onNavigateToHealth = { navController.navigate("health") },
+                          onNavigateToQRCodeScanner = { navController.navigate("qrCodeScanner") },
+                      )
 
                   val settingsNav =
                       SettingsNav(
@@ -216,6 +219,7 @@ class MainActivity : ComponentActivity() {
                   }
                   composable("settings") { SettingsView(settingsNav) }
                   composable("exitNodes") { ExitNodePicker(exitNodePickerNav) }
+                  composable("qrCodeScanner") {QRCodeScannerScreen(onBack = backTo("main"), loginAtUrl = ::login) }
                   composable("health") { HealthView(backTo("main")) }
                   composable("mullvad") { MullvadExitNodePickerList(exitNodePickerNav) }
                   composable("mullvad_info") { MullvadInfoView(exitNodePickerNav) }
