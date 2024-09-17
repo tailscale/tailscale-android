@@ -9,7 +9,6 @@ import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.util.Log
 import libtailscale.Libtailscale
-import java.net.InetAddress
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
@@ -17,12 +16,10 @@ object NetworkChangeCallback {
 
   private const val TAG = "NetworkChangeCallback"
 
-  private data class NetworkInfo(
-    var caps: NetworkCapabilities,
-    var linkProps: LinkProperties
-  )
+  private data class NetworkInfo(var caps: NetworkCapabilities, var linkProps: LinkProperties)
 
   private val lock = ReentrantLock()
+
   private val activeNetworks = mutableMapOf<Network, NetworkInfo>() // keyed by Network
 
   // monitorDnsChanges sets up a network callback to monitor changes to the
@@ -30,13 +27,15 @@ object NetworkChangeCallback {
   // become available or properties of those interfaces change.
   fun monitorDnsChanges(connectivityManager: ConnectivityManager, dns: DnsConfig) {
     val networkConnectivityRequest =
-      NetworkRequest.Builder()
-      .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-      .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
-      .build()
+        NetworkRequest.Builder()
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
+            .build()
 
     // Use registerNetworkCallback to listen for updates from all networks, and
-    // then update DNS configs for the best network.
+    // then update DNS configs for the best network when LinkProperties are changed.
+    // Per
+    // https://developer.android.com/reference/android/net/ConnectivityManager.NetworkCallback#onAvailable(android.net.Network), this happens after all other updates.
     //
     // Note that we can't use registerDefaultNetworkCallback because the
     // default network used by Tailscale will always show up with capability
@@ -51,23 +50,19 @@ object NetworkChangeCallback {
             Log.d(TAG, "onAvailable: network ${network}")
             lock.withLock {
               activeNetworks[network] = NetworkInfo(NetworkCapabilities(), LinkProperties())
-              maybeUpdateDNSConfigLocked("onAvailable", dns)
             }
           }
 
           override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) {
             super.onCapabilitiesChanged(network, capabilities)
-            lock.withLock {
-              activeNetworks[network]?.caps = capabilities
-              maybeUpdateDNSConfigLocked("onCapabilitiesChanged", dns)
-            }
+            lock.withLock { activeNetworks[network]?.caps = capabilities }
           }
 
           override fun onLinkPropertiesChanged(network: Network, linkProperties: LinkProperties) {
             super.onLinkPropertiesChanged(network, linkProperties)
             lock.withLock {
               activeNetworks[network]?.linkProps = linkProperties
-              maybeUpdateDNSConfigLocked("onLinkPropertiesChanged", dns)
+              maybeUpdateDNSConfig("onLinkPropertiesChanged", dns)
             }
           }
 
@@ -77,7 +72,7 @@ object NetworkChangeCallback {
             Log.d(TAG, "onLost: network ${network}")
             lock.withLock {
               activeNetworks.remove(network)
-              maybeUpdateDNSConfigLocked("onLost", dns)
+              maybeUpdateDNSConfig("onLost", dns)
             }
           }
         })
@@ -101,11 +96,12 @@ object NetworkChangeCallback {
     // Filter the list of all networks to those that have the INTERNET
     // capability, are not VPNs, and have a non-zero number of DNS servers
     // available.
-    val networks = activeNetworks.filter { (_, info) ->
-      info.caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-          info.caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN) &&
-          info.linkProps.dnsServers.isNotEmpty() == true
-    }
+    val networks =
+        activeNetworks.filter { (_, info) ->
+          info.caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+              info.caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN) &&
+              info.linkProps.dnsServers.isNotEmpty() == true
+        }
 
     // If we have one; just return it; otherwise, prefer networks that are also
     // not metered (i.e. cell modems).
@@ -122,7 +118,9 @@ object NetworkChangeCallback {
     for ((network, info) in activeNetworks) {
       if (info.caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
           info.caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)) {
-        Log.w(TAG, "no networks available that also have DNS servers set; falling back to first network ${network}")
+        Log.w(
+            TAG,
+            "no networks available that also have DNS servers set; falling back to first network ${network}")
         return network
       }
     }
@@ -136,9 +134,7 @@ object NetworkChangeCallback {
 
   // maybeUpdateDNSConfig will maybe update our DNS configuration based on the
   // current set of active Networks.
-  //
-  // 'lock' must be held.
-  private fun maybeUpdateDNSConfigLocked(why: String, dns: DnsConfig) {
+  private fun maybeUpdateDNSConfig(why: String, dns: DnsConfig) {
     val defaultNetwork = pickDefaultNetwork()
     if (defaultNetwork == null) {
       Log.d(TAG, "${why}: no default network available; not updating DNS config")
@@ -146,7 +142,9 @@ object NetworkChangeCallback {
     }
     val info = activeNetworks[defaultNetwork]
     if (info == null) {
-      Log.w(TAG, "${why}: [unexpected] no info available for default network; not updating DNS config")
+      Log.w(
+          TAG,
+          "${why}: [unexpected] no info available for default network; not updating DNS config")
       return
     }
 
@@ -160,7 +158,9 @@ object NetworkChangeCallback {
       sb.append(searchDomains)
     }
     if (dns.updateDNSFromNetwork(sb.toString())) {
-      Log.d(TAG, "${why}: updated DNS config for network ${defaultNetwork} (${info.linkProps.interfaceName})")
+      Log.d(
+          TAG,
+          "${why}: updated DNS config for network ${defaultNetwork} (${info.linkProps.interfaceName})")
       Libtailscale.onDNSConfigChanged(info.linkProps.interfaceName)
     }
   }
