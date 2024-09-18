@@ -4,12 +4,39 @@
 package com.tailcale.ipn.ui.util
 
 import com.tailscale.ipn.ui.util.TimeUtil
+import com.tailscale.ipn.util.ExtendedLog
+import com.tailscale.ipn.util.ExtendedLog.LibtailscaleWrapper
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Before
 import org.junit.Test
+import org.mockito.ArgumentMatchers.anyString
+import org.mockito.Mockito.doNothing
+import org.mockito.Mockito.mock
 import java.time.Duration
 
 class TimeUtilTest {
+
+  private lateinit var libtailscaleWrapperMock: LibtailscaleWrapper
+  private lateinit var originalWrapper: LibtailscaleWrapper
+
+  @Before
+  fun setUp() {
+    libtailscaleWrapperMock = mock(LibtailscaleWrapper::class.java)
+    doNothing().`when`(libtailscaleWrapperMock).sendLog(anyString(), anyString())
+
+    // Store the original wrapper so we can reset it later
+    originalWrapper = ExtendedLog.libtailscaleWrapper
+    // Inject mock into ExtendedLog
+    ExtendedLog.libtailscaleWrapper = libtailscaleWrapperMock
+  }
+
+  @After
+  fun tearDown() {
+    // Reset ExtendedLog after each test to avoid side effects
+    ExtendedLog.libtailscaleWrapper = originalWrapper
+  }
 
   @Test
   fun durationInvalidMsUnits() {
@@ -44,6 +71,9 @@ class TimeUtilTest {
 
   @Test
   fun testBadDInputString() {
+    val libtailscaleWrapperMock = mock(LibtailscaleWrapper::class.java)
+    doNothing().`when`(libtailscaleWrapperMock).sendLog(anyString(), anyString())
+
     val input = "1.0yy1.0w1.0d1.0h1.0m1.0s"
     val actual = TimeUtil.duration(input)
     assertNull("Should return null", actual)
