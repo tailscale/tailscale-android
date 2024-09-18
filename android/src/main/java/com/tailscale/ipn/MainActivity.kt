@@ -16,7 +16,6 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Bundle
 import android.provider.Settings
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
@@ -78,6 +77,7 @@ import com.tailscale.ipn.ui.viewModel.MainViewModelFactory
 import com.tailscale.ipn.ui.viewModel.PingViewModel
 import com.tailscale.ipn.ui.viewModel.SettingsNav
 import com.tailscale.ipn.ui.viewModel.VpnViewModel
+import com.tailscale.ipn.util.TSLog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -128,15 +128,15 @@ class MainActivity : ComponentActivity() {
     vpnPermissionLauncher =
         registerForActivityResult(VpnPermissionContract()) { granted ->
           if (granted) {
-            Log.d("VpnPermission", "VPN permission granted")
+            TSLog.d("VpnPermission", "VPN permission granted")
             vpnViewModel.setVpnPrepared(true)
             App.get().startVPN()
           } else {
             if (isAnotherVpnActive(this)) {
-              Log.d("VpnPermission", "Another VPN is likely active")
+              TSLog.d("VpnPermission", "Another VPN is likely active")
               showOtherVPNConflictDialog()
             } else {
-              Log.d("VpnPermission", "Permission was denied by the user")
+              TSLog.d("VpnPermission", "Permission was denied by the user")
               vpnViewModel.setVpnPrepared(false)
             }
           }
@@ -357,7 +357,7 @@ class MainActivity : ComponentActivity() {
           }
         }
       } catch (e: Exception) {
-        Log.e(TAG, "Login: failed to start MainActivity: $e")
+        TSLog.e(TAG, "Login: failed to start MainActivity: $e")
       }
     }
 
@@ -371,7 +371,7 @@ class MainActivity : ComponentActivity() {
         val fallbackIntent = Intent(Intent.ACTION_VIEW, url)
         startActivity(fallbackIntent)
       } catch (e: Exception) {
-        Log.e(TAG, "Login: failed to open browser: $e")
+        TSLog.e(TAG, "Login: failed to open browser: $e")
       }
     }
   }

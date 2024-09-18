@@ -19,6 +19,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
+import com.tailscale.ipn.util.TSLog
 
 // Notifier is a wrapper around the IPN Bus notifier.  It provides a way to watch
 // for changes in various parts of the Tailscale engine.  You will typically only use
@@ -59,7 +60,7 @@ object Notifier {
 
   @OptIn(ExperimentalSerializationApi::class)
   fun start(scope: CoroutineScope) {
-    Log.d(TAG, "Starting")
+    TSLog.d(TAG, "Starting Notifier")
     if (!::app.isInitialized) {
       App.get()
     }
@@ -89,7 +90,7 @@ object Notifier {
   }
 
   fun stop() {
-    Log.d(TAG, "Stopping")
+    TSLog.d(TAG, "Stopping Notifier")
     manager?.let {
       it.stop()
       manager = null

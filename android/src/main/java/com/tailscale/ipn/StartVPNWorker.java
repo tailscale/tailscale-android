@@ -15,6 +15,8 @@ import androidx.annotation.NonNull;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
+import com.tailscale.ipn.util.TSLog;
+
 /**
  * A worker that exists to support IPNReceiver.
  */
@@ -38,7 +40,7 @@ public final class StartVPNWorker extends Worker {
         }
 
         // We aren't ready to start the VPN or don't have permission, open the Tailscale app.
-        android.util.Log.e("StartVPNWorker", "Tailscale isn't ready to start the VPN, notify the user.");
+        TSLog.e("StartVPNWorker", "Tailscale isn't ready to start the VPN, notify the user.");
 
         // Send notification
         NotificationManager notificationManager = (NotificationManager) app.getSystemService(Context.NOTIFICATION_SERVICE);

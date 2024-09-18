@@ -8,6 +8,7 @@ import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.util.Log
+import com.tailscale.ipn.util.TSLog
 import libtailscale.Libtailscale
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
@@ -47,7 +48,7 @@ object NetworkChangeCallback {
           override fun onAvailable(network: Network) {
             super.onAvailable(network)
 
-            Log.d(TAG, "onAvailable: network ${network}")
+            TSLog.d(TAG, "onAvailable: network ${network}")
             lock.withLock {
               activeNetworks[network] = NetworkInfo(NetworkCapabilities(), LinkProperties())
             }
@@ -69,7 +70,7 @@ object NetworkChangeCallback {
           override fun onLost(network: Network) {
             super.onLost(network)
 
-            Log.d(TAG, "onLost: network ${network}")
+            TSLog.d(TAG, "onLost: network ${network}")
             lock.withLock {
               activeNetworks.remove(network)
               maybeUpdateDNSConfig("onLost", dns)
@@ -137,7 +138,7 @@ object NetworkChangeCallback {
   private fun maybeUpdateDNSConfig(why: String, dns: DnsConfig) {
     val defaultNetwork = pickDefaultNetwork()
     if (defaultNetwork == null) {
-      Log.d(TAG, "${why}: no default network available; not updating DNS config")
+      TSLog.d(TAG, "${why}: no default network available; not updating DNS config")
       return
     }
     val info = activeNetworks[defaultNetwork]
@@ -158,7 +159,7 @@ object NetworkChangeCallback {
       sb.append(searchDomains)
     }
     if (dns.updateDNSFromNetwork(sb.toString())) {
-      Log.d(
+      TSLog.d(
           TAG,
           "${why}: updated DNS config for network ${defaultNetwork} (${info.linkProps.interfaceName})")
       Libtailscale.onDNSConfigChanged(info.linkProps.interfaceName)

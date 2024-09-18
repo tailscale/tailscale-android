@@ -4,6 +4,8 @@
 package libtailscale
 
 import (
+	"log"
+
 	_ "golang.org/x/mobile/bind"
 )
 
@@ -168,4 +170,14 @@ func RequestVPN(service IPNService) {
 
 func ServiceDisconnect(service IPNService) {
 	onDisconnect <- service
+}
+
+func SendLog(logstr []byte) {
+	select {
+	case onLog <- string(logstr):
+		// Successfully sent log
+	default:
+		// Channel is full, log not sent
+		log.Printf("Log %v not sent", logstr) // missing argument in original code
+	}
 }

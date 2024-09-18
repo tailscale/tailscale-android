@@ -3,8 +3,8 @@
 
 package com.tailscale.ipn.ui.util
 
-import android.util.Log
 import com.tailscale.ipn.R
+import com.tailscale.ipn.util.TSLog
 import java.time.Duration
 import java.time.Instant
 import java.time.format.DateTimeFormatter
@@ -108,12 +108,12 @@ object TimeUtil {
                 'm' -> durationFragment * 60.0
                 's' -> durationFragment
                 else -> {
-                  Log.e(TAG, "Invalid duration string: $goDuration")
+                  TSLog.e(TAG, "Invalid duration string: $goDuration")
                   return null
                 }
               }
         } catch (e: NumberFormatException) {
-          Log.e(TAG, "Invalid duration string: $goDuration")
+          TSLog.e(TAG, "Invalid duration string: $goDuration")
           return null
         }
         valStr = ""

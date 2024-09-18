@@ -3,7 +3,6 @@
 
 package com.tailscale.ipn.ui.viewModel
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tailscale.ipn.UninitializedApp
@@ -16,6 +15,7 @@ import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.util.AdvertisedRoutesHelper
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.set
+import com.tailscale.ipn.util.TSLog
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -130,7 +130,7 @@ open class IpnViewModel : ViewModel() {
           }
           .collect { nodeState -> _nodeState.value = nodeState }
     }
-    Log.d(TAG, "Created")
+    TSLog.d(TAG, "Created")
   }
 
   // VPN Control
@@ -153,8 +153,8 @@ open class IpnViewModel : ViewModel() {
     val loginAction = {
       Client(viewModelScope).startLoginInteractive { result ->
         result
-            .onSuccess { Log.d(TAG, "Login started: $it") }
-            .onFailure { Log.e(TAG, "Error starting login: ${it.message}") }
+            .onSuccess { TSLog.d(TAG, "Login started: $it") }
+            .onFailure { TSLog.e(TAG, "Error starting login: ${it.message}") }
         completionHandler(result)
       }
     }
@@ -165,7 +165,7 @@ open class IpnViewModel : ViewModel() {
       Client(viewModelScope).editPrefs(Ipn.MaskedPrefs().apply { WantRunning = false }) { result ->
         result
             .onSuccess { loginAction() }
-            .onFailure { Log.e(TAG, "Error setting wantRunning to false: ${it.message}") }
+            .onFailure { TSLog.e(TAG, "Error setting wantRunning to false: ${it.message}") }
       }
     }
 
@@ -182,7 +182,7 @@ open class IpnViewModel : ViewModel() {
     if (mdmControlURL != null) {
       prefs = prefs ?: Ipn.MaskedPrefs()
       prefs.ControlURL = mdmControlURL
-      Log.d(TAG, "Overriding control URL with MDM value: $mdmControlURL")
+      TSLog.d(TAG, "Overriding control URL with MDM value: $mdmControlURL")
     }
 
     prefs?.let {
@@ -210,8 +210,8 @@ open class IpnViewModel : ViewModel() {
   fun logout(completionHandler: (Result<String>) -> Unit = {}) {
     Client(viewModelScope).logout { result ->
       result
-          .onSuccess { Log.d(TAG, "Logout started: $it") }
-          .onFailure { Log.e(TAG, "Error starting logout: ${it.message}") }
+          .onSuccess { TSLog.d(TAG, "Logout started: $it") }
+          .onFailure { TSLog.e(TAG, "Error starting logout: ${it.message}") }
       completionHandler(result)
     }
   }
@@ -221,14 +221,14 @@ open class IpnViewModel : ViewModel() {
   private fun loadUserProfiles() {
     Client(viewModelScope).profiles { result ->
       result.onSuccess(loginProfiles::set).onFailure {
-        Log.e(TAG, "Error loading profiles: ${it.message}")
+        TSLog.e(TAG, "Error loading profiles: ${it.message}")
       }
     }
 
     Client(viewModelScope).currentProfile { result ->
       result
           .onSuccess { loggedInUser.set(if (it.isEmpty()) null else it) }
-          .onFailure { Log.e(TAG, "Error loading current profile: ${it.message}") }
+          .onFailure { TSLog.e(TAG, "Error loading current profile: ${it.message}") }
     }
   }
 
@@ -242,7 +242,7 @@ open class IpnViewModel : ViewModel() {
     Client(viewModelScope).editPrefs(Ipn.MaskedPrefs().apply { WantRunning = false }) { result ->
       result
           .onSuccess { switchProfile() }
-          .onFailure { Log.e(TAG, "Error setting wantRunning to false: ${it.message}") }
+          .onFailure { TSLog.e(TAG, "Error setting wantRunning to false: ${it.message}") }
     }
   }
 
@@ -277,7 +277,7 @@ open class IpnViewModel : ViewModel() {
       Client(viewModelScope).setUseExitNode(true) { LoadingIndicator.stop() }
     } else {
       // This should not be possible.  In this state the button is hidden
-      Log.e(TAG, "No exit node to disable and no prior exit node to enable")
+      TSLog.e(TAG, "No exit node to disable and no prior exit node to enable")
     }
   }
 
@@ -292,7 +292,7 @@ open class IpnViewModel : ViewModel() {
       }
       Client(viewModelScope).editPrefs(newPrefs) { result ->
         LoadingIndicator.stop()
-        Log.d("RunExitNodeViewModel", "Edited prefs: $result")
+        TSLog.d("RunExitNodeViewModel", "Edited prefs: $result")
       }
     }
   }

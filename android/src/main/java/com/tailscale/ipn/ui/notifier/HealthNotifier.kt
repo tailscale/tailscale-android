@@ -5,7 +5,6 @@ package com.tailscale.ipn.ui.notifier
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import com.tailscale.ipn.App
@@ -14,6 +13,7 @@ import com.tailscale.ipn.UninitializedApp.Companion.notificationManager
 import com.tailscale.ipn.ui.model.Health
 import com.tailscale.ipn.ui.model.Health.UnhealthyState
 import com.tailscale.ipn.ui.util.set
+import com.tailscale.ipn.util.TSLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -47,7 +47,7 @@ class HealthNotifier(
           .distinctUntilChanged { old, new -> old?.Warnings?.count() == new?.Warnings?.count() }
           .debounce(5000)
           .collect { health ->
-            Log.d(TAG, "Health updated: ${health?.Warnings?.keys?.sorted()}")
+            TSLog.d(TAG, "Health updated: ${health?.Warnings?.keys?.sorted()}")
             health?.Warnings?.let {
               notifyHealthUpdated(it.values.mapNotNull { it }.toTypedArray())
             }
@@ -76,22 +76,22 @@ class HealthNotifier(
         continue
       } else if (warning.hiddenByDependencies(currentWarnableCodes)) {
         // Ignore this warning because a dependency is also unhealthy
-        Log.d(TAG, "Ignoring ${warning.WarnableCode} because of dependency")
+        TSLog.d(TAG, "Ignoring ${warning.WarnableCode} because of dependency")
         continue
       } else if (!isWarmingUp) {
-        Log.d(TAG, "Adding health warning: ${warning.WarnableCode}")
+        TSLog.d(TAG, "Adding health warning: ${warning.WarnableCode}")
         this.currentWarnings.set(this.currentWarnings.value + warning)
         if (warning.Severity == Health.Severity.high) {
           this.sendNotification(warning.Title, warning.Text, warning.WarnableCode)
         }
       } else {
-        Log.d(TAG, "Ignoring ${warning.WarnableCode} because warming up")
+        TSLog.d(TAG, "Ignoring ${warning.WarnableCode} because warming up")
       }
     }
 
     val warningsToDrop = warningsBeforeAdd.minus(addedWarnings)
     if (warningsToDrop.isNotEmpty()) {
-      Log.d(TAG, "Dropping health warnings with codes $warningsToDrop")
+      TSLog.d(TAG, "Dropping health warnings with codes $warningsToDrop")
       this.removeNotifications(warningsToDrop)
     }
     currentWarnings.set(this.currentWarnings.value.subtract(warningsToDrop))
@@ -113,7 +113,7 @@ class HealthNotifier(
   }
 
   private fun sendNotification(title: String, text: String, code: String) {
-    Log.d(TAG, "Sending notification for $code")
+    TSLog.d(TAG, "Sending notification for $code")
     val notification =
         NotificationCompat.Builder(App.get().applicationContext, HEALTH_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
@@ -125,14 +125,14 @@ class HealthNotifier(
     if (ActivityCompat.checkSelfPermission(
         App.get().applicationContext, Manifest.permission.POST_NOTIFICATIONS) !=
         PackageManager.PERMISSION_GRANTED) {
-      Log.d(TAG, "Notification permission not granted")
+      TSLog.d(TAG, "Notification permission not granted")
       return
     }
     notificationManager.notify(code.hashCode(), notification)
   }
 
   private fun removeNotifications(warnings: Set<UnhealthyState>) {
-    Log.d(TAG, "Removing notifications for $warnings")
+    TSLog.d(TAG, "Removing notifications for $warnings")
     for (warning in warnings) {
       notificationManager.cancel(warning.WarnableCode.hashCode())
     }
