@@ -36,7 +36,9 @@ class LoginWithCustomControlURLViewModel : CustomLoginViewModel() {
     // localAPIClient will use the default server if we give it a broken URL,
     // but we can make sure we can construct a URL from the input string and
     // ensure it has an http/https scheme
-    when (urlStr.startsWith("http") && urlStr.contains("://") && urlStr.length > 7) {
+    when (urlStr.startsWith("http", ignoreCase = true) &&
+        urlStr.contains("://") &&
+        urlStr.length > 7) {
       false -> {
         errorDialog.set(ErrorDialogType.INVALID_CUSTOM_URL)
         return
