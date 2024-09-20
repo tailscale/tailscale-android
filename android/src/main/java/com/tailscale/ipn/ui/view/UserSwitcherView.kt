@@ -50,6 +50,7 @@ fun UserSwitcherView(nav: UserSwitcherNav, viewModel: UserSwitcherViewModel = vi
   val users by viewModel.loginProfiles.collectAsState()
   val currentUser by viewModel.loggedInUser.collectAsState()
   val showHeaderMenu by viewModel.showHeaderMenu.collectAsState()
+    val isLoggingIn by viewModel.isLogginIn.collectAsState()
 
   Scaffold(
       topBar = {
@@ -122,7 +123,10 @@ fun UserSwitcherView(nav: UserSwitcherNav, viewModel: UserSwitcherViewModel = vi
                   }
 
                   Lists.ItemDivider()
-                  Setting.Text(R.string.reauthenticate) { viewModel.login() }
+                  Setting.Text(
+                      R.string.reauthenticate,
+                      enabled = !isLoggingIn
+                  ) { viewModel.login() }
 
                   if (currentUser != null) {
                     Lists.ItemDivider()

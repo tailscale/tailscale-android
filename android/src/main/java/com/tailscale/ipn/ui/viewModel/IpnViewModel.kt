@@ -19,6 +19,7 @@ import com.tailscale.ipn.ui.util.set
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
@@ -33,6 +34,9 @@ open class IpnViewModel : ViewModel() {
 
   private val _vpnPrepared = MutableStateFlow(false)
   val vpnPrepared: StateFlow<Boolean> = _vpnPrepared
+
+  private val _isLoggingIn = MutableStateFlow(false)
+  val isLogginIn: StateFlow<Boolean> = _isLoggingIn
 
   // The userId associated with the current node. ie: The logged in user.
   private var selfNodeUserId: UserID? = null
@@ -149,12 +153,18 @@ open class IpnViewModel : ViewModel() {
       authKey: String? = null,
       completionHandler: (Result<Unit>) -> Unit = {}
   ) {
+    setLoggingIn(true)
 
     val loginAction = {
       Client(viewModelScope).startLoginInteractive { result ->
         result
-            .onSuccess { Log.d(TAG, "Login started: $it") }
-            .onFailure { Log.e(TAG, "Error starting login: ${it.message}") }
+            .onSuccess {
+              Log.d(TAG, "Login started: $it")
+            }
+            .onFailure {
+              setLoggingIn(false)
+              Log.e(TAG, "Error starting login: ${it.message}")
+            }
         completionHandler(result)
       }
     }
@@ -165,13 +175,19 @@ open class IpnViewModel : ViewModel() {
       Client(viewModelScope).editPrefs(Ipn.MaskedPrefs().apply { WantRunning = false }) { result ->
         result
             .onSuccess { loginAction() }
-            .onFailure { Log.e(TAG, "Error setting wantRunning to false: ${it.message}") }
+            .onFailure {
+              setLoggingIn(false)
+              Log.e(TAG, "Error setting wantRunning to false: ${it.message}")
+            }
       }
     }
 
     val startAction = {
       Client(viewModelScope).start(Ipn.Options(AuthKey = authKey)) { start ->
-        start.onFailure { completionHandler(Result.failure(it)) }.onSuccess { stopThenLogin() }
+        start.onFailure {
+          setLoggingIn(false)
+          completionHandler(Result.failure(it))
+        }.onSuccess { stopThenLogin() }
       }
     }
 
@@ -187,7 +203,10 @@ open class IpnViewModel : ViewModel() {
 
     prefs?.let {
       Client(viewModelScope).editPrefs(it) { result ->
-        result.onFailure { completionHandler(Result.failure(it)) }.onSuccess { startAction() }
+        result.onFailure {
+          setLoggingIn(false)
+          completionHandler(Result.failure(it))
+        }.onSuccess { startAction() }
       }
     } ?: run { startAction() }
   }
@@ -316,5 +335,9 @@ open class IpnViewModel : ViewModel() {
     val newPrefs = Ipn.MaskedPrefs()
     newPrefs.AdvertiseRoutes = newRoutes
     return newPrefs
+  }
+
+  fun setLoggingIn(isLoggingIn: Boolean) {
+    _isLoggingIn.update { isLoggingIn }
   }
 }

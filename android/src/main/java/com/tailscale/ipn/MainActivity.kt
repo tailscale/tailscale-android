@@ -339,6 +339,8 @@ class MainActivity : ComponentActivity() {
   private fun login(urlString: String) {
     // Launch coroutine to listen for state changes. When the user completes login, relaunch
     // MainActivity to bring the app back to focus.
+      viewModel.setLoggingIn(false)
+
     App.get().applicationScope.launch {
       try {
         Notifier.state.collect { state ->
