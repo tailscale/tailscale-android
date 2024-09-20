@@ -105,9 +105,7 @@ type settingsFunc func(*router.Config, *dns.OSConfig) error
 func (a *App) runBackend(ctx context.Context) error {
 	paths.AppSharedDir.Store(a.dataDir)
 	hostinfo.SetOSVersion(a.osVersion())
-	if !a.appCtx.IsPlayVersion() {
-		hostinfo.SetPackage("nogoogle")
-	}
+	hostinfo.SetPackage(a.appCtx.GetInstallSource())
 	deviceModel := a.modelName()
 	if a.isChromeOS() {
 		deviceModel = "ChromeOS: " + deviceModel

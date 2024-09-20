@@ -33,9 +33,8 @@ type AppContext interface {
 	// GetModelName gets the Android device's model name.
 	GetModelName() (string, error)
 
-	// IsPlayVersion reports whether this is the Google Play version of the app
-	// (as opposed to F-droid/sideloaded).
-	IsPlayVersion() bool
+	// GetInstallSource gets information about how the app was installed or updated.
+	GetInstallSource() string
 
 	// ShouldUseGoogleDNSFallback reports whether or not to use Google for DNS fallback.
 	ShouldUseGoogleDNSFallback() bool
