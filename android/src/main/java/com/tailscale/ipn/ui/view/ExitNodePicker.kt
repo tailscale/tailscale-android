@@ -61,9 +61,7 @@ fun ExitNodePicker(
           if (forcedExitNodeId != null) {
             Text(
                 text =
-                    managedByOrganization?.let {
-                      stringResource(R.string.exit_node_mdm_orgname, it)
-                    } ?: stringResource(R.string.exit_node_mdm),
+                stringResource(R.string.exit_node_mdm_orgname, managedByOrganization),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp))

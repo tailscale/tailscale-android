@@ -6,6 +6,7 @@ package com.tailscale.ipn.ui.view
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -18,31 +19,36 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
 import com.tailscale.ipn.mdm.MDMSettings
-import com.tailscale.ipn.ui.viewModel.IpnViewModel
 
 @Composable
-fun ManagedByView(backToSettings: BackNavigation, model: IpnViewModel = viewModel()) {
+fun ManagedByView(backToSettings: BackNavigation) {
   Scaffold(topBar = { Header(R.string.managed_by, onBack = backToSettings) }) { innerPadding ->
     Column(
         verticalArrangement =
             Arrangement.spacedBy(space = 20.dp, alignment = Alignment.CenterVertically),
         horizontalAlignment = Alignment.Start,
-        modifier = Modifier.fillMaxWidth().safeContentPadding().verticalScroll(rememberScrollState())) {
+        modifier =
+            Modifier.fillMaxWidth()
+                .padding(innerPadding)
+                .safeContentPadding()
+                .verticalScroll(rememberScrollState())) {
           val managedByOrganization =
               MDMSettings.managedByOrganizationName.flow.collectAsState().value.value
           val managedByCaption = MDMSettings.managedByCaption.flow.collectAsState().value.value
           val managedByURL = MDMSettings.managedByURL.flow.collectAsState().value.value
+
           managedByOrganization?.let {
             Text(stringResource(R.string.managed_by_explainer_orgName, it))
           } ?: run { Text(stringResource(R.string.managed_by_explainer)) }
+
           managedByCaption?.let {
             if (it.isNotEmpty()) {
               Text(it)
             }
           }
+
           managedByURL?.let { OpenURLButton(stringResource(R.string.open_support), it) }
         }
   }
@@ -51,6 +57,5 @@ fun ManagedByView(backToSettings: BackNavigation, model: IpnViewModel = viewMode
 @Preview
 @Composable
 fun ManagedByViewPreview() {
-  val vm = IpnViewModel()
-  ManagedByView(backToSettings = {}, vm)
+  ManagedByView(backToSettings = {})
 }

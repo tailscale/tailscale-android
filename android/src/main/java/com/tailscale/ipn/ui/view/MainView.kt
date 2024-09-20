@@ -192,7 +192,7 @@ fun MainView(
                           Modifier.weight(1f)
                               .focusable()
                               .clickable { navigation.onNavigateToSettings() }
-                              .padding(8.dp), 
+                              .padding(8.dp),
                       contentAlignment = Alignment.CenterEnd) {
                         when (user) {
                           null -> SettingsButton { navigation.onNavigateToSettings() }
@@ -251,7 +251,7 @@ fun MainView(
             }
           }
 
-      currentPingDevice?.let { peer ->
+      currentPingDevice?.let {
         ModalBottomSheet(onDismissRequest = { viewModel.onPingDismissal() }) {
           PingView(model = viewModel.pingViewModel)
         }
