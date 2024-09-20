@@ -156,6 +156,7 @@ $(GOBIN)/gobind: go.mod go.sum
 
 $(LIBTAILSCALE): Makefile android/libs $(shell find libtailscale -name *.go) go.mod go.sum $(GOBIN)/gomobile
 	$(GOBIN)/gomobile bind -target android -androidapi 26 \
+		-tags "$$(./build-tags.sh)" \
 		-ldflags "$(FULL_LDFLAGS)" \
 		-o $@ ./libtailscale
 
