@@ -79,7 +79,7 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
 
   override fun isPlayVersion(): Boolean = MaybeGoogle.isGoogle()
 
-  override fun shouldUseGoogleDNSFallback() : Boolean = BuildConfig.USE_GOOGLE_DNS_FALLBACK
+  override fun shouldUseGoogleDNSFallback(): Boolean = BuildConfig.USE_GOOGLE_DNS_FALLBACK
 
   override fun log(s: String, s1: String) {
     Log.d(s, s1)
@@ -160,7 +160,7 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
   fun setWantRunning(wantRunning: Boolean, onSuccess: (() -> Unit)? = null) {
     val callback: (Result<Ipn.Prefs>) -> Unit = { result ->
       result.fold(
-          onSuccess = {},
+          onSuccess = { onSuccess?.invoke() },
           onFailure = { error ->
             Log.d("TAG", "Set want running: failed to update preferences: ${error.message}")
           })
