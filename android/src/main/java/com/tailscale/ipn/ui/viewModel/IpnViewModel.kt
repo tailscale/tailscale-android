@@ -192,19 +192,15 @@ open class IpnViewModel : ViewModel() {
     } ?: run { startAction() }
   }
 
-  fun loginWithAuthKey(authKey: String, completionHandler: (Result<Unit>) -> Unit = {}) {
-    val prefs = Ipn.MaskedPrefs()
-    prefs.WantRunning = true
-    login(prefs, authKey = authKey, completionHandler)
-  }
-
-  fun loginWithCustomControlURL(
+  fun loginWithCustomControlURLAuthKey(
       controlURL: String,
+      authKey: String,
       completionHandler: (Result<Unit>) -> Unit = {}
   ) {
     val prefs = Ipn.MaskedPrefs()
     prefs.ControlURL = controlURL
-    login(prefs, completionHandler = completionHandler)
+    prefs.WantRunning = true
+    login(prefs, authKey = authKey, completionHandler = completionHandler)
   }
 
   fun logout(completionHandler: (Result<String>) -> Unit = {}) {

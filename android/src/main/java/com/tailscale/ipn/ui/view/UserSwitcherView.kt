@@ -162,12 +162,6 @@ fun FusMenu(
               viewModel.showHeaderMenu.set(false)
             },
             text = stringResource(id = R.string.custom_control_menu))
-        MenuItem(
-            onClick = {
-              onAuthKeyClick()
-              viewModel.showHeaderMenu.set(false)
-            },
-            text = stringResource(id = R.string.auth_key_menu))
       }
 }
 
