@@ -60,6 +60,7 @@ public class QuickToggleService extends TileService {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void onClick() {
         boolean r;
@@ -77,6 +78,7 @@ public class QuickToggleService extends TileService {
                 // Request code for opening activity.
                 startActivityAndCollapse(PendingIntent.getActivity(this, 0, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
             } else {
+                // Deprecated, but still required for older versions.
                 startActivityAndCollapse(i);
             }
         }

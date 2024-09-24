@@ -32,6 +32,7 @@ import kotlinx.coroutines.launch
 import java.time.Duration
 
 class MainViewModelFactory(private val vpnViewModel: VpnViewModel) : ViewModelProvider.Factory {
+  @Suppress("UNCHECKED_CAST")
   override fun <T : ViewModel> create(modelClass: Class<T>): T {
     if (modelClass.isAssignableFrom(MainViewModel::class.java)) {
       return MainViewModel(vpnViewModel) as T
