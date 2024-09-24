@@ -8,7 +8,6 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.OpenableColumns
-import android.util.Log
 import android.webkit.MimeTypeMap
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -20,6 +19,7 @@ import com.tailscale.ipn.ui.theme.AppTheme
 import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.util.universalFit
 import com.tailscale.ipn.ui.view.TaildropView
+import com.tailscale.ipn.util.TSLog
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlin.random.Random
@@ -59,7 +59,7 @@ class ShareActivity : ComponentActivity() {
   // Loads the files from the intent.
   fun loadFiles() {
     if (intent == null) {
-      Log.e(TAG, "Share failure - No intent found")
+      TSLog.e(TAG, "Share failure - No intent found")
       return
     }
 
@@ -83,7 +83,7 @@ class ShareActivity : ComponentActivity() {
             }
           }
           else -> {
-            Log.e(TAG, "No extras found in intent - nothing to share")
+            TSLog.e(TAG, "No extras found in intent - nothing to share")
             null
           }
         }
@@ -117,7 +117,7 @@ class ShareActivity : ComponentActivity() {
         } ?: emptyList()
 
     if (pendingFiles.isEmpty()) {
-      Log.e(TAG, "Share failure - no files extracted from intent")
+      TSLog.e(TAG, "Share failure - no files extracted from intent")
     }
 
     requestedTransfers.set(pendingFiles)

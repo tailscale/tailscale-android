@@ -4,7 +4,6 @@
 package com.tailscale.ipn.ui.viewModel
 
 import android.content.Context
-import android.util.Log
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.material3.MaterialTheme
@@ -26,6 +25,7 @@ import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.view.ActivityIndicator
 import com.tailscale.ipn.ui.view.CheckedIndicator
 import com.tailscale.ipn.ui.view.ErrorDialogType
+import com.tailscale.ipn.util.TSLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -144,7 +144,7 @@ class TaildropViewModel(
                 allSharablePeers.filter { !(it.Online ?: false) }.sortedBy { it.Name }
             myPeers.set(onlinePeers + offlinePeers)
           }
-          .onFailure { Log.e(TAG, "Error loading targets: ${it.message}") }
+          .onFailure { TSLog.e(TAG, "Error loading targets: ${it.message}") }
     }
   }
 

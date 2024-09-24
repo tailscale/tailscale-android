@@ -134,4 +134,13 @@ func (b *backend) setupLogs(logDir string, logID logid.PrivateID, logf logger.Lo
 	if filchErr != nil {
 		log.Printf("SetupLogs: filch setup failed: %v", filchErr)
 	}
+
+	go func() {
+		for {
+			select {
+			case logstr := <-onLog:
+				b.logger.Logf(logstr)
+			}
+		}
+	}()
 }

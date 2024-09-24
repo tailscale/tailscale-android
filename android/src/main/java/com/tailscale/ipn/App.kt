@@ -31,6 +31,7 @@ import com.tailscale.ipn.ui.notifier.HealthNotifier
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.viewModel.VpnViewModel
 import com.tailscale.ipn.ui.viewModel.VpnViewModelFactory
+import com.tailscale.ipn.util.TSLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -162,7 +163,7 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
       result.fold(
           onSuccess = { onSuccess?.invoke() },
           onFailure = { error ->
-            Log.d("TAG", "Set want running: failed to update preferences: ${error.message}")
+            TSLog.d("TAG", "Set want running: failed to update preferences: ${error.message}")
           })
     }
     Client(applicationScope)
@@ -203,7 +204,7 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
   private fun updateConnStatus(ableToStartVPN: Boolean) {
     setAbleToStartVPN(ableToStartVPN)
     QuickToggleService.updateTile()
-    Log.d("App", "Set Tile Ready: $ableToStartVPN")
+    TSLog.d("App", "Set Tile Ready: $ableToStartVPN")
   }
 
   override fun getModelName(): String {
@@ -266,14 +267,14 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
         downloads.mkdirs()
       }
     } catch (e: Exception) {
-      Log.e(TAG, "Failed to create downloads folder: $e")
+      TSLog.e(TAG, "Failed to create downloads folder: $e")
       downloads = File(this.filesDir, "Taildrop")
       try {
         if (!downloads.exists()) {
           downloads.mkdirs()
         }
       } catch (e: Exception) {
-        Log.e(TAG, "Failed to create Taildrop folder: $e")
+        TSLog.e(TAG, "Failed to create Taildrop folder: $e")
         downloads = File("")
       }
     }
@@ -308,7 +309,7 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
       val list = setting.value as? List<*>
       return Json.encodeToString(list)
     } catch (e: Exception) {
-      Log.d("MDM", "$key value cannot be serialized to JSON. Throwing NoSuchKeyException.")
+      TSLog.d("MDM", "$key value cannot be serialized to JSON. Throwing NoSuchKeyException.")
       throw MDMSettings.NoSuchKeyException()
     }
   }
@@ -373,13 +374,13 @@ open class UninitializedApp : Application() {
     try {
       startForegroundService(intent)
     } catch (foregroundServiceStartException: IllegalStateException) {
-      Log.e(
+      TSLog.e(
           TAG,
           "startVPN hit ForegroundServiceStartNotAllowedException in startForegroundService(): $foregroundServiceStartException")
     } catch (securityException: SecurityException) {
-      Log.e(TAG, "startVPN hit SecurityException in startForegroundService(): $securityException")
+      TSLog.e(TAG, "startVPN hit SecurityException in startForegroundService(): $securityException")
     } catch (e: Exception) {
-      Log.e(TAG, "startVPN hit exception in startForegroundService(): $e")
+      TSLog.e(TAG, "startVPN hit exception in startForegroundService(): $e")
     }
   }
 
@@ -388,9 +389,9 @@ open class UninitializedApp : Application() {
     try {
       startService(intent)
     } catch (illegalStateException: IllegalStateException) {
-      Log.e(TAG, "stopVPN hit IllegalStateException in startService(): $illegalStateException")
+      TSLog.e(TAG, "stopVPN hit IllegalStateException in startService(): $illegalStateException")
     } catch (e: Exception) {
-      Log.e(TAG, "stopVPN hit exception in startService(): $e")
+      TSLog.e(TAG, "stopVPN hit exception in startService(): $e")
     }
   }
 
@@ -465,7 +466,7 @@ open class UninitializedApp : Application() {
 
   fun addUserDisallowedPackageName(packageName: String) {
     if (packageName.isEmpty()) {
-      Log.e(TAG, "addUserDisallowedPackageName called with empty packageName")
+      TSLog.e(TAG, "addUserDisallowedPackageName called with empty packageName")
       return
     }
 
@@ -480,7 +481,7 @@ open class UninitializedApp : Application() {
 
   fun removeUserDisallowedPackageName(packageName: String) {
     if (packageName.isEmpty()) {
-      Log.e(TAG, "removeUserDisallowedPackageName called with empty packageName")
+      TSLog.e(TAG, "removeUserDisallowedPackageName called with empty packageName")
       return
     }
 
@@ -498,7 +499,7 @@ open class UninitializedApp : Application() {
     val mdmDisallowed =
         MDMSettings.excludedPackages.flow.value.value?.split(",")?.map { it.trim() } ?: emptyList()
     if (mdmDisallowed.isNotEmpty()) {
-      Log.d(TAG, "Excluded application packages were set via MDM: $mdmDisallowed")
+      TSLog.d(TAG, "Excluded application packages were set via MDM: $mdmDisallowed")
       return builtInDisallowedPackageNames + mdmDisallowed
     }
     val userDisallowed =

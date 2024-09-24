@@ -8,10 +8,10 @@ import android.content.pm.PackageManager
 import android.net.VpnService
 import android.os.Build
 import android.system.OsConstants
-import android.util.Log
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.notifier.Notifier
+import com.tailscale.ipn.util.TSLog
 import libtailscale.Libtailscale
 import java.util.UUID
 
@@ -97,7 +97,7 @@ open class IPNService : VpnService(), libtailscale.IPNService {
           UninitializedApp.STATUS_NOTIFICATION_ID,
           UninitializedApp.get().buildStatusNotification(true))
     } catch (e: Exception) {
-      Log.e(TAG, "Failed to start foreground service: $e")
+      TSLog.e(TAG, "Failed to start foreground service: $e")
     }
   }
 
@@ -113,7 +113,7 @@ open class IPNService : VpnService(), libtailscale.IPNService {
     try {
       b.addDisallowedApplication(name)
     } catch (e: PackageManager.NameNotFoundException) {
-      Log.d(TAG, "Failed to add disallowed application: $e")
+      TSLog.d(TAG, "Failed to add disallowed application: $e")
     }
   }
 
@@ -135,7 +135,7 @@ open class IPNService : VpnService(), libtailscale.IPNService {
       // Tailscale,
       // then only allow those apps.
       for (packageName in includedPackages) {
-        Log.d(TAG, "Including app: $packageName")
+        TSLog.d(TAG, "Including app: $packageName")
         b.addAllowedApplication(packageName)
       }
     } else {
@@ -143,7 +143,7 @@ open class IPNService : VpnService(), libtailscale.IPNService {
       // - any app that the user manually disallowed in the GUI
       // - any app that we disallowed via hard-coding
       for (disallowedPackageName in UninitializedApp.get().disallowedPackageNames()) {
-        Log.d(TAG, "Disallowing app: $disallowedPackageName")
+        TSLog.d(TAG, "Disallowing app: $disallowedPackageName")
         disallowApp(b, disallowedPackageName)
       }
     }
