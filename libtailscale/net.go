@@ -9,7 +9,6 @@ import (
 	"log"
 	"net"
 	"net/netip"
-	"reflect"
 	"runtime/debug"
 	"strings"
 	"syscall"
@@ -125,12 +124,7 @@ var googleDNSServers = []netip.Addr{
 	netip.MustParseAddr("2001:4860:4860::8844"),
 }
 
-func (b *backend) updateTUN(service IPNService, rcfg *router.Config, dcfg *dns.OSConfig) error {
-	if reflect.DeepEqual(rcfg, b.lastCfg) && reflect.DeepEqual(dcfg, b.lastDNSCfg) {
-		b.logger.Logf("updateTUN: no change to Routes or DNS, ignore")
-		return nil
-	}
-
+func (b *backend) updateTUN(rcfg *router.Config, dcfg *dns.OSConfig) error {
 	b.logger.Logf("updateTUN: changed")
 	defer b.logger.Logf("updateTUN: finished")
 
@@ -147,7 +141,6 @@ func (b *backend) updateTUN(service IPNService, rcfg *router.Config, dcfg *dns.O
 	if len(rcfg.LocalAddrs) == 0 {
 		return nil
 	}
-	vpnService.service = service
 	builder := vpnService.service.NewBuilder()
 	b.logger.Logf("updateTUN: got new builder")
 
@@ -258,7 +251,6 @@ func closeFileDescriptor() error {
 func (b *backend) CloseTUNs() {
 	b.lastCfg = nil
 	b.devices.Shutdown()
-	vpnService.service = nil
 }
 
 // ifname is the interface name retrieved from LinkProperties on network change. If a network is lost, an empty string is passed in.
