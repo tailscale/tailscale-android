@@ -251,7 +251,7 @@ fun MainView(
             }
           }
 
-      currentPingDevice?.let { peer ->
+      currentPingDevice?.let { _ ->
         ModalBottomSheet(onDismissRequest = { viewModel.onPingDismissal() }) {
           PingView(model = viewModel.pingViewModel)
         }

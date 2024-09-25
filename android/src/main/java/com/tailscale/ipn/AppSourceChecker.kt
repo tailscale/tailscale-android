@@ -15,20 +15,21 @@ object AppSourceChecker {
     val packageName = context.packageName
     Log.d(TAG, "Package name: $packageName")
 
-    val installerPackageName = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-        packageManager.getInstallSourceInfo(packageName).installingPackageName
-    } else {
-        packageManager.getInstallerPackageName(packageName)
-    }
+    val installerPackageName =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+          packageManager.getInstallSourceInfo(packageName).installingPackageName
+        } else {
+          @Suppress("deprecation") packageManager.getInstallerPackageName(packageName)
+        }
 
     Log.d(TAG, "Installer package name: $installerPackageName")
 
     return when (installerPackageName) {
-        "com.android.vending" -> "googleplay"
-        "org.fdroid.fdroid" -> "fdroid"
-        "com.amazon.venezia" -> "amazon"
-        null -> "unknown"
-        else -> "unknown($installerPackageName)"
+      "com.android.vending" -> "googleplay"
+      "org.fdroid.fdroid" -> "fdroid"
+      "com.amazon.venezia" -> "amazon"
+      null -> "unknown"
+      else -> "unknown($installerPackageName)"
     }
-}
+  }
 }

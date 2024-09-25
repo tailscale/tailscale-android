@@ -23,14 +23,16 @@ import com.tailscale.ipn.R
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.viewModel.IpnViewModel
 
+@Suppress("UNUSED_PARAMETER")
 @Composable
 fun ManagedByView(backToSettings: BackNavigation, model: IpnViewModel = viewModel()) {
-  Scaffold(topBar = { Header(R.string.managed_by, onBack = backToSettings) }) { innerPadding ->
+  Scaffold(topBar = { Header(R.string.managed_by, onBack = backToSettings) }) { _ ->
     Column(
         verticalArrangement =
             Arrangement.spacedBy(space = 20.dp, alignment = Alignment.CenterVertically),
         horizontalAlignment = Alignment.Start,
-        modifier = Modifier.fillMaxWidth().safeContentPadding().verticalScroll(rememberScrollState())) {
+        modifier =
+            Modifier.fillMaxWidth().safeContentPadding().verticalScroll(rememberScrollState())) {
           val managedByOrganization =
               MDMSettings.managedByOrganizationName.flow.collectAsState().value.value
           val managedByCaption = MDMSettings.managedByCaption.flow.collectAsState().value.value

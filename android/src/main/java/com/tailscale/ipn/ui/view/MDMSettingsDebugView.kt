@@ -25,7 +25,10 @@ import com.tailscale.ipn.ui.viewModel.IpnViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MDMSettingsDebugView(backToSettings: BackNavigation, model: IpnViewModel = viewModel()) {
+fun MDMSettingsDebugView(
+    backToSettings: BackNavigation,
+    @Suppress("UNUSED_PARAMETER") model: IpnViewModel = viewModel()
+) {
   Scaffold(topBar = { Header(R.string.current_mdm_settings, onBack = backToSettings) }) {
       innerPadding ->
     LazyColumn(modifier = Modifier.padding(innerPadding)) {

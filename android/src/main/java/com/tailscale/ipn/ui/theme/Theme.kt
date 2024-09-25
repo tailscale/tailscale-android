@@ -44,7 +44,8 @@ fun AppTheme(useDarkTheme: Boolean = isSystemInDarkTheme(), content: @Composable
           // margins in list items.
           bodyMedium = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp))
 
-  val systemUiController = rememberSystemUiController()
+  // TODO: Migrate to Activity.enableEdgeToEdge
+  @Suppress("deprecation") val systemUiController = rememberSystemUiController()
 
   DisposableEffect(systemUiController, useDarkTheme) {
     systemUiController.setStatusBarColor(color = colors.surfaceContainer)
@@ -446,7 +447,6 @@ val ColorScheme.disabled: Color
 val ColorScheme.searchBarColors: TextFieldColors
   @Composable
   get() {
-    val defaults = OutlinedTextFieldDefaults.colors()
     return OutlinedTextFieldDefaults.colors(
         focusedLeadingIconColor = MaterialTheme.colorScheme.onSurface,
         unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurface,

@@ -15,7 +15,7 @@ import com.tailscale.ipn.ui.util.AndroidTVUtil.isAndroidTV
 object AndroidTVUtil {
   fun isAndroidTV(): Boolean {
     val pm = UninitializedApp.get().packageManager
-    return (pm.hasSystemFeature(PackageManager.FEATURE_TELEVISION) ||
+    return (pm.hasSystemFeature(@Suppress("deprecation") PackageManager.FEATURE_TELEVISION) ||
         pm.hasSystemFeature(PackageManager.FEATURE_LEANBACK))
   }
 }
