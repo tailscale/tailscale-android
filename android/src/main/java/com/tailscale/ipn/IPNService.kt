@@ -73,8 +73,12 @@ open class IPNService : VpnService(), libtailscale.IPNService {
   override fun close() {
     app.setWantRunning(false) {}
     Notifier.setState(Ipn.State.Stopping)
-    stopForeground(STOP_FOREGROUND_REMOVE)
+    disconnectVPN()
     Libtailscale.serviceDisconnect(this)
+  }
+
+  override fun disconnectVPN(){
+    stopSelf()
   }
 
   override fun onDestroy() {

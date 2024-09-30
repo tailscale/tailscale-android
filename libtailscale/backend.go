@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime/debug"
 	"sync"
 	"sync/atomic"
@@ -165,36 +166,24 @@ func (a *App) runBackend(ctx context.Context) error {
 		select {
 		case s := <-stateCh:
 			state = s
-			if cfg.rcfg != nil && state >= ipn.Starting && vpnService.service != nil {
+			if state >= ipn.Starting && vpnService.service != nil && b.isConfigNonNilAndDifferent(cfg.rcfg, cfg.dcfg) {
 				// On state change, check if there are router or config changes requiring an update to VPNBuilder
-				if err := b.updateTUN(vpnService.service, cfg.rcfg, cfg.dcfg); err != nil {
+				if err := b.updateTUN(cfg.rcfg, cfg.dcfg); err != nil {
 					if errors.Is(err, errMultipleUsers) {
 						// TODO: surface error to user
 					}
-					log.Printf("VPN update failed: %v", err)
-
-					mp := new(ipn.MaskedPrefs)
-					mp.WantRunning = false
-					mp.WantRunningSet = true
-
-					_, err := a.EditPrefs(*mp)
-					if err != nil {
-						log.Printf("localapi edit prefs error %v", err)
-					}
-
-					b.lastCfg = nil
-					b.CloseTUNs()
+					a.closeVpnService(err, b)
 				}
 			}
 		case n := <-netmapCh:
 			networkMap = n
 		case c := <-configs:
 			cfg = c
-			if b == nil || vpnService.service == nil || cfg.rcfg == nil {
+			if vpnService.service == nil || !b.isConfigNonNilAndDifferent(cfg.rcfg, cfg.dcfg) {
 				configErrs <- nil
 				break
 			}
-			configErrs <- b.updateTUN(vpnService.service, cfg.rcfg, cfg.dcfg)
+			configErrs <- b.updateTUN(cfg.rcfg, cfg.dcfg)
 		case s := <-onVPNRequested:
 			if vpnService.service != nil && vpnService.service.ID() == s.ID() {
 				// Still the same VPN instance, do nothing
@@ -230,12 +219,9 @@ func (a *App) runBackend(ctx context.Context) error {
 			if networkMap != nil {
 				// TODO
 			}
-			if cfg.rcfg != nil && state >= ipn.Starting {
-				if err := b.updateTUN(vpnService.service, cfg.rcfg, cfg.dcfg); err != nil {
-					log.Printf("VPN update failed: %v", err)
-					vpnService.service.Close()
-					b.lastCfg = nil
-					b.CloseTUNs()
+			if state >= ipn.Starting && b.isConfigNonNilAndDifferent(cfg.rcfg, cfg.dcfg) {
+				if err := b.updateTUN(cfg.rcfg, cfg.dcfg); err != nil {
+					a.closeVpnService(err, b)
 				}
 			}
 		case s := <-onDisconnect:
@@ -245,9 +231,7 @@ func (a *App) runBackend(ctx context.Context) error {
 				vpnService.service = nil
 			}
 		case i := <-onDNSConfigChanged:
-			if b != nil {
-				go b.NetworkChanged(i)
-			}
+			go b.NetworkChanged(i)
 		}
 	}
 }
@@ -345,4 +329,30 @@ func (a *App) newBackend(dataDir, directFileRoot string, appCtx AppContext, stor
 		a.ready.Done()
 	}()
 	return b, nil
+}
+
+func (b *backend) isConfigNonNilAndDifferent(rcfg *router.Config, dcfg *dns.OSConfig) bool {
+	if reflect.DeepEqual(rcfg, b.lastCfg) && reflect.DeepEqual(dcfg, b.lastDNSCfg) {
+		b.logger.Logf("isConfigNonNilAndDifferent: no change to Routes or DNS, ignore")
+		return false
+	}
+	return rcfg != nil
+}
+
+func (a *App) closeVpnService(err error, b *backend) {
+	log.Printf("VPN update failed: %v", err)
+
+	mp := new(ipn.MaskedPrefs)
+	mp.WantRunning = false
+	mp.WantRunningSet = true
+
+	if _, localApiErr := a.EditPrefs(*mp); localApiErr != nil {
+		log.Printf("localapi edit prefs error %v", localApiErr)
+	}
+
+	b.lastCfg = nil
+	b.CloseTUNs()
+
+	vpnService.service.DisconnectVPN()
+	vpnService.service = nil
 }

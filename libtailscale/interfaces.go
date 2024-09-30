@@ -80,6 +80,8 @@ type IPNService interface {
 
 	Close()
 
+	DisconnectVPN()
+
 	UpdateVpnStatus(bool)
 }
 
