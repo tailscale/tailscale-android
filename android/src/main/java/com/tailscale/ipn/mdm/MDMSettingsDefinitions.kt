@@ -46,9 +46,26 @@ class StringMDMSetting(key: String, localizedTitle: String) :
 
 class StringArrayListMDMSetting(key: String, localizedTitle: String) :
     MDMSetting<List<String>?>(null, key, localizedTitle) {
-  override fun getFromBundle(bundle: Bundle) = bundle.getStringArrayList(key)
-  override fun getFromPrefs(prefs: SharedPreferences) =
-      prefs.getStringSet(key, HashSet<String>())?.toList()
+  override fun getFromBundle(bundle: Bundle): List<String>? {
+    // Try to retrieve the value as a String[] first
+    val stringArray = bundle.getStringArray(key)
+    if (stringArray != null) {
+        return stringArray.toList()
+    }
+    
+    // Optionally, handle other types if necessary
+    val stringArrayList = bundle.getStringArrayList(key)
+    if (stringArrayList != null) {
+        return stringArrayList
+    }
+
+    // If neither String[] nor ArrayList<String> is found, return null
+    return null
+  }
+
+  override fun getFromPrefs(prefs: SharedPreferences): List<String>? {
+      return prefs.getStringSet(key, HashSet<String>())?.toList()
+  }
 }
 
 class AlwaysNeverUserDecidesMDMSetting(key: String, localizedTitle: String) :
