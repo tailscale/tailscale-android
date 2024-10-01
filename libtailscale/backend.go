@@ -286,6 +286,7 @@ func (a *App) newBackend(dataDir, directFileRoot string, appCtx AppContext, stor
 		SetSubsystem:   sys.Set,
 		NetMon:         b.netMon,
 		HealthTracker:  sys.HealthTracker(),
+		Metrics:        sys.UserMetricsRegistry(),
 		DriveForLocal:  driveimpl.NewFileSystemForLocal(logf),
 	})
 	if err != nil {
