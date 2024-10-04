@@ -6,7 +6,7 @@ require (
 	github.com/tailscale/wireguard-go v0.0.0-20240905161824-799c1978fafc
 	golang.org/x/mobile v0.0.0-20240806205939-81131f6468ab
 	inet.af/netaddr v0.0.0-20220617031823-097006376321
-	tailscale.com v1.75.0-pre.0.20241004163519-8fdffb8da05d
+	tailscale.com v1.75.0-pre.0.20241004185700-4ad3f0122574
 )
 
 require (
