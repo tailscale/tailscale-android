@@ -69,6 +69,8 @@
     <string name="machine_auth_explainer">This device must be approved by an administrator before it can connect to the tailnet.</string>
     <string name="open_admin_console">Open admin console</string>
     <string name="needs_machine_auth">Authorization required</string>
+    <string name="admin_signing_required">Admin signing required</string>
+    <string name="admin_signing_explainer">This device must be signed by an administrator in this tailnet. Please contact your network administrator for assistance.</string>
     <string name="disable">Disable</string>
     <string name="enable">Enable</string>
     <string name="stop">Stop</string>

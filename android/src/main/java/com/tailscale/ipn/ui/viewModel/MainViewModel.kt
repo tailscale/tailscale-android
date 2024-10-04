@@ -14,6 +14,7 @@ import androidx.lifecycle.viewModelScope
 import com.tailscale.ipn.App
 import com.tailscale.ipn.R
 import com.tailscale.ipn.mdm.MDMSettings
+import com.tailscale.ipn.ui.localapi.Client
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.Ipn.State
 import com.tailscale.ipn.ui.model.Tailcfg
@@ -74,6 +75,9 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
   val isVpnPrepared: StateFlow<Boolean> = vpnViewModel.vpnPrepared
 
   val isVpnActive: StateFlow<Boolean> = vpnViewModel.vpnActive
+
+  // If tailnet lock is enabled, whether the node is locked out
+  val isLockedOut: StateFlow<Boolean> = MutableStateFlow(false)
 
   // Icon displayed in the button to present the health view
   val healthIcon: StateFlow<Int?> = MutableStateFlow(null)
@@ -151,6 +155,16 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
 
     viewModelScope.launch {
       App.get().healthNotifier?.currentIcon?.collect { icon -> healthIcon.set(icon) }
+    }
+
+    Client(viewModelScope).tailnetLockStatus { result ->
+      result.onSuccess { status ->
+        if (status.Enabled == true && status.NodeKeySigned == false) {
+          isLockedOut.set(true)
+        } else {
+          isLockedOut.set(false)
+        }
+      }
     }
   }
 

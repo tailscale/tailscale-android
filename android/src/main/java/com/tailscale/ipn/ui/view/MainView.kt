@@ -121,6 +121,7 @@ fun MainView(
 ) {
   val currentPingDevice by viewModel.pingViewModel.peer.collectAsState()
   val healthIcon by viewModel.healthIcon.collectAsState()
+  val isLockedOut by viewModel.isLockedOut.collectAsState()
 
   LoadingIndicator.Wrap {
     Scaffold(contentWindowInsets = WindowInsets.Companion.statusBars) { paddingInsets ->
@@ -213,24 +214,38 @@ fun MainView(
 
             when (state) {
               Ipn.State.Running -> {
+                if (isLockedOut){
+                  ConnectView(
+                    state,
+                    isPrepared,
+                    isLockedOut,
+                    state != Ipn.State.Stopping,
+                    user,
+                    { viewModel.toggleVpn() },
+                    { viewModel.login() },
+                    loginAtUrl,
+                    netmap?.SelfNode,
+                    { viewModel.showVPNPermissionLauncherIfUnauthorized() })
+                } else {
 
-                PromptPermissionsIfNecessary()
+                  PromptPermissionsIfNecessary()
 
-                viewModel.showVPNPermissionLauncherIfUnauthorized()
+                  viewModel.showVPNPermissionLauncherIfUnauthorized()
 
-                if (showKeyExpiry) {
-                  ExpiryNotification(netmap = netmap, action = { viewModel.login() })
+                  if (showKeyExpiry) {
+                    ExpiryNotification(netmap = netmap, action = { viewModel.login() })
+                  }
+
+                  if (showExitNodePicker.value == ShowHide.Show) {
+                    ExitNodeStatus(
+                        navAction = navigation.onNavigateToExitNodes, viewModel = viewModel)
+                  }
+
+                  PeerList(
+                      viewModel = viewModel,
+                      onNavigateToPeerDetails = navigation.onNavigateToPeerDetails,
+                      onSearch = { viewModel.searchPeers(it) })
                 }
-
-                if (showExitNodePicker.value == ShowHide.Show) {
-                  ExitNodeStatus(
-                      navAction = navigation.onNavigateToExitNodes, viewModel = viewModel)
-                }
-
-                PeerList(
-                    viewModel = viewModel,
-                    onNavigateToPeerDetails = navigation.onNavigateToPeerDetails,
-                    onSearch = { viewModel.searchPeers(it) })
               }
               Ipn.State.NoState,
               Ipn.State.Starting -> StartingView()
@@ -241,6 +256,7 @@ fun MainView(
                     // If Tailscale is stopping, don't automatically restart; wait for user to take
                     // action (eg, if the user connected to another VPN).
                     state != Ipn.State.Stopping,
+                    isLockedOut,
                     user,
                     { viewModel.toggleVpn() },
                     { viewModel.login() },
@@ -417,6 +433,7 @@ fun ConnectView(
     state: Ipn.State,
     isPrepared: Boolean,
     shouldStartAutomatically: Boolean,
+    isLockedOut: Boolean,
     user: IpnLocal.LoginProfile?,
     connectAction: () -> Unit,
     loginAction: () -> Unit,
@@ -424,108 +441,165 @@ fun ConnectView(
     selfNode: Tailcfg.Node?,
     showVPNPermissionLauncherIfUnauthorized: () -> Unit
 ) {
-  LaunchedEffect(isPrepared) {
-    if (!isPrepared && shouldStartAutomatically) {
-      showVPNPermissionLauncherIfUnauthorized()
-    }
-  }
-  Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-      Column(
-          modifier = Modifier.padding(8.dp).fillMaxWidth(0.7f).fillMaxHeight(),
-          verticalArrangement = Arrangement.spacedBy(8.dp, alignment = Alignment.CenterVertically),
-          horizontalAlignment = Alignment.CenterHorizontally,
-      ) {
-        if (!isPrepared) {
-          TailscaleLogoView(modifier = Modifier.size(50.dp))
-          Spacer(modifier = Modifier.size(1.dp))
-          Text(
-              text = stringResource(id = R.string.welcome_to_tailscale),
-              style = MaterialTheme.typography.titleMedium,
-              textAlign = TextAlign.Center)
-          Text(
-              stringResource(R.string.give_permissions),
-              style = MaterialTheme.typography.titleSmall,
-              textAlign = TextAlign.Center)
-          Spacer(modifier = Modifier.size(1.dp))
-          PrimaryActionButton(onClick = connectAction) {
-            Text(
-                text = stringResource(id = R.string.connect),
-                fontSize = MaterialTheme.typography.titleMedium.fontSize)
-          }
-        } else if (state == Ipn.State.NeedsMachineAuth) {
-          Icon(
-              modifier = Modifier.size(40.dp),
-              imageVector = Icons.Outlined.Lock,
-              contentDescription = "Device requires authentication")
-          Text(
-              text = stringResource(id = R.string.machine_auth_required),
-              style = MaterialTheme.typography.titleMedium,
-              textAlign = TextAlign.Center)
-          Text(
-              text = stringResource(id = R.string.machine_auth_explainer),
-              style = MaterialTheme.typography.bodyMedium,
-              textAlign = TextAlign.Center)
-          Spacer(modifier = Modifier.size(1.dp))
-          selfNode?.let {
-            PrimaryActionButton(onClick = { loginAtUrlAction(it.nodeAdminUrl) }) {
-              Text(
-                  text = stringResource(id = R.string.open_admin_console),
-                  fontSize = MaterialTheme.typography.titleMedium.fontSize)
-            }
-          }
-        } else if (state != Ipn.State.NeedsLogin && user != null && !user.isEmpty()) {
-          Icon(
-              painter = painterResource(id = R.drawable.power),
-              contentDescription = null,
-              modifier = Modifier.size(40.dp),
-              tint = MaterialTheme.colorScheme.disabled)
-          Text(
-              text = stringResource(id = R.string.not_connected),
-              fontSize = MaterialTheme.typography.titleMedium.fontSize,
-              fontWeight = FontWeight.SemiBold,
-              textAlign = TextAlign.Center,
-              fontFamily = MaterialTheme.typography.titleMedium.fontFamily)
-          val tailnetName = user.NetworkProfile?.DomainName ?: ""
-          Text(
-              buildAnnotatedString {
-                append(stringResource(id = R.string.connect_to_tailnet_prefix))
-                pushStyle(SpanStyle(fontWeight = FontWeight.Bold))
-                append(tailnetName)
-                pop()
-                append(stringResource(id = R.string.connect_to_tailnet_suffix))
-              },
-              fontSize = MaterialTheme.typography.titleMedium.fontSize,
-              fontWeight = FontWeight.Normal,
-              textAlign = TextAlign.Center,
-          )
-          Spacer(modifier = Modifier.size(1.dp))
-          PrimaryActionButton(onClick = connectAction) {
-            Text(
-                text = stringResource(id = R.string.connect),
-                fontSize = MaterialTheme.typography.titleMedium.fontSize)
-          }
-        } else {
-          TailscaleLogoView(modifier = Modifier.size(50.dp))
-          Spacer(modifier = Modifier.size(1.dp))
-          Text(
-              text = stringResource(id = R.string.welcome_to_tailscale),
-              style = MaterialTheme.typography.titleMedium,
-              textAlign = TextAlign.Center)
-          Text(
-              stringResource(R.string.login_to_join_your_tailnet),
-              style = MaterialTheme.typography.titleSmall,
-              textAlign = TextAlign.Center)
-          Spacer(modifier = Modifier.size(1.dp))
-          PrimaryActionButton(onClick = loginAction) {
-            Text(
-                text = stringResource(id = R.string.log_in),
-                fontSize = MaterialTheme.typography.titleMedium.fontSize)
-          }
+    // Handle VPN permission automatically
+    LaunchedEffect(isPrepared) {
+        if (!isPrepared && shouldStartAutomatically) {
+            showVPNPermissionLauncherIfUnauthorized()
         }
-      }
     }
-  }
+
+    Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+            if (isLockedOut) {
+                LockedOutView()  
+            } else if (!isPrepared) {
+                NotPreparedView(connectAction)
+            } else if (state == Ipn.State.NeedsMachineAuth) {
+                MachineAuthView(selfNode, loginAtUrlAction)
+            } else if (state != Ipn.State.NeedsLogin && user != null && !user.isEmpty()) {
+                NotConnectedView(user, connectAction)
+            } else {
+                WelcomeView(loginAction)
+            }
+        }
+    }
+}
+
+@Composable
+fun LockedOutView() {
+    Column(
+        modifier = Modifier
+            .fillMaxHeight()
+            .fillMaxWidth(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            modifier = Modifier.size(40.dp),
+            imageVector = Icons.Outlined.Lock,
+            contentDescription = "Device requires signing"
+        )
+        Text(
+            text = stringResource(id = R.string.admin_signing_required),
+            style = MaterialTheme.typography.titleMedium,
+            textAlign = TextAlign.Center
+        )
+        Text(
+            text = stringResource(id = R.string.admin_signing_explainer),
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
+fun NotPreparedView(connectAction: () -> Unit) {
+    TailscaleLogoView(modifier = Modifier.size(50.dp))
+    Spacer(modifier = Modifier.size(1.dp))
+    Text(
+        text = stringResource(id = R.string.welcome_to_tailscale),
+        style = MaterialTheme.typography.titleMedium,
+        textAlign = TextAlign.Center
+    )
+    Text(
+        stringResource(R.string.give_permissions),
+        style = MaterialTheme.typography.titleSmall,
+        textAlign = TextAlign.Center
+    )
+    Spacer(modifier = Modifier.size(1.dp))
+    PrimaryActionButton(onClick = connectAction) {
+        Text(
+            text = stringResource(id = R.string.connect),
+            fontSize = MaterialTheme.typography.titleMedium.fontSize
+        )
+    }
+}
+
+@Composable
+fun MachineAuthView(selfNode: Tailcfg.Node?, loginAtUrlAction: (String) -> Unit) {
+    Icon(
+        modifier = Modifier.size(40.dp),
+        imageVector = Icons.Outlined.Lock,
+        contentDescription = "Device requires authentication"
+    )
+    Text(
+        text = stringResource(id = R.string.machine_auth_required),
+        style = MaterialTheme.typography.titleMedium,
+        textAlign = TextAlign.Center
+    )
+    Text(
+        text = stringResource(id = R.string.machine_auth_explainer),
+        style = MaterialTheme.typography.bodyMedium,
+        textAlign = TextAlign.Center
+    )
+    Spacer(modifier = Modifier.size(1.dp))
+    selfNode?.let {
+        PrimaryActionButton(onClick = { loginAtUrlAction(it.nodeAdminUrl) }) {
+            Text(
+                text = stringResource(id = R.string.open_admin_console),
+                fontSize = MaterialTheme.typography.titleMedium.fontSize
+            )
+        }
+    }
+}
+
+@Composable
+fun NotConnectedView(user: IpnLocal.LoginProfile, connectAction: () -> Unit) {
+    Icon(
+        painter = painterResource(id = R.drawable.power),
+        contentDescription = null,
+        modifier = Modifier.size(40.dp),
+        tint = MaterialTheme.colorScheme.disabled
+    )
+    Text(
+        text = stringResource(id = R.string.not_connected),
+        fontSize = MaterialTheme.typography.titleMedium.fontSize,
+        fontWeight = FontWeight.SemiBold,
+        textAlign = TextAlign.Center
+    )
+    val tailnetName = user.NetworkProfile?.DomainName ?: ""
+    Text(
+        buildAnnotatedString {
+            append(stringResource(id = R.string.connect_to_tailnet_prefix))
+            pushStyle(SpanStyle(fontWeight = FontWeight.Bold))
+            append(tailnetName)
+            pop()
+            append(stringResource(id = R.string.connect_to_tailnet_suffix))
+        },
+        fontSize = MaterialTheme.typography.titleMedium.fontSize,
+        fontWeight = FontWeight.Normal,
+        textAlign = TextAlign.Center
+    )
+    Spacer(modifier = Modifier.size(1.dp))
+    PrimaryActionButton(onClick = connectAction) {
+        Text(
+            text = stringResource(id = R.string.connect),
+            fontSize = MaterialTheme.typography.titleMedium.fontSize
+        )
+    }
+}
+
+@Composable
+fun WelcomeView(loginAction: () -> Unit) {
+    TailscaleLogoView(modifier = Modifier.size(50.dp))
+    Spacer(modifier = Modifier.size(1.dp))
+    Text(
+        text = stringResource(id = R.string.welcome_to_tailscale),
+        style = MaterialTheme.typography.titleMedium,
+        textAlign = TextAlign.Center
+    )
+    Text(
+        stringResource(R.string.login_to_join_your_tailnet),
+        style = MaterialTheme.typography.titleSmall,
+        textAlign = TextAlign.Center
+    )
+    Spacer(modifier = Modifier.size(1.dp))
+    PrimaryActionButton(onClick = loginAction) {
+        Text(
+            text = stringResource(id = R.string.log_in),
+            fontSize = MaterialTheme.typography.titleMedium.fontSize
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
