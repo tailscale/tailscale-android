@@ -33,6 +33,7 @@ import com.tailscale.ipn.BuildConfig
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.Links
 import com.tailscale.ipn.ui.theme.logoBackground
+import com.tailscale.ipn.ui.util.AppVersion
 
 @Composable
 fun AboutView(backToSettings: BackNavigation) {
@@ -69,9 +70,14 @@ fun AboutView(backToSettings: BackNavigation) {
                 Text(
                     modifier =
                         Modifier.clickable {
+                          // When users tap on the version number, the extended version string
+                          // (including commit hashes) is copied to the clipboard.
+                          // This may be useful for debugging purposes...
                           localClipboardManager.setText(AnnotatedString(BuildConfig.VERSION_NAME))
                         },
-                    text = "${stringResource(R.string.version)} ${BuildConfig.VERSION_NAME}",
+                    // ... but we always display the short version in the UI to avoid user
+                    // confusion.
+                    text = "${stringResource(R.string.version)} ${AppVersion.Short()}",
                     fontWeight = MaterialTheme.typography.bodyMedium.fontWeight,
                     fontSize = MaterialTheme.typography.bodyMedium.fontSize)
               }
