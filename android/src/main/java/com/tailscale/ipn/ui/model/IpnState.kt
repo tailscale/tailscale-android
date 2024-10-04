@@ -131,8 +131,8 @@ class IpnLocal {
     }
 
     // Returns true if the profile uses a custom control server (not Tailscale SaaS).
-    fun isUsingCustomControlServer(): Boolean {
-      return ControlURL != null && ControlURL != "controlplane.tailscale.com"
+    private fun isUsingCustomControlServer(): Boolean {
+      return ControlURL != null && ControlURL != "https://controlplane.tailscale.com"
     }
 
     // Returns the hostname of the custom control server, if any was set.
