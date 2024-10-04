@@ -4,6 +4,7 @@
 package com.tailscale.ipn.ui.model
 
 import kotlinx.serialization.Serializable
+import java.net.URL
 
 class IpnState {
   @Serializable
@@ -123,9 +124,29 @@ class IpnLocal {
       val UserProfile: Tailcfg.UserProfile,
       val NetworkProfile: Tailcfg.NetworkProfile? = null,
       val LocalUserID: String,
+      var ControlURL: String? = null,
   ) {
     fun isEmpty(): Boolean {
       return ID.isEmpty()
+    }
+
+    // Returns true if the profile uses a custom control server (not Tailscale SaaS).
+    fun isUsingCustomControlServer(): Boolean {
+      return ControlURL != null && ControlURL != "controlplane.tailscale.com"
+    }
+
+    // Returns the hostname of the custom control server, if any was set.
+    //
+    // Returns null if the ControlURL provided by the backend is an invalid URL, and
+    // a hostname cannot be extracted.
+    fun customControlServerHostname(): String? {
+      if (!isUsingCustomControlServer()) return null
+
+      return try {
+        URL(ControlURL).host
+      } catch (e: Exception) {
+        null
+      }
     }
   }
 }
