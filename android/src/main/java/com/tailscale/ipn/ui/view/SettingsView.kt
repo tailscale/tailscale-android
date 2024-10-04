@@ -39,6 +39,7 @@ import com.tailscale.ipn.ui.viewModel.SettingsNav
 import com.tailscale.ipn.ui.viewModel.SettingsViewModel
 import com.tailscale.ipn.ui.viewModel.VpnViewModel
 import com.tailscale.ipn.ui.notifier.Notifier
+import com.tailscale.ipn.ui.util.AppVersion
 
 @Composable
 fun SettingsView(settingsNav: SettingsNav, viewModel: SettingsViewModel = viewModel(), vpnViewModel: VpnViewModel = viewModel()) {
@@ -112,7 +113,7 @@ fun SettingsView(settingsNav: SettingsNav, viewModel: SettingsViewModel = viewMo
           Lists.ItemDivider()
           Setting.Text(
               R.string.about_tailscale,
-              subtitle = "${stringResource(id = R.string.version)} ${BuildConfig.VERSION_NAME}",
+              subtitle = "${stringResource(id = R.string.version)} ${AppVersion.Short()}",
               onClick = settingsNav.onNavigateToAbout)
 
           // TODO: put a heading for the debug section
