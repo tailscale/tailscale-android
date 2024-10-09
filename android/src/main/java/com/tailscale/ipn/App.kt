@@ -36,6 +36,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -141,16 +143,31 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     initViewModels()
     applicationScope.launch {
       Notifier.state.collect { state ->
-        val ableToStartVPN = state > Ipn.State.NeedsMachineAuth
-        // If VPN is stopped, show a disconnected notification. If it is running as a foregrround
-        // service, IPNService will show a connected notification.
-        if (state == Ipn.State.Stopped) {
-          notifyStatus(false)
-        }
-        val vpnRunning = state == Ipn.State.Starting || state == Ipn.State.Running
-        updateConnStatus(ableToStartVPN)
-        QuickToggleService.setVPNRunning(vpnRunning)
+        combine(Notifier.state, MDMSettings.forceEnabled.flow) { state, forceEnabled ->
+              Pair(state, forceEnabled)
+            }
+            .collect { (state, hideDisconnectAction) ->
+              val ableToStartVPN = state > Ipn.State.NeedsMachineAuth
+              // If VPN is stopped, show a disconnected notification. If it is running as a
+              // foreground
+              // service, IPNService will show a connected notification.
+              if (state == Ipn.State.Stopped) {
+                notifyStatus(vpnRunning = false, hideDisconnectAction = hideDisconnectAction.value)
+              }
+
+              val vpnRunning = state == Ipn.State.Starting || state == Ipn.State.Running
+              updateConnStatus(ableToStartVPN)
+              QuickToggleService.setVPNRunning(vpnRunning)
+
+              // Update notification status when VPN is running
+              if (vpnRunning) {
+                notifyStatus(vpnRunning = true, hideDisconnectAction = hideDisconnectAction.value)
+              }
+            }
       }
+    }
+    applicationScope.launch {
+      val hideDisconnectAction = MDMSettings.forceEnabled.flow.first()
     }
   }
 
@@ -408,8 +425,8 @@ open class UninitializedApp : Application() {
     notificationManager.createNotificationChannel(channel)
   }
 
-  fun notifyStatus(vpnRunning: Boolean) {
-    notifyStatus(buildStatusNotification(vpnRunning))
+  fun notifyStatus(vpnRunning: Boolean, hideDisconnectAction: Boolean) {
+    notifyStatus(buildStatusNotification(vpnRunning, hideDisconnectAction))
   }
 
   fun notifyStatus(notification: Notification) {
@@ -427,7 +444,7 @@ open class UninitializedApp : Application() {
     notificationManager.notify(STATUS_NOTIFICATION_ID, notification)
   }
 
-  fun buildStatusNotification(vpnRunning: Boolean): Notification {
+  fun buildStatusNotification(vpnRunning: Boolean, hideDisconnectAction: Boolean): Notification {
     val message = getString(if (vpnRunning) R.string.connected else R.string.not_connected)
     val icon = if (vpnRunning) R.drawable.ic_notification else R.drawable.ic_notification_disabled
     val action =
@@ -449,19 +466,22 @@ open class UninitializedApp : Application() {
         PendingIntent.getActivity(
             this, 1, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 
-    return NotificationCompat.Builder(this, STATUS_CHANNEL_ID)
-        .setSmallIcon(icon)
-        .setContentTitle("Tailscale")
-        .setContentText(message)
-        .setAutoCancel(!vpnRunning)
-        .setOnlyAlertOnce(!vpnRunning)
-        .setOngoing(vpnRunning)
-        .setSilent(true)
-        .setOngoing(false)
-        .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-        .addAction(NotificationCompat.Action.Builder(0, actionLabel, pendingButtonIntent).build())
-        .setContentIntent(pendingIntent)
-        .build()
+    val builder =
+        NotificationCompat.Builder(this, STATUS_CHANNEL_ID)
+            .setSmallIcon(icon)
+            .setContentTitle(getString(R.string.app_name))
+            .setContentText(message)
+            .setAutoCancel(!vpnRunning)
+            .setOnlyAlertOnce(!vpnRunning)
+            .setOngoing(vpnRunning)
+            .setSilent(true)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setContentIntent(pendingIntent)
+    if (!vpnRunning || !hideDisconnectAction) {
+      builder.addAction(
+          NotificationCompat.Action.Builder(0, actionLabel, pendingButtonIntent).build())
+    }
+    return builder.build()
   }
 
   fun addUserDisallowedPackageName(packageName: String) {
