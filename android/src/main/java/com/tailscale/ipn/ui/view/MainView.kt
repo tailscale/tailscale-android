@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowDropDown
@@ -187,28 +186,14 @@ fun MainView(
                   }
                 },
                 trailingContent = {
-                  Box(
-                      modifier =
-                          Modifier.weight(1f)
-                              .focusable()
-                              .clickable { navigation.onNavigateToSettings() }
-                              .padding(8.dp), 
-                      contentAlignment = Alignment.CenterEnd) {
-                        when (user) {
-                          null -> SettingsButton { navigation.onNavigateToSettings() }
-                          else ->
-                              Box(
-                                  contentAlignment = Alignment.Center,
-                                  modifier =
-                                      Modifier.size(42.dp).clip(CircleShape).focusable().clickable {
-                                        navigation.onNavigateToSettings()
-                                      }) {
-                                    Avatar(profile = user, size = 36) {
-                                      navigation.onNavigateToSettings()
-                                    }
-                                  }
-                        }
+                  Box(modifier = Modifier.padding(8.dp), contentAlignment = Alignment.CenterEnd) {
+                    when (user) {
+                      null -> SettingsButton { navigation.onNavigateToSettings() }
+                      else -> {
+                        Avatar(profile = user, size = 36) { navigation.onNavigateToSettings() }
                       }
+                    }
+                  }
                 })
 
             when (state) {
