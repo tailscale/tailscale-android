@@ -10,8 +10,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -33,7 +33,7 @@ fun Avatar(profile: IpnLocal.LoginProfile?, size: Int = 50, action: (() -> Unit)
       modifier =
           modifier.clickable(
               interactionSource = remember { MutableInteractionSource() },
-              indication = rememberRipple(bounded = false),
+              indication = ripple(bounded = false),
               onClick = action)
     }
     Icon(
