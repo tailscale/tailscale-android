@@ -38,7 +38,7 @@ android {
         minSdkVersion 26
         targetSdkVersion 34
         versionCode 241
-        versionName "1.77.0-tacb4a22dc-g5f19730c7a4"
+        versionName "1.77.12-ta8f9c0d6e-g753b8d3fb4b"
 
         // This setting, which defaults to 'true', will cause Tailscale to fall
         // back to the Google DNS servers if it cannot determine what the
