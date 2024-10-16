@@ -371,16 +371,27 @@ open class UninitializedApp : Application() {
 
   fun startVPN() {
     val intent = Intent(this, IPNService::class.java).apply { action = IPNService.ACTION_START_VPN }
+    // FLAG_UPDATE_CURRENT ensures that if the intent is already pending, the existing intent will
+    // be updated rather than creating multiple redundant instances.
+    val pendingIntent =
+        PendingIntent.getService(
+            this,
+            0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or
+                PendingIntent.FLAG_IMMUTABLE // FLAG_IMMUTABLE for Android 12+
+            )
+
     try {
-      startForegroundService(intent)
+      pendingIntent.send()
     } catch (foregroundServiceStartException: IllegalStateException) {
       TSLog.e(
           TAG,
-          "startVPN hit ForegroundServiceStartNotAllowedException in startForegroundService(): $foregroundServiceStartException")
+          "startVPN hit ForegroundServiceStartNotAllowedException: $foregroundServiceStartException")
     } catch (securityException: SecurityException) {
-      TSLog.e(TAG, "startVPN hit SecurityException in startForegroundService(): $securityException")
+      TSLog.e(TAG, "startVPN hit SecurityException: $securityException")
     } catch (e: Exception) {
-      TSLog.e(TAG, "startVPN hit exception in startForegroundService(): $e")
+      TSLog.e(TAG, "startVPN hit exception: $e")
     }
   }
 

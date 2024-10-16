@@ -13,9 +13,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,7 +55,7 @@ fun Avatar(profile: IpnLocal.LoginProfile?, size: Int = 50, action: (() -> Unit)
             .focusable() // Make this outer Box focusable (after onFocusChanged)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
-                indication = rememberRipple(bounded = true), // Apply ripple effect inside circular bounds
+                indication = ripple(bounded = true), // Apply ripple effect inside circular bounds
                 onClick = {
                     action?.invoke() 
                     focusManager.clearFocus() // Clear focus after clicking the avatar

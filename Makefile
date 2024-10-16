@@ -208,7 +208,7 @@ tag_release: ## Tag the current commit with the current version
 
 .PHONY: bumposs ## Bump to the latest oss and update teh versions.
 bumposs: update-oss update-version
-	git commit -sm "android: bumping OSS" -m "OSS and Version updated to ${VERSION_LONG}" go.toolchain.rev android/build.gradle go.mod go.sum
+	git commit -sm "android: bump OSS" -m "OSS and Version updated to ${VERSION_LONG}" go.toolchain.rev android/build.gradle go.mod go.sum
 	git tag -a "$(VERSION_LONG)" -m "OSS and Version updated to ${VERSION_LONG}"
 
 .PHONY: bump_version_code
