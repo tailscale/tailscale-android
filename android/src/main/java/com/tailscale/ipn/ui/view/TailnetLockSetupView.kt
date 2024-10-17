@@ -3,13 +3,15 @@
 
 package com.tailscale.ipn.ui.view
 
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.ClickableText
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
@@ -18,7 +20,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -52,40 +56,44 @@ fun TailnetLockSetupView(
 
   Scaffold(topBar = { Header(R.string.tailnet_lock, onBack = backToSettings) }) { innerPadding ->
     LoadingIndicator.Wrap {
-      Column(
-          modifier =
-              Modifier.padding(innerPadding)
-                  .focusable()
-                  .verticalScroll(rememberScrollState())
-                  .fillMaxSize()) {
-            ExplainerView()
+      LazyColumn(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
+        item { ExplainerView() }
 
-            statusItems.forEach { statusItem ->
-              Lists.ItemDivider()
+        items(statusItems) { statusItem ->
+          val interactionSource = remember { MutableInteractionSource() }
+          ListItem(
+              modifier =
+                  Modifier.focusable(
+                          interactionSource = interactionSource) 
+                      .clickable(
+                          interactionSource = interactionSource,
+                          indication = LocalIndication.current
+                          ) {},
+              leadingContent = {
+                Icon(
+                    painter = painterResource(id = statusItem.icon),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant)
+              },
+              headlineContent = { Text(stringResource(statusItem.title)) })
+        }
 
-              ListItem(
-                  leadingContent = {
-                    Icon(
-                        painter = painterResource(id = statusItem.icon),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                  },
-                  headlineContent = { Text(stringResource(statusItem.title)) })
-            }
-            // Node key
-            Lists.SectionDivider()
-            ClipboardValueView(
-                value = nodeKey,
-                title = stringResource(R.string.node_key),
-                subtitle = stringResource(R.string.node_key_explainer))
+        item {
+          // Node key section
+          Lists.SectionDivider()
+          ClipboardValueView(
+              value = nodeKey,
+              title = stringResource(R.string.node_key),
+              subtitle = stringResource(R.string.node_key_explainer))
 
-            // Tailnet lock key
-            Lists.SectionDivider()
-            ClipboardValueView(
-                value = tailnetLockTlPubKey,
-                title = stringResource(R.string.tailnet_lock_key),
-                subtitle = stringResource(R.string.tailnet_lock_key_explainer))
-          }
+          // Tailnet lock key section
+          Lists.SectionDivider()
+          ClipboardValueView(
+              value = tailnetLockTlPubKey,
+              title = stringResource(R.string.tailnet_lock_key),
+              subtitle = stringResource(R.string.tailnet_lock_key_explainer))
+        }
+      }
     }
   }
 }
