@@ -39,6 +39,7 @@ import com.tailscale.ipn.ui.viewModel.SettingsNav
 import com.tailscale.ipn.ui.viewModel.SettingsViewModel
 import com.tailscale.ipn.ui.viewModel.VpnViewModel
 import com.tailscale.ipn.ui.notifier.Notifier
+import com.tailscale.ipn.ui.util.AndroidTVUtil
 import com.tailscale.ipn.ui.util.AppVersion
 
 @Composable
@@ -96,9 +97,10 @@ fun SettingsView(settingsNav: SettingsNav, viewModel: SettingsViewModel = viewMo
                     },
                 onClick = settingsNav.onNavigateToTailnetLock)
           }
-
-          Lists.ItemDivider()
-          Setting.Text(R.string.permissions, onClick = settingsNav.onNavigateToPermissions)
+          if (!AndroidTVUtil.isAndroidTV()){
+            Lists.ItemDivider()
+            Setting.Text(R.string.permissions, onClick = settingsNav.onNavigateToPermissions)
+          }
 
           managedByOrganization.value?.let {
             Lists.ItemDivider()
