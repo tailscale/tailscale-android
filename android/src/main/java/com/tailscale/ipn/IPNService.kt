@@ -12,6 +12,10 @@ import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.util.TSLog
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import libtailscale.Libtailscale
 import java.util.UUID
 
@@ -19,6 +23,7 @@ open class IPNService : VpnService(), libtailscale.IPNService {
   private val TAG = "IPNService"
   private val randomID: String = UUID.randomUUID().toString()
   private lateinit var app: App
+  val scope = CoroutineScope(Dispatchers.IO)
 
   override fun id(): String {
     return randomID
@@ -42,7 +47,11 @@ open class IPNService : VpnService(), libtailscale.IPNService {
           START_NOT_STICKY
         }
         ACTION_START_VPN -> {
-          showForegroundNotification()
+          scope.launch {
+            // Collect the first value of hideDisconnectAction asynchronously.
+            val hideDisconnectAction = MDMSettings.forceEnabled.flow.first()
+            showForegroundNotification(hideDisconnectAction.value)
+          }
           app.setWantRunning(true)
           Libtailscale.requestVPN(this)
           START_STICKY
@@ -51,7 +60,11 @@ open class IPNService : VpnService(), libtailscale.IPNService {
           // This means we were started by Android due to Always On VPN.
           // We show a non-foreground notification because we weren't
           // started as a foreground service.
-          app.notifyStatus(true)
+          scope.launch {
+            // Collect the first value of hideDisconnectAction asynchronously.
+            val hideDisconnectAction = MDMSettings.forceEnabled.flow.first()
+            app.notifyStatus(true, hideDisconnectAction.value)
+          }
           app.setWantRunning(true)
           Libtailscale.requestVPN(this)
           START_STICKY
@@ -60,7 +73,11 @@ open class IPNService : VpnService(), libtailscale.IPNService {
           // This means that we were restarted after the service was killed
           // (potentially due to OOM).
           if (UninitializedApp.get().isAbleToStartVPN()) {
-            showForegroundNotification()
+            scope.launch {
+              // Collect the first value of hideDisconnectAction asynchronously.
+              val hideDisconnectAction = MDMSettings.forceEnabled.flow.first()
+              showForegroundNotification(hideDisconnectAction.value)
+            }
             App.get()
             Libtailscale.requestVPN(this)
             START_STICKY
@@ -77,7 +94,7 @@ open class IPNService : VpnService(), libtailscale.IPNService {
     Libtailscale.serviceDisconnect(this)
   }
 
-  override fun disconnectVPN(){
+  override fun disconnectVPN() {
     stopSelf()
   }
 
@@ -97,11 +114,11 @@ open class IPNService : VpnService(), libtailscale.IPNService {
     app.getAppScopedViewModel().setVpnPrepared(isPrepared)
   }
 
-  private fun showForegroundNotification() {
+  private fun showForegroundNotification(hideDisconnectAction: Boolean) {
     try {
       startForeground(
           UninitializedApp.STATUS_NOTIFICATION_ID,
-          UninitializedApp.get().buildStatusNotification(true))
+          UninitializedApp.get().buildStatusNotification(true, hideDisconnectAction))
     } catch (e: Exception) {
       TSLog.e(TAG, "Failed to start foreground service: $e")
     }
