@@ -17,6 +17,11 @@ import androidx.test.uiautomator.UiSelector
 import dev.turingcomplete.kotlinonetimepassword.HmacAlgorithm
 import dev.turingcomplete.kotlinonetimepassword.TimeBasedOneTimePasswordConfig
 import dev.turingcomplete.kotlinonetimepassword.TimeBasedOneTimePasswordGenerator
+import java.net.HttpURLConnection
+import java.net.URL
+import java.util.concurrent.TimeUnit
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 import org.apache.commons.codec.binary.Base32
 import org.junit.After
 import org.junit.Assert
@@ -24,11 +29,6 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.net.HttpURLConnection
-import java.net.URL
-import java.util.concurrent.TimeUnit
-import kotlin.time.Duration.Companion.minutes
-import kotlin.time.Duration.Companion.seconds
 
 @RunWith(AndroidJUnit4::class)
 @LargeTest
@@ -59,18 +59,18 @@ class MainActivityTest {
             timeStep = 30,
             timeStepUnit = TimeUnit.SECONDS)
     val githubTOTP = TimeBasedOneTimePasswordGenerator(github2FASecret, config)
-
     val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-    Log.d(TAG, "Wait for VPN permission prompt and accept")
-    device.find(By.text("Connection request"))
-    device.find(By.text("OK")).click()
 
     Log.d(TAG, "Click through Get Started screen")
     device.find(By.text("Get Started"))
     device.find(By.text("Get Started")).click()
 
+    Log.d(TAG, "Wait for VPN permission prompt and accept")
+    device.find(By.text("Connection request"))
+    device.find(By.text("OK")).click()
+
     asNecessary(
-        timeout = 2.minutes,
+        2.minutes,
         {
           Log.d(TAG, "Log in")
           device.find(By.text("Log in")).click()
@@ -93,7 +93,6 @@ class MainActivityTest {
         },
         {
           Log.d(TAG, "Make sure GitHub page has loaded")
-          device.find(By.text("New to GitHub"))
           device.find(By.text("Username or email address"))
           device.find(By.text("Sign in"))
         },
@@ -116,9 +115,14 @@ class MainActivityTest {
           device.find(UiSelector().instance(0).className(Button::class.java)).click()
         },
         {
+          Log.d(TAG, "Authorizing Tailscale")
+          device.find(By.text("Authorize tailscale")).click()
+        },
+        {
           Log.d(TAG, "Accept Tailscale app")
           device.find(By.text("Learn more about OAuth"))
           // Sleep a little to give button time to activate
+
           Thread.sleep(5.seconds.inWholeMilliseconds)
           device.find(UiSelector().instance(1).className(Button::class.java)).click()
         },
@@ -126,8 +130,7 @@ class MainActivityTest {
           Log.d(TAG, "Connect device")
           device.find(By.text("Connect device"))
           device.find(UiSelector().instance(0).className(Button::class.java)).click()
-        },
-    )
+        })
 
     try {
       Log.d(TAG, "Accept Permission (Either Storage or Notifications)")
