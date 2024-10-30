@@ -22,13 +22,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.ArrowDropDown
-import androidx.compose.material.icons.outlined.Clear
-import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
@@ -40,25 +41,23 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SearchBar
+import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
@@ -86,7 +85,6 @@ import com.tailscale.ipn.ui.theme.exitNodeToggleButton
 import com.tailscale.ipn.ui.theme.listItem
 import com.tailscale.ipn.ui.theme.minTextSize
 import com.tailscale.ipn.ui.theme.primaryListItem
-import com.tailscale.ipn.ui.theme.searchBarColors
 import com.tailscale.ipn.ui.theme.secondaryButton
 import com.tailscale.ipn.ui.theme.short
 import com.tailscale.ipn.ui.theme.surfaceContainerListItem
@@ -526,154 +524,119 @@ fun PeerList(
       remember { derivedStateOf { searchTermStr.isNotEmpty() && peerList.isEmpty() } }.value
 
   val netmap = viewModel.netmap.collectAsState()
-
   val focusManager = LocalFocusManager.current
   var isFocussed by remember { mutableStateOf(false) }
-
   var isListFocussed by remember { mutableStateOf(false) }
-
   val expandedPeer = viewModel.expandedMenuPeer.collectAsState()
   val localClipboardManager = LocalClipboardManager.current
-
   val enableSearch = !isAndroidTV()
 
-  if (enableSearch) {
-    Box(modifier = Modifier.fillMaxWidth().background(color = MaterialTheme.colorScheme.surface)) {
-      OutlinedTextField(
-          modifier =
-              Modifier.fillMaxWidth()
-                  .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 0.dp)
-                  .onFocusChanged { isFocussed = it.isFocused },
-          singleLine = true,
-          shape = MaterialTheme.shapes.extraLarge,
-          colors = MaterialTheme.colorScheme.searchBarColors,
-          leadingIcon = {
-            Icon(imageVector = Icons.Outlined.Search, contentDescription = "search")
-          },
-          trailingIcon = {
-            if (isFocussed) {
-              IconButton(
-                  onClick = {
-                    focusManager.clearFocus()
-                    onSearch("")
-                  }) {
-                    Icon(
-                        imageVector =
-                            if (searchTermStr.isEmpty()) Icons.Outlined.Close
-                            else Icons.Outlined.Clear,
-                        contentDescription = "clear search",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                  }
-            }
-          },
-          placeholder = {
-            Text(
-                text = stringResource(id = R.string.search),
-                style = MaterialTheme.typography.bodyLarge,
-                maxLines = 1)
-          },
-          value = searchTermStr,
-          onValueChange = { onSearch(it) })
+  Column(modifier = Modifier.fillMaxSize()) {
+    if (enableSearch) {
+      SearchWithDynamicSuggestions(viewModel, onSearch)
+
+      Spacer(modifier = Modifier.height(if (showNoResults) 0.dp else 8.dp))
     }
-  }
 
-  LazyColumn(
-      modifier =
-          Modifier.fillMaxSize()
-              .onFocusChanged { isListFocussed = it.isFocused }
-              .background(color = MaterialTheme.colorScheme.surface)) {
-        if (showNoResults) {
-          item {
-            Spacer(
-                Modifier.height(16.dp)
-                    .fillMaxSize()
-                    .focusable(false)
-                    .background(color = MaterialTheme.colorScheme.surface))
+    // Peers display
+    LazyColumn(
+        modifier =
+            Modifier.fillMaxWidth()
+                .weight(1f) // LazyColumn gets the remaining vertical space
+                .onFocusChanged { isListFocussed = it.isFocused }
+                .background(color = MaterialTheme.colorScheme.surface)) {
 
-            Lists.LargeTitle(
-                stringResource(id = R.string.no_results),
-                bottomPadding = 8.dp,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Light)
-          }
-        }
-
-        var first = true
-        peerList.forEach { peerSet ->
-          if (!first) {
-            item(key = "user_divider_${peerSet.user?.ID ?: 0L}") { Lists.ItemDivider() }
-          }
-          first = false
-
-          // Sticky headers are a bit broken on Android TV - they hide their content
-          if (isAndroidTV()) {
-            item { NodesSectionHeader(peerSet = peerSet) }
-          } else {
-            stickyHeader { NodesSectionHeader(peerSet = peerSet) }
+          // Handle case when no results are found
+          if (showNoResults) {
+            item {
+              Spacer(
+                  Modifier.height(16.dp)
+                      .fillMaxSize()
+                      .focusable(false)
+                      .background(color = MaterialTheme.colorScheme.surface))
+              Lists.LargeTitle(
+                  stringResource(id = R.string.no_results),
+                  bottomPadding = 8.dp,
+                  style = MaterialTheme.typography.bodyMedium,
+                  fontWeight = FontWeight.Light)
+            }
           }
 
-          itemsWithDividers(peerSet.peers, key = { it.StableID }) { peer ->
-            ListItem(
-                modifier =
-                    Modifier.combinedClickable(
-                        onClick = { onNavigateToPeerDetails(peer) },
-                        onLongClick = { viewModel.expandedMenuPeer.set(peer) }),
-                colors = MaterialTheme.colorScheme.listItem,
-                headlineContent = {
-                  Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier =
-                            Modifier.padding(top = 2.dp)
-                                .size(10.dp)
-                                .background(
-                                    color = peer.connectedColor(netmap.value),
-                                    shape = RoundedCornerShape(percent = 50))) {}
-                    Spacer(modifier = Modifier.size(8.dp))
-                    Text(text = peer.displayName, style = MaterialTheme.typography.titleMedium)
-                    DropdownMenu(
-                        expanded = expandedPeer.value?.StableID == peer.StableID,
-                        onDismissRequest = { viewModel.hidePeerDropdownMenu() }) {
-                          DropdownMenuItem(
-                              leadingIcon = {
-                                Icon(
-                                    painter = painterResource(R.drawable.clipboard),
-                                    contentDescription = null)
-                              },
-                              text = { Text(text = stringResource(R.string.copy_ip_address)) },
-                              onClick = {
-                                viewModel.copyIpAddress(peer, localClipboardManager)
-                                viewModel.hidePeerDropdownMenu()
-                              })
+          // Iterate over peer sets to display them
+          var first = true
+          peerList.forEach { peerSet ->
+            if (!first) {
+              item(key = "user_divider_${peerSet.user?.ID ?: 0L}") { Lists.ItemDivider() }
+            }
+            first = false
 
-                          netmap.value?.let { netMap ->
-                            if (!peer.isSelfNode(netMap)) {
-                              // Don't show the ping item for the self-node
-                              DropdownMenuItem(
-                                  leadingIcon = {
-                                    Icon(
-                                        painter = painterResource(R.drawable.timer),
-                                        contentDescription = null)
-                                  },
-                                  text = { Text(text = stringResource(R.string.ping)) },
-                                  onClick = {
-                                    viewModel.hidePeerDropdownMenu()
-                                    viewModel.startPing(peer)
-                                  })
+            if (isAndroidTV()) {
+              item { NodesSectionHeader(peerSet = peerSet) }
+            } else {
+              stickyHeader { NodesSectionHeader(peerSet = peerSet) }
+            }
+
+            itemsWithDividers(peerSet.peers, key = { it.StableID }) { peer ->
+              ListItem(
+                  modifier =
+                      Modifier.combinedClickable(
+                          onClick = { onNavigateToPeerDetails(peer) },
+                          onLongClick = { viewModel.expandedMenuPeer.set(peer) }),
+                  colors = MaterialTheme.colorScheme.listItem,
+                  headlineContent = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                      Box(
+                          modifier =
+                              Modifier.padding(top = 2.dp)
+                                  .size(10.dp)
+                                  .background(
+                                      color = peer.connectedColor(netmap.value),
+                                      shape = RoundedCornerShape(percent = 50))) {}
+                      Spacer(modifier = Modifier.size(8.dp))
+                      Text(text = peer.displayName, style = MaterialTheme.typography.titleMedium)
+                      DropdownMenu(
+                          expanded = expandedPeer.value?.StableID == peer.StableID,
+                          onDismissRequest = { viewModel.hidePeerDropdownMenu() }) {
+                            DropdownMenuItem(
+                                leadingIcon = {
+                                  Icon(
+                                      painter = painterResource(R.drawable.clipboard),
+                                      contentDescription = null)
+                                },
+                                text = { Text(text = stringResource(R.string.copy_ip_address)) },
+                                onClick = {
+                                  viewModel.copyIpAddress(peer, localClipboardManager)
+                                  viewModel.hidePeerDropdownMenu()
+                                })
+                            netmap.value?.let { netMap ->
+                              if (!peer.isSelfNode(netMap)) {
+                                DropdownMenuItem(
+                                    leadingIcon = {
+                                      Icon(
+                                          painter = painterResource(R.drawable.timer),
+                                          contentDescription = null)
+                                    },
+                                    text = { Text(text = stringResource(R.string.ping)) },
+                                    onClick = {
+                                      viewModel.hidePeerDropdownMenu()
+                                      viewModel.startPing(peer)
+                                    })
+                              }
                             }
                           }
-                        }
-                  }
-                },
-                supportingContent = {
-                  Text(
-                      text = peer.Addresses?.first()?.split("/")?.first() ?: "",
-                      style =
-                          MaterialTheme.typography.bodyMedium.copy(
-                              lineHeight = MaterialTheme.typography.titleMedium.lineHeight))
-                })
+                    }
+                  },
+                  supportingContent = {
+                    Text(
+                        text = peer.Addresses?.first()?.split("/")?.first() ?: "",
+                        style =
+                            MaterialTheme.typography.bodyMedium.copy(
+                                lineHeight = MaterialTheme.typography.titleMedium.lineHeight))
+                  })
+            }
           }
         }
-      }
+  }
 }
 
 @Composable
@@ -727,6 +690,103 @@ fun PromptPermissionsIfNecessary() {
           state.launchPermissionRequest()
         }
   }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SearchWithDynamicSuggestions(viewModel: MainViewModel, onSearch: (String) -> Unit) {
+  val searchTerm by viewModel.searchTerm.collectAsState()
+  val filteredPeers by viewModel.peers.collectAsState()
+  var expanded by rememberSaveable { mutableStateOf(false) }
+  val netmap by viewModel.netmap.collectAsState()
+
+  val keyboardController = LocalSoftwareKeyboardController.current
+  val focusRequester = remember { FocusRequester() }
+  val focusManager = LocalFocusManager.current
+
+  Column(
+      modifier =
+          Modifier.fillMaxWidth().focusRequester(focusRequester).clickable {
+            focusRequester.requestFocus()
+            keyboardController?.show()
+          }) {
+        SearchBar(
+            modifier = Modifier.fillMaxWidth().align(Alignment.CenterHorizontally),
+            inputField = {
+              SearchBarDefaults.InputField(
+                  query = searchTerm,
+                  onQueryChange = { query ->
+                    viewModel.updateSearchTerm(query)
+                    onSearch(query)
+                    expanded = query.isNotEmpty()
+                  },
+                  onSearch = { query ->
+                    viewModel.updateSearchTerm(query)
+                    onSearch(query)
+                    expanded = false
+                  },
+                  expanded = expanded,
+                  onExpandedChange = { expanded = it },
+                  placeholder = { Text("Search") },
+                  leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                  trailingIcon = {
+                    if (expanded) {
+                      IconButton(
+                          onClick = {
+                            viewModel.updateSearchTerm("")
+                            onSearch("")
+                            expanded = false
+                            focusManager.clearFocus()
+                            keyboardController?.hide()
+                          }) {
+                            Icon(Icons.Default.Clear, contentDescription = "Clear search")
+                          }
+                    }
+                  })
+            },
+            expanded = expanded,
+            onExpandedChange = { expanded = it },
+            content = {
+              // Search results or suggestions
+              Column(Modifier.verticalScroll(rememberScrollState()).fillMaxSize()) {
+                filteredPeers.forEach { peerSet ->
+                  val userName = peerSet.user?.DisplayName ?: "Unknown User"
+                  peerSet.peers.forEach { peer ->
+                    val deviceName = peer.displayName ?: "Unknown Device"
+                    val ipAddress = peer.Addresses?.firstOrNull()?.split("/")?.first() ?: "No IP"
+
+                    ListItem(
+                        headlineContent = { Text(userName) },
+                        supportingContent = {
+                          Column {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                              val onlineColor = peer.connectedColor(netmap)
+                              Box(
+                                  modifier =
+                                      Modifier.size(10.dp)
+                                          .background(onlineColor, shape = RoundedCornerShape(50)))
+                              Spacer(modifier = Modifier.size(8.dp))
+                              Text(deviceName)
+                            }
+                            Text(ipAddress)
+                          }
+                        },
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                        modifier =
+                            Modifier.clickable {
+                                  viewModel.updateSearchTerm(userName)
+                                  onSearch(userName)
+                                  expanded = false
+                                  focusManager.clearFocus()
+                                  keyboardController?.hide()
+                                }
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 4.dp))
+                  }
+                }
+              }
+            })
+      }
 }
 
 @Preview
