@@ -299,7 +299,7 @@ docker-remove-shell-image: ## Removes all docker shell image
 	docker rmi --force tailscale-android-shell-amd64
 
 .PHONY: clean
-clean: clean-tailscale.version ## Remove build artifacts.  Does not purge docker build envs.  Use dockerRemoveEnv for that.
+clean: ## Remove build artifacts.  Does not purge docker build envs.  Use dockerRemoveEnv for that.
 	@echo "Cleaning up old build artifacts"
 	-rm -rf android/build $(DEBUG_APK) $(RELEASE_AAB) $(RELEASE_TV_AAB) $(LIBTAILSCALE) android/libs *.apk *.aab
 	@echo "Cleaning cached toolchain"

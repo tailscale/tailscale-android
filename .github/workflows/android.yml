@@ -6,7 +6,7 @@ on:
       - main
   pull_request:
     branches:
-      - '*'
+      - "*"
 
 jobs:
   build:
@@ -15,20 +15,23 @@ jobs:
     if: "!contains(github.event.head_commit.message, '[ci skip]')"
 
     steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod"
+      - name: Switch to Java 17 # Note: 17 is pre-installed on ubuntu-latest
+        uses: actions/setup-java@v3
+        with:
+          distribution: "temurin"
+          java-version: "17"
 
-    - name: Check out code
-      uses: actions/checkout@v3
-    - uses: actions/setup-go@v5
-      with: 
-        go-version-file: 'go.mod'
-    - name: Switch to Java 17 # Note: 17 is pre-installed on ubuntu-latest
-      uses: actions/setup-java@v3
-      with:
-        distribution: 'temurin'
-        java-version: '17'
+      # Clean should essentially be a no-op, but make sure that it works.
+      - name: Clean
+        run: make clean
 
-    - name: Build APKs
-      run: make tailscale-debug.apk
+      - name: Build APKs
+        run: make tailscale-debug.apk
 
-    - name: Run tests
-      run: make test
+      - name: Run tests
+        run: make test
