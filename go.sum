@@ -256,5 +256,7 @@ inet.af/netaddr v0.0.0-20220617031823-097006376321 h1:B4dC8ySKTQXasnjDTMsoCMf1sQ
 inet.af/netaddr v0.0.0-20220617031823-097006376321/go.mod h1:OIezDfdzOgFhuw4HuWapWq2e9l0H9tK4F1j+ETRtF3k=
 software.sslmate.com/src/go-pkcs12 v0.4.0 h1:H2g08FrTvSFKUj+D309j1DPfk5APnIdAQAB8aEykJ5k=
 software.sslmate.com/src/go-pkcs12 v0.4.0/go.mod h1:Qiz0EyvDRJjjxGyUQa2cCNZn/wMyzrRJ/qcDXOQazLI=
-tailscale.com v1.75.0-pre.0.20241103175838-d4222fae95c0 h1:WildwJotNyCEDvdjPZVmR1RHuX09jF31LrAvL0IpILE=
-tailscale.com v1.75.0-pre.0.20241103175838-d4222fae95c0/go.mod h1:myCwmhYBvMCF/5OgBYuIW42zscuEo30bAml7wABVZLk=
+tailscale.com v1.76.4-0.20241101220758-dda460316781 h1:/v0qjGMNl/2uSWEaJ7me4ez6exzYkyvFCxp4vEzetkI=
+tailscale.com v1.76.4-0.20241101220758-dda460316781/go.mod h1:myCwmhYBvMCF/5OgBYuIW42zscuEo30bAml7wABVZLk=
+tailscale.com v1.76.4-0.20241104200736-1edcf9d466ce h1:cef0ri2URfPSXwG5G7MX57l7crwjcLBz03Gwra6ipXk=
+tailscale.com v1.76.4-0.20241104200736-1edcf9d466ce/go.mod h1:myCwmhYBvMCF/5OgBYuIW42zscuEo30bAml7wABVZLk=
