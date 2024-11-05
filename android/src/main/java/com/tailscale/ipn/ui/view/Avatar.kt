@@ -35,56 +35,48 @@ import com.tailscale.ipn.ui.model.IpnLocal
 @OptIn(ExperimentalCoilApi::class)
 @Composable
 fun Avatar(profile: IpnLocal.LoginProfile?, size: Int = 50, action: (() -> Unit)? = null) {
-    var isFocused = remember { mutableStateOf(false) }
-    val focusManager = LocalFocusManager.current 
+  var isFocused = remember { mutableStateOf(false) }
+  val focusManager = LocalFocusManager.current
 
-    // Outer Box for the larger focusable and clickable area
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .padding(4.dp) 
-            .size((size * 1.5f).dp) // Focusable area is larger than the avatar
-            .clip(CircleShape) // Ensure both the focus and click area are circular
-            .background(
-                if (isFocused.value) MaterialTheme.colorScheme.surface
-                else Color.Transparent, 
-            )
-            .onFocusChanged { focusState ->
-                isFocused.value = focusState.isFocused 
-            }
-            .focusable() // Make this outer Box focusable (after onFocusChanged)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = ripple(bounded = true), // Apply ripple effect inside circular bounds
-                onClick = {
-                    action?.invoke() 
+  // Outer Box for the larger focusable and clickable area
+  Box(
+      contentAlignment = Alignment.Center,
+      modifier =
+          Modifier.padding(4.dp)
+              .size((size * 1.5f).dp) // Focusable area is larger than the avatar
+              .clip(CircleShape) // Ensure both the focus and click area are circular
+              .background(
+                  if (isFocused.value) MaterialTheme.colorScheme.surface else Color.Transparent,
+              )
+              .onFocusChanged { focusState -> isFocused.value = focusState.isFocused }
+              .focusable() // Make this outer Box focusable (after onFocusChanged)
+              .clickable(
+                  interactionSource = remember { MutableInteractionSource() },
+                  indication = ripple(bounded = true), // Apply ripple effect inside circular bounds
+                  onClick = {
+                    action?.invoke()
                     focusManager.clearFocus() // Clear focus after clicking the avatar
-                }
-            )
-    ) {
+                  })) {
         // Inner Box to hold the avatar content (Icon or AsyncImage)
         Box(
             contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(size.dp)
-                .clip(CircleShape) 
-        ) {
-            if (profile?.UserProfile?.ProfilePicURL != null) {
-                AsyncImage(
-                    model = profile.UserProfile.ProfilePicURL,
-                    modifier = Modifier.size(size.dp).clip(CircleShape),
-                    contentDescription = null
-                )
-            } else {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = stringResource(R.string.settings_title),
-                    modifier = Modifier
-                        .size((size * 0.8f).dp)
-                        .clip(CircleShape) // Icon size slightly smaller than the Box
-                )
-            }
-        }
-    }
-}
+            modifier = Modifier.size(size.dp).clip(CircleShape)) {
+              // Always display the default icon as a background layer
+              Icon(
+                  imageVector = Icons.Default.Person,
+                  contentDescription = stringResource(R.string.settings_title),
+                  modifier =
+                      Modifier.size((size * 0.8f).dp)
+                          .clip(CircleShape) // Icon size slightly smaller than the Box
+                  )
 
+              // Overlay the profile picture if available
+              profile?.UserProfile?.ProfilePicURL?.let { url ->
+                AsyncImage(
+                    model = url,
+                    modifier = Modifier.size(size.dp).clip(CircleShape),
+                    contentDescription = null)
+              }
+            }
+      }
+}
