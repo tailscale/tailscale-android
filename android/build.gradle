@@ -37,8 +37,8 @@ android {
     defaultConfig {
         minSdkVersion 26
         targetSdkVersion 34
-        versionCode 241
-        versionName "1.77.44-tc0a1ed86c-gcafb114ae0a"
+        versionCode 242
+        versionName getVersionProperty("VERSION_LONG")
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         // This setting, which defaults to 'true', will cause Tailscale to fall
@@ -135,6 +135,7 @@ dependencies {
     implementation "com.google.accompanist:accompanist-permissions:$accompanist_version"
     implementation "com.google.accompanist:accompanist-systemuicontroller:$accompanist_version"
     implementation "androidx.core:core-splashscreen:1.1.0-rc01"
+    implementation "androidx.compose.animation:animation:1.7.4"
 
     // Navigation dependencies.
     def nav_version = "2.8.2"
@@ -181,4 +182,14 @@ def getLocalProperty(key, defaultValue) {
     } catch(Throwable ignored) {
         return defaultValue
     }
+}
+
+
+def getVersionProperty(key) {
+    // tailscale.version is created / updated by the makefile, it is in a loosely
+    // Makfile/envfile format, which is also loosely a properties file format.
+    //      make tailscale.version
+    def versionProps = new Properties()
+    versionProps.load(project.file('../tailscale.version').newDataInputStream())
+    return versionProps.getProperty(key).replaceAll('^\"|\"$', '')
 }

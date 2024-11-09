@@ -55,13 +55,15 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
   private var vpnPermissionLauncher: ActivityResultLauncher<Intent>? = null
 
   // The list of peers
-  val peers: StateFlow<List<PeerSet>> = MutableStateFlow(emptyList<PeerSet>())
+  private val _peers = MutableStateFlow<List<PeerSet>>(emptyList())
+  val peers: StateFlow<List<PeerSet>> = _peers
 
   // The current state of the IPN for determining view visibility
   val ipnState = Notifier.state
 
   // The active search term for filtering peers
-  val searchTerm: StateFlow<String> = MutableStateFlow("")
+  private val _searchTerm = MutableStateFlow("")
+  val searchTerm: StateFlow<String> = _searchTerm
 
   // True if we should render the key expiry bannder
   val showExpiry: StateFlow<Boolean> = MutableStateFlow(false)
@@ -77,6 +79,10 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
 
   // Icon displayed in the button to present the health view
   val healthIcon: StateFlow<Int?> = MutableStateFlow(null)
+
+  fun updateSearchTerm(term: String) {
+    _searchTerm.value = term
+  }
 
   fun hidePeerDropdownMenu() {
     expandedMenuPeer.set(null)
@@ -123,8 +129,9 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
     }
 
     viewModelScope.launch {
-      searchTerm.debounce(250L).collect { term ->
-        peers.set(peerCategorizer.groupedAndFilteredPeers(term))
+      _searchTerm.debounce(250L).collect { term ->
+        val filteredPeers = peerCategorizer.groupedAndFilteredPeers(term)
+        _peers.value = filteredPeers
       }
     }
 
@@ -132,7 +139,9 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
       Notifier.netmap.collect { it ->
         it?.let { netmap ->
           peerCategorizer.regenerateGroupedPeers(netmap)
-          peers.set(peerCategorizer.groupedAndFilteredPeers(searchTerm.value))
+
+          // Immediately update _peers with the full peer list
+          _peers.value = peerCategorizer.groupedAndFilteredPeers(searchTerm.value)
 
           if (netmap.SelfNode.keyDoesNotExpire) {
             showExpiry.set(false)
