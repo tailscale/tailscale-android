@@ -39,6 +39,7 @@ android {
         targetSdkVersion 34
         versionCode 242
         versionName getVersionProperty("VERSION_LONG")
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         // This setting, which defaults to 'true', will cause Tailscale to fall
         // back to the Google DNS servers if it cannot determine what the

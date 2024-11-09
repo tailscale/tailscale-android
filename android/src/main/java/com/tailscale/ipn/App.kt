@@ -7,8 +7,10 @@ import android.app.Application
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.PendingIntent
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
@@ -423,10 +425,27 @@ open class UninitializedApp : Application() {
     }
   }
 
-  // Calls stopVPN() followed by startVPN() to restart the VPN.
   fun restartVPN() {
+    // Register a receiver to listen for the completion of stopVPN
+    TSLog.d("KARI", "hi")
+    val stopReceiver =
+        object : BroadcastReceiver() {
+          override fun onReceive(context: Context?, intent: Intent?) {
+            // Ensure stop intent is complete
+            if (intent?.action == IPNService.ACTION_STOP_VPN) {
+              // Unregister receiver after receiving the broadcast
+              context?.unregisterReceiver(this)
+              // Now start the VPN
+              startVPN()
+            }
+          }
+        }
+
+    // Register the receiver before stopping VPN
+    val intentFilter = IntentFilter(IPNService.ACTION_STOP_VPN)
+    this.registerReceiver(stopReceiver, intentFilter)
+
     stopVPN()
-    startVPN()
   }
 
   fun createNotificationChannel(id: String, name: String, description: String, importance: Int) {
