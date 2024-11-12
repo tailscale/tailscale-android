@@ -23,7 +23,6 @@ class LoginQRViewModel : IpnViewModel() {
   val numCode: StateFlow<String?> = MutableStateFlow(null)
   val qrCode: StateFlow<ImageBitmap?> = MutableStateFlow(null)
   // Remove this once changes to admin console allowing input code to be entered are made.
-  val codeEnabled = false
 
   init {
     viewModelScope.launch {
@@ -31,17 +30,15 @@ class LoginQRViewModel : IpnViewModel() {
         url?.let {
           qrCode.set(generateQRCode(url, 200, 0))
 
-          if (codeEnabled) {
-            // Extract the string after "https://login.tailscale.com/a/"
-            val prefix = "https://login.tailscale.com/a/"
-            val code =
-                if (it.startsWith(prefix)) {
-                  it.removePrefix(prefix)
-                } else {
-                  null
-                }
-            numCode.set(code)
-          }
+          // Extract the string after "https://login.tailscale.com/a/"
+          val prefix = "https://login.tailscale.com/a/"
+          val code =
+              if (it.startsWith(prefix)) {
+                it.removePrefix(prefix)
+              } else {
+                null
+              }
+          numCode.set(code)
         }
             ?: run {
               qrCode.set(null)
