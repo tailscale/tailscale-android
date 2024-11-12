@@ -127,7 +127,7 @@ tailscale-test.apk: gradle-dependencies
 	(cd android && ./gradlew assembleApplicationTestAndroidTest)
 	install -C ./android/build/outputs/apk/androidTest/applicationTest/android-applicationTest-androidTest.apk $@
 
-tailscale.version: go.mod go.sum $(wildcard .git/HEAD)
+tailscale.version: go.mod go.sum .git/HEAD .git/refs .git/packed-refs .git/index
     $(shell ./tool/go run tailscale.com/cmd/mkversion > tailscale.version)
 
 .PHONY: version
