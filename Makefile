@@ -247,6 +247,10 @@ checkandroidsdk: ## Check that Android SDK is installed
 test: gradle-dependencies ## Run the Android tests
 	(cd android && ./gradlew test)
 
+.PHONY: integration-test
+integration-test: gradle-dependencies ## Run the integration tests
+	(cd android && ./gradlew connectedAndroidTest)
+
 .PHONY: emulator
 emulator: ## Start an android emulator instance
 	@echo "Checking installed SDK packages..."
