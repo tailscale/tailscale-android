@@ -3,10 +3,10 @@ module github.com/tailscale/tailscale-android
 go 1.23.1
 
 require (
-	github.com/tailscale/wireguard-go v0.0.0-20240905161824-799c1978fafc
+	github.com/tailscale/wireguard-go v0.0.0-20241113014420-4e883d38c8d3
 	golang.org/x/mobile v0.0.0-20240806205939-81131f6468ab
 	inet.af/netaddr v0.0.0-20220617031823-097006376321
-	tailscale.com v1.75.0-pre.0.20241031190034-6985369479db
+	tailscale.com v1.75.0-pre.0.20241118201719-da70a84a4bab
 )
 
 require (
@@ -52,7 +52,7 @@ require (
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/josharian/native v1.1.1-0.20230202152459-5c7d0dd6ab86 // indirect
 	github.com/jsimonetti/rtnetlink v1.4.0 // indirect
-	github.com/klauspost/compress v1.17.4 // indirect
+	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/kortschak/wol v0.0.0-20200729010619-da482cc4850a // indirect
 	github.com/mdlayher/genetlink v1.3.2 // indirect
 	github.com/mdlayher/netlink v1.7.2 // indirect
@@ -84,8 +84,8 @@ require (
 	golang.org/x/exp v0.0.0-20240119083558-1b970713d09a // indirect
 	golang.org/x/mod v0.20.0 // indirect
 	golang.org/x/net v0.28.0 // indirect
-	golang.org/x/sync v0.8.0 // indirect
-	golang.org/x/sys v0.23.0 // indirect
+	golang.org/x/sync v0.9.0 // indirect
+	golang.org/x/sys v0.27.0 // indirect
 	golang.org/x/term v0.23.0 // indirect
 	golang.org/x/text v0.17.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
