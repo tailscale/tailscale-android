@@ -13,6 +13,7 @@ import com.tailscale.ipn.ui.model.StableNodeID
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.util.InputStreamAdapter
 import com.tailscale.ipn.util.TSLog
+import com.tailscale.ipn.App
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -66,6 +67,11 @@ typealias PingResultHandler = (Result<IpnState.PingResult>) -> Unit
  */
 class Client(private val scope: CoroutineScope) {
   private val TAG = Client::class.simpleName
+
+  // Access libtailscale.Application lazily
+  private val app: libtailscale.Application by lazy {
+    App.get().getLibtailscaleApp()
+}
 
   fun start(options: Ipn.Options, responseHandler: (Result<Unit>) -> Unit) {
     val body = Json.encodeToString(options).toByteArray()
