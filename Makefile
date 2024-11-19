@@ -10,7 +10,7 @@
 # with this name, it will be used.
 #
 # The convention here is tailscale-android-build-amd64-<date>
-DOCKER_IMAGE=tailscale-android-build-amd64-120924
+DOCKER_IMAGE=tailscale-android-build-amd64-191124
 export TS_USE_TOOLCHAIN=1
 
 DEBUG_APK=tailscale-debug.apk
@@ -109,21 +109,21 @@ release-tv: jarsign-env $(RELEASE_TV_AAB) ## Build the release AAB
 .PHONY: gradle-dependencies
 gradle-dependencies: $(shell find android -type f -not -path "android/build/*" -not -path '*/.*') $(LIBTAILSCALE) tailscale.version
 
-$(DEBUG_APK): gradle-dependencies
+$(DEBUG_APK): version gradle-dependencies
 	(cd android && ./gradlew test assembleDebug)
 	install -C android/build/outputs/apk/debug/android-debug.apk $@
 
-$(RELEASE_AAB): gradle-dependencies
+$(RELEASE_AAB): version gradle-dependencies
 	@echo "Building release AAB"
 	(cd android && ./gradlew test bundleRelease)
 	install -C ./android/build/outputs/bundle/release/android-release.aab $@
 
-$(RELEASE_TV_AAB): gradle-dependencies
+$(RELEASE_TV_AAB): version gradle-dependencies
 	@echo "Building TV release AAB"
 	(cd android && ./gradlew test bundleRelease_tv)
 	install -C ./android/build/outputs/bundle/release_tv/android-release_tv.aab $@
 
-tailscale-test.apk: gradle-dependencies
+tailscale-test.apk: version gradle-dependencies
 	(cd android && ./gradlew assembleApplicationTestAndroidTest)
 	install -C ./android/build/outputs/apk/androidTest/applicationTest/android-applicationTest-androidTest.apk $@
 
