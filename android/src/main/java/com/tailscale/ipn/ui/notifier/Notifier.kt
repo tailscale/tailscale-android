@@ -3,7 +3,6 @@
 
 package com.tailscale.ipn.ui.notifier
 
-import android.util.Log
 import com.tailscale.ipn.App
 import com.tailscale.ipn.ui.model.Empty
 import com.tailscale.ipn.ui.model.Health
@@ -11,6 +10,7 @@ import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.Ipn.Notify
 import com.tailscale.ipn.ui.model.Netmap
 import com.tailscale.ipn.ui.util.set
+import com.tailscale.ipn.util.TSLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,7 +19,6 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
-import com.tailscale.ipn.util.TSLog
 
 // Notifier is a wrapper around the IPN Bus notifier.  It provides a way to watch
 // for changes in various parts of the Tailscale engine.  You will typically only use
@@ -69,23 +68,24 @@ object Notifier {
           NotifyWatchOpt.Netmap.value or
               NotifyWatchOpt.Prefs.value or
               NotifyWatchOpt.InitialState.value or
-                  NotifyWatchOpt.InitialHealthState.value
-                  manager =
-                  app.watchNotifications(mask.toLong()) { notification ->
-                      val notify = decoder.decodeFromStream<Notify>(notification.inputStream())
-                      notify.State?.let { state.set(Ipn.State.fromInt(it)) }
-                      notify.NetMap?.let(netmap::set)
-                      notify.Prefs?.let(prefs::set)
-                      notify.Engine?.let(engineStatus::set)
-                      notify.TailFSShares?.let(tailFSShares::set)
-                      notify.BrowseToURL?.let(browseToURL::set)
-                      notify.LoginFinished?.let { loginFinished.set(it.property) }
-                      notify.Version?.let(version::set)
-                      notify.OutgoingFiles?.let(outgoingFiles::set)
-                      notify.FilesWaiting?.let(filesWaiting::set)
-                      notify.IncomingFiles?.let(incomingFiles::set)
-                      notify.Health?.let(health::set)
-                  }
+              NotifyWatchOpt.InitialHealthState.value or
+              NotifyWatchOpt.RateLimitNetmaps.value
+      manager =
+          app.watchNotifications(mask.toLong()) { notification ->
+            val notify = decoder.decodeFromStream<Notify>(notification.inputStream())
+            notify.State?.let { state.set(Ipn.State.fromInt(it)) }
+            notify.NetMap?.let(netmap::set)
+            notify.Prefs?.let(prefs::set)
+            notify.Engine?.let(engineStatus::set)
+            notify.TailFSShares?.let(tailFSShares::set)
+            notify.BrowseToURL?.let(browseToURL::set)
+            notify.LoginFinished?.let { loginFinished.set(it.property) }
+            notify.Version?.let(version::set)
+            notify.OutgoingFiles?.let(outgoingFiles::set)
+            notify.FilesWaiting?.let(filesWaiting::set)
+            notify.IncomingFiles?.let(incomingFiles::set)
+            notify.Health?.let(health::set)
+          }
     }
   }
 
@@ -108,9 +108,10 @@ object Notifier {
     InitialTailFSShares(32),
     InitialOutgoingFiles(64),
     InitialHealthState(128),
+    RateLimitNetmaps(256),
   }
 
   fun setState(newState: Ipn.State) {
     _state.value = newState
-}
+  }
 }
