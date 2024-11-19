@@ -53,11 +53,13 @@ object Notifier {
   private lateinit var app: libtailscale.Application
   private var manager: libtailscale.NotificationManager? = null
 
+  @Synchronized
   @JvmStatic
   fun setApp(newApp: libtailscale.Application) {
     app = newApp
   }
 
+  @Synchronized
   @OptIn(ExperimentalSerializationApi::class)
   fun start(scope: CoroutineScope) {
     TSLog.d(TAG, "Starting Notifier")
