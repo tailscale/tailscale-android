@@ -294,7 +294,7 @@ func (a *App) newBackend(dataDir, directFileRoot string, appCtx AppContext, stor
 	}
 	sys.Set(engine)
 	b.logIDPublic = logID.Public()
-	ns, err := netstack.Create(logf, sys.Tun.Get(), engine, sys.MagicSock.Get(), dialer, sys.DNSManager.Get(), sys.ProxyMapper(), nil)
+	ns, err := netstack.Create(logf, sys.Tun.Get(), engine, sys.MagicSock.Get(), dialer, sys.DNSManager.Get(), sys.ProxyMapper())
 	if err != nil {
 		return nil, fmt.Errorf("netstack.Create: %w", err)
 	}
