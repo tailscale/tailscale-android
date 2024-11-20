@@ -3,8 +3,11 @@
     native <methods>;
 }
 
-# Keep the classes with syspolicy MDM keys, some of which
-# get used only by the Go backend.
+# Keep Tailcale classes for debuggability, but especially
+# keep the classes with syspolicy MDM keys, some of which
+# get used only by the Go backend. (The second rule is redundant,
+# but explicit.)
+-keep class com.tailscale.ipn.** { *; }
 -keep class com.tailscale.ipn.mdm.** { *; }
 
 # Keep specific classes from Tink library
