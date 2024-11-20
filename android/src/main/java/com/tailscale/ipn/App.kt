@@ -583,5 +583,7 @@ open class UninitializedApp : Application() {
           "com.vna.service.vvm",
           "com.dish.vvm",
           "com.comcast.modesto.vvm.client",
+          // Android Connectivity Service https://github.com/tailscale/tailscale/issues/14128
+          "com.google.android.apps.scone",
       )
 }
