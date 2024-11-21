@@ -90,6 +90,13 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     Log.d(s, s1)
   }
 
+  fun getLibtailscaleApp(): libtailscale.Application {
+    if (!isInitialized) {
+      initOnce() // Calls the synchronized initialization logic
+    }
+    return app
+  }
+
   override fun onCreate() {
     super.onCreate()
     appInstance = this
@@ -119,15 +126,19 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     viewModelStore.clear()
   }
 
-  private var isInitialized = false
+  @Volatile private var isInitialized = false
 
   @Synchronized
   private fun initOnce() {
     if (isInitialized) {
       return
     }
-    isInitialized = true
 
+    initializeApp()
+    isInitialized = true
+  }
+
+  private fun initializeApp() {
     val dataDir = this.filesDir.absolutePath
 
     // Set this to enable direct mode for taildrop whereby downloads will be saved directly
