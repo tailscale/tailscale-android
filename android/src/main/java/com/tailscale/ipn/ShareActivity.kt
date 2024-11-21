@@ -92,33 +92,25 @@ class ShareActivity : ComponentActivity() {
           }
         }
 
-    val pendingFiles: List<Ipn.OutgoingFile> =
-        uris?.filterNotNull()?.mapNotNull {
-          contentResolver?.query(it, null, null, null, null)?.let { c ->
-            val nameCol = c.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-            val sizeCol = c.getColumnIndex(OpenableColumns.SIZE)
-            c.moveToFirst()
-            val name: String =
-                c.getString(nameCol)
-                    ?: run {
-                      // For some reason, some content resolvers don't return a name.
-                      // Try to build a name from a random integer plus file extension
-                      // (if type can be determined), else just a random integer.
-                      val rand = Random.nextLong()
-                      contentResolver.getType(it)?.let { mimeType ->
-                        MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType)?.let {
-                            extension ->
-                          "$rand.$extension"
-                        } ?: "$rand"
-                      } ?: "$rand"
+        val pendingFiles: List<Ipn.OutgoingFile> =
+        uris?.filterNotNull()?.mapNotNull { uri ->
+            contentResolver?.query(uri, null, null, null, null)?.use { cursor ->
+                val nameCol = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                val sizeCol = cursor.getColumnIndex(OpenableColumns.SIZE)
+    
+                if (cursor.moveToFirst()) {
+                    val name: String = cursor.getString(nameCol)
+                        ?: generateFallbackName(uri)
+                    val size: Long = cursor.getLong(sizeCol)
+                    Ipn.OutgoingFile(Name = name, DeclaredSize = size).apply {
+                        this.uri = uri
                     }
-            val size = c.getLong(sizeCol)
-            c.close()
-            val file = Ipn.OutgoingFile(Name = name, DeclaredSize = size)
-            file.uri = it
-            file
-          }
-        } ?: emptyList()
+                } else {
+                    TSLog.e(TAG, "Cursor is empty for URI: $uri")
+                    null
+                }
+            }
+        } ?: emptyList()    
 
     if (pendingFiles.isEmpty()) {
       TSLog.e(TAG, "Share failure - no files extracted from intent")
@@ -126,4 +118,11 @@ class ShareActivity : ComponentActivity() {
 
     requestedTransfers.set(pendingFiles)
   }
+
+  private fun generateFallbackName(uri: Uri): String {
+    val randomId = Random.nextLong()
+    val mimeType = contentResolver?.getType(uri)
+    val extension = mimeType?.let { MimeTypeMap.getSingleton().getExtensionFromMimeType(it) }
+    return if (extension != null) "$randomId.$extension" else randomId.toString()
+}
 }
