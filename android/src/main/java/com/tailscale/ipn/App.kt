@@ -92,6 +92,8 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
 
   override fun onCreate() {
     super.onCreate()
+    appInstance = this
+    setUnprotectedInstance(this)
     createNotificationChannel(
         STATUS_CHANNEL_ID,
         getString(R.string.vpn_status),
@@ -107,8 +109,6 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
         getString(R.string.health_channel_name),
         getString(R.string.health_channel_description),
         NotificationManagerCompat.IMPORTANCE_HIGH)
-    appInstance = this
-    setUnprotectedInstance(this)
   }
 
   override fun onTerminate() {
@@ -427,7 +427,6 @@ open class UninitializedApp : Application() {
 
   fun restartVPN() {
     // Register a receiver to listen for the completion of stopVPN
-    TSLog.d("KARI", "hi")
     val stopReceiver =
         object : BroadcastReceiver() {
           override fun onReceive(context: Context?, intent: Intent?) {
