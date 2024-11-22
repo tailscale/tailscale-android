@@ -26,6 +26,7 @@ import androidx.lifecycle.ViewModelStoreOwner
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.tailscale.ipn.mdm.MDMSettings
+import com.tailscale.ipn.mdm.MDMSettingsChangedReceiver
 import com.tailscale.ipn.ui.localapi.Client
 import com.tailscale.ipn.ui.localapi.Request
 import com.tailscale.ipn.ui.model.Ipn
@@ -71,6 +72,7 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
 
   val dns = DnsConfig()
   private lateinit var connectivityManager: ConnectivityManager
+  private lateinit var mdmChangeReceiver: MDMSettingsChangedReceiver
   private lateinit var app: libtailscale.Application
 
   override val viewModelStore: ViewModelStore
@@ -101,6 +103,11 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     super.onCreate()
     appInstance = this
     setUnprotectedInstance(this)
+
+    mdmChangeReceiver = MDMSettingsChangedReceiver()
+    val filter = IntentFilter(Intent.ACTION_APPLICATION_RESTRICTIONS_CHANGED)
+    registerReceiver(mdmChangeReceiver, filter)
+
     createNotificationChannel(
         STATUS_CHANNEL_ID,
         getString(R.string.vpn_status),
@@ -124,6 +131,7 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     notificationManager.cancelAll()
     applicationScope.cancel()
     viewModelStore.clear()
+    unregisterReceiver(mdmChangeReceiver)
   }
 
   @Volatile private var isInitialized = false
