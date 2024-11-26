@@ -158,7 +158,7 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     Request.setApp(app)
     Notifier.setApp(app)
     Notifier.start(applicationScope)
-    healthNotifier = HealthNotifier(Notifier.health, applicationScope)
+    healthNotifier = HealthNotifier(Notifier.health, Notifier.state, applicationScope)
     connectivityManager = this.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     NetworkChangeCallback.monitorDnsChanges(connectivityManager, dns)
     initViewModels()

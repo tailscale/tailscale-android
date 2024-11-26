@@ -12,12 +12,14 @@ import com.tailscale.ipn.R
 import com.tailscale.ipn.UninitializedApp.Companion.notificationManager
 import com.tailscale.ipn.ui.model.Health
 import com.tailscale.ipn.ui.model.Health.UnhealthyState
+import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.util.TSLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
@@ -25,6 +27,7 @@ import kotlinx.coroutines.launch
 @OptIn(FlowPreview::class)
 class HealthNotifier(
     healthStateFlow: StateFlow<Health.State?>,
+    ipnStateFlow: StateFlow<Ipn.State>,
     scope: CoroutineScope,
 ) {
   companion object {
@@ -45,11 +48,22 @@ class HealthNotifier(
     scope.launch {
       healthStateFlow
           .distinctUntilChanged { old, new -> old?.Warnings?.count() == new?.Warnings?.count() }
+          .combine(ipnStateFlow, ::Pair)
           .debounce(5000)
-          .collect { health ->
-            TSLog.d(TAG, "Health updated: ${health?.Warnings?.keys?.sorted()}")
-            health?.Warnings?.let {
-              notifyHealthUpdated(it.values.mapNotNull { it }.toTypedArray())
+          .collect { pair ->
+            val health = pair.first
+            val ipnState = pair.second
+            // When the client is Stopped, no warnings should get added, and any warnings added
+            // previously should be removed.
+            if (ipnState == Ipn.State.Stopped) {
+              TSLog.d(TAG, "Ignoring and dropping all pre-existing health messages in the Stopped state")
+              dropAllWarnings()
+              return@collect
+            } else {
+              TSLog.d(TAG, "Health updated: ${health?.Warnings?.keys?.sorted()}")
+              health?.Warnings?.let {
+                notifyHealthUpdated(it.values.mapNotNull { it }.toTypedArray())
+              }
             }
           }
     }
@@ -65,8 +79,11 @@ class HealthNotifier(
     val removedByNewDependency: MutableSet<UnhealthyState> = mutableSetOf()
     val isWarmingUp = warnings.any { it.WarnableCode == "warming-up" }
 
-    /// Checks if there is any warning in `warningsBeforeAdd` that needs to be removed because the new warning `w`
-    /// is listed as a dependency of a warning already in `warningsBeforeAdd`, and removes it.
+    /**
+     * dropDependenciesForAddedWarning checks if there is any warning in `warningsBeforeAdd` that
+     * needs to be removed because the new warning `w` is listed as a dependency of a warning
+     * already in `warningsBeforeAdd`, and removes it.
+     */
     fun dropDependenciesForAddedWarning(w: UnhealthyState) {
       for (warning in warningsBeforeAdd) {
         warning.DependsOn?.let {
@@ -112,6 +129,14 @@ class HealthNotifier(
     this.updateIcon()
   }
 
+  /**
+   * Sets the icon displayed to represent the overall health state.
+   *
+   * - If there are any high severity warnings, or warnings that affect internet connectivity,
+   * a warning icon is displayed.
+   * - If there are any other kind of warnings, an info icon is displayed.
+   * - If there are no warnings at all, no icon is set.
+   */
   private fun updateIcon() {
     if (currentWarnings.value.isEmpty()) {
       this.currentIcon.set(null)
@@ -143,6 +168,16 @@ class HealthNotifier(
       return
     }
     notificationManager.notify(code.hashCode(), notification)
+  }
+
+  /**
+   * Removes all warnings currently displayed, including any system notifications, and
+   * updates the icon (causing it to be set to null since the set of warnings is empty).
+   */
+  private fun dropAllWarnings() {
+    removeNotifications(this.currentWarnings.value)
+    this.currentWarnings.set(emptySet())
+    this.updateIcon()
   }
 
   private fun removeNotifications(warnings: Set<UnhealthyState>) {
