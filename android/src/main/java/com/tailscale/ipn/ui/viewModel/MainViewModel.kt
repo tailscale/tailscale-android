@@ -23,7 +23,9 @@ import com.tailscale.ipn.ui.util.PeerCategorizer
 import com.tailscale.ipn.ui.util.PeerSet
 import com.tailscale.ipn.ui.util.TimeUtil
 import com.tailscale.ipn.ui.util.set
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -76,6 +78,8 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
   val isVpnPrepared: StateFlow<Boolean> = vpnViewModel.vpnPrepared
 
   val isVpnActive: StateFlow<Boolean> = vpnViewModel.vpnActive
+
+  var searchJob: Job? = null
 
   // Icon displayed in the button to present the health view
   val healthIcon: StateFlow<Int?> = MutableStateFlow(null)
@@ -130,18 +134,25 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
 
     viewModelScope.launch {
       _searchTerm.debounce(250L).collect { term ->
-        val filteredPeers = peerCategorizer.groupedAndFilteredPeers(term)
-        _peers.value = filteredPeers
+        // run the search as a background task
+        searchJob?.cancel()
+        searchJob =
+            launch(Dispatchers.Default) {
+              val filteredPeers = peerCategorizer.groupedAndFilteredPeers(term)
+              _peers.value = filteredPeers
+            }
       }
     }
 
     viewModelScope.launch {
       Notifier.netmap.collect { it ->
         it?.let { netmap ->
-          peerCategorizer.regenerateGroupedPeers(netmap)
-
-          // Immediately update _peers with the full peer list
-          _peers.value = peerCategorizer.groupedAndFilteredPeers(searchTerm.value)
+          searchJob?.cancel()
+          launch(Dispatchers.Default) {
+            peerCategorizer.regenerateGroupedPeers(netmap)
+            val filteredPeers = peerCategorizer.groupedAndFilteredPeers(searchTerm.value)
+            _peers.value = filteredPeers
+          }
 
           if (netmap.SelfNode.keyDoesNotExpire) {
             showExpiry.set(false)

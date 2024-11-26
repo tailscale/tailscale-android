@@ -31,6 +31,8 @@ import coil.annotation.ExperimentalCoilApi
 import coil.compose.AsyncImage
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.model.IpnLocal
+import com.tailscale.ipn.ui.util.AndroidTVUtil
+import com.tailscale.ipn.ui.util.conditional
 
 @OptIn(ExperimentalCoilApi::class)
 @Composable
@@ -43,53 +45,49 @@ fun Avatar(
   var isFocused = remember { mutableStateOf(false) }
   val focusManager = LocalFocusManager.current
 
-    // Outer Box for the larger focusable and clickable area
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .padding(4.dp) 
-            .size((size * 1.5f).dp) // Focusable area is larger than the avatar
-            .clip(CircleShape) // Ensure both the focus and click area are circular
-            .background(
-                if (isFocused.value) MaterialTheme.colorScheme.surface
-                else Color.Transparent, 
-            )
-            .onFocusChanged { focusState ->
-                isFocused.value = focusState.isFocused 
-            }
-            .focusable() // Make this outer Box focusable (after onFocusChanged)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = ripple(bounded = true), // Apply ripple effect inside circular bounds
-                onClick = {
-                    action?.invoke() 
+  // Outer Box for the larger focusable and clickable area
+  Box(
+      contentAlignment = Alignment.Center,
+      modifier =
+          Modifier.conditional(AndroidTVUtil.isAndroidTV(), { padding(4.dp) })
+              .conditional(
+                  AndroidTVUtil.isAndroidTV(),
+                  {
+                    size((size * 1.5f).dp) // Focusable area is larger than the avatar
+                  })
+              .clip(CircleShape) // Ensure both the focus and click area are circular
+              .background(
+                  if (isFocused.value) MaterialTheme.colorScheme.surface else Color.Transparent,
+              )
+              .onFocusChanged { focusState -> isFocused.value = focusState.isFocused }
+              .focusable() // Make this outer Box focusable (after onFocusChanged)
+              .clickable(
+                  interactionSource = remember { MutableInteractionSource() },
+                  indication = ripple(bounded = true), // Apply ripple effect inside circular bounds
+                  onClick = {
+                    action?.invoke()
                     focusManager.clearFocus() // Clear focus after clicking the avatar
-                }
-            )
-    ) {
+                  })) {
         // Inner Box to hold the avatar content (Icon or AsyncImage)
         Box(
             contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(size.dp)
-                .clip(CircleShape) 
-        ) { 
-          // Always display the default icon as a background layer
-          Icon(
-              imageVector = Icons.Default.Person,
-              contentDescription = stringResource(R.string.settings_title),
-              modifier =
-                  Modifier.size((size * 0.8f).dp)
-                      .clip(CircleShape) // Icon size slightly smaller than the Box
-              )
+            modifier = Modifier.size(size.dp).clip(CircleShape)) {
+              // Always display the default icon as a background layer
+              Icon(
+                  imageVector = Icons.Default.Person,
+                  contentDescription = stringResource(R.string.settings_title),
+                  modifier =
+                      Modifier.conditional(AndroidTVUtil.isAndroidTV(), { size((size * 0.8f).dp) })
+                          .clip(CircleShape) // Icon size slightly smaller than the Box
+                  )
 
-          // Overlay the profile picture if available
-          profile?.UserProfile?.ProfilePicURL?.let { url ->
-            AsyncImage(
-                model = url,
-                modifier = Modifier.size(size.dp).clip(CircleShape),
-                contentDescription = null)
-          }
-        }
-  }
+              // Overlay the profile picture if available
+              profile?.UserProfile?.ProfilePicURL?.let { url ->
+                AsyncImage(
+                    model = url,
+                    modifier = Modifier.size(size.dp).clip(CircleShape),
+                    contentDescription = null)
+              }
+            }
+      }
 }

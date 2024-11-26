@@ -163,7 +163,7 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     NetworkChangeCallback.monitorDnsChanges(connectivityManager, dns)
     initViewModels()
     applicationScope.launch {
-      Notifier.state.collect { state ->
+      Notifier.state.collect { _ ->
         combine(Notifier.state, MDMSettings.forceEnabled.flow) { state, forceEnabled ->
               Pair(state, forceEnabled)
             }
