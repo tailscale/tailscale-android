@@ -62,7 +62,20 @@ class HealthNotifier(
     val warningsBeforeAdd = currentWarnings.value
     val currentWarnableCodes = warnings.map { it.WarnableCode }.toSet()
     val addedWarnings: MutableSet<UnhealthyState> = mutableSetOf()
+    val removedByNewDependency: MutableSet<UnhealthyState> = mutableSetOf()
     val isWarmingUp = warnings.any { it.WarnableCode == "warming-up" }
+
+    /// Checks if there is any warning in `warningsBeforeAdd` that needs to be removed because the new warning `w`
+    /// is listed as a dependency of a warning already in `warningsBeforeAdd`, and removes it.
+    fun dropDependenciesForAddedWarning(w: UnhealthyState) {
+      for (warning in warningsBeforeAdd) {
+        warning.DependsOn?.let {
+          if (it.contains(w.WarnableCode)) {
+            removedByNewDependency.add(warning)
+          }
+        }
+      }
+    }
 
     for (warning in warnings) {
       if (ignoredWarnableCodes.contains(warning.WarnableCode)) {
@@ -81,6 +94,7 @@ class HealthNotifier(
       } else if (!isWarmingUp) {
         TSLog.d(TAG, "Adding health warning: ${warning.WarnableCode}")
         this.currentWarnings.set(this.currentWarnings.value + warning)
+        dropDependenciesForAddedWarning(warning)
         if (warning.Severity == Health.Severity.high) {
           this.sendNotification(warning.Title, warning.Text, warning.WarnableCode)
         }
@@ -89,7 +103,7 @@ class HealthNotifier(
       }
     }
 
-    val warningsToDrop = warningsBeforeAdd.minus(addedWarnings)
+    val warningsToDrop = warningsBeforeAdd.minus(addedWarnings).union(removedByNewDependency)
     if (warningsToDrop.isNotEmpty()) {
       TSLog.d(TAG, "Dropping health warnings with codes $warningsToDrop")
       this.removeNotifications(warningsToDrop)
