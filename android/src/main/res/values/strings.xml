@@ -244,7 +244,7 @@
     <string name="welcome1">Tailscale is a mesh VPN for securely connecting your devices.</string>
     <string name="welcome2">All connections are device-to-device, so we never see your data. We collect and use your email address and name, as well as your device name, OS version, and IP address in order to help you to connect your devices and manage your settings. We log when you are connected to your network.</string>
     <string name="scan_to_connect_to_your_tailnet">Scan this QR code to log in to your tailnet</string>
-    <string name="enter_code_to_connect_to_tailnet">or enter this code in the Machines > Add device section of the admin console: \n%1$s</string>
+    <string name="enter_code_to_connect_to_tailnet">or enter this code in the Machines > Add device section of the admin console: </string>
 
     <!-- Strings for intent handling -->
     <string name="vpn_is_not_ready_to_start">VPN is not ready to start</string>
