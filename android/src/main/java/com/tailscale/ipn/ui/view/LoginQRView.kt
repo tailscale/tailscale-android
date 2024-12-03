@@ -25,6 +25,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -41,7 +43,6 @@ fun LoginQRView(onDismiss: () -> Unit = {}, model: LoginQRViewModel = viewModel(
     Dialog(onDismissRequest = onDismiss) {
       val image by model.qrCode.collectAsState()
       val numCode by model.numCode.collectAsState()
-
       Column(
           modifier =
               Modifier.clip(RoundedCornerShape(10.dp))
@@ -52,12 +53,13 @@ fun LoginQRView(onDismiss: () -> Unit = {}, model: LoginQRViewModel = viewModel(
             Text(
                 text = stringResource(R.string.scan_to_connect_to_your_tailnet),
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface)
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center)
+
             Box(
                 modifier =
                     Modifier.size(200.dp)
-                        .background(MaterialTheme.colorScheme.onSurface)
-                        .fillMaxWidth(),
+                        .background(MaterialTheme.colorScheme.onSurface),
                 contentAlignment = Alignment.Center) {
                   image?.let {
                     Image(
@@ -66,13 +68,28 @@ fun LoginQRView(onDismiss: () -> Unit = {}, model: LoginQRViewModel = viewModel(
                         modifier = Modifier.fillMaxSize())
                   }
                 }
-            numCode?.let { it ->
-              Text(
-                  text = stringResource(R.string.enter_code_to_connect_to_tailnet, it),
-                  style = MaterialTheme.typography.titleMedium,
-                  color = MaterialTheme.colorScheme.onSurface)
+            Text(
+                text = stringResource(R.string.enter_code_to_connect_to_tailnet),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface)
+
+            numCode?.let {
+              Box(
+                  modifier =
+                      Modifier
+                          .clip(RoundedCornerShape(6.dp))
+                          .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                  contentAlignment = Alignment.Center) {
+                    Text(
+                        text =it,
+                        style =
+                            MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface)
+                  }
             }
-            Button(onClick = onDismiss) { Text(text = stringResource(R.string.dismiss)) }
+            Button(onClick = onDismiss, modifier = Modifier.padding(top = 16.dp)) {
+              Text(text = stringResource(R.string.dismiss))
+            }
           }
     }
   }

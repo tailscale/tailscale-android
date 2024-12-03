@@ -702,54 +702,63 @@ fun PromptPermissionsIfNecessary() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchWithDynamicSuggestions(viewModel: MainViewModel, onSearch: (String) -> Unit) {
-  val searchTerm by viewModel.searchTerm.collectAsState()
-  val filteredPeers by viewModel.peers.collectAsState()
-  var expanded by rememberSaveable { mutableStateOf(false) }
-  val netmap by viewModel.netmap.collectAsState()
+    val searchTerm by viewModel.searchTerm.collectAsState()
+    val filteredPeers by viewModel.peers.collectAsState()
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    val netmap by viewModel.netmap.collectAsState()
 
-  val keyboardController = LocalSoftwareKeyboardController.current
-  val focusRequester = remember { FocusRequester() }
-  val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
 
-  Column(
-      modifier =
-          Modifier.fillMaxWidth().focusRequester(focusRequester).clickable {
-            focusRequester.requestFocus()
-            keyboardController?.show()
-          }) {
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+        keyboardController?.show()
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .focusRequester(focusRequester)
+            .focusable()
+            .clickable {
+                focusRequester.requestFocus()
+                keyboardController?.show()
+            }
+    ) {
         SearchBar(
             modifier = Modifier.fillMaxWidth().align(Alignment.CenterHorizontally),
             inputField = {
-              SearchBarDefaults.InputField(
-                  query = searchTerm,
-                  onQueryChange = { query ->
-                    viewModel.updateSearchTerm(query)
-                    onSearch(query)
-                    expanded = query.isNotEmpty()
-                  },
-                  onSearch = { query ->
-                    viewModel.updateSearchTerm(query)
-                    onSearch(query)
-                    expanded = false
-                  },
-                  expanded = expanded,
-                  onExpandedChange = { expanded = it },
-                  placeholder = { Text("Search") },
-                  leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                  trailingIcon = {
-                    if (expanded) {
-                      IconButton(
-                          onClick = {
-                            viewModel.updateSearchTerm("")
-                            onSearch("")
-                            expanded = false
-                            focusManager.clearFocus()
-                            keyboardController?.hide()
-                          }) {
-                            Icon(Icons.Default.Clear, contentDescription = "Clear search")
-                          }
-                    }
-                  })
+                SearchBarDefaults.InputField(
+                    query = searchTerm,
+                    onQueryChange = { query ->
+                        viewModel.updateSearchTerm(query)
+                        onSearch(query)
+                        expanded = query.isNotEmpty()
+                    },
+                    onSearch = { query ->
+                        viewModel.updateSearchTerm(query)
+                        onSearch(query)
+                        expanded = false
+                    },
+                    expanded = expanded,
+                    onExpandedChange = { expanded = it },
+                    placeholder = { Text("Search") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    trailingIcon = {
+                        if (expanded) {
+                            IconButton(
+                                onClick = {
+                                    viewModel.updateSearchTerm("")
+                                    onSearch("")
+                                    expanded = false
+                                    focusManager.clearFocus()
+                                    keyboardController?.hide()
+                                }) {
+                                Icon(Icons.Default.Clear, contentDescription = "Clear search")
+                            }
+                        }
+                    })
             },
             expanded = expanded,
             onExpandedChange = { expanded = it },

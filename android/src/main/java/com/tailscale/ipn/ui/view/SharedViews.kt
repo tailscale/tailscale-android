@@ -3,6 +3,7 @@
 
 package com.tailscale.ipn.ui.view
 
+import android.util.Log
 import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -45,40 +46,48 @@ fun Header(
     actions: @Composable RowScope.() -> Unit = {},
     onBack: (() -> Unit)? = null
 ) {
-  val f = FocusRequester()
+    val focusRequester = remember { FocusRequester() }
 
-  if (isAndroidTV()) {
-    LaunchedEffect(Unit) { f.requestFocus() }
-  }
+    if (isAndroidTV()) {
+        LaunchedEffect(Unit) {
+            focusRequester.requestFocus()
+        }
+    }
 
-  TopAppBar(
-      title = {
-        title?.let { title() }
-            ?: Text(
-                stringResource(titleRes),
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface)
-      },
-      colors = MaterialTheme.colorScheme.topAppBar,
-      actions = actions,
-      navigationIcon = { onBack?.let { BackArrow(action = it, focusRequester = f) } },
-  )
+    TopAppBar(
+        title = {
+            title?.let { title() }
+                ?: Text(
+                    text = if (titleRes != 0) stringResource(titleRes) else "Default Title",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+        },
+        colors = MaterialTheme.colorScheme.topAppBar,
+        actions = actions,
+        navigationIcon = { onBack?.let { BackArrow(action = it, focusRequester = focusRequester) } },
+    )
 }
 
 @Composable
 fun BackArrow(action: () -> Unit, focusRequester: FocusRequester) {
+    val modifier = if (isAndroidTV()) {
+        Modifier.focusRequester(focusRequester)
+    } else {
+        Modifier
+    }
 
-  Box(modifier = Modifier.padding(start = 8.dp, end = 8.dp)) {
-    Icon(
-        Icons.AutoMirrored.Filled.ArrowBack,
-        contentDescription = "Go back to the previous screen",
-        modifier =
-            Modifier.focusRequester(focusRequester)
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = ripple(bounded = false),
-                    onClick = { action() }))
-  }
+    Box(modifier = modifier.padding(start = 8.dp, end = 8.dp)) {
+        Icon(
+            Icons.AutoMirrored.Filled.ArrowBack,
+            contentDescription = "Go back to the previous screen",
+            modifier = modifier.clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = ripple(bounded = true),
+                onClick = action
+            )
+        )
+    }
 }
 
 @Composable
