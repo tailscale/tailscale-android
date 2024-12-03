@@ -3,7 +3,11 @@
 
 package libtailscale
 
-import _ "golang.org/x/mobile/bind"
+import (
+	"log"
+
+	_ "golang.org/x/mobile/bind"
+)
 
 // Start starts the application, storing state in the given dataDir and using
 // the given appCtx.
@@ -31,9 +35,11 @@ type AppContext interface {
 	// GetModelName gets the Android device's model name.
 	GetModelName() (string, error)
 
-	// IsPlayVersion reports whether this is the Google Play version of the app
-	// (as opposed to F-droid/sideloaded).
-	IsPlayVersion() bool
+	// GetInstallSource gets information about how the app was installed or updated.
+	GetInstallSource() string
+
+	// ShouldUseGoogleDNSFallback reports whether or not to use Google for DNS fallback.
+	ShouldUseGoogleDNSFallback() bool
 
 	// IsChromeOS reports whether we're on a ChromeOS device.
 	IsChromeOS() (bool, error)
@@ -73,6 +79,10 @@ type IPNService interface {
 	NewBuilder() VPNServiceBuilder
 
 	Close()
+
+	DisconnectVPN()
+
+	UpdateVpnStatus(bool)
 }
 
 // VPNServiceBuilder corresponds to Android's VpnService.Builder.
@@ -161,4 +171,14 @@ func RequestVPN(service IPNService) {
 
 func ServiceDisconnect(service IPNService) {
 	onDisconnect <- service
+}
+
+func SendLog(logstr []byte) {
+	select {
+	case onLog <- string(logstr):
+		// Successfully sent log
+	default:
+		// Channel is full, log not sent
+		log.Printf("Log %v not sent", logstr) // missing argument in original code
+	}
 }

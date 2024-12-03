@@ -23,13 +23,18 @@ import com.tailscale.ipn.ui.util.PeerCategorizer
 import com.tailscale.ipn.ui.util.PeerSet
 import com.tailscale.ipn.ui.util.TimeUtil
 import com.tailscale.ipn.ui.util.set
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
 import java.time.Duration
 
 class MainViewModelFactory(private val vpnViewModel: VpnViewModel) : ViewModelProvider.Factory {
+  @Suppress("UNCHECKED_CAST")
   override fun <T : ViewModel> create(modelClass: Class<T>): T {
     if (modelClass.isAssignableFrom(MainViewModel::class.java)) {
       return MainViewModel(vpnViewModel) as T
@@ -38,6 +43,7 @@ class MainViewModelFactory(private val vpnViewModel: VpnViewModel) : ViewModelPr
   }
 }
 
+@OptIn(FlowPreview::class)
 class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
 
   // The user readable state of the system
@@ -51,13 +57,15 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
   private var vpnPermissionLauncher: ActivityResultLauncher<Intent>? = null
 
   // The list of peers
-  val peers: StateFlow<List<PeerSet>> = MutableStateFlow(emptyList<PeerSet>())
+  private val _peers = MutableStateFlow<List<PeerSet>>(emptyList())
+  val peers: StateFlow<List<PeerSet>> = _peers
 
   // The current state of the IPN for determining view visibility
   val ipnState = Notifier.state
 
   // The active search term for filtering peers
-  val searchTerm: StateFlow<String> = MutableStateFlow("")
+  private val _searchTerm = MutableStateFlow("")
+  val searchTerm: StateFlow<String> = _searchTerm
 
   // True if we should render the key expiry bannder
   val showExpiry: StateFlow<Boolean> = MutableStateFlow(false)
@@ -69,8 +77,16 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
 
   val isVpnPrepared: StateFlow<Boolean> = vpnViewModel.vpnPrepared
 
+  val isVpnActive: StateFlow<Boolean> = vpnViewModel.vpnActive
+
+  var searchJob: Job? = null
+
   // Icon displayed in the button to present the health view
   val healthIcon: StateFlow<Int?> = MutableStateFlow(null)
+
+  fun updateSearchTerm(term: String) {
+    _searchTerm.value = term
+  }
 
   fun hidePeerDropdownMenu() {
     expandedMenuPeer.set(null)
@@ -94,19 +110,24 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
     viewModelScope.launch {
       var previousState: State? = null
 
-      combine(Notifier.state, isVpnPrepared) { state, prepared -> state to prepared }
-          .collect { (currentState, prepared) ->
-            stateRes.set(userStringRes(currentState, previousState, prepared))
+      combine(Notifier.state, isVpnActive) { state, active -> state to active }
+          .collect { (currentState, active) ->
+            // Determine the correct state resource string
+            stateRes.set(userStringRes(currentState, previousState, active))
 
+            // Determine if the VPN toggle should be on
             val isOn =
                 when {
-                  prepared && currentState == State.Running || currentState == State.Starting ->
+                  active && (currentState == State.Running || currentState == State.Starting) ->
                       true
                   previousState == State.NoState && currentState == State.Starting -> true
                   else -> false
                 }
 
+            // Update the VPN toggle state
             _vpnToggleState.value = isOn
+
+            // Update the previous state
             previousState = currentState
           }
     }
@@ -114,8 +135,12 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
     viewModelScope.launch {
       Notifier.netmap.collect { it ->
         it?.let { netmap ->
-          peerCategorizer.regenerateGroupedPeers(netmap)
-          peers.set(peerCategorizer.groupedAndFilteredPeers(searchTerm.value))
+          searchJob?.cancel()
+          launch(Dispatchers.Default) {
+            peerCategorizer.regenerateGroupedPeers(netmap)
+            val filteredPeers = peerCategorizer.groupedAndFilteredPeers(searchTerm.value)
+            _peers.value = filteredPeers
+          }
 
           if (netmap.SelfNode.keyDoesNotExpire) {
             showExpiry.set(false)
@@ -133,8 +158,11 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
     }
 
     viewModelScope.launch {
-      searchTerm.collect { term -> peers.set(peerCategorizer.groupedAndFilteredPeers(term)) }
-    }
+      searchTerm.collect { term ->
+          val filteredPeers = peerCategorizer.groupedAndFilteredPeers(term)
+          _peers.value = filteredPeers
+      }
+  }
 
     viewModelScope.launch {
       App.get().healthNotifier?.currentIcon?.collect { icon -> healthIcon.set(icon) }
@@ -164,8 +192,12 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
   }
 
   fun searchPeers(searchTerm: String) {
-    this.searchTerm.set(searchTerm)
-  }
+    _searchTerm.value = searchTerm // Update the search term
+    viewModelScope.launch(Dispatchers.Default) {
+        val filteredPeers = peerCategorizer.groupedAndFilteredPeers(searchTerm)
+        _peers.value = filteredPeers // Update filtered peers
+    }
+}
 
   fun setVpnPermissionLauncher(launcher: ActivityResultLauncher<Intent>) {
     // No intent means we're already authorized
@@ -173,17 +205,17 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
   }
 }
 
-private fun userStringRes(currentState: State?, previousState: State?, vpnPrepared: Boolean): Int {
+private fun userStringRes(currentState: State?, previousState: State?, vpnActive: Boolean): Int {
   return when {
     previousState == State.NoState && currentState == State.Starting -> R.string.starting
     currentState == State.NoState -> R.string.placeholder
     currentState == State.InUseOtherUser -> R.string.placeholder
     currentState == State.NeedsLogin ->
-        if (vpnPrepared) R.string.please_login else R.string.connect_to_vpn
+        if (vpnActive) R.string.please_login else R.string.connect_to_vpn
     currentState == State.NeedsMachineAuth -> R.string.needs_machine_auth
     currentState == State.Stopped -> R.string.stopped
     currentState == State.Starting -> R.string.starting
-    currentState == State.Running -> if (vpnPrepared) R.string.connected else R.string.placeholder
+    currentState == State.Running -> if (vpnActive) R.string.connected else R.string.placeholder
     else -> R.string.placeholder
   }
 }

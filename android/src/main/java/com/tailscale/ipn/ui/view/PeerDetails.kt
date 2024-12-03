@@ -47,7 +47,7 @@ import com.tailscale.ipn.ui.viewModel.PingViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PeerDetails(
-    backToHome: BackNavigation,
+    onNavigateBack: () -> Unit,
     nodeId: String,
     pingViewModel: PingViewModel,
     model: PeerDetailsViewModel =
@@ -90,7 +90,7 @@ fun PeerDetails(
                         contentDescription = "Ping device")
                   }
                 },
-                onBack = backToHome)
+                onBack = onNavigateBack)
           },
       ) { innerPadding ->
         LazyColumn(

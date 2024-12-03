@@ -208,6 +208,8 @@
     <string name="manage_tailnet_lock_visibility">Manage Tailnet lock visibility</string>
     <string name="shows_or_hides_the_ui_to_run_the_android_device_as_an_exit_node">Shows or hides the UI to run the Android device as an exit node.</string>
     <string name="run_as_exit_node_visibility">Run as exit node visibility</string>
+    <string name="defines_an_auth_key_that_will_be_used_for_login">Defines an auth key that will be used for login.</string>
+    <string name="auth_key">Auth Key</string>
 
     <!-- Permissions Management -->
     <string name="permissions">Permissions</string>
@@ -242,6 +244,7 @@
     <string name="welcome1">Tailscale is a mesh VPN for securely connecting your devices.</string>
     <string name="welcome2">All connections are device-to-device, so we never see your data. We collect and use your email address and name, as well as your device name, OS version, and IP address in order to help you to connect your devices and manage your settings. We log when you are connected to your network.</string>
     <string name="scan_to_connect_to_your_tailnet">Scan this QR code to log in to your tailnet</string>
+    <string name="enter_code_to_connect_to_tailnet">or enter this code in the Machines > Add device section of the admin console: </string>
 
     <!-- Strings for intent handling -->
     <string name="vpn_is_not_ready_to_start">VPN is not ready to start</string>
@@ -298,7 +301,5 @@
     <string name="multiple_vpn_explainer">Only one VPN can be active, and it appears another is already running. Before starting Tailscale, disable the other VPN.</string>
     <string name="go_to_settings">Go to Settings</string>
     <string name="cancel">Cancel</string>
-    <string name="defines_an_auth_key_that_will_be_used_for_login">Defines an auth key that will be used for login.</string>
-    <string name="auth_key">Auth Key</string>
 
 </resources>

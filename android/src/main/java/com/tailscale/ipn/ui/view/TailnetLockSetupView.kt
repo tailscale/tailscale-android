@@ -3,6 +3,11 @@
 
 package com.tailscale.ipn.ui.view
 
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -15,7 +20,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -49,13 +56,19 @@ fun TailnetLockSetupView(
 
   Scaffold(topBar = { Header(R.string.tailnet_lock, onBack = backToSettings) }) { innerPadding ->
     LoadingIndicator.Wrap {
-      LazyColumn(modifier = Modifier.padding(innerPadding)) {
-        item(key = "header") { ExplainerView() }
+      LazyColumn(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
+        item { ExplainerView() }
 
-        items(items = statusItems, key = { "status_${it.title}" }) { statusItem ->
-          Lists.ItemDivider()
-
+        items(statusItems) { statusItem ->
+          val interactionSource = remember { MutableInteractionSource() }
           ListItem(
+              modifier =
+                  Modifier.focusable(
+                          interactionSource = interactionSource) 
+                      .clickable(
+                          interactionSource = interactionSource,
+                          indication = LocalIndication.current
+                          ) {},
               leadingContent = {
                 Icon(
                     painter = painterResource(id = statusItem.icon),
@@ -65,18 +78,16 @@ fun TailnetLockSetupView(
               headlineContent = { Text(stringResource(statusItem.title)) })
         }
 
-        item(key = "nodeKey") {
+        item {
+          // Node key section
           Lists.SectionDivider()
-
           ClipboardValueView(
               value = nodeKey,
               title = stringResource(R.string.node_key),
               subtitle = stringResource(R.string.node_key_explainer))
-        }
 
-        item(key = "tailnetLockKey") {
+          // Tailnet lock key section
           Lists.SectionDivider()
-
           ClipboardValueView(
               value = tailnetLockTlPubKey,
               title = stringResource(R.string.tailnet_lock_key),
@@ -101,7 +112,7 @@ private fun ExplainerView() {
 
 @Composable
 fun explainerText(): AnnotatedString {
-  val annotatedString = buildAnnotatedString {
+  return buildAnnotatedString {
     withStyle(SpanStyle(color = MaterialTheme.colorScheme.defaultTextColor)) {
       append(stringResource(id = R.string.tailnet_lock_explainer))
     }
@@ -117,7 +128,6 @@ fun explainerText(): AnnotatedString {
         }
     pop()
   }
-  return annotatedString
 }
 
 @Composable

@@ -4,7 +4,6 @@
 package com.tailscale.ipn.ui.localapi
 
 import android.content.Context
-import android.util.Log
 import com.tailscale.ipn.ui.model.BugReportID
 import com.tailscale.ipn.ui.model.Errors
 import com.tailscale.ipn.ui.model.Ipn
@@ -13,6 +12,8 @@ import com.tailscale.ipn.ui.model.IpnState
 import com.tailscale.ipn.ui.model.StableNodeID
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.util.InputStreamAdapter
+import com.tailscale.ipn.util.TSLog
+import com.tailscale.ipn.App
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -66,6 +67,11 @@ typealias PingResultHandler = (Result<IpnState.PingResult>) -> Unit
  */
 class Client(private val scope: CoroutineScope) {
   private val TAG = Client::class.simpleName
+
+  // Access libtailscale.Application lazily
+  private val app: libtailscale.Application by lazy {
+    App.get().getLibtailscaleApp()
+}
 
   fun start(options: Ipn.Options, responseHandler: (Result<Unit>) -> Unit) {
     val body = Json.encodeToString(options).toByteArray()
@@ -175,7 +181,7 @@ class Client(private val scope: CoroutineScope) {
           })
     } catch (e: Exception) {
       parts.forEach { it.body.close() }
-      Log.e(TAG, "Error creating file upload body: $e")
+      TSLog.e(TAG, "Error creating file upload body: $e")
       responseHandler(Result.failure(e))
       return
     }
@@ -307,7 +313,7 @@ class Request<T>(
   @OptIn(ExperimentalSerializationApi::class)
   fun execute() {
     scope.launch(Dispatchers.IO) {
-      Log.d(TAG, "Executing request:${method}:${fullPath} on app $app")
+      TSLog.d(TAG, "Executing request:${method}:${fullPath} on app $app")
       try {
         val resp =
             if (parts != null) app.callLocalAPIMultipart(timeoutMillis, method, fullPath, parts)
@@ -350,7 +356,7 @@ class Request<T>(
         // The response handler will invoked internally by the request parser
         scope.launch { responseHandler(response) }
       } catch (e: Exception) {
-        Log.e(TAG, "Error executing request:${method}:${fullPath}: $e")
+        TSLog.e(TAG, "Error executing request:${method}:${fullPath}: $e")
         scope.launch { responseHandler(Result.failure(e)) }
       }
     }

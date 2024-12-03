@@ -21,15 +21,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.ArrowDropDown
-import androidx.compose.material.icons.outlined.Clear
-import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
@@ -41,7 +39,6 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -59,7 +56,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
@@ -87,13 +83,11 @@ import com.tailscale.ipn.ui.theme.exitNodeToggleButton
 import com.tailscale.ipn.ui.theme.listItem
 import com.tailscale.ipn.ui.theme.minTextSize
 import com.tailscale.ipn.ui.theme.primaryListItem
-import com.tailscale.ipn.ui.theme.searchBarColors
 import com.tailscale.ipn.ui.theme.secondaryButton
 import com.tailscale.ipn.ui.theme.short
 import com.tailscale.ipn.ui.theme.surfaceContainerListItem
 import com.tailscale.ipn.ui.theme.warningButton
 import com.tailscale.ipn.ui.theme.warningListItem
-import com.tailscale.ipn.ui.util.AndroidTVUtil.isAndroidTV
 import com.tailscale.ipn.ui.util.AutoResizingText
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.LoadingIndicator
@@ -109,7 +103,8 @@ data class MainViewNavigation(
     val onNavigateToSettings: () -> Unit,
     val onNavigateToPeerDetails: (Tailcfg.Node) -> Unit,
     val onNavigateToExitNodes: () -> Unit,
-    val onNavigateToHealth: () -> Unit
+    val onNavigateToHealth: () -> Unit,
+    val onNavigateToSearch: () -> Unit,
 )
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
@@ -142,7 +137,7 @@ fun MainView(
             val showKeyExpiry by viewModel.showExpiry.collectAsState(initial = false)
 
             // Hide the header only on Android TV when the user needs to login
-            val hideHeader = (isAndroidTV() && state == Ipn.State.NeedsLogin)
+            val hideHeader = (/*isAndroidTV() && */ state == Ipn.State.NeedsLogin)
 
             ListItem(
                 colors = MaterialTheme.colorScheme.surfaceContainerListItem,
@@ -187,20 +182,16 @@ fun MainView(
                   }
                 },
                 trailingContent = {
-                  Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
+                  Box(modifier = Modifier.padding(8.dp), contentAlignment = Alignment.CenterEnd) {
                     when (user) {
                       null -> SettingsButton { navigation.onNavigateToSettings() }
-                      else ->
-                          Box(
-                              contentAlignment = Alignment.Center,
-                              modifier =
-                                  Modifier.size(42.dp).clip(CircleShape).clickable {
-                                    navigation.onNavigateToSettings()
-                                  }) {
-                                Avatar(profile = user, size = 36) {
-                                  navigation.onNavigateToSettings()
-                                }
-                              }
+                      else -> {
+                        Avatar(
+                            profile = user,
+                            size = 36,
+                            { navigation.onNavigateToSettings() },
+                            isFocusable = true)
+                      }
                     }
                   }
                 })
@@ -224,7 +215,7 @@ fun MainView(
                 PeerList(
                     viewModel = viewModel,
                     onNavigateToPeerDetails = navigation.onNavigateToPeerDetails,
-                    onSearch = { viewModel.searchPeers(it) })
+                    onSearchBarClick = navigation.onNavigateToSearch)
               }
               Ipn.State.NoState,
               Ipn.State.Starting -> StartingView()
@@ -232,6 +223,9 @@ fun MainView(
                 ConnectView(
                     state,
                     isPrepared,
+                    // If Tailscale is stopping, don't automatically restart; wait for user to take
+                    // action (eg, if the user connected to another VPN).
+                    state != Ipn.State.Stopping,
                     user,
                     { viewModel.toggleVpn() },
                     { viewModel.login() },
@@ -242,7 +236,7 @@ fun MainView(
             }
           }
 
-      currentPingDevice?.let { peer ->
+      currentPingDevice?.let { _ ->
         ModalBottomSheet(onDismissRequest = { viewModel.onPingDismissal() }) {
           PingView(model = viewModel.pingViewModel)
         }
@@ -407,6 +401,7 @@ fun StartingView() {
 fun ConnectView(
     state: Ipn.State,
     isPrepared: Boolean,
+    shouldStartAutomatically: Boolean,
     user: IpnLocal.LoginProfile?,
     connectAction: () -> Unit,
     loginAction: () -> Unit,
@@ -415,7 +410,7 @@ fun ConnectView(
     showVPNPermissionLauncherIfUnauthorized: () -> Unit
 ) {
   LaunchedEffect(isPrepared) {
-    if (!isPrepared) {
+    if (!isPrepared && shouldStartAutomatically) {
       showVPNPermissionLauncherIfUnauthorized()
     }
   }
@@ -523,7 +518,7 @@ fun ConnectView(
 fun PeerList(
     viewModel: MainViewModel,
     onNavigateToPeerDetails: (Tailcfg.Node) -> Unit,
-    onSearch: (String) -> Unit
+    onSearchBarClick: () -> Unit
 ) {
   val peerList by viewModel.peers.collectAsState(initial = emptyList<PeerSet>())
   val searchTermStr by viewModel.searchTerm.collectAsState(initial = "")
@@ -531,154 +526,117 @@ fun PeerList(
       remember { derivedStateOf { searchTermStr.isNotEmpty() && peerList.isEmpty() } }.value
 
   val netmap = viewModel.netmap.collectAsState()
-
-  val focusManager = LocalFocusManager.current
-  var isFocussed by remember { mutableStateOf(false) }
-
   var isListFocussed by remember { mutableStateOf(false) }
-
   val expandedPeer = viewModel.expandedMenuPeer.collectAsState()
   val localClipboardManager = LocalClipboardManager.current
+  val enableSearch = true // !isAndroidTV()
 
-  val enableSearch = !isAndroidTV()
+  Column(modifier = Modifier.fillMaxSize()) {
+    if (enableSearch) {
+      SearchWithDynamicSuggestions(viewModel, onSearchBarClick)
 
-  if (enableSearch) {
-    Box(modifier = Modifier.fillMaxWidth().background(color = MaterialTheme.colorScheme.surface)) {
-      OutlinedTextField(
-          modifier =
-              Modifier.fillMaxWidth()
-                  .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 0.dp)
-                  .onFocusChanged { isFocussed = it.isFocused },
-          singleLine = true,
-          shape = MaterialTheme.shapes.extraLarge,
-          colors = MaterialTheme.colorScheme.searchBarColors,
-          leadingIcon = {
-            Icon(imageVector = Icons.Outlined.Search, contentDescription = "search")
-          },
-          trailingIcon = {
-            if (isFocussed) {
-              IconButton(
-                  onClick = {
-                    focusManager.clearFocus()
-                    onSearch("")
-                  }) {
-                    Icon(
-                        imageVector =
-                            if (searchTermStr.isEmpty()) Icons.Outlined.Close
-                            else Icons.Outlined.Clear,
-                        contentDescription = "clear search",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                  }
-            }
-          },
-          placeholder = {
-            Text(
-                text = stringResource(id = R.string.search),
-                style = MaterialTheme.typography.bodyLarge,
-                maxLines = 1)
-          },
-          value = searchTermStr,
-          onValueChange = { onSearch(it) })
+      Spacer(modifier = Modifier.height(if (showNoResults) 0.dp else 8.dp))
     }
-  }
 
-  LazyColumn(
-      modifier =
-          Modifier.fillMaxSize()
-              .onFocusChanged { isListFocussed = it.isFocused }
-              .background(color = MaterialTheme.colorScheme.surface)) {
-        if (showNoResults) {
-          item {
-            Spacer(
-                Modifier.height(16.dp)
-                    .fillMaxSize()
-                    .focusable(false)
-                    .background(color = MaterialTheme.colorScheme.surface))
+    // Peers display
+    LazyColumn(
+        modifier =
+            Modifier.fillMaxWidth()
+                .weight(1f) // LazyColumn gets the remaining vertical space
+                .onFocusChanged { isListFocussed = it.isFocused }
+                .background(color = MaterialTheme.colorScheme.surface)) {
 
-            Lists.LargeTitle(
-                stringResource(id = R.string.no_results),
-                bottomPadding = 8.dp,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Light)
+          // Handle case when no results are found
+          if (showNoResults) {
+            item {
+              Spacer(
+                  Modifier.height(16.dp)
+                      .fillMaxSize()
+                      .focusable(false)
+                      .background(color = MaterialTheme.colorScheme.surface))
+              Lists.LargeTitle(
+                  stringResource(id = R.string.no_results),
+                  bottomPadding = 8.dp,
+                  style = MaterialTheme.typography.bodyMedium,
+                  fontWeight = FontWeight.Light)
+            }
           }
-        }
 
-        var first = true
-        peerList.forEach { peerSet ->
-          if (!first) {
-            item(key = "user_divider_${peerSet.user?.ID ?: 0L}") { Lists.ItemDivider() }
-          }
-          first = false
+          // Iterate over peer sets to display them
+          var first = true
+          peerList.forEach { peerSet ->
+            if (!first) {
+              item(key = "user_divider_${peerSet.user?.ID ?: 0L}") { Lists.ItemDivider() }
+            }
+            first = false
 
-          // Sticky headers are a bit broken on Android TV - they hide their content
-          if (isAndroidTV()) {
+            //  if (isAndroidTV()) {
             item { NodesSectionHeader(peerSet = peerSet) }
-          } else {
-            stickyHeader { NodesSectionHeader(peerSet = peerSet) }
-          }
+            /*     } else {
+              stickyHeader { NodesSectionHeader(peerSet = peerSet) }
+            }*/
 
-          itemsWithDividers(peerSet.peers, key = { it.StableID }) { peer ->
-            ListItem(
-                modifier =
-                    Modifier.combinedClickable(
-                        onClick = { onNavigateToPeerDetails(peer) },
-                        onLongClick = { viewModel.expandedMenuPeer.set(peer) }),
-                colors = MaterialTheme.colorScheme.listItem,
-                headlineContent = {
-                  Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier =
-                            Modifier.padding(top = 2.dp)
-                                .size(10.dp)
-                                .background(
-                                    color = peer.connectedColor(netmap.value),
-                                    shape = RoundedCornerShape(percent = 50))) {}
-                    Spacer(modifier = Modifier.size(8.dp))
-                    Text(text = peer.displayName, style = MaterialTheme.typography.titleMedium)
-                    DropdownMenu(
-                        expanded = expandedPeer.value?.StableID == peer.StableID,
-                        onDismissRequest = { viewModel.hidePeerDropdownMenu() }) {
-                          DropdownMenuItem(
-                              leadingIcon = {
-                                Icon(
-                                    painter = painterResource(R.drawable.clipboard),
-                                    contentDescription = null)
-                              },
-                              text = { Text(text = stringResource(R.string.copy_ip_address)) },
-                              onClick = {
-                                viewModel.copyIpAddress(peer, localClipboardManager)
-                                viewModel.hidePeerDropdownMenu()
-                              })
-
-                          netmap.value?.let { netMap ->
-                            if (!peer.isSelfNode(netMap)) {
-                              // Don't show the ping item for the self-node
-                              DropdownMenuItem(
-                                  leadingIcon = {
-                                    Icon(
-                                        painter = painterResource(R.drawable.timer),
-                                        contentDescription = null)
-                                  },
-                                  text = { Text(text = stringResource(R.string.ping)) },
-                                  onClick = {
-                                    viewModel.hidePeerDropdownMenu()
-                                    viewModel.startPing(peer)
-                                  })
+            itemsWithDividers(peerSet.peers, key = { it.StableID }) { peer ->
+              ListItem(
+                  modifier =
+                      Modifier.combinedClickable(
+                          onClick = { onNavigateToPeerDetails(peer) },
+                          onLongClick = { viewModel.expandedMenuPeer.set(peer) }),
+                  colors = MaterialTheme.colorScheme.listItem,
+                  headlineContent = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                      Box(
+                          modifier =
+                              Modifier.padding(top = 2.dp)
+                                  .size(10.dp)
+                                  .background(
+                                      color = peer.connectedColor(netmap.value),
+                                      shape = RoundedCornerShape(percent = 50))) {}
+                      Spacer(modifier = Modifier.size(8.dp))
+                      Text(text = peer.displayName, style = MaterialTheme.typography.titleMedium)
+                      DropdownMenu(
+                          expanded = expandedPeer.value?.StableID == peer.StableID,
+                          onDismissRequest = { viewModel.hidePeerDropdownMenu() }) {
+                            DropdownMenuItem(
+                                leadingIcon = {
+                                  Icon(
+                                      painter = painterResource(R.drawable.clipboard),
+                                      contentDescription = null)
+                                },
+                                text = { Text(text = stringResource(R.string.copy_ip_address)) },
+                                onClick = {
+                                  viewModel.copyIpAddress(peer, localClipboardManager)
+                                  viewModel.hidePeerDropdownMenu()
+                                })
+                            netmap.value?.let { netMap ->
+                              if (!peer.isSelfNode(netMap)) {
+                                DropdownMenuItem(
+                                    leadingIcon = {
+                                      Icon(
+                                          painter = painterResource(R.drawable.timer),
+                                          contentDescription = null)
+                                    },
+                                    text = { Text(text = stringResource(R.string.ping)) },
+                                    onClick = {
+                                      viewModel.hidePeerDropdownMenu()
+                                      viewModel.startPing(peer)
+                                    })
+                              }
                             }
                           }
-                        }
-                  }
-                },
-                supportingContent = {
-                  Text(
-                      text = peer.Addresses?.first()?.split("/")?.first() ?: "",
-                      style =
-                          MaterialTheme.typography.bodyMedium.copy(
-                              lineHeight = MaterialTheme.typography.titleMedium.lineHeight))
-                })
+                    }
+                  },
+                  supportingContent = {
+                    Text(
+                        text = peer.Addresses?.first()?.split("/")?.first() ?: "",
+                        style =
+                            MaterialTheme.typography.bodyMedium.copy(
+                                lineHeight = MaterialTheme.typography.titleMedium.lineHeight))
+                  })
+            }
           }
         }
-      }
+  }
 }
 
 @Composable
@@ -688,7 +646,7 @@ fun NodesSectionHeader(peerSet: PeerSet) {
   Lists.LargeTitle(
       peerSet.user?.DisplayName ?: stringResource(id = R.string.unknown_user),
       bottomPadding = 8.dp,
-      focusable = isAndroidTV(),
+      focusable = true, // isAndroidTV(),
       style = MaterialTheme.typography.titleLarge,
       fontWeight = FontWeight.SemiBold)
 }
@@ -734,6 +692,47 @@ fun PromptPermissionsIfNecessary() {
   }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SearchWithDynamicSuggestions(
+    viewModel: MainViewModel,
+    onSearchBarClick: () -> Unit // Callback for navigating to SearchView
+) {
+  // Prevent multiple taps
+  var isNavigating by remember { mutableStateOf(false) }
+
+  // Outer Box to handle clicks
+  Box(
+      modifier =
+          Modifier.fillMaxWidth()
+              .height(56.dp) // Height matching Material Design search bar
+              .clip(RoundedCornerShape(28.dp)) // Fully rounded edges
+              .background(MaterialTheme.colorScheme.surface) // Surface background
+              .clickable(enabled = !isNavigating) { // Intercept taps
+                isNavigating = true
+                onSearchBarClick() // Trigger navigation
+              }
+              .padding(horizontal = 16.dp) // Padding for a clean look
+      ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxSize()) {
+          // Search Icon
+          Icon(
+              imageVector = Icons.Default.Search,
+              contentDescription = "Search",
+              tint = MaterialTheme.colorScheme.onSurfaceVariant,
+              modifier = Modifier.padding(start = 16.dp))
+          Spacer(modifier = Modifier.width(8.dp))
+          // Placeholder Text
+          Text(
+              text = "Search...",
+              style = MaterialTheme.typography.bodyMedium,
+              color = MaterialTheme.colorScheme.onSurfaceVariant,
+              modifier = Modifier.weight(1f) // Fill remaining space
+              )
+        }
+      }
+}
+
 @Preview
 @Composable
 fun MainViewPreview() {
@@ -746,6 +745,7 @@ fun MainViewPreview() {
           onNavigateToSettings = {},
           onNavigateToPeerDetails = {},
           onNavigateToExitNodes = {},
-          onNavigateToHealth = {}),
+          onNavigateToHealth = {},
+          onNavigateToSearch = {}),
       vm)
 }

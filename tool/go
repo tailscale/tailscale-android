@@ -8,6 +8,8 @@ if [[ "${CI:-}" == "true" && "${NOBASHDEBUG:-}" != "true" ]]; then
     set -x
 fi
 
+tsandroid=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )/.." &> /dev/null && pwd )
+
 # Allow TOOLCHAINDIR to be overridden, as a special case for the fdroid build
 if [[ -z "${TOOLCHAINDIR}" ]]; then
     toolchain="$HOME/.cache/tailscale-go"
@@ -29,10 +31,13 @@ if [[ -z "${TOOLCHAINDIR}" ]]; then
             rm -rf "$toolchain" "$toolchain.extracted"
         fi
     fi
-    if [[ ! -d "$toolchain" ]]; then
-        mkdir -p "$HOME/.cache"
 
-        read -r REV <go.toolchain.rev
+    REV="$(<${tsandroid}/go.toolchain.rev)"
+    EREV=""
+    [[ -f ${toolchain}.extracted ]] && EREV="$(<${toolchain}.extracted)"
+
+    if [[ ! -d "$toolchain" || "$EREV" != "$REV" ]]; then
+        mkdir -p "$HOME/.cache"
 
         case "$REV" in
         /*)
@@ -61,7 +66,7 @@ if [[ -z "${TOOLCHAINDIR}" ]]; then
         esac
     fi
 else
-    # fdroid supplies it's own toolchain, rather than using ours.
+    # fdroid supplies its own toolchain, rather than using ours.
     toolchain="${TOOLCHAINDIR}"
 fi
 

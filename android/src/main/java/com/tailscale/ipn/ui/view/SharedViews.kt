@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -21,6 +20,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -45,40 +45,44 @@ fun Header(
     actions: @Composable RowScope.() -> Unit = {},
     onBack: (() -> Unit)? = null
 ) {
-  val f = FocusRequester()
+    val focusRequester = remember { FocusRequester() }
 
-  if (isAndroidTV()) {
-    LaunchedEffect(Unit) { f.requestFocus() }
-  }
+    if (isAndroidTV()) {
+        LaunchedEffect(Unit) { 
+            focusRequester.requestFocus() 
+        }
+    }
 
-  TopAppBar(
-      title = {
-        title?.let { title() }
-            ?: Text(
-                stringResource(titleRes),
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface)
-      },
-      colors = MaterialTheme.colorScheme.topAppBar,
-      actions = actions,
-      navigationIcon = { onBack?.let { BackArrow(action = it, focusRequester = f) } },
-  )
+    TopAppBar(
+        title = {
+            title?.let { title() }
+                ?: Text(
+                    stringResource(titleRes),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+        },
+        colors = MaterialTheme.colorScheme.topAppBar,
+        actions = actions,
+        navigationIcon = { onBack?.let { BackArrow(action = it, focusRequester = focusRequester) } },
+    )
 }
 
 @Composable
 fun BackArrow(action: () -> Unit, focusRequester: FocusRequester) {
-
-  Box(modifier = Modifier.padding(start = 8.dp, end = 8.dp)) {
-    Icon(
-        Icons.AutoMirrored.Filled.ArrowBack,
-        contentDescription = "Go back to the previous screen",
-        modifier =
-            Modifier.focusRequester(focusRequester)
+    Box(modifier = Modifier.padding(start = 8.dp, end = 8.dp)) {
+        Icon(
+            Icons.AutoMirrored.Filled.ArrowBack,
+            contentDescription = "Go back to the previous screen",
+            modifier = Modifier
+                .focusRequester(focusRequester)
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
-                    indication = rememberRipple(bounded = false),
-                    onClick = { action() }))
-  }
+                    indication = ripple(bounded = false),
+                    onClick = { action() }
+                )
+        )
+    }
 }
 
 @Composable

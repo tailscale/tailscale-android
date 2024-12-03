@@ -16,7 +16,6 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Bundle
 import android.provider.Settings
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
@@ -67,6 +66,7 @@ import com.tailscale.ipn.ui.view.MullvadInfoView
 import com.tailscale.ipn.ui.view.PeerDetails
 import com.tailscale.ipn.ui.view.PermissionsView
 import com.tailscale.ipn.ui.view.RunExitNodeView
+import com.tailscale.ipn.ui.view.SearchView
 import com.tailscale.ipn.ui.view.SettingsView
 import com.tailscale.ipn.ui.view.SplitTunnelAppPickerView
 import com.tailscale.ipn.ui.view.TailnetLockSetupView
@@ -78,6 +78,7 @@ import com.tailscale.ipn.ui.viewModel.MainViewModelFactory
 import com.tailscale.ipn.ui.viewModel.PingViewModel
 import com.tailscale.ipn.ui.viewModel.SettingsNav
 import com.tailscale.ipn.ui.viewModel.VpnViewModel
+import com.tailscale.ipn.util.TSLog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -89,7 +90,7 @@ class MainActivity : ComponentActivity() {
   private lateinit var vpnPermissionLauncher: ActivityResultLauncher<Intent>
   private val viewModel: MainViewModel by lazy {
     val app = App.get()
-    vpnViewModel = app.vpnViewModel
+    vpnViewModel = app.getAppScopedViewModel()
     ViewModelProvider(this, MainViewModelFactory(vpnViewModel)).get(MainViewModel::class.java)
   }
   private lateinit var vpnViewModel: VpnViewModel
@@ -128,16 +129,16 @@ class MainActivity : ComponentActivity() {
     vpnPermissionLauncher =
         registerForActivityResult(VpnPermissionContract()) { granted ->
           if (granted) {
-            Log.d("VpnPermission", "VPN permission granted")
+            TSLog.d("VpnPermission", "VPN permission granted")
             vpnViewModel.setVpnPrepared(true)
             App.get().startVPN()
           } else {
             if (isAnotherVpnActive(this)) {
-              Log.d("VpnPermission", "Another VPN is likely active")
+              TSLog.d("VpnPermission", "Another VPN is likely active")
               showOtherVPNConflictDialog()
             } else {
-              Log.d("VpnPermission", "Permission was denied by the user")
-              viewModel.setVpnPrepared(false)
+              TSLog.d("VpnPermission", "Permission was denied by the user")
+              vpnViewModel.setVpnPrepared(false)
             }
           }
         }
@@ -174,7 +175,8 @@ class MainActivity : ComponentActivity() {
                             navController.navigate("peerDetails/${it.StableID}")
                           },
                           onNavigateToExitNodes = { navController.navigate("exitNodes") },
-                          onNavigateToHealth = { navController.navigate("health") })
+                          onNavigateToHealth = { navController.navigate("health") },
+                          onNavigateToSearch = { navController.navigate("search") })
 
                   val settingsNav =
                       SettingsNav(
@@ -214,6 +216,12 @@ class MainActivity : ComponentActivity() {
                   composable("main", enterTransition = { fadeIn(animationSpec = tween(150)) }) {
                     MainView(loginAtUrl = ::login, navigation = mainViewNav, viewModel = viewModel)
                   }
+                  composable("search") {
+                    SearchView(
+                        viewModel = viewModel,
+                        navController = navController,
+                        onNavigateBack = { navController.popBackStack() })
+                  }
                   composable("settings") { SettingsView(settingsNav) }
                   composable("exitNodes") { ExitNodePicker(exitNodePickerNav) }
                   composable("health") { HealthView(backTo("main")) }
@@ -231,7 +239,7 @@ class MainActivity : ComponentActivity() {
                       "peerDetails/{nodeId}",
                       arguments = listOf(navArgument("nodeId") { type = NavType.StringType })) {
                         PeerDetails(
-                            backTo("main"),
+                            { navController.popBackStack() },
                             it.arguments?.getString("nodeId") ?: "",
                             PingViewModel())
                       }
@@ -357,7 +365,7 @@ class MainActivity : ComponentActivity() {
           }
         }
       } catch (e: Exception) {
-        Log.e(TAG, "Login: failed to start MainActivity: $e")
+        TSLog.e(TAG, "Login: failed to start MainActivity: $e")
       }
     }
 
@@ -371,7 +379,7 @@ class MainActivity : ComponentActivity() {
         val fallbackIntent = Intent(Intent.ACTION_VIEW, url)
         startActivity(fallbackIntent)
       } catch (e: Exception) {
-        Log.e(TAG, "Login: failed to open browser: $e")
+        TSLog.e(TAG, "Login: failed to open browser: $e")
       }
     }
   }

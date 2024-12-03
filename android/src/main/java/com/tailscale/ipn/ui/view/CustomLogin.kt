@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
@@ -25,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.theme.listItem
@@ -137,10 +139,12 @@ fun LoginView(
                   onValueChange = { textVal = it },
                   placeholder = {
                     Text(strings.placeholder, style = MaterialTheme.typography.bodySmall)
-                  })
+                  },
+                  keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None)
+              )
             })
 
-        ListItem(
+        ListItem( 
             colors = MaterialTheme.colorScheme.listItem,
             headlineContent = {
               Box(modifier = Modifier.fillMaxWidth()) {

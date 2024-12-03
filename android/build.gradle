@@ -11,7 +11,7 @@ buildscript {
         }
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.5.1'
+        classpath 'com.android.tools.build:gradle:8.6.1'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         classpath "org.jetbrains.kotlin:kotlin-serialization:$kotlin_version"
         classpath("com.ncorti.ktfmt.gradle:plugin:0.17.0")
@@ -37,13 +37,26 @@ android {
     defaultConfig {
         minSdkVersion 26
         targetSdkVersion 34
-        versionCode 241
-        versionName "1.73.13-taf3d3c433-g536e1adcc42"
+        versionCode 242
+        versionName getVersionProperty("VERSION_LONG")
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        // This setting, which defaults to 'true', will cause Tailscale to fall
+        // back to the Google DNS servers if it cannot determine what the
+        // operating system's DNS configuration is.
+        //
+        // Set it to false either here or in your local.properties file to
+        // disable this behaviour.
+        buildConfigField "boolean", "USE_GOOGLE_DNS_FALLBACK", getLocalProperty("tailscale.useGoogleDnsFallback", "true")
     }
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
+    }
+
+    lintOptions {
+        warningsAsErrors true
     }
 
     kotlinOptions {
@@ -54,6 +67,7 @@ android {
         jvmTarget = "17"
     }
     buildFeatures {
+        buildConfig true
         compose true
     }
     composeOptions {
@@ -66,9 +80,9 @@ android {
         applicationTest {
             initWith debug
             manifestPlaceholders.leanbackRequired = false
-            buildConfigField "String", "GITHUB_USERNAME", "\"" + getLocalProperty("githubUsername")+"\""
-            buildConfigField "String", "GITHUB_PASSWORD", "\"" + getLocalProperty("githubPassword")+"\""
-            buildConfigField "String", "GITHUB_2FA_SECRET", "\"" + getLocalProperty("github2FASecret")+"\""
+            buildConfigField "String", "GITHUB_USERNAME", "\"" + getLocalProperty("githubUsername", "")+"\""
+            buildConfigField "String", "GITHUB_PASSWORD", "\"" + getLocalProperty("githubPassword", "")+"\""
+            buildConfigField "String", "GITHUB_2FA_SECRET", "\"" + getLocalProperty("github2FASecret", "")+"\""
         }
         debug {
             manifestPlaceholders.leanbackRequired = false
@@ -99,7 +113,7 @@ dependencies {
     implementation 'androidx.core:core-ktx:1.13.1'
     implementation "androidx.browser:browser:1.8.0"
     implementation "androidx.security:security-crypto:1.1.0-alpha06"
-    implementation "androidx.work:work-runtime:2.9.0"
+    implementation "androidx.work:work-runtime:2.9.1"
 
     // Kotlin dependencies.
     implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3"
@@ -110,20 +124,21 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
 
     // Compose dependencies.
-    def composeBom = platform('androidx.compose:compose-bom:2024.06.00')
+    def composeBom = platform('androidx.compose:compose-bom:2024.09.03')
     implementation composeBom
-    implementation 'androidx.compose.material3:material3:1.2.1'
-    implementation 'androidx.compose.material:material-icons-core:1.6.8'
-    implementation "androidx.compose.ui:ui:1.6.8"
-    implementation "androidx.compose.ui:ui-tooling:1.6.8"
-    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.3'
-    implementation 'androidx.activity:activity-compose:1.9.0'
+    implementation 'androidx.compose.material3:material3:1.3.0'
+    implementation 'androidx.compose.material:material-icons-core:1.7.3'
+    implementation "androidx.compose.ui:ui:1.7.3"
+    implementation "androidx.compose.ui:ui-tooling:1.7.3"
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.6'
+    implementation 'androidx.activity:activity-compose:1.9.2'
     implementation "com.google.accompanist:accompanist-permissions:$accompanist_version"
     implementation "com.google.accompanist:accompanist-systemuicontroller:$accompanist_version"
     implementation "androidx.core:core-splashscreen:1.1.0-rc01"
+    implementation "androidx.compose.animation:animation:1.7.4"
 
     // Navigation dependencies.
-    def nav_version = "2.7.7"
+    def nav_version = "2.8.2"
     implementation "androidx.navigation:navigation-compose:$nav_version"
     implementation "androidx.navigation:navigation-ui-ktx:$nav_version"
 
@@ -138,7 +153,7 @@ dependencies {
 
     // Integration Tests
     androidTestImplementation composeBom
-    androidTestImplementation 'androidx.test:runner:1.6.1'
+    androidTestImplementation 'androidx.test:runner:1.6.2'
     androidTestImplementation 'androidx.test.ext:junit-ktx:1.2.1'
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
@@ -151,17 +166,30 @@ dependencies {
 
     // Unit Tests
     testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.mockito:mockito-core:5.12.0'
+    testImplementation 'org.mockito:mockito-inline:5.2.0'
+    testImplementation 'org.mockito.kotlin:mockito-kotlin:5.4.0'
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     implementation("androidx.compose.ui:ui-tooling-preview")
 }
 
-def getLocalProperty(key) {
+def getLocalProperty(key, defaultValue) {
     try {
         Properties properties = new Properties()
         properties.load(project.file('local.properties').newDataInputStream())
-        return properties.getProperty(key)
+        return properties.getProperty(key) ?: defaultValue
     } catch(Throwable ignored) {
-        return ""
+        return defaultValue
     }
+}
+
+
+def getVersionProperty(key) {
+    // tailscale.version is created / updated by the makefile, it is in a loosely
+    // Makfile/envfile format, which is also loosely a properties file format.
+    //      make tailscale.version
+    def versionProps = new Properties()
+    versionProps.load(project.file('../tailscale.version').newDataInputStream())
+    return versionProps.getProperty(key).replaceAll('^\"|\"$', '')
 }

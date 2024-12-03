@@ -7,15 +7,13 @@ import android.app.Application
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.PendingIntent
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
-import android.net.LinkProperties
-import android.net.Network
-import android.net.NetworkCapabilities
-import android.net.NetworkRequest
 import android.os.Build
 import android.os.Environment
 import android.util.Log
@@ -28,6 +26,7 @@ import androidx.lifecycle.ViewModelStoreOwner
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.tailscale.ipn.mdm.MDMSettings
+import com.tailscale.ipn.mdm.MDMSettingsChangedReceiver
 import com.tailscale.ipn.ui.localapi.Client
 import com.tailscale.ipn.ui.localapi.Request
 import com.tailscale.ipn.ui.model.Ipn
@@ -35,17 +34,19 @@ import com.tailscale.ipn.ui.notifier.HealthNotifier
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.viewModel.VpnViewModel
 import com.tailscale.ipn.ui.viewModel.VpnViewModelFactory
+import com.tailscale.ipn.util.TSLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import libtailscale.Libtailscale
 import java.io.File
 import java.io.IOException
-import java.net.InetAddress
 import java.net.NetworkInterface
 import java.security.GeneralSecurityException
 import java.util.Locale
@@ -56,11 +57,6 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
   companion object {
     private const val FILE_CHANNEL_ID = "tailscale-files"
     private const val TAG = "App"
-    private val networkConnectivityRequest =
-        NetworkRequest.Builder()
-            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-            .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
-            .build()
     private lateinit var appInstance: App
 
     /**
@@ -76,13 +72,11 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
 
   val dns = DnsConfig()
   private lateinit var connectivityManager: ConnectivityManager
+  private lateinit var mdmChangeReceiver: MDMSettingsChangedReceiver
   private lateinit var app: libtailscale.Application
 
   override val viewModelStore: ViewModelStore
     get() = appViewModelStore
-
-  lateinit var vpnViewModel: VpnViewModel
-    private set
 
   private val appViewModelStore: ViewModelStore by lazy { ViewModelStore() }
 
@@ -90,14 +84,30 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
 
   override fun getPlatformDNSConfig(): String = dns.dnsConfigAsString
 
-  override fun isPlayVersion(): Boolean = MaybeGoogle.isGoogle()
+  override fun getInstallSource(): String = AppSourceChecker.getInstallSource(this)
+
+  override fun shouldUseGoogleDNSFallback(): Boolean = BuildConfig.USE_GOOGLE_DNS_FALLBACK
 
   override fun log(s: String, s1: String) {
     Log.d(s, s1)
   }
 
+  fun getLibtailscaleApp(): libtailscale.Application {
+    if (!isInitialized) {
+      initOnce() // Calls the synchronized initialization logic
+    }
+    return app
+  }
+
   override fun onCreate() {
     super.onCreate()
+    appInstance = this
+    setUnprotectedInstance(this)
+
+    mdmChangeReceiver = MDMSettingsChangedReceiver()
+    val filter = IntentFilter(Intent.ACTION_APPLICATION_RESTRICTIONS_CHANGED)
+    registerReceiver(mdmChangeReceiver, filter)
+
     createNotificationChannel(
         STATUS_CHANNEL_ID,
         getString(R.string.vpn_status),
@@ -113,8 +123,6 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
         getString(R.string.health_channel_name),
         getString(R.string.health_channel_description),
         NotificationManagerCompat.IMPORTANCE_HIGH)
-    appInstance = this
-    setUnprotectedInstance(this)
   }
 
   override fun onTerminate() {
@@ -123,17 +131,22 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     notificationManager.cancelAll()
     applicationScope.cancel()
     viewModelStore.clear()
+    unregisterReceiver(mdmChangeReceiver)
   }
 
-  private var isInitialized = false
+  @Volatile private var isInitialized = false
 
   @Synchronized
   private fun initOnce() {
     if (isInitialized) {
       return
     }
-    isInitialized = true
 
+    initializeApp()
+    isInitialized = true
+  }
+
+  private fun initializeApp() {
     val dataDir = this.filesDir.absolutePath
 
     // Set this to enable direct mode for taildrop whereby downloads will be saved directly
@@ -145,74 +158,54 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     Request.setApp(app)
     Notifier.setApp(app)
     Notifier.start(applicationScope)
-    healthNotifier = HealthNotifier(Notifier.health, applicationScope)
+    healthNotifier = HealthNotifier(Notifier.health, Notifier.state, applicationScope)
     connectivityManager = this.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-    setAndRegisterNetworkCallbacks()
+    NetworkChangeCallback.monitorDnsChanges(connectivityManager, dns)
+    initViewModels()
     applicationScope.launch {
-      Notifier.state.collect { state ->
-        val ableToStartVPN = state > Ipn.State.NeedsMachineAuth
-        // If VPN is stopped, show a disconnected notification. If it is running as a foregrround
-        // service, IPNService will show a connected notification.
-        if (state == Ipn.State.Stopped) {
-          notifyStatus(false)
-        }
-        val vpnRunning = state == Ipn.State.Starting || state == Ipn.State.Running
-        updateConnStatus(ableToStartVPN)
-        QuickToggleService.setVPNRunning(vpnRunning)
+      Notifier.state.collect { _ ->
+        combine(Notifier.state, MDMSettings.forceEnabled.flow) { state, forceEnabled ->
+              Pair(state, forceEnabled)
+            }
+            .collect { (state, hideDisconnectAction) ->
+              val ableToStartVPN = state > Ipn.State.NeedsMachineAuth
+              // If VPN is stopped, show a disconnected notification. If it is running as a
+              // foreground
+              // service, IPNService will show a connected notification.
+              if (state == Ipn.State.Stopped) {
+                notifyStatus(vpnRunning = false, hideDisconnectAction = hideDisconnectAction.value)
+              }
+
+              val vpnRunning = state == Ipn.State.Starting || state == Ipn.State.Running
+              updateConnStatus(ableToStartVPN)
+              QuickToggleService.setVPNRunning(vpnRunning)
+
+              // Update notification status when VPN is running
+              if (vpnRunning) {
+                notifyStatus(vpnRunning = true, hideDisconnectAction = hideDisconnectAction.value)
+              }
+            }
       }
     }
-    initViewModels()
+    applicationScope.launch {
+      val hideDisconnectAction = MDMSettings.forceEnabled.flow.first()
+    }
   }
 
   private fun initViewModels() {
     vpnViewModel = ViewModelProvider(this, VpnViewModelFactory(this)).get(VpnViewModel::class.java)
   }
 
-  fun setWantRunning(wantRunning: Boolean) {
+  fun setWantRunning(wantRunning: Boolean, onSuccess: (() -> Unit)? = null) {
     val callback: (Result<Ipn.Prefs>) -> Unit = { result ->
       result.fold(
-          onSuccess = {},
+          onSuccess = { onSuccess?.invoke() },
           onFailure = { error ->
-            Log.d("TAG", "Set want running: failed to update preferences: ${error.message}")
+            TSLog.d("TAG", "Set want running: failed to update preferences: ${error.message}")
           })
     }
     Client(applicationScope)
         .editPrefs(Ipn.MaskedPrefs().apply { WantRunning = wantRunning }, callback)
-  }
-
-  // requestNetwork attempts to find the best network that matches the passed NetworkRequest. It is
-  // possible that this might return an unusuable network, eg a captive portal.
-  private fun setAndRegisterNetworkCallbacks() {
-    connectivityManager.requestNetwork(
-        networkConnectivityRequest,
-        object : ConnectivityManager.NetworkCallback() {
-          override fun onAvailable(network: Network) {
-            super.onAvailable(network)
-
-            val sb = StringBuilder()
-            val linkProperties: LinkProperties? = connectivityManager.getLinkProperties(network)
-            val dnsList: MutableList<InetAddress> = linkProperties?.dnsServers ?: mutableListOf()
-            for (ip in dnsList) {
-              sb.append(ip.hostAddress).append(" ")
-            }
-            val searchDomains: String? = linkProperties?.domains
-            if (searchDomains != null) {
-              sb.append("\n")
-              sb.append(searchDomains)
-            }
-
-            if (dns.updateDNSFromNetwork(sb.toString())) {
-              Libtailscale.onDNSConfigChanged(linkProperties?.interfaceName)
-            }
-          }
-
-          override fun onLost(network: Network) {
-            super.onLost(network)
-            if (dns.updateDNSFromNetwork("")) {
-              Libtailscale.onDNSConfigChanged("")
-            }
-          }
-        })
   }
 
   // encryptToPref a byte array of data using the Jetpack Security
@@ -249,7 +242,7 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
   private fun updateConnStatus(ableToStartVPN: Boolean) {
     setAbleToStartVPN(ableToStartVPN)
     QuickToggleService.updateTile()
-    Log.d("App", "Set Tile Ready: $ableToStartVPN")
+    TSLog.d("App", "Set Tile Ready: $ableToStartVPN")
   }
 
   override fun getModelName(): String {
@@ -312,14 +305,14 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
         downloads.mkdirs()
       }
     } catch (e: Exception) {
-      Log.e(TAG, "Failed to create downloads folder: $e")
+      TSLog.e(TAG, "Failed to create downloads folder: $e")
       downloads = File(this.filesDir, "Taildrop")
       try {
         if (!downloads.exists()) {
           downloads.mkdirs()
         }
       } catch (e: Exception) {
-        Log.e(TAG, "Failed to create Taildrop folder: $e")
+        TSLog.e(TAG, "Failed to create Taildrop folder: $e")
         downloads = File("")
       }
     }
@@ -354,7 +347,7 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
       val list = setting.value as? List<*>
       return Json.encodeToString(list)
     } catch (e: Exception) {
-      Log.d("MDM", "$key value cannot be serialized to JSON. Throwing NoSuchKeyException.")
+      TSLog.d("MDM", "$key value cannot be serialized to JSON. Throwing NoSuchKeyException.")
       throw MDMSettings.NoSuchKeyException()
     }
   }
@@ -389,6 +382,8 @@ open class UninitializedApp : Application() {
     private lateinit var appInstance: UninitializedApp
     lateinit var notificationManager: NotificationManagerCompat
 
+    lateinit var vpnViewModel: VpnViewModel
+
     @JvmStatic
     fun get(): UninitializedApp {
       return appInstance
@@ -414,16 +409,27 @@ open class UninitializedApp : Application() {
 
   fun startVPN() {
     val intent = Intent(this, IPNService::class.java).apply { action = IPNService.ACTION_START_VPN }
+    // FLAG_UPDATE_CURRENT ensures that if the intent is already pending, the existing intent will
+    // be updated rather than creating multiple redundant instances.
+    val pendingIntent =
+        PendingIntent.getService(
+            this,
+            0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or
+                PendingIntent.FLAG_IMMUTABLE // FLAG_IMMUTABLE for Android 12+
+            )
+
     try {
-      startForegroundService(intent)
+      pendingIntent.send()
     } catch (foregroundServiceStartException: IllegalStateException) {
-      Log.e(
+      TSLog.e(
           TAG,
-          "startVPN hit ForegroundServiceStartNotAllowedException in startForegroundService(): $foregroundServiceStartException")
+          "startVPN hit ForegroundServiceStartNotAllowedException: $foregroundServiceStartException")
     } catch (securityException: SecurityException) {
-      Log.e(TAG, "startVPN hit SecurityException in startForegroundService(): $securityException")
+      TSLog.e(TAG, "startVPN hit SecurityException: $securityException")
     } catch (e: Exception) {
-      Log.e(TAG, "startVPN hit exception in startForegroundService(): $e")
+      TSLog.e(TAG, "startVPN hit exception: $e")
     }
   }
 
@@ -432,16 +438,32 @@ open class UninitializedApp : Application() {
     try {
       startService(intent)
     } catch (illegalStateException: IllegalStateException) {
-      Log.e(TAG, "stopVPN hit IllegalStateException in startService(): $illegalStateException")
+      TSLog.e(TAG, "stopVPN hit IllegalStateException in startService(): $illegalStateException")
     } catch (e: Exception) {
-      Log.e(TAG, "stopVPN hit exception in startService(): $e")
+      TSLog.e(TAG, "stopVPN hit exception in startService(): $e")
     }
   }
 
-  // Calls stopVPN() followed by startVPN() to restart the VPN.
   fun restartVPN() {
+    // Register a receiver to listen for the completion of stopVPN
+    val stopReceiver =
+        object : BroadcastReceiver() {
+          override fun onReceive(context: Context?, intent: Intent?) {
+            // Ensure stop intent is complete
+            if (intent?.action == IPNService.ACTION_STOP_VPN) {
+              // Unregister receiver after receiving the broadcast
+              context?.unregisterReceiver(this)
+              // Now start the VPN
+              startVPN()
+            }
+          }
+        }
+
+    // Register the receiver before stopping VPN
+    val intentFilter = IntentFilter(IPNService.ACTION_STOP_VPN)
+    this.registerReceiver(stopReceiver, intentFilter)
+
     stopVPN()
-    startVPN()
   }
 
   fun createNotificationChannel(id: String, name: String, description: String, importance: Int) {
@@ -451,8 +473,8 @@ open class UninitializedApp : Application() {
     notificationManager.createNotificationChannel(channel)
   }
 
-  fun notifyStatus(vpnRunning: Boolean) {
-    notifyStatus(buildStatusNotification(vpnRunning))
+  fun notifyStatus(vpnRunning: Boolean, hideDisconnectAction: Boolean) {
+    notifyStatus(buildStatusNotification(vpnRunning, hideDisconnectAction))
   }
 
   fun notifyStatus(notification: Notification) {
@@ -470,7 +492,7 @@ open class UninitializedApp : Application() {
     notificationManager.notify(STATUS_NOTIFICATION_ID, notification)
   }
 
-  fun buildStatusNotification(vpnRunning: Boolean): Notification {
+  fun buildStatusNotification(vpnRunning: Boolean, hideDisconnectAction: Boolean): Notification {
     val message = getString(if (vpnRunning) R.string.connected else R.string.not_connected)
     val icon = if (vpnRunning) R.drawable.ic_notification else R.drawable.ic_notification_disabled
     val action =
@@ -492,24 +514,27 @@ open class UninitializedApp : Application() {
         PendingIntent.getActivity(
             this, 1, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 
-    return NotificationCompat.Builder(this, STATUS_CHANNEL_ID)
-        .setSmallIcon(icon)
-        .setContentTitle("Tailscale")
-        .setContentText(message)
-        .setAutoCancel(!vpnRunning)
-        .setOnlyAlertOnce(!vpnRunning)
-        .setOngoing(vpnRunning)
-        .setSilent(true)
-        .setOngoing(false)
-        .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-        .addAction(NotificationCompat.Action.Builder(0, actionLabel, pendingButtonIntent).build())
-        .setContentIntent(pendingIntent)
-        .build()
+    val builder =
+        NotificationCompat.Builder(this, STATUS_CHANNEL_ID)
+            .setSmallIcon(icon)
+            .setContentTitle(getString(R.string.app_name))
+            .setContentText(message)
+            .setAutoCancel(!vpnRunning)
+            .setOnlyAlertOnce(!vpnRunning)
+            .setOngoing(vpnRunning)
+            .setSilent(true)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setContentIntent(pendingIntent)
+    if (!vpnRunning || !hideDisconnectAction) {
+      builder.addAction(
+          NotificationCompat.Action.Builder(0, actionLabel, pendingButtonIntent).build())
+    }
+    return builder.build()
   }
 
   fun addUserDisallowedPackageName(packageName: String) {
     if (packageName.isEmpty()) {
-      Log.e(TAG, "addUserDisallowedPackageName called with empty packageName")
+      TSLog.e(TAG, "addUserDisallowedPackageName called with empty packageName")
       return
     }
 
@@ -524,7 +549,7 @@ open class UninitializedApp : Application() {
 
   fun removeUserDisallowedPackageName(packageName: String) {
     if (packageName.isEmpty()) {
-      Log.e(TAG, "removeUserDisallowedPackageName called with empty packageName")
+      TSLog.e(TAG, "removeUserDisallowedPackageName called with empty packageName")
       return
     }
 
@@ -542,12 +567,16 @@ open class UninitializedApp : Application() {
     val mdmDisallowed =
         MDMSettings.excludedPackages.flow.value.value?.split(",")?.map { it.trim() } ?: emptyList()
     if (mdmDisallowed.isNotEmpty()) {
-      Log.d(TAG, "Excluded application packages were set via MDM: $mdmDisallowed")
+      TSLog.d(TAG, "Excluded application packages were set via MDM: $mdmDisallowed")
       return builtInDisallowedPackageNames + mdmDisallowed
     }
     val userDisallowed =
         getUnencryptedPrefs().getStringSet(DISALLOWED_APPS_KEY, emptySet())?.toList() ?: emptyList()
     return builtInDisallowedPackageNames + userDisallowed
+  }
+
+  fun getAppScopedViewModel(): VpnViewModel {
+    return vpnViewModel
   }
 
   val builtInDisallowedPackageNames: List<String> =
@@ -572,5 +601,7 @@ open class UninitializedApp : Application() {
           "com.vna.service.vvm",
           "com.dish.vvm",
           "com.comcast.modesto.vvm.client",
+          // Android Connectivity Service https://github.com/tailscale/tailscale/issues/14128
+          "com.google.android.apps.scone",
       )
 }

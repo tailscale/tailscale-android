@@ -20,12 +20,30 @@ import kotlinx.coroutines.launch
 
 class LoginQRViewModel : IpnViewModel() {
 
+  val numCode: StateFlow<String?> = MutableStateFlow(null)
   val qrCode: StateFlow<ImageBitmap?> = MutableStateFlow(null)
+  // Remove this once changes to admin console allowing input code to be entered are made.
 
   init {
     viewModelScope.launch {
       Notifier.browseToURL.collect { url ->
-        url?.let { qrCode.set(generateQRCode(url, 200, 0)) } ?: run { qrCode.set(null) }
+        url?.let {
+          qrCode.set(generateQRCode(url, 200, 0))
+
+          // Extract the string after "https://login.tailscale.com/a/"
+          val prefix = "https://login.tailscale.com/a/"
+          val code =
+              if (it.startsWith(prefix)) {
+                it.removePrefix(prefix)
+              } else {
+                null
+              }
+          numCode.set(code)
+        }
+            ?: run {
+              qrCode.set(null)
+              numCode.set(null)
+            }
       }
     }
   }

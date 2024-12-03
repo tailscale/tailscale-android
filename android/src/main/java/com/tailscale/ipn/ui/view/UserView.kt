@@ -5,6 +5,7 @@ package com.tailscale.ipn.ui.view
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.offset
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -54,17 +55,27 @@ fun UserView(
           leadingContent = { Avatar(profile = profile, size = 36) },
           headlineContent = {
             AutoResizingText(
-                text = profile.UserProfile.DisplayName,
+                text = profile.UserProfile.LoginName,
                 style = MaterialTheme.typography.titleMedium.short,
                 minFontSize = MaterialTheme.typography.minTextSize,
                 overflow = TextOverflow.Ellipsis)
           },
           supportingContent = {
-            AutoResizingText(
-                text = profile.NetworkProfile?.DomainName ?: "",
-                style = MaterialTheme.typography.bodyMedium.short,
-                minFontSize = MaterialTheme.typography.minTextSize,
-                overflow = TextOverflow.Ellipsis)
+            Column {
+              AutoResizingText(
+                  text = profile.NetworkProfile?.DomainName ?: "",
+                  style = MaterialTheme.typography.bodyMedium.short,
+                  minFontSize = MaterialTheme.typography.minTextSize,
+                  overflow = TextOverflow.Ellipsis)
+
+              profile.customControlServerHostname()?.let {
+                AutoResizingText(
+                    text = it,
+                    style = MaterialTheme.typography.bodyMedium.short,
+                    minFontSize = MaterialTheme.typography.minTextSize,
+                    overflow = TextOverflow.Ellipsis)
+              }
+            }
           },
           trailingContent = {
             when (actionState) {

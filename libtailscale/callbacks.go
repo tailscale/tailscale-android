@@ -20,6 +20,9 @@ var (
 
 	// onDNSConfigChanged is notified when the network changes and the DNS config needs to be updated. It receives the updated interface name.
 	onDNSConfigChanged = make(chan string, 1)
+
+	// onLog receives Android logs to be sent to the logger
+	onLog = make(chan string, 10)
 )
 
 // ifname is the interface name retrieved from LinkProperties on network change. An empty string is used if there is no network available.

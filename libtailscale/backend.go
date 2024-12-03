@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime/debug"
 	"sync"
 	"sync/atomic"
@@ -105,9 +106,7 @@ type settingsFunc func(*router.Config, *dns.OSConfig) error
 func (a *App) runBackend(ctx context.Context) error {
 	paths.AppSharedDir.Store(a.dataDir)
 	hostinfo.SetOSVersion(a.osVersion())
-	if !a.appCtx.IsPlayVersion() {
-		hostinfo.SetPackage("nogoogle")
-	}
+	hostinfo.SetPackage(a.appCtx.GetInstallSource())
 	deviceModel := a.modelName()
 	if a.isChromeOS() {
 		deviceModel = "ChromeOS: " + deviceModel
@@ -150,7 +149,6 @@ func (a *App) runBackend(ctx context.Context) error {
 		cfg        configPair
 		state      ipn.State
 		networkMap *netmap.NetworkMap
-		service    IPNService
 	)
 
 	stateCh := make(chan ipn.State)
@@ -168,38 +166,26 @@ func (a *App) runBackend(ctx context.Context) error {
 		select {
 		case s := <-stateCh:
 			state = s
-			if cfg.rcfg != nil && state >= ipn.Starting && service != nil {
+			if state >= ipn.Starting && vpnService.service != nil && b.isConfigNonNilAndDifferent(cfg.rcfg, cfg.dcfg) {
 				// On state change, check if there are router or config changes requiring an update to VPNBuilder
-				if err := b.updateTUN(service, cfg.rcfg, cfg.dcfg); err != nil {
+				if err := b.updateTUN(cfg.rcfg, cfg.dcfg); err != nil {
 					if errors.Is(err, errMultipleUsers) {
 						// TODO: surface error to user
 					}
-					log.Printf("VPN update failed: %v", err)
-
-					mp := new(ipn.MaskedPrefs)
-					mp.WantRunning = false
-					mp.WantRunningSet = true
-
-					_, err := a.EditPrefs(*mp)
-					if err != nil {
-						log.Printf("localapi edit prefs error %v", err)
-					}
-
-					b.lastCfg = nil
-					b.CloseTUNs()
+					a.closeVpnService(err, b)
 				}
 			}
 		case n := <-netmapCh:
 			networkMap = n
 		case c := <-configs:
 			cfg = c
-			if b == nil || service == nil || cfg.rcfg == nil {
+			if vpnService.service == nil || !b.isConfigNonNilAndDifferent(cfg.rcfg, cfg.dcfg) {
 				configErrs <- nil
 				break
 			}
-			configErrs <- b.updateTUN(service, cfg.rcfg, cfg.dcfg)
+			configErrs <- b.updateTUN(cfg.rcfg, cfg.dcfg)
 		case s := <-onVPNRequested:
-			if service != nil && service.ID() == s.ID() {
+			if vpnService.service != nil && vpnService.service.ID() == s.ID() {
 				// Still the same VPN instance, do nothing
 				break
 			}
@@ -228,29 +214,24 @@ func (a *App) runBackend(ctx context.Context) error {
 			// See https://github.com/tailscale/corp/issues/13814
 			b.backend.DebugRebind()
 
-			service = s
+			vpnService.service = s
 
 			if networkMap != nil {
 				// TODO
 			}
-			if cfg.rcfg != nil && state >= ipn.Starting {
-				if err := b.updateTUN(service, cfg.rcfg, cfg.dcfg); err != nil {
-					log.Printf("VPN update failed: %v", err)
-					service.Close()
-					b.lastCfg = nil
-					b.CloseTUNs()
+			if state >= ipn.Starting && b.isConfigNonNilAndDifferent(cfg.rcfg, cfg.dcfg) {
+				if err := b.updateTUN(cfg.rcfg, cfg.dcfg); err != nil {
+					a.closeVpnService(err, b)
 				}
 			}
 		case s := <-onDisconnect:
 			b.CloseTUNs()
-			if service != nil && service.ID() == s.ID() {
+			if vpnService.service != nil && vpnService.service.ID() == s.ID() {
 				netns.SetAndroidProtectFunc(nil)
-				service = nil
+				vpnService.service = nil
 			}
 		case i := <-onDNSConfigChanged:
-			if b != nil {
-				go b.NetworkChanged(i)
-			}
+			go b.NetworkChanged(i)
 		}
 	}
 }
@@ -305,6 +286,7 @@ func (a *App) newBackend(dataDir, directFileRoot string, appCtx AppContext, stor
 		SetSubsystem:   sys.Set,
 		NetMon:         b.netMon,
 		HealthTracker:  sys.HealthTracker(),
+		Metrics:        sys.UserMetricsRegistry(),
 		DriveForLocal:  driveimpl.NewFileSystemForLocal(logf),
 	})
 	if err != nil {
@@ -312,7 +294,7 @@ func (a *App) newBackend(dataDir, directFileRoot string, appCtx AppContext, stor
 	}
 	sys.Set(engine)
 	b.logIDPublic = logID.Public()
-	ns, err := netstack.Create(logf, sys.Tun.Get(), engine, sys.MagicSock.Get(), dialer, sys.DNSManager.Get(), sys.ProxyMapper(), nil)
+	ns, err := netstack.Create(logf, sys.Tun.Get(), engine, sys.MagicSock.Get(), dialer, sys.DNSManager.Get(), sys.ProxyMapper())
 	if err != nil {
 		return nil, fmt.Errorf("netstack.Create: %w", err)
 	}
@@ -348,4 +330,30 @@ func (a *App) newBackend(dataDir, directFileRoot string, appCtx AppContext, stor
 		a.ready.Done()
 	}()
 	return b, nil
+}
+
+func (b *backend) isConfigNonNilAndDifferent(rcfg *router.Config, dcfg *dns.OSConfig) bool {
+	if reflect.DeepEqual(rcfg, b.lastCfg) && reflect.DeepEqual(dcfg, b.lastDNSCfg) {
+		b.logger.Logf("isConfigNonNilAndDifferent: no change to Routes or DNS, ignore")
+		return false
+	}
+	return rcfg != nil
+}
+
+func (a *App) closeVpnService(err error, b *backend) {
+	log.Printf("VPN update failed: %v", err)
+
+	mp := new(ipn.MaskedPrefs)
+	mp.WantRunning = false
+	mp.WantRunningSet = true
+
+	if _, localApiErr := a.EditPrefs(*mp); localApiErr != nil {
+		log.Printf("localapi edit prefs error %v", localApiErr)
+	}
+
+	b.lastCfg = nil
+	b.CloseTUNs()
+
+	vpnService.service.DisconnectVPN()
+	vpnService.service = nil
 }

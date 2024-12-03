@@ -3,7 +3,6 @@
 
 package com.tailscale.ipn.ui.notifier
 
-import android.util.Log
 import com.tailscale.ipn.App
 import com.tailscale.ipn.ui.model.Empty
 import com.tailscale.ipn.ui.model.Health
@@ -11,6 +10,7 @@ import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.Ipn.Notify
 import com.tailscale.ipn.ui.model.Netmap
 import com.tailscale.ipn.ui.util.set
+import com.tailscale.ipn.util.TSLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,7 +33,8 @@ object Notifier {
   private val decoder = Json { ignoreUnknownKeys = true }
 
   // General IPN Bus State
-  val state: StateFlow<Ipn.State> = MutableStateFlow(Ipn.State.NoState)
+  private val _state = MutableStateFlow(Ipn.State.NoState)
+  val state: StateFlow<Ipn.State> = _state
   val netmap: StateFlow<Netmap.NetworkMap?> = MutableStateFlow(null)
   val prefs: StateFlow<Ipn.Prefs?> = MutableStateFlow(null)
   val engineStatus: StateFlow<Ipn.EngineStatus?> = MutableStateFlow(null)
@@ -51,14 +52,16 @@ object Notifier {
   private lateinit var app: libtailscale.Application
   private var manager: libtailscale.NotificationManager? = null
 
+  @Synchronized
   @JvmStatic
   fun setApp(newApp: libtailscale.Application) {
     app = newApp
   }
 
+  @Synchronized
   @OptIn(ExperimentalSerializationApi::class)
   fun start(scope: CoroutineScope) {
-    Log.d(TAG, "Starting")
+    TSLog.d(TAG, "Starting Notifier")
     if (!::app.isInitialized) {
       App.get()
     }
@@ -67,7 +70,8 @@ object Notifier {
           NotifyWatchOpt.Netmap.value or
               NotifyWatchOpt.Prefs.value or
               NotifyWatchOpt.InitialState.value or
-                  NotifyWatchOpt.InitialHealthState.value
+              NotifyWatchOpt.InitialHealthState.value or
+              NotifyWatchOpt.RateLimitNetmaps.value
       manager =
           app.watchNotifications(mask.toLong()) { notification ->
             val notify = decoder.decodeFromStream<Notify>(notification.inputStream())
@@ -88,7 +92,7 @@ object Notifier {
   }
 
   fun stop() {
-    Log.d(TAG, "Stopping")
+    TSLog.d(TAG, "Stopping Notifier")
     manager?.let {
       it.stop()
       manager = null
@@ -106,5 +110,10 @@ object Notifier {
     InitialTailFSShares(32),
     InitialOutgoingFiles(64),
     InitialHealthState(128),
+    RateLimitNetmaps(256),
+  }
+
+  fun setState(newState: Ipn.State) {
+    _state.value = newState
   }
 }

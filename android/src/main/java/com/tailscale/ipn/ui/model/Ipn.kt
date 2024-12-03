@@ -18,7 +18,11 @@ class Ipn {
     NeedsMachineAuth(3),
     Stopped(4),
     Starting(5),
-    Running(6);
+    Running(6),
+    // Stopping represents a state where a request to stop Tailscale has been issue but has not
+    // completed. This state allows UI to optimistically reflect a stopped state, and to fallback if
+    // necessary.
+    Stopping(7);
 
     companion object {
       fun fromInt(value: Int): State {
@@ -158,7 +162,7 @@ class Ipn {
         ForceDaemonSet = true
       }
 
-    var Hostname: Boolean? = null
+    var Hostname: String? = null
       set(value) {
         field = value
         HostnameSet = true

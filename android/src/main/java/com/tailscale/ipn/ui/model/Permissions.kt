@@ -22,7 +22,7 @@ object Permissions {
     @Composable
     get() {
       val permissionStates = rememberMultiplePermissionsState(permissions = all.map { it.name })
-      return all.zip(permissionStates.permissions).filter { (permission, state) ->
+      return all.zip(permissionStates.permissions).filter { (_, state) ->
         !state.status.isGranted && !state.status.shouldShowRationale
       }
     }

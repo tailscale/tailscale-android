@@ -5,7 +5,6 @@ package com.tailscale.ipn.ui.viewModel
 
 import android.content.Context
 import android.os.CountDownTimer
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -16,6 +15,7 @@ import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.util.ConnectionMode
 import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.view.roundedString
+import com.tailscale.ipn.util.TSLog
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -39,7 +39,7 @@ class PingViewModel : ViewModel() {
         }
 
         override fun onFinish() {
-          Log.d(TAG, "Ping timer terminated")
+          TSLog.d(TAG, "Ping timer terminated")
         }
       }
 
@@ -94,7 +94,7 @@ class PingViewModel : ViewModel() {
         response.onFailure { error ->
           val context: Context = App.get().applicationContext
           val stringError = error.toString()
-          Log.d(TAG, "Ping request failed: $stringError")
+          TSLog.d(TAG, "Ping request failed: $stringError")
           if (stringError.contains("timeout")) {
             this.errorMessage.set(
                 context.getString(
@@ -125,7 +125,7 @@ class PingViewModel : ViewModel() {
           }
         }
       }
-      statusResult.onFailure { Log.d(TAG, "Failed to fetch status: $it") }
+      statusResult.onFailure { TSLog.d(TAG, "Failed to fetch status: $it") }
     }
   }
 }

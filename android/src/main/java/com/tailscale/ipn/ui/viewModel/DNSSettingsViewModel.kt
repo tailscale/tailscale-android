@@ -3,7 +3,6 @@
 
 package com.tailscale.ipn.ui.viewModel
 
-import android.util.Log
 import androidx.annotation.StringRes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -24,6 +23,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import com.tailscale.ipn.util.TSLog
 
 class DNSSettingsViewModelFactory : ViewModelProvider.Factory {
   @Suppress("UNCHECKED_CAST")
@@ -43,7 +43,7 @@ class DNSSettingsViewModel : IpnViewModel() {
           .combine(Notifier.prefs) { netmap, prefs -> Pair(netmap, prefs) }
           .stateIn(viewModelScope)
           .collect { (netmap, prefs) ->
-            Log.d("DNSSettingsViewModel", "prefs: CorpDNS=" + prefs?.CorpDNS.toString())
+            TSLog.d("DNSSettingsViewModel", "prefs: CorpDNS=" + prefs?.CorpDNS.toString())
             prefs?.let {
               if (it.CorpDNS) {
                 enablementState.set(DNSEnablementState.ENABLED)
