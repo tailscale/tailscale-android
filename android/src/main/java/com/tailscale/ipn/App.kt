@@ -461,7 +461,7 @@ open class UninitializedApp : Application() {
 
     // Register the receiver before stopping VPN
     val intentFilter = IntentFilter(IPNService.ACTION_STOP_VPN)
-    this.registerReceiver(stopReceiver, intentFilter)
+    this.registerReceiver(stopReceiver, intentFilter, Context.RECEIVER_NOT_EXPORTED)
 
     stopVPN()
   }
