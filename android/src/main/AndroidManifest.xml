@@ -99,6 +99,14 @@
             </intent-filter>
         </receiver>
 
+        <receiver
+            android:name=".MDMSettingsChangedReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.APPLICATION_RESTRICTIONS_CHANGED" />
+            </intent-filter>
+        </receiver>
+
         <service
             android:name=".IPNService"
             android:exported="false"
