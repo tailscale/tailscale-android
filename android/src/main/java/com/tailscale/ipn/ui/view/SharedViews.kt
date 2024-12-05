@@ -3,9 +3,9 @@
 
 package com.tailscale.ipn.ui.view
 
-import android.util.Log
 import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.RowScope
@@ -46,48 +46,50 @@ fun Header(
     actions: @Composable RowScope.() -> Unit = {},
     onBack: (() -> Unit)? = null
 ) {
-    val focusRequester = remember { FocusRequester() }
+  val focusRequester = remember { FocusRequester() }
 
-    if (isAndroidTV()) {
-        LaunchedEffect(Unit) {
-            focusRequester.requestFocus()
-        }
+  if (isAndroidTV()) {
+    LaunchedEffect(focusRequester) {
+      try {
+        focusRequester.requestFocus()
+      } catch (e: Exception) {}
     }
+  }
 
-    TopAppBar(
-        title = {
-            title?.let { title() }
-                ?: Text(
-                    text = if (titleRes != 0) stringResource(titleRes) else "Default Title",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-        },
-        colors = MaterialTheme.colorScheme.topAppBar,
-        actions = actions,
-        navigationIcon = { onBack?.let { BackArrow(action = it, focusRequester = focusRequester) } },
-    )
+  TopAppBar(
+      title = {
+        title?.let { title() }
+            ?: Text(
+                stringResource(titleRes),
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface)
+      },
+      colors = MaterialTheme.colorScheme.topAppBar,
+      actions = actions,
+      navigationIcon = { onBack?.let { BackArrow(action = it, focusRequester = focusRequester) } },
+  )
 }
 
 @Composable
 fun BackArrow(action: () -> Unit, focusRequester: FocusRequester) {
-    val modifier = if (isAndroidTV()) {
+  val modifier =
+      if (isAndroidTV()) {
         Modifier.focusRequester(focusRequester)
-    } else {
+            .focusable() // Ensure the composable can receive focus
+      } else {
         Modifier
-    }
+      }
 
-    Box(modifier = modifier.padding(start = 8.dp, end = 8.dp)) {
-        Icon(
-            Icons.AutoMirrored.Filled.ArrowBack,
-            contentDescription = "Go back to the previous screen",
-            modifier = modifier.clickable(
+  Box(modifier = modifier.padding(start = 8.dp, end = 8.dp)) {
+    Icon(
+        Icons.AutoMirrored.Filled.ArrowBack,
+        contentDescription = "Go back to the previous screen",
+        modifier =
+            Modifier.clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = ripple(bounded = true),
-                onClick = action
-            )
-        )
-    }
+                onClick = action))
+  }
 }
 
 @Composable
@@ -105,7 +107,7 @@ fun SimpleActivityIndicator(size: Int = 32) {
 @Composable
 fun ActivityIndicator(progress: Double, size: Int = 32) {
   LinearProgressIndicator(
-      progress = { progress.toFloat() },
+      progress = progress.toFloat(),
       modifier = Modifier.width(size.dp),
       color = ts_color_light_blue,
       trackColor = MaterialTheme.colorScheme.secondary,
