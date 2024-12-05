@@ -4,6 +4,7 @@
 package com.tailscale.ipn.ui.view
 
 import android.text.format.Formatter
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,10 +20,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -36,6 +41,7 @@ import com.tailscale.ipn.ui.util.Lists.SectionDivider
 import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.viewModel.TaildropViewModel
 import com.tailscale.ipn.ui.viewModel.TaildropViewModelFactory
+import com.tailscale.ipn.util.TSLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
 
@@ -46,36 +52,44 @@ fun TaildropView(
     viewModel: TaildropViewModel =
         viewModel(factory = TaildropViewModelFactory(requestedTransfers, applicationScope))
 ) {
-  Scaffold(
-      contentWindowInsets = WindowInsets.Companion.statusBars,
-      topBar = { Header(R.string.share) }) { paddingInsets ->
-        val showDialog = viewModel.showDialog.collectAsState().value
+  val TAG = "TaildropView"
+  val focusRequester = remember { FocusRequester() }
 
-        // Show the error overlay
-        showDialog?.let { ErrorDialog(type = it, action = { viewModel.showDialog.set(null) }) }
+  // Automatically request focus when the composable is displayed
+  LaunchedEffect(Unit) {
+    try {
+      focusRequester.requestFocus()
+    } catch (e: Exception) {
+      TSLog.w(TAG, "Focus request failed: ${e.message}")
+    }
+  }
 
-        Column(modifier = Modifier.padding(paddingInsets)) {
-          FileShareHeader(
-              fileTransfers = requestedTransfers.collectAsState().value,
-              totalSize = viewModel.totalSize)
+  Scaffold(contentWindowInsets = WindowInsets.statusBars, topBar = { Header(R.string.share) }) {
+      paddingInsets ->
+    Column(modifier = Modifier.focusRequester(focusRequester).focusable().padding(paddingInsets)) {
+      val showDialog = viewModel.showDialog.collectAsState().value
 
-          when (viewModel.state.collectAsState().value) {
-            Ipn.State.Running -> {
-              val peers by viewModel.myPeers.collectAsState()
-              val context = LocalContext.current
-              FileSharePeerList(
-                  peers = peers,
-                  stateViewGenerator = { peerId ->
-                    viewModel.TrailingContentForPeer(peerId = peerId)
-                  },
-                  onShare = { viewModel.share(context, it) })
-            }
-            else -> {
-              FileShareConnectView { viewModel.startVPN() }
-            }
-          }
+      showDialog?.let { ErrorDialog(type = it, action = { viewModel.showDialog.set(null) }) }
+
+      FileShareHeader(
+          fileTransfers = requestedTransfers.collectAsState().value,
+          totalSize = viewModel.totalSize)
+
+      when (viewModel.state.collectAsState().value) {
+        Ipn.State.Running -> {
+          val peers by viewModel.myPeers.collectAsState()
+          val context = LocalContext.current
+          FileSharePeerList(
+              peers = peers,
+              stateViewGenerator = { peerId -> viewModel.TrailingContentForPeer(peerId = peerId) },
+              onShare = { viewModel.share(context, it) })
+        }
+        else -> {
+          FileShareConnectView { viewModel.startVPN() }
         }
       }
+    }
+  }
 }
 
 @Composable

@@ -5,6 +5,7 @@ package com.tailscale.ipn.ui.view
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.RowScope
@@ -32,8 +33,11 @@ import androidx.compose.ui.unit.dp
 import com.tailscale.ipn.ui.theme.topAppBar
 import com.tailscale.ipn.ui.theme.ts_color_light_blue
 import com.tailscale.ipn.ui.util.AndroidTVUtil.isAndroidTV
+import com.tailscale.ipn.util.TSLog
 
 typealias BackNavigation = () -> Unit
+
+val TAG = "SharedViews"
 
 // Header view for all secondary screens
 // @see TopAppBar actions for additional actions (usually a row of icons)
@@ -45,10 +49,16 @@ fun Header(
     actions: @Composable RowScope.() -> Unit = {},
     onBack: (() -> Unit)? = null
 ) {
-  val f = FocusRequester()
+  val focusRequester = remember { FocusRequester() }
 
   if (isAndroidTV()) {
-    LaunchedEffect(Unit) { f.requestFocus() }
+    LaunchedEffect(focusRequester) {
+      try {
+        focusRequester.requestFocus()
+      } catch (e: Exception) {
+        TSLog.d(TAG, "Focus request failed")
+      }
+    }
   }
 
   TopAppBar(
@@ -61,23 +71,29 @@ fun Header(
       },
       colors = MaterialTheme.colorScheme.topAppBar,
       actions = actions,
-      navigationIcon = { onBack?.let { BackArrow(action = it, focusRequester = f) } },
+      navigationIcon = { onBack?.let { BackArrow(action = it, focusRequester = focusRequester) } },
   )
 }
 
 @Composable
 fun BackArrow(action: () -> Unit, focusRequester: FocusRequester) {
+  val modifier =
+      if (isAndroidTV()) {
+        Modifier.focusRequester(focusRequester)
+            .focusable() // Ensure the composable can receive focus
+      } else {
+        Modifier
+      }
 
-  Box(modifier = Modifier.padding(start = 8.dp, end = 8.dp)) {
+  Box(modifier = modifier.padding(start = 8.dp, end = 8.dp)) {
     Icon(
         Icons.AutoMirrored.Filled.ArrowBack,
         contentDescription = "Go back to the previous screen",
         modifier =
-            Modifier.focusRequester(focusRequester)
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = ripple(bounded = false),
-                    onClick = { action() }))
+            Modifier.clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = ripple(bounded = true),
+                onClick = action))
   }
 }
 
@@ -96,7 +112,7 @@ fun SimpleActivityIndicator(size: Int = 32) {
 @Composable
 fun ActivityIndicator(progress: Double, size: Int = 32) {
   LinearProgressIndicator(
-      progress = { progress.toFloat() },
+      progress = progress.toFloat(),
       modifier = Modifier.width(size.dp),
       color = ts_color_light_blue,
       trackColor = MaterialTheme.colorScheme.secondary,
