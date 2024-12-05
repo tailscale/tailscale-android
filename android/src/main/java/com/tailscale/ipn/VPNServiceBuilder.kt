@@ -3,10 +3,11 @@
 
 package com.tailscale.ipn
 
-import android.net.VpnService
-import libtailscale.ParcelFileDescriptor
-import java.net.InetAddress
 import android.net.IpPrefix as AndroidIpPrefix
+import android.net.VpnService
+import android.os.Build
+import java.net.InetAddress
+import libtailscale.ParcelFileDescriptor
 
 class VPNServiceBuilder(private val builder: VpnService.Builder) : libtailscale.VPNServiceBuilder {
   override fun addAddress(p0: String, p1: Int) {
@@ -22,9 +23,12 @@ class VPNServiceBuilder(private val builder: VpnService.Builder) : libtailscale.
   }
 
   override fun excludeRoute(p0: String, p1: Int) {
-    val inetAddress = InetAddress.getByName(p0)
-    val prefix = AndroidIpPrefix(inetAddress, p1)
-    builder.excludeRoute(prefix)
+    // Only run this for API level 33 and up
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+      val inetAddress = InetAddress.getByName(p0)
+      val prefix = AndroidIpPrefix(inetAddress, p1)
+      builder.excludeRoute(prefix)
+    }
   }
 
   override fun addSearchDomain(p0: String) {
@@ -40,8 +44,7 @@ class VPNServiceBuilder(private val builder: VpnService.Builder) : libtailscale.
   }
 }
 
-class ParcelFileDescriptor(private val fd: android.os.ParcelFileDescriptor) :
-    libtailscale.ParcelFileDescriptor {
+class ParcelFileDescriptor(private val fd: android.os.ParcelFileDescriptor) : ParcelFileDescriptor {
   override fun detach(): Int {
     return fd.detachFd()
   }
