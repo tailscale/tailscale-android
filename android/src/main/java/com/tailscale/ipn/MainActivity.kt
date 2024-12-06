@@ -66,6 +66,7 @@ import com.tailscale.ipn.ui.view.MullvadInfoView
 import com.tailscale.ipn.ui.view.PeerDetails
 import com.tailscale.ipn.ui.view.PermissionsView
 import com.tailscale.ipn.ui.view.RunExitNodeView
+import com.tailscale.ipn.ui.view.SearchView
 import com.tailscale.ipn.ui.view.SettingsView
 import com.tailscale.ipn.ui.view.SplitTunnelAppPickerView
 import com.tailscale.ipn.ui.view.TailnetLockSetupView
@@ -174,7 +175,8 @@ class MainActivity : ComponentActivity() {
                             navController.navigate("peerDetails/${it.StableID}")
                           },
                           onNavigateToExitNodes = { navController.navigate("exitNodes") },
-                          onNavigateToHealth = { navController.navigate("health") })
+                          onNavigateToHealth = { navController.navigate("health") },
+                          onNavigateToSearch = { navController.navigate("search") })
 
                   val settingsNav =
                       SettingsNav(
@@ -214,6 +216,12 @@ class MainActivity : ComponentActivity() {
                   composable("main", enterTransition = { fadeIn(animationSpec = tween(150)) }) {
                     MainView(loginAtUrl = ::login, navigation = mainViewNav, viewModel = viewModel)
                   }
+                  composable("search") {
+                    SearchView(
+                        viewModel = viewModel,
+                        navController = navController,
+                        onNavigateBack = { navController.popBackStack() })
+                  }
                   composable("settings") { SettingsView(settingsNav) }
                   composable("exitNodes") { ExitNodePicker(exitNodePickerNav) }
                   composable("health") { HealthView(backTo("main")) }
@@ -231,7 +239,7 @@ class MainActivity : ComponentActivity() {
                       "peerDetails/{nodeId}",
                       arguments = listOf(navArgument("nodeId") { type = NavType.StringType })) {
                         PeerDetails(
-                            backTo("main"),
+                            { navController.popBackStack() },
                             it.arguments?.getString("nodeId") ?: "",
                             PingViewModel())
                       }
