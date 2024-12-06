@@ -21,12 +21,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.material.icons.outlined.Lock
@@ -42,8 +40,6 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SearchBar
-import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -52,19 +48,14 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
@@ -113,7 +104,8 @@ data class MainViewNavigation(
     val onNavigateToSettings: () -> Unit,
     val onNavigateToPeerDetails: (Tailcfg.Node) -> Unit,
     val onNavigateToExitNodes: () -> Unit,
-    val onNavigateToHealth: () -> Unit
+    val onNavigateToHealth: () -> Unit,
+    val onNavigateToSearch: () -> Unit,
 )
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
@@ -195,7 +187,11 @@ fun MainView(
                     when (user) {
                       null -> SettingsButton { navigation.onNavigateToSettings() }
                       else -> {
-                        Avatar(profile = user, size = 36, { navigation.onNavigateToSettings() }, isFocusable=true)
+                        Avatar(
+                            profile = user,
+                            size = 36,
+                            { navigation.onNavigateToSettings() },
+                            isFocusable = true)
                       }
                     }
                   }
@@ -220,7 +216,7 @@ fun MainView(
                 PeerList(
                     viewModel = viewModel,
                     onNavigateToPeerDetails = navigation.onNavigateToPeerDetails,
-                    onSearch = { viewModel.searchPeers(it) })
+                    onSearchBarClick = navigation.onNavigateToSearch)
               }
               Ipn.State.NoState,
               Ipn.State.Starting -> StartingView()
@@ -523,7 +519,7 @@ fun ConnectView(
 fun PeerList(
     viewModel: MainViewModel,
     onNavigateToPeerDetails: (Tailcfg.Node) -> Unit,
-    onSearch: (String) -> Unit
+    onSearchBarClick: () -> Unit
 ) {
   val peerList by viewModel.peers.collectAsState(initial = emptyList<PeerSet>())
   val searchTermStr by viewModel.searchTerm.collectAsState(initial = "")
@@ -531,8 +527,6 @@ fun PeerList(
       remember { derivedStateOf { searchTermStr.isNotEmpty() && peerList.isEmpty() } }.value
 
   val netmap = viewModel.netmap.collectAsState()
-  val focusManager = LocalFocusManager.current
-  var isFocussed by remember { mutableStateOf(false) }
   var isListFocussed by remember { mutableStateOf(false) }
   val expandedPeer = viewModel.expandedMenuPeer.collectAsState()
   val localClipboardManager = LocalClipboardManager.current
@@ -540,7 +534,7 @@ fun PeerList(
 
   Column(modifier = Modifier.fillMaxSize()) {
     if (enableSearch) {
-      SearchWithDynamicSuggestions(viewModel, onSearch)
+      Search(onSearchBarClick)
 
       Spacer(modifier = Modifier.height(if (showNoResults) 0.dp else 8.dp))
     }
@@ -701,98 +695,38 @@ fun PromptPermissionsIfNecessary() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SearchWithDynamicSuggestions(viewModel: MainViewModel, onSearch: (String) -> Unit) {
-  val searchTerm by viewModel.searchTerm.collectAsState()
-  val filteredPeers by viewModel.peers.collectAsState()
-  var expanded by rememberSaveable { mutableStateOf(false) }
-  val netmap by viewModel.netmap.collectAsState()
+fun Search(
+    onSearchBarClick: () -> Unit // Callback for navigating to SearchView
+) {
+  // Prevent multiple taps
+  var isNavigating by remember { mutableStateOf(false) }
 
-  val keyboardController = LocalSoftwareKeyboardController.current
-  val focusRequester = remember { FocusRequester() }
-  val focusManager = LocalFocusManager.current
-
-  Column(
+  // Outer Box to handle clicks
+  Box(
       modifier =
-          Modifier.fillMaxWidth().focusRequester(focusRequester).clickable {
-            focusRequester.requestFocus()
-            keyboardController?.show()
-          }) {
-        SearchBar(
-            modifier = Modifier.fillMaxWidth().align(Alignment.CenterHorizontally),
-            inputField = {
-              SearchBarDefaults.InputField(
-                  query = searchTerm,
-                  onQueryChange = { query ->
-                    viewModel.updateSearchTerm(query)
-                    onSearch(query)
-                    expanded = query.isNotEmpty()
-                  },
-                  onSearch = { query ->
-                    viewModel.updateSearchTerm(query)
-                    onSearch(query)
-                    expanded = false
-                  },
-                  expanded = expanded,
-                  onExpandedChange = { expanded = it },
-                  placeholder = { Text("Search") },
-                  leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                  trailingIcon = {
-                    if (expanded) {
-                      IconButton(
-                          onClick = {
-                            viewModel.updateSearchTerm("")
-                            onSearch("")
-                            expanded = false
-                            focusManager.clearFocus()
-                            keyboardController?.hide()
-                          }) {
-                            Icon(Icons.Default.Clear, contentDescription = "Clear search")
-                          }
-                    }
-                  })
-            },
-            expanded = expanded,
-            onExpandedChange = { expanded = it },
-            content = {
-              // Search results or suggestions
-              Column(Modifier.verticalScroll(rememberScrollState()).fillMaxSize()) {
-                filteredPeers.forEach { peerSet ->
-                  val userName = peerSet.user?.DisplayName ?: "Unknown User"
-                  peerSet.peers.forEach { peer ->
-                    val deviceName = peer.displayName ?: "Unknown Device"
-                    val ipAddress = peer.Addresses?.firstOrNull()?.split("/")?.first() ?: "No IP"
-
-                    ListItem(
-                        headlineContent = { Text(userName) },
-                        supportingContent = {
-                          Column {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                              val onlineColor = peer.connectedColor(netmap)
-                              Box(
-                                  modifier =
-                                      Modifier.size(10.dp)
-                                          .background(onlineColor, shape = RoundedCornerShape(50)))
-                              Spacer(modifier = Modifier.size(8.dp))
-                              Text(deviceName)
-                            }
-                            Text(ipAddress)
-                          }
-                        },
-                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                        modifier =
-                            Modifier.clickable {
-                                  viewModel.updateSearchTerm(userName)
-                                  onSearch(userName)
-                                  expanded = false
-                                  focusManager.clearFocus()
-                                  keyboardController?.hide()
-                                }
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 4.dp))
-                  }
-                }
+          Modifier.fillMaxWidth()
+              .height(56.dp)
+              .clip(RoundedCornerShape(28.dp))
+              .background(MaterialTheme.colorScheme.surface)
+              .clickable(enabled = !isNavigating) { // Intercept taps
+                isNavigating = true
+                onSearchBarClick() // Trigger navigation
               }
-            })
+              .padding(horizontal = 16.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxSize()) {
+          Icon(
+              imageVector = Icons.Default.Search,
+              contentDescription = stringResource(R.string.search),
+              tint = MaterialTheme.colorScheme.onSurfaceVariant,
+              modifier = Modifier.padding(start = 16.dp))
+          Spacer(modifier = Modifier.width(8.dp))
+          // Placeholder Text
+          Text(
+              text = stringResource(R.string.search_ellipsis),
+              style = MaterialTheme.typography.bodyMedium,
+              color = MaterialTheme.colorScheme.onSurfaceVariant,
+              modifier = Modifier.weight(1f))
+        }
       }
 }
 
@@ -808,6 +742,7 @@ fun MainViewPreview() {
           onNavigateToSettings = {},
           onNavigateToPeerDetails = {},
           onNavigateToExitNodes = {},
-          onNavigateToHealth = {}),
+          onNavigateToHealth = {},
+          onNavigateToSearch = {}),
       vm)
 }
