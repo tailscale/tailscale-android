@@ -260,3 +260,5 @@ tailscale.com v1.77.0-pre.0.20241205005256-7f9ebc0a83f8 h1:ASyQeyfTqiKpZ6SYqOMHz
 tailscale.com v1.77.0-pre.0.20241205005256-7f9ebc0a83f8/go.mod h1:gT7ALbLFCr2YIu0kgc9Q3tBVaTlod65D2N6jMLH11Bk=
 tailscale.com v1.78.0 h1:/UF5EituVa1QMhojqOObFumTarVTcZ14nW1KIVVwbLw=
 tailscale.com v1.78.0/go.mod h1:gT7ALbLFCr2YIu0kgc9Q3tBVaTlod65D2N6jMLH11Bk=
+tailscale.com v1.78.1 h1:qGCGq6gRQEQ/bCpphD/l+fOnSheu2FzushFrRSZnjbo=
+tailscale.com v1.78.1/go.mod h1:gT7ALbLFCr2YIu0kgc9Q3tBVaTlod65D2N6jMLH11Bk=
