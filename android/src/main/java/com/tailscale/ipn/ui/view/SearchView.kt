@@ -44,15 +44,12 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.viewModel.MainViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SearchView(
-    viewModel: MainViewModel,
-    navController: NavController, // Use NavController for navigation
-    onNavigateBack: () -> Unit
-) {
+fun SearchView(viewModel: MainViewModel, navController: NavController, onNavigateBack: () -> Unit) {
   val searchTerm by viewModel.searchTerm.collectAsState()
   val filteredPeers by viewModel.peers.collectAsState()
   val netmap by viewModel.netmap.collectAsState()
@@ -84,7 +81,7 @@ fun SearchView(
               focusManager.clearFocus()
               keyboardController?.hide()
             },
-            placeholder = { Text("Search") },
+            placeholder = { R.string.search },
             leadingIcon = {
               IconButton(
                   onClick = {
@@ -138,7 +135,7 @@ fun SearchView(
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                         modifier =
                             Modifier.clickable {
-                              navController.navigate("peerDetails/${peer.StableID}")
+                                  navController.navigate("peerDetails/${peer.StableID}")
                                 }
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 4.dp))

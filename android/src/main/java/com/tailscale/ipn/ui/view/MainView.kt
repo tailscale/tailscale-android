@@ -88,6 +88,7 @@ import com.tailscale.ipn.ui.theme.short
 import com.tailscale.ipn.ui.theme.surfaceContainerListItem
 import com.tailscale.ipn.ui.theme.warningButton
 import com.tailscale.ipn.ui.theme.warningListItem
+import com.tailscale.ipn.ui.util.AndroidTVUtil.isAndroidTV
 import com.tailscale.ipn.ui.util.AutoResizingText
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.LoadingIndicator
@@ -137,7 +138,7 @@ fun MainView(
             val showKeyExpiry by viewModel.showExpiry.collectAsState(initial = false)
 
             // Hide the header only on Android TV when the user needs to login
-            val hideHeader = (/*isAndroidTV() && */ state == Ipn.State.NeedsLogin)
+            val hideHeader = (isAndroidTV() && state == Ipn.State.NeedsLogin)
 
             ListItem(
                 colors = MaterialTheme.colorScheme.surfaceContainerListItem,
@@ -529,11 +530,11 @@ fun PeerList(
   var isListFocussed by remember { mutableStateOf(false) }
   val expandedPeer = viewModel.expandedMenuPeer.collectAsState()
   val localClipboardManager = LocalClipboardManager.current
-  val enableSearch = true // !isAndroidTV()
+  val enableSearch = !isAndroidTV()
 
   Column(modifier = Modifier.fillMaxSize()) {
     if (enableSearch) {
-      SearchWithDynamicSuggestions(viewModel, onSearchBarClick)
+      Search(onSearchBarClick)
 
       Spacer(modifier = Modifier.height(if (showNoResults) 0.dp else 8.dp))
     }
@@ -570,11 +571,11 @@ fun PeerList(
             }
             first = false
 
-            //  if (isAndroidTV()) {
-            item { NodesSectionHeader(peerSet = peerSet) }
-            /*     } else {
+            if (isAndroidTV()) {
+              item { NodesSectionHeader(peerSet = peerSet) }
+            } else {
               stickyHeader { NodesSectionHeader(peerSet = peerSet) }
-            }*/
+            }
 
             itemsWithDividers(peerSet.peers, key = { it.StableID }) { peer ->
               ListItem(
@@ -694,8 +695,7 @@ fun PromptPermissionsIfNecessary() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SearchWithDynamicSuggestions(
-    viewModel: MainViewModel,
+fun Search(
     onSearchBarClick: () -> Unit // Callback for navigating to SearchView
 ) {
   // Prevent multiple taps
@@ -705,30 +705,27 @@ fun SearchWithDynamicSuggestions(
   Box(
       modifier =
           Modifier.fillMaxWidth()
-              .height(56.dp) // Height matching Material Design search bar
-              .clip(RoundedCornerShape(28.dp)) // Fully rounded edges
-              .background(MaterialTheme.colorScheme.surface) // Surface background
+              .height(56.dp)
+              .clip(RoundedCornerShape(28.dp))
+              .background(MaterialTheme.colorScheme.surface)
               .clickable(enabled = !isNavigating) { // Intercept taps
                 isNavigating = true
                 onSearchBarClick() // Trigger navigation
               }
-              .padding(horizontal = 16.dp) // Padding for a clean look
-      ) {
+              .padding(horizontal = 16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxSize()) {
-          // Search Icon
           Icon(
               imageVector = Icons.Default.Search,
-              contentDescription = "Search",
+              contentDescription = stringResource(R.string.search),
               tint = MaterialTheme.colorScheme.onSurfaceVariant,
               modifier = Modifier.padding(start = 16.dp))
           Spacer(modifier = Modifier.width(8.dp))
           // Placeholder Text
           Text(
-              text = "Search...",
+              text = stringResource(R.string.search_ellipsis),
               style = MaterialTheme.typography.bodyMedium,
               color = MaterialTheme.colorScheme.onSurfaceVariant,
-              modifier = Modifier.weight(1f) // Fill remaining space
-              )
+              modifier = Modifier.weight(1f))
         }
       }
 }
