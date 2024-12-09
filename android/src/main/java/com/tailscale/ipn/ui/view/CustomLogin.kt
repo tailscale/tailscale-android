@@ -31,7 +31,6 @@ import androidx.compose.ui.unit.dp
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.theme.listItem
 import com.tailscale.ipn.ui.util.set
-import com.tailscale.ipn.ui.viewModel.LoginWithAuthKeyViewModel
 import com.tailscale.ipn.ui.viewModel.LoginWithCustomControlURLViewModel
 
 data class LoginViewStrings(
@@ -69,39 +68,8 @@ fun LoginWithCustomControlURLView(
         LoginView(
             innerPadding = innerPadding,
             strings = strings,
-            onSubmitAction = { viewModel.setControlURL(it, onNavigateHome) })
-      }
-}
-
-@Composable
-fun LoginWithAuthKeyView(
-    onNavigateHome: BackNavigation,
-    backToSettings: BackNavigation,
-    viewModel: LoginWithAuthKeyViewModel = LoginWithAuthKeyViewModel()
-) {
-
-  Scaffold(
-      topBar = {
-        Header(
-            R.string.add_account,
-            onBack = backToSettings,
+            onSubmitAction = {it: String, it2: String -> viewModel.setControlURL(it, it2, onNavigateHome) }
         )
-      }) { innerPadding ->
-        val error by viewModel.errorDialog.collectAsState()
-        val strings =
-            LoginViewStrings(
-                title = stringResource(id = R.string.auth_key_title),
-                explanation = stringResource(id = R.string.auth_key_explanation),
-                inputTitle = stringResource(id = R.string.auth_key_input_title),
-                placeholder = stringResource(id = R.string.auth_key_placeholder),
-            )
-        // Show the error overlay if need be
-        error?.let { ErrorDialog(type = it, action = { viewModel.errorDialog.set(null) }) }
-
-        LoginView(
-            innerPadding = innerPadding,
-            strings = strings,
-            onSubmitAction = { viewModel.setAuthKey(it, onNavigateHome) })
       }
 }
 
@@ -109,10 +77,11 @@ fun LoginWithAuthKeyView(
 fun LoginView(
     innerPadding: PaddingValues = PaddingValues(16.dp),
     strings: LoginViewStrings,
-    onSubmitAction: (String) -> Unit,
+    onSubmitAction: (it: String, it2: String) -> Unit,
 ) {
 
-  var textVal by remember { mutableStateOf("") }
+    var textVal by remember { mutableStateOf("") }
+    var textVal2 by remember { mutableStateOf("") }
 
   Column(
       modifier =
@@ -144,12 +113,33 @@ fun LoginView(
               )
             })
 
+      ListItem(
+          colors = MaterialTheme.colorScheme.listItem,
+          headlineContent = { Text(text = "Preauth Key") }, // TODO: clean this up
+          supportingContent = {
+              OutlinedTextField(
+                  modifier = Modifier.fillMaxWidth(),
+                  colors = TextFieldDefaults.colors(
+                      focusedContainerColor = Color.Transparent,
+                      unfocusedContainerColor = Color.Transparent,
+                  ),
+                  textStyle = MaterialTheme.typography.bodyMedium,
+                  value = textVal2,
+                  onValueChange = { textVal2 = it },
+                  placeholder = {
+                      Text("Key", style = MaterialTheme.typography.bodySmall) // TODO: clean this up
+                  },
+                  keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None)
+              )
+          }
+      )
+
         ListItem( 
             colors = MaterialTheme.colorScheme.listItem,
             headlineContent = {
               Box(modifier = Modifier.fillMaxWidth()) {
                 Button(
-                    onClick = { onSubmitAction(textVal) },
+                    onClick = { onSubmitAction(textVal, textVal2) },
                     content = { Text(stringResource(id = R.string.add_account_short)) })
               }
             })
