@@ -35,6 +35,7 @@ import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.viewModel.VpnViewModel
 import com.tailscale.ipn.ui.viewModel.VpnViewModelFactory
 import com.tailscale.ipn.util.TSLog
+import com.tailscale.ipn.util.FeatureFlags
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -190,6 +191,8 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     applicationScope.launch {
       val hideDisconnectAction = MDMSettings.forceEnabled.flow.first()
     }
+    TSLog.init(this)
+    FeatureFlags.initialize(mapOf("enable_new_search" to false))
   }
 
   private fun initViewModels() {
