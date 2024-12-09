@@ -190,6 +190,7 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     applicationScope.launch {
       val hideDisconnectAction = MDMSettings.forceEnabled.flow.first()
     }
+    TSLog.init(this)
   }
 
   private fun initViewModels() {
