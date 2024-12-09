@@ -33,5 +33,17 @@ jobs:
       - name: Build APKs
         run: make tailscale-debug.apk
 
-      - name: Run tests
+      - name: Run Unit Tests
         run: make test
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Start emulator
+        run: |
+          adb devices
+          adb wait-for-device
+          adb shell input keyevent 82 &
+
+      - name: Run Integration Tests 
+        run: make integration-test
