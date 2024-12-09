@@ -18,7 +18,6 @@ import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.Ipn.State
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.notifier.Notifier
-import com.tailscale.ipn.ui.util.AndroidTVUtil.isAndroidTV
 import com.tailscale.ipn.ui.util.PeerCategorizer
 import com.tailscale.ipn.ui.util.PeerSet
 import com.tailscale.ipn.ui.util.TimeUtil
@@ -52,6 +51,10 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
   // The expected state of the VPN toggle
   private val _vpnToggleState = MutableStateFlow(false)
   val vpnToggleState: StateFlow<Boolean> = _vpnToggleState
+
+  // Keeps track of whether a toggle operation is in progress. This ensures that toggleVpn cannot be
+  // invoked until the current operation is complete.
+  var isToggleInProgress = MutableStateFlow(false)
 
   // Permission to prepare VPN
   private var vpnPermissionLauncher: ActivityResultLauncher<Intent>? = null
@@ -184,15 +187,33 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
     }
   }
 
-  fun toggleVpn() {
-    val state = Notifier.state.value
-    val isPrepared = vpnViewModel.vpnPrepared.value
+  fun toggleVpn(desiredState: Boolean) {
+    if (isToggleInProgress.value) {
+      // Prevent toggling while a previous toggle is in progress
+      return
+    }
 
-    when {
-      !isPrepared -> showVPNPermissionLauncherIfUnauthorized()
-      state == Ipn.State.Running -> stopVPN()
-      state == Ipn.State.NeedsLogin && isAndroidTV() -> login()
-      else -> startVPN()
+    viewModelScope.launch {
+      isToggleInProgress.value = true
+      try {
+        val currentState = Notifier.state.value
+        val isPrepared = vpnViewModel.vpnPrepared.value
+
+        if (desiredState) {
+          // User wants to turn ON the VPN
+          when {
+            !isPrepared -> showVPNPermissionLauncherIfUnauthorized()
+            currentState != Ipn.State.Running -> startVPN()
+          }
+        } else {
+          // User wants to turn OFF the VPN
+          if (currentState == Ipn.State.Running) {
+            stopVPN()
+          }
+        }
+      } finally {
+        isToggleInProgress.value = false
+      }
     }
   }
 
