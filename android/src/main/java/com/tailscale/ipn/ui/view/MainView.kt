@@ -145,13 +145,12 @@ fun MainView(
                 leadingContent = {
                   if (!hideHeader) {
                     TintedSwitch(
-                        onCheckedChange = {
-                          if (!disableToggle.value) {
-                            viewModel.toggleVpn()
-                          }
-                        },
-                        enabled = !disableToggle.value,
-                        checked = isOn)
+                        checked = isOn,
+                        enabled =
+                            !disableToggle.value &&
+                                !viewModel.isToggleInProgress
+                                    .value, // Disable switch if toggle is in progress
+                        onCheckedChange = { desiredState -> viewModel.toggleVpn(desiredState) })
                   }
                 },
                 headlineContent = {
@@ -228,7 +227,7 @@ fun MainView(
                     // action (eg, if the user connected to another VPN).
                     state != Ipn.State.Stopping,
                     user,
-                    { viewModel.toggleVpn() },
+                    { viewModel.toggleVpn(desiredState = !isOn) },
                     { viewModel.login() },
                     loginAtUrl,
                     netmap?.SelfNode,
