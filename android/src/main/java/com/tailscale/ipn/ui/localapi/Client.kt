@@ -4,6 +4,7 @@
 package com.tailscale.ipn.ui.localapi
 
 import android.content.Context
+import com.tailscale.ipn.App
 import com.tailscale.ipn.ui.model.BugReportID
 import com.tailscale.ipn.ui.model.Errors
 import com.tailscale.ipn.ui.model.Ipn
@@ -13,7 +14,6 @@ import com.tailscale.ipn.ui.model.StableNodeID
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.util.InputStreamAdapter
 import com.tailscale.ipn.util.TSLog
-import com.tailscale.ipn.App
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -69,9 +69,7 @@ class Client(private val scope: CoroutineScope) {
   private val TAG = Client::class.simpleName
 
   // Access libtailscale.Application lazily
-  private val app: libtailscale.Application by lazy {
-    App.get().getLibtailscaleApp()
-}
+  private val app: libtailscale.Application by lazy { App.get().getLibtailscaleApp() }
 
   fun start(options: Ipn.Options, responseHandler: (Result<Unit>) -> Unit) {
     val body = Json.encodeToString(options).toByteArray()
@@ -102,6 +100,14 @@ class Client(private val scope: CoroutineScope) {
   }
 
   fun editPrefs(prefs: Ipn.MaskedPrefs, responseHandler: (Result<Ipn.Prefs>) -> Unit) {
+    // Log the stack trace for debugging purposes for
+    // https://github.com/tailscale/tailscale/issues/14125
+    val stackTrace =
+        Thread.currentThread().stackTrace.joinToString("\n") { element ->
+          "at ${element.className}.${element.methodName}(${element.fileName}:${element.lineNumber})"
+        }
+    TSLog.v("editPrefs", "Called editPrefs with prefs: $prefs\nStack trace:\n$stackTrace")
+
     val body = Json.encodeToString(prefs).toByteArray()
     return patch(Endpoint.PREFS, body, responseHandler = responseHandler)
   }
