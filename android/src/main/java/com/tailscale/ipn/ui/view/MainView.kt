@@ -29,7 +29,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.ArrowDropDown
+import androidx.compose.material.icons.outlined.Clear
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
@@ -41,6 +44,7 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SearchBarDefaults
@@ -64,7 +68,6 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
@@ -92,6 +95,7 @@ import com.tailscale.ipn.ui.theme.exitNodeToggleButton
 import com.tailscale.ipn.ui.theme.listItem
 import com.tailscale.ipn.ui.theme.minTextSize
 import com.tailscale.ipn.ui.theme.primaryListItem
+import com.tailscale.ipn.ui.theme.searchBarColors
 import com.tailscale.ipn.ui.theme.secondaryButton
 import com.tailscale.ipn.ui.theme.short
 import com.tailscale.ipn.ui.theme.surfaceContainerListItem
@@ -107,6 +111,7 @@ import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.viewModel.IpnViewModel.NodeState
 import com.tailscale.ipn.ui.viewModel.MainViewModel
 import com.tailscale.ipn.ui.viewModel.VpnViewModel
+import com.tailscale.ipn.util.FeatureFlags
 
 // Navigation actions for the MainView
 data class MainViewNavigation(
@@ -220,6 +225,7 @@ fun MainView(
                 PeerList(
                     viewModel = viewModel,
                     onNavigateToPeerDetails = navigation.onNavigateToPeerDetails,
+                    onSearchBarClick = navigation.onNavigateToSearch,
                     onSearch = { viewModel.searchPeers(it) })
               }
               Ipn.State.NoState,
@@ -523,6 +529,7 @@ fun ConnectView(
 fun PeerList(
     viewModel: MainViewModel,
     onNavigateToPeerDetails: (Tailcfg.Node) -> Unit,
+    onSearchBarClick: () -> Unit,
     onSearch: (String) -> Unit
 ) {
   val peerList by viewModel.peers.collectAsState(initial = emptyList<PeerSet>())
@@ -532,17 +539,59 @@ fun PeerList(
 
   val netmap = viewModel.netmap.collectAsState()
   val focusManager = LocalFocusManager.current
-  var isFocussed by remember { mutableStateOf(false) }
+  var isSearchFocussed by remember { mutableStateOf(false) }
   var isListFocussed by remember { mutableStateOf(false) }
   val expandedPeer = viewModel.expandedMenuPeer.collectAsState()
   val localClipboardManager = LocalClipboardManager.current
   val enableSearch = !isAndroidTV()
 
   Column(modifier = Modifier.fillMaxSize()) {
-    if (enableSearch) {
-      SearchWithDynamicSuggestions(viewModel, onSearch)
+    if (enableSearch && FeatureFlags.isEnabled("enable_new_search")) {
+      Search(onSearchBarClick)
 
       Spacer(modifier = Modifier.height(if (showNoResults) 0.dp else 8.dp))
+    } else {
+      if (enableSearch) {
+        Box(
+            modifier =
+                Modifier.fillMaxWidth().background(color = MaterialTheme.colorScheme.surface)) {
+              OutlinedTextField(
+                  modifier =
+                      Modifier.fillMaxWidth()
+                          .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 0.dp)
+                          .onFocusChanged { isSearchFocussed = it.isFocused },
+                  singleLine = true,
+                  shape = MaterialTheme.shapes.extraLarge,
+                  colors = MaterialTheme.colorScheme.searchBarColors,
+                  leadingIcon = {
+                    Icon(imageVector = Icons.Outlined.Search, contentDescription = "search")
+                  },
+                  trailingIcon = {
+                    if (isSearchFocussed) {
+                      IconButton(
+                          onClick = {
+                            focusManager.clearFocus()
+                            onSearch("")
+                          }) {
+                            Icon(
+                                imageVector =
+                                    if (searchTermStr.isEmpty()) Icons.Outlined.Close
+                                    else Icons.Outlined.Clear,
+                                contentDescription = "clear search",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                          }
+                    }
+                  },
+                  placeholder = {
+                    Text(
+                        text = stringResource(id = R.string.search),
+                        style = MaterialTheme.typography.bodyLarge,
+                        maxLines = 1)
+                  },
+                  value = searchTermStr,
+                  onValueChange = { onSearch(it) })
+            }
+      }
     }
 
     // Peers display
