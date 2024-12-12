@@ -111,8 +111,7 @@ data class MainViewNavigation(
     val onNavigateToSettings: () -> Unit,
     val onNavigateToPeerDetails: (Tailcfg.Node) -> Unit,
     val onNavigateToExitNodes: () -> Unit,
-    val onNavigateToHealth: () -> Unit,
-    val onNavigateToSearch: () -> Unit,
+    val onNavigateToHealth: () -> Unit
 )
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
