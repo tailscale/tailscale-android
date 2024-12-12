@@ -4,9 +4,9 @@ on:
   push:
     branches:
       - main
+      - "release-branch/*"
   pull_request:
-    branches:
-      - "*"
+    # all PRs on all branches
 
 jobs:
   build:
