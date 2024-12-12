@@ -6,8 +6,7 @@ on:
       - main
       - "release-branch/*"
   pull_request:
-    branches:
-      - "*"
+    # all PRs on all branches
 
 concurrency:
   group: ${{ github.workflow }}-$${{ github.head_ref || github.run_id }}
