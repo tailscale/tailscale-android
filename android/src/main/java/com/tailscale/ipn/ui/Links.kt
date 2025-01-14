@@ -24,4 +24,5 @@ object Links {
   const val SUPPORT_URL = "https://tailscale.com/contact/support#support-form"
   const val TAILDROP_KB_URL = "https://tailscale.com/kb/1106/taildrop"
   const val TAILFS_KB_URL = "https://tailscale.com/kb/1106/taildrop"
+  const val SUBNET_ROUTERS_KB_URL = "https://tailscale.com/kb/1019/subnets"
 }

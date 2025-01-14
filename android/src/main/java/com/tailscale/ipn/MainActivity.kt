@@ -69,6 +69,7 @@ import com.tailscale.ipn.ui.view.RunExitNodeView
 import com.tailscale.ipn.ui.view.SearchView
 import com.tailscale.ipn.ui.view.SettingsView
 import com.tailscale.ipn.ui.view.SplitTunnelAppPickerView
+import com.tailscale.ipn.ui.view.SubnetRoutingView
 import com.tailscale.ipn.ui.view.TailnetLockSetupView
 import com.tailscale.ipn.ui.view.UserSwitcherNav
 import com.tailscale.ipn.ui.view.UserSwitcherView
@@ -185,6 +186,7 @@ class MainActivity : ComponentActivity() {
                           onNavigateToDNSSettings = { navController.navigate("dnsSettings") },
                           onNavigateToSplitTunneling = { navController.navigate("splitTunneling") },
                           onNavigateToTailnetLock = { navController.navigate("tailnetLock") },
+                          onNavigateToSubnetRouting = { navController.navigate("subnetRouting")},
                           onNavigateToMDMSettings = { navController.navigate("mdmSettings") },
                           onNavigateToManagedBy = { navController.navigate("managedBy") },
                           onNavigateToUserSwitcher = { navController.navigate("userSwitcher") },
@@ -247,6 +249,7 @@ class MainActivity : ComponentActivity() {
                   composable("dnsSettings") { DNSSettingsView(backTo("settings")) }
                   composable("splitTunneling") { SplitTunnelAppPickerView(backTo("settings")) }
                   composable("tailnetLock") { TailnetLockSetupView(backTo("settings")) }
+                  composable("subnetRouting") { SubnetRoutingView(backTo("settings")) }
                   composable("about") { AboutView(backTo("settings")) }
                   composable("mdmSettings") { MDMSettingsDebugView(backTo("settings")) }
                   composable("managedBy") { ManagedByView(backTo("settings")) }
