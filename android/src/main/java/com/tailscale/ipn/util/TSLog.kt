@@ -53,7 +53,7 @@ object TSLog {
         appContext.packageManager.getPackageInfo(appContext.packageName, 0).versionName
 
     // Extract the middle number and check if it's odd
-    val middleNumber = versionName.split(".").getOrNull(1)?.toIntOrNull()
+    val middleNumber = versionName?.split(".")?.getOrNull(1)?.toIntOrNull()
     return middleNumber?.let { it % 2 == 1 } ?: false
   }
 
