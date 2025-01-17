@@ -94,6 +94,9 @@ object MDMSettings {
   // Handled on the backend
   val authKey = StringMDMSetting("AuthKey", "Auth Key for login")
 
+  // Overrides the value provided by os.Hostname() in Go
+  val hostname = StringMDMSetting("Hostname", "Device Hostname")
+
   val allSettings by lazy {
     MDMSettings::class
         .declaredMemberProperties
