@@ -128,4 +128,10 @@
         android:key="AuthKey"
         android:restrictionType="string"
         android:title="@string/auth_key" />
+
+    <restriction
+        android:description="@string/specifies_a_device_name_to_be_used_instead_of_the_automatic_default"
+        android:key="Hostname"
+        android:restrictionType="string"
+        android:title="@string/hostname" />
 </restrictions>
