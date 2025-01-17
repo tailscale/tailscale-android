@@ -304,5 +304,20 @@
     <string name="multiple_vpn_explainer">Only one VPN can be active, and it appears another is already running. Before starting Tailscale, disable the other VPN.</string>
     <string name="go_to_settings">Go to Settings</string>
     <string name="cancel">Cancel</string>
+    <string name="subnet_routes">Subnet routes</string>
+    <string name="run_as_subnet_router_header">Advertise routes to machines that are not running Tailscale to make them available in your tailnet. Routes must be approved in the admin console.</string>
+    <string name="open_kb_article">Open KB Article</string>
+    <string name="delete_route">Delete route</string>
+    <string name="edit_route">Edit route</string>
+    <string name="enter_valid_route">Enter a IPv4 or IPv6 route in CIDR format.</string>
+    <string name="advertised_routes">Advertised routes</string>
+    <string name="no_advertised_routes">No advertised routes</string>
+    <string name="add_new_route">Add route</string>
+    <string name="invalid_route">Invalid route</string>
+    <string name="valid_route">Valid route</string>
+    <string name="route_help_text">e.g. 192.168.1.0/24</string>
+    <string name="run_as_subnet_router">Run as subnet router</string>
+    <string name="use_tailscale_subnets_subtitle">Route traffic according to your network\'s rules. Some networks require this to access IP addresses that don\'t start with 100.x.y.z.</string>
+    <string name="subnet_routing">Subnet routing</string>
 
 </resources>
