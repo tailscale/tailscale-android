@@ -80,7 +80,6 @@ import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.Netmap
 import com.tailscale.ipn.ui.model.Permissions
 import com.tailscale.ipn.ui.model.Tailcfg
-import com.tailscale.ipn.ui.theme.customErrorContainer
 import com.tailscale.ipn.ui.theme.disabled
 import com.tailscale.ipn.ui.theme.errorButton
 import com.tailscale.ipn.ui.theme.errorListItem
@@ -277,11 +276,10 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
         if (nodeState == NodeState.OFFLINE_MDM) {
           Box(
               modifier =
-                  Modifier.padding(start = 16.dp, end = 16.dp, top = 56.dp, bottom = 16.dp)
-                      .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
-                      .background(MaterialTheme.colorScheme.customErrorContainer)
+                  Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                      .clip(shape = RoundedCornerShape(10.dp))
                       .fillMaxWidth()
-                      .align(Alignment.TopCenter)) {
+                      .background(MaterialTheme.colorScheme.surface)) {
                 Column(
                     modifier =
                         Modifier.padding(start = 16.dp, end = 16.dp, top = 36.dp, bottom = 16.dp)) {
@@ -298,7 +296,7 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
 
         Box(
             modifier =
-                Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp)
+                Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                     .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
                     .fillMaxWidth()) {
               ListItem(
@@ -757,6 +755,7 @@ fun Search(
   Box(
       modifier =
           Modifier.fillMaxWidth()
+              .padding(horizontal = 16.dp)
               .height(56.dp)
               .clip(RoundedCornerShape(28.dp))
               .background(MaterialTheme.colorScheme.surface)
@@ -764,13 +763,12 @@ fun Search(
                 isNavigating = true
                 onSearchBarClick() // Trigger navigation
               }
-              .padding(horizontal = 16.dp)) {
+              .padding(horizontal = 12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxSize()) {
           Icon(
               imageVector = Icons.Default.Search,
               contentDescription = stringResource(R.string.search),
-              tint = MaterialTheme.colorScheme.onSurfaceVariant,
-              modifier = Modifier.padding(start = 16.dp))
+              tint = MaterialTheme.colorScheme.onSurfaceVariant)
           Spacer(modifier = Modifier.width(8.dp))
           // Placeholder Text
           Text(

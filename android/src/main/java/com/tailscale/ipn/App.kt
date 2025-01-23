@@ -192,7 +192,7 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
       val hideDisconnectAction = MDMSettings.forceEnabled.flow.first()
     }
     TSLog.init(this)
-    FeatureFlags.initialize(mapOf("enable_new_search" to false))
+    FeatureFlags.initialize(mapOf("enable_new_search" to true))
   }
 
   private fun initViewModels() {
