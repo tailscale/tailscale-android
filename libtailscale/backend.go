@@ -17,6 +17,7 @@ import (
 	"sync/atomic"
 
 	"tailscale.com/drive/driveimpl"
+	_ "tailscale.com/feature/condregister"
 	"tailscale.com/hostinfo"
 	"tailscale.com/ipn"
 	"tailscale.com/ipn/ipnlocal"
