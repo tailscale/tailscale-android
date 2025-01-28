@@ -309,7 +309,7 @@
     <string name="open_kb_article">Open KB Article</string>
     <string name="delete_route">Delete route</string>
     <string name="edit_route">Edit route</string>
-    <string name="enter_valid_route">Enter a IPv4 or IPv6 route in CIDR format.</string>
+    <string name="enter_valid_route">Enter an IPv4 or IPv6 route in CIDR format.</string>
     <string name="advertised_routes">Advertised routes</string>
     <string name="no_advertised_routes">No advertised routes</string>
     <string name="add_new_route">Add route</string>
