@@ -63,6 +63,12 @@ class SubnetRoutingViewModel : ViewModel() {
      */
     val isTextFieldValueValid: StateFlow<Boolean> = MutableStateFlow(true)
 
+    /**
+     * If an error occurred while saving the ipn.Prefs to the backend this value is
+     * non-null. Subsequent successful attempts to save will clear it.
+     */
+    val currentError: MutableStateFlow<String?> = MutableStateFlow(null)
+
     init {
         viewModelScope.launch {
             // Any time the value entered by the user in the add/edit dialog changes, we determine
@@ -113,12 +119,14 @@ class SubnetRoutingViewModel : ViewModel() {
                 Client(viewModelScope).editPrefs(prefsOut, responseHandler = { result ->
                     if (result.isFailure) {
                         Log.e(TAG, "Error saving RouteAll: ${result.exceptionOrNull()}")
+                        currentError.set(result.exceptionOrNull()?.localizedMessage)
                         return@editPrefs
                     } else {
                         Log.d(
                             TAG,
                             "RouteAll set in backend. New value: ${result.getOrNull()?.RouteAll}"
                         )
+                        currentError.set(null)
                     }
                 })
             }
@@ -221,14 +229,28 @@ class SubnetRoutingViewModel : ViewModel() {
         Client(viewModelScope).editPrefs(prefsOut, responseHandler = { result ->
             if (result.isFailure) {
                 Log.e(TAG, "Error saving AdvertiseRoutes: ${result.exceptionOrNull()}")
+                currentError.set(result.exceptionOrNull()?.localizedMessage)
                 return@editPrefs
             } else {
                 Log.d(
                     TAG,
                     "AdvertiseRoutes set in backend. New value: ${result.getOrNull()?.AdvertiseRoutes}"
                 )
+                currentError.set(null)
             }
         })
+    }
+
+    /**
+     * Clears the current error message and reloads the routes currently saved in the backend
+     * to the UI. We call this when dismissing an error upon saving the routes.
+     */
+    fun onErrorDismissed() {
+        currentError.set(null)
+        Client(viewModelScope).prefs { response ->
+            Log.d(TAG, "Reloading routes from backend due to failed save: $response")
+            this.advertisedRoutes.set(response.getOrNull()?.AdvertiseRoutes ?: emptyList())
+        }
     }
 
     companion object RouteValidation {
