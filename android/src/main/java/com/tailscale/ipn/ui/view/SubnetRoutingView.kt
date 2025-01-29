@@ -40,6 +40,7 @@ fun SubnetRoutingView(backToSettings: BackNavigation, model: SubnetRoutingViewMo
     val uriHandler = LocalUriHandler.current
     val isPresentingDialog by model.isPresentingDialog.collectAsState()
     val useSubnets by model.routeAll.collectAsState()
+    val currentError by model.currentError.collectAsState()
 
     Scaffold(topBar = {
         Header(R.string.subnet_routes, onBack = backToSettings, actions = {
@@ -56,6 +57,13 @@ fun SubnetRoutingView(backToSettings: BackNavigation, model: SubnetRoutingViewMo
     }) { innerPadding ->
         LoadingIndicator.Wrap {
             LazyColumn(modifier = Modifier.padding(innerPadding)) {
+                currentError?.let {
+                    item("error") {
+                        ErrorDialog(title = R.string.failed_to_save, message = it, onDismiss = {
+                            model.onErrorDismissed()
+                        })
+                    }
+                }
                 item("subnetsToggle") {
                     Setting.Switch(R.string.use_tailscale_subnets, isOn = useSubnets, onToggle = {
                         LoadingIndicator.start()

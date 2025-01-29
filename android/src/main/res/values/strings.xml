@@ -321,5 +321,6 @@
     <string name="subnet_routing">Subnet routing</string>
     <string name="specifies_a_device_name_to_be_used_instead_of_the_automatic_default">Specifies a device name to be used instead of the automatic default.</string>
     <string name="hostname">Hostname</string>
+    <string name="failed_to_save">Failed to save</string>
 
 </resources>

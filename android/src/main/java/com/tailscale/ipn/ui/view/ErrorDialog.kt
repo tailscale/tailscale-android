@@ -53,8 +53,12 @@ enum class ErrorDialogType {
 
 @Composable
 fun ErrorDialog(type: ErrorDialogType, action: () -> Unit = {}) {
-  ErrorDialog(
-      title = type.title, message = type.message, buttonText = type.buttonText, onDismiss = action)
+    ErrorDialog(
+        title = type.title,
+        message = stringResource(id = type.message),
+        buttonText = type.buttonText,
+        onDismiss = action
+    )
 }
 
 @Composable
@@ -64,15 +68,30 @@ fun ErrorDialog(
     @StringRes buttonText: Int = R.string.ok,
     onDismiss: () -> Unit = {}
 ) {
-  AppTheme {
-    AlertDialog(
-      onDismissRequest = onDismiss,
-      title = { Text(text = stringResource(id = title)) },
-      text = { Text(text = stringResource(id = message)) },
-      confirmButton = {
-        PrimaryActionButton(onClick = onDismiss) { Text(text = stringResource(id = buttonText)) }
-      })
-  }
+    ErrorDialog(
+        title = title,
+        message = stringResource(id = message),
+        buttonText = buttonText,
+        onDismiss = onDismiss
+    )
+}
+
+@Composable
+fun ErrorDialog(
+    @StringRes title: Int = R.string.error,
+    message: String,
+    @StringRes buttonText: Int = R.string.ok,
+    onDismiss: () -> Unit = {}
+) {
+    AppTheme {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text(text = stringResource(id = title)) },
+            text = { Text(text = message) },
+            confirmButton = {
+                PrimaryActionButton(onClick = onDismiss) { Text(text = stringResource(id = buttonText)) }
+            })
+    }
 }
 
 @Preview
