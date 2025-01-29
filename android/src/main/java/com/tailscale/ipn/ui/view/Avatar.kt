@@ -42,7 +42,7 @@ fun Avatar(
     action: (() -> Unit)? = null,
     isFocusable: Boolean = false
 ) {
-  var isFocused = remember { mutableStateOf(false) }
+  val isFocused = remember { mutableStateOf(false) }
   val focusManager = LocalFocusManager.current
 
   // Outer Box for the larger focusable and clickable area
