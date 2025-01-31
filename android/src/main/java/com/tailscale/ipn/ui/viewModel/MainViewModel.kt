@@ -25,8 +25,10 @@ import com.tailscale.ipn.ui.util.set
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
@@ -44,7 +46,6 @@ class MainViewModelFactory(private val vpnViewModel: VpnViewModel) : ViewModelPr
 
 @OptIn(FlowPreview::class)
 class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
-
   // The user readable state of the system
   val stateRes: StateFlow<Int> = MutableStateFlow(userStringRes(State.NoState, State.NoState, true))
 
@@ -62,6 +63,10 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
   // The list of peers
   private val _peers = MutableStateFlow<List<PeerSet>>(emptyList())
   val peers: StateFlow<List<PeerSet>> = _peers
+
+  // The list of peers
+  private val _searchViewPeers = MutableStateFlow<List<PeerSet>>(emptyList())
+  val searchViewPeers: StateFlow<List<PeerSet>> = _searchViewPeers
 
   // The current state of the IPN for determining view visibility
   val ipnState = Notifier.state
@@ -142,7 +147,7 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
         searchJob =
             launch(Dispatchers.Default) {
               val filteredPeers = peerCategorizer.groupedAndFilteredPeers(term)
-              _peers.value = filteredPeers
+              _searchViewPeers.value = filteredPeers
             }
       }
     }
@@ -155,6 +160,7 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
             peerCategorizer.regenerateGroupedPeers(netmap)
             val filteredPeers = peerCategorizer.groupedAndFilteredPeers(searchTerm.value)
             _peers.value = filteredPeers
+            _searchViewPeers.value = filteredPeers
           }
 
           if (netmap.SelfNode.keyDoesNotExpire) {

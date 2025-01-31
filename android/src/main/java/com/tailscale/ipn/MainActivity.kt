@@ -14,13 +14,16 @@ import android.content.res.Configuration.SCREENLAYOUT_SIZE_LARGE
 import android.content.res.Configuration.SCREENLAYOUT_SIZE_MASK
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContract
+import androidx.annotation.RequiresApi
 import androidx.browser.customtabs.CustomTabsIntent
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -111,6 +114,7 @@ class MainActivity : ComponentActivity() {
   // simply opening the URL.  This should be consumed once it has been handled.
   private val loginQRCode: StateFlow<String?> = MutableStateFlow(null)
 
+  @RequiresApi(Build.VERSION_CODES.TIRAMISU)
   @SuppressLint("SourceLockedOrientationActivity")
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -146,24 +150,37 @@ class MainActivity : ComponentActivity() {
     viewModel.setVpnPermissionLauncher(vpnPermissionLauncher)
 
     setContent {
+      navController = rememberNavController()
+
       AppTheme {
-        navController = rememberNavController()
         Surface(color = MaterialTheme.colorScheme.inverseSurface) { // Background for the letterbox
           Surface(modifier = Modifier.universalFit()) { // Letterbox for AndroidTV
             NavHost(
                 navController = navController,
                 startDestination = "main",
                 enterTransition = {
-                  slideInHorizontally(animationSpec = tween(150), initialOffsetX = { it })
+                  slideInHorizontally(
+                      animationSpec = tween(250, easing = LinearOutSlowInEasing),
+                      initialOffsetX = { it }) +
+                      fadeIn(animationSpec = tween(500, easing = LinearOutSlowInEasing))
                 },
                 exitTransition = {
-                  slideOutHorizontally(animationSpec = tween(150), targetOffsetX = { -it })
+                  slideOutHorizontally(
+                      animationSpec = tween(250, easing = LinearOutSlowInEasing),
+                      targetOffsetX = { -it }) +
+                      fadeOut(animationSpec = tween(500, easing = LinearOutSlowInEasing))
                 },
                 popEnterTransition = {
-                  slideInHorizontally(animationSpec = tween(150), initialOffsetX = { -it })
+                  slideInHorizontally(
+                      animationSpec = tween(250, easing = LinearOutSlowInEasing),
+                      initialOffsetX = { -it }) +
+                      fadeIn(animationSpec = tween(500, easing = LinearOutSlowInEasing))
                 },
                 popExitTransition = {
-                  slideOutHorizontally(animationSpec = tween(150), targetOffsetX = { it })
+                  slideOutHorizontally(
+                      animationSpec = tween(250, easing = LinearOutSlowInEasing),
+                      targetOffsetX = { it }) +
+                      fadeOut(animationSpec = tween(500, easing = LinearOutSlowInEasing))
                 }) {
                   fun backTo(route: String): () -> Unit = {
                     navController.popBackStack(route = route, inclusive = false)
@@ -186,7 +203,7 @@ class MainActivity : ComponentActivity() {
                           onNavigateToDNSSettings = { navController.navigate("dnsSettings") },
                           onNavigateToSplitTunneling = { navController.navigate("splitTunneling") },
                           onNavigateToTailnetLock = { navController.navigate("tailnetLock") },
-                          onNavigateToSubnetRouting = { navController.navigate("subnetRouting")},
+                          onNavigateToSubnetRouting = { navController.navigate("subnetRouting") },
                           onNavigateToMDMSettings = { navController.navigate("mdmSettings") },
                           onNavigateToManagedBy = { navController.navigate("managedBy") },
                           onNavigateToUserSwitcher = { navController.navigate("userSwitcher") },
