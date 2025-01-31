@@ -25,7 +25,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.material.icons.outlined.Clear
 import androidx.compose.material.icons.outlined.Close
@@ -46,6 +45,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -545,8 +545,6 @@ fun PeerList(
   Column(modifier = Modifier.fillMaxSize()) {
     if (enableSearch && FeatureFlags.isEnabled("enable_new_search")) {
       Search(onSearchBarClick)
-
-      Spacer(modifier = Modifier.height(if (showNoResults) 0.dp else 8.dp))
     } else {
       if (enableSearch) {
         Box(
@@ -748,37 +746,54 @@ fun PromptPermissionsIfNecessary() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Search(
-    onSearchBarClick: () -> Unit // Callback for navigating to SearchView
+    onSearchBarClick: () -> Unit, // Callback for navigating to SearchView
+    backgroundColor: Color = MaterialTheme.colorScheme.background // Default background color
 ) {
   // Prevent multiple taps
   var isNavigating by remember { mutableStateOf(false) }
 
-  // Outer Box to handle clicks
   Box(
       modifier =
           Modifier.fillMaxWidth()
-              .height(56.dp)
-              .clip(RoundedCornerShape(28.dp))
               .background(MaterialTheme.colorScheme.surface)
-              .clickable(enabled = !isNavigating) { // Intercept taps
-                isNavigating = true
-                onSearchBarClick() // Trigger navigation
-              }
-              .padding(horizontal = 16.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxSize()) {
-          Icon(
-              imageVector = Icons.Default.Search,
-              contentDescription = stringResource(R.string.search),
-              tint = MaterialTheme.colorScheme.onSurfaceVariant,
-              modifier = Modifier.padding(start = 16.dp))
-          Spacer(modifier = Modifier.width(8.dp))
-          // Placeholder Text
-          Text(
-              text = stringResource(R.string.search_ellipsis),
-              style = MaterialTheme.typography.bodyMedium,
-              color = MaterialTheme.colorScheme.onSurfaceVariant,
-              modifier = Modifier.weight(1f))
-        }
+              .padding(top = 8.dp)) {
+        Box(
+            modifier =
+                Modifier.fillMaxWidth()
+                    .padding(start = 16.dp, end = 16.dp, top = 16.dp)
+                    .height(56.dp)
+                    .clip(MaterialTheme.shapes.extraLarge) // Rounded corners for search bar
+                    .background(backgroundColor) // Search bar background
+                    .clickable(enabled = !isNavigating) { // Intercept taps
+                      isNavigating = true
+                      onSearchBarClick()
+                    }
+                    .padding(horizontal = 16.dp) // Internal padding
+            ) {
+              Row(
+                  verticalAlignment = Alignment.CenterVertically, // Ensure icon aligns with text
+                  modifier = Modifier.fillMaxSize()) {
+                    // Leading Icon
+                    Icon(
+                        imageVector = Icons.Outlined.Search,
+                        contentDescription = "Search",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier =
+                            Modifier.padding(start = 0.dp) // Optional start padding for alignment
+                        )
+                    Spacer(modifier = Modifier.width(4.dp))
+
+                    // Placeholder Text
+                    Text(
+                        text = stringResource(R.string.search_ellipsis),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f) // Ensure text takes up remaining space
+                        )
+                  }
+            }
       }
 }
 

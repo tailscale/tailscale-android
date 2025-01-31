@@ -6,6 +6,9 @@ package com.tailscale.ipn.ui.viewModel
 import android.content.Intent
 import android.net.VpnService
 import androidx.activity.result.ActivityResultLauncher
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.lifecycle.ViewModel
@@ -44,7 +47,6 @@ class MainViewModelFactory(private val vpnViewModel: VpnViewModel) : ViewModelPr
 
 @OptIn(FlowPreview::class)
 class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
-
   // The user readable state of the system
   val stateRes: StateFlow<Int> = MutableStateFlow(userStringRes(State.NoState, State.NoState, true))
 
@@ -63,12 +65,19 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
   private val _peers = MutableStateFlow<List<PeerSet>>(emptyList())
   val peers: StateFlow<List<PeerSet>> = _peers
 
+  // The list of peers
+  private val _searchViewPeers = MutableStateFlow<List<PeerSet>>(emptyList())
+  val searchViewPeers: StateFlow<List<PeerSet>> = _searchViewPeers
+
   // The current state of the IPN for determining view visibility
   val ipnState = Notifier.state
 
   // The active search term for filtering peers
   private val _searchTerm = MutableStateFlow("")
   val searchTerm: StateFlow<String> = _searchTerm
+
+  var autoFocusSearch by mutableStateOf(true)
+    private set
 
   // True if we should render the key expiry bannder
   val showExpiry: StateFlow<Boolean> = MutableStateFlow(false)
@@ -142,7 +151,7 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
         searchJob =
             launch(Dispatchers.Default) {
               val filteredPeers = peerCategorizer.groupedAndFilteredPeers(term)
-              _peers.value = filteredPeers
+              _searchViewPeers.value = filteredPeers
             }
       }
     }
@@ -154,7 +163,8 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
           launch(Dispatchers.Default) {
             peerCategorizer.regenerateGroupedPeers(netmap)
             val filteredPeers = peerCategorizer.groupedAndFilteredPeers(searchTerm.value)
-            _peers.value = filteredPeers
+            _peers.value = peerCategorizer.peerSets
+            _searchViewPeers.value = filteredPeers
           }
 
           if (netmap.SelfNode.keyDoesNotExpire) {
@@ -219,6 +229,14 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
 
   fun searchPeers(searchTerm: String) {
     this.searchTerm.set(searchTerm)
+  }
+
+  fun enableSearchAutoFocus() {
+    autoFocusSearch = true
+  }
+
+  fun disableSearchAutoFocus() {
+    autoFocusSearch = false
   }
 
   fun setVpnPermissionLauncher(launcher: ActivityResultLauncher<Intent>) {

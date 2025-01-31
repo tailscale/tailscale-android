@@ -18,6 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
@@ -34,7 +35,8 @@ object Lists {
 
   @Composable
   fun ItemDivider() {
-    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+    HorizontalDivider(
+        color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.fillMaxWidth())
   }
 
   @Composable
@@ -43,20 +45,36 @@ object Lists {
       bottomPadding: Dp = 0.dp,
       style: TextStyle = MaterialTheme.typography.titleMedium,
       fontWeight: FontWeight? = null,
-      focusable: Boolean = false
+      focusable: Boolean = false,
+      backgroundColor: Color = MaterialTheme.colorScheme.surface,
+      fontColor: Color? = null  
   ) {
-    Box(
-        modifier =
-            Modifier.fillMaxWidth()
-                .background(color = MaterialTheme.colorScheme.surface, shape = RectangleShape)) {
-          Text(
-              title,
-              modifier =
-                  Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = bottomPadding)
+      Box(
+          modifier = Modifier
+              .fillMaxWidth()
+              .background(color = backgroundColor, shape = RectangleShape)
+      ) {
+          if (fontColor != null) {
+              Text(
+                  text = title,
+                  modifier = Modifier
+                      .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = bottomPadding)
                       .focusable(focusable),
-              style = style,
-              fontWeight = fontWeight)
-        }
+                  style = style,
+                  fontWeight = fontWeight,
+                  color = fontColor
+              )
+          } else {
+              Text(
+                  text = title,
+                  modifier = Modifier
+                      .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = bottomPadding)
+                      .focusable(focusable),
+                  style = style,
+                  fontWeight = fontWeight
+              )
+          }
+      }
   }
 
   @Composable
