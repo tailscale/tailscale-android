@@ -181,8 +181,8 @@ go4.org/unsafe/assume-no-moving-gc v0.0.0-20230525183740-e7c30c78aeb2/go.mod h1:
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550/go.mod h1:yigFU9vqHzYiE8UmvKecakEJjdnWj3jj499lnFckfCI=
 golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
-golang.org/x/crypto v0.32.0 h1:euUpcYgM8WcP71gNpTqQCn6rC2t6ULUPiOzfWaXVVfc=
-golang.org/x/crypto v0.32.0/go.mod h1:ZnnJkOaASj8g0AjIduWNlq2NRxL0PlBrbKVyZ6V/Ugc=
+golang.org/x/crypto v0.32.1-0.20250118192723-a8ea4be81f07 h1:Z+Zg+aXJYq6f4TK2E4H+vZkQ4dJAWnInXDR6hM9znxo=
+golang.org/x/crypto v0.32.1-0.20250118192723-a8ea4be81f07/go.mod h1:ZnnJkOaASj8g0AjIduWNlq2NRxL0PlBrbKVyZ6V/Ugc=
 golang.org/x/exp v0.0.0-20250106191152-7588d65b2ba8 h1:yqrTHse8TCMW1M1ZCP+VAR/l0kKxwaAIqN/il7x4voA=
 golang.org/x/exp v0.0.0-20250106191152-7588d65b2ba8/go.mod h1:tujkw807nyEEAamNbDrEGzRav+ilXA7PCRAd6xsmwiU=
 golang.org/x/image v0.23.0 h1:HseQ7c2OpPKTPVzNjG5fwJsOTCiiwS4QdsYi5XU6H68=
@@ -248,5 +248,5 @@ inet.af/netaddr v0.0.0-20220617031823-097006376321 h1:B4dC8ySKTQXasnjDTMsoCMf1sQ
 inet.af/netaddr v0.0.0-20220617031823-097006376321/go.mod h1:OIezDfdzOgFhuw4HuWapWq2e9l0H9tK4F1j+ETRtF3k=
 software.sslmate.com/src/go-pkcs12 v0.4.0 h1:H2g08FrTvSFKUj+D309j1DPfk5APnIdAQAB8aEykJ5k=
 software.sslmate.com/src/go-pkcs12 v0.4.0/go.mod h1:Qiz0EyvDRJjjxGyUQa2cCNZn/wMyzrRJ/qcDXOQazLI=
-tailscale.com v1.81.0-pre.0.20250130222935-7d5fe13d2712 h1:rjKIooUSUk+MX8pikrBmejtdj4sxt7cA6xSVe0pv9Rc=
-tailscale.com v1.81.0-pre.0.20250130222935-7d5fe13d2712/go.mod h1:4tasV1xjJAMHuX2xWMWAnXEmlrAA6M3w1xnc32DlpMk=
+tailscale.com v1.81.0-pre.0.20250204235103-e19c01f5b3e9 h1:wV5Y2sOi8Gc/KEtBnSDGx0J4BKc4lYzMoUtVrmiRv0E=
+tailscale.com v1.81.0-pre.0.20250204235103-e19c01f5b3e9/go.mod h1:Jdws439ELLrQbPt6xfWFJNiLfZCOZCNQPn3U3GfMnmY=
