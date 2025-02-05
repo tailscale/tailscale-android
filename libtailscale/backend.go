@@ -20,6 +20,7 @@ import (
 	_ "tailscale.com/feature/condregister"
 	"tailscale.com/hostinfo"
 	"tailscale.com/ipn"
+	"tailscale.com/ipn/ipnauth"
 	"tailscale.com/ipn/ipnlocal"
 	"tailscale.com/ipn/localapi"
 	"tailscale.com/logtail"
@@ -134,7 +135,7 @@ func (a *App) runBackend(ctx context.Context) error {
 	a.backend = b.backend
 	defer b.CloseTUNs()
 
-	h := localapi.NewHandler(b.backend, log.Printf, *a.logIDPublicAtomic.Load())
+	h := localapi.NewHandler(ipnauth.Self, b.backend, log.Printf, *a.logIDPublicAtomic.Load())
 	h.PermitRead = true
 	h.PermitWrite = true
 	a.localAPIHandler = h
