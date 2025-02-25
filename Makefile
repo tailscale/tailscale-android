@@ -211,7 +211,7 @@ bump_version_code: ## Bump the version code in build.gradle
 .PHONY: update-oss
 update-oss: ## Update the tailscale.com go module
 	GOPROXY=direct ./tool/go get tailscale.com@main
-	./tool/go mod tidy -compat=1.23
+	./tool/go mod tidy -compat=1.24
 	./tool/go run tailscale.com/cmd/printdep --go > go.toolchain.rev.new
 	mv go.toolchain.rev.new go.toolchain.rev
 
