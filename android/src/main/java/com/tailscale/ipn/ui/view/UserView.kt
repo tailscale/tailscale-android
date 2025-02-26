@@ -52,7 +52,7 @@ fun UserView(
       ListItem(
           modifier = modifier,
           colors = colors,
-          leadingContent = { Avatar(profile = profile, size = 36, isFocusable = false) },
+          leadingContent = { Avatar(profile = profile, size = 36) },
           headlineContent = {
             AutoResizingText(
                 text = profile.UserProfile.LoginName,
