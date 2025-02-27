@@ -9,8 +9,13 @@
 # will force a rebuild of the docker image.  If there is an existing image
 # with this name, it will be used.
 #
-# The convention here is tailscale-android-build-amd64-<date>
-DOCKER_IMAGE=tailscale-android-build-amd64-191124
+# The convention here is tailscale-android-build-amd64-<go.toolchain.rev>
+#
+# Read the current Go toolchain revision.
+GO_TOOLCHAIN_REV := $(shell cat go.toolchain.rev)
+
+# Define the Docker image tag using the current revision.
+DOCKER_IMAGE := tailscale-android-build-amd64-$(GO_TOOLCHAIN_REV)
 export TS_USE_TOOLCHAIN=1
 
 DEBUG_APK=tailscale-debug.apk
