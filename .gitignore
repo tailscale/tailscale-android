@@ -35,6 +35,13 @@ tailscale.jks
 .vscode
 .idea
 
+# Native libraries
+*.stripped
+*.unstripped
+
+# Debug symbols
+*.debug
+
 libtailscale.aar
 libtailscale-sources.jar
 .DS_Store
