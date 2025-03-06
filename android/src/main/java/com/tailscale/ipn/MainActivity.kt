@@ -365,11 +365,23 @@ class MainActivity : ComponentActivity() {
   override fun onNewIntent(intent: Intent) {
     super.onNewIntent(intent)
     if (intent.getBooleanExtra(START_AT_ROOT, false)) {
-      if (this::navController.isInitialized) {
-        navController.popBackStack(route = "main", inclusive = false)
-      }
+        if (this::navController.isInitialized) {
+            val previousEntry = navController.previousBackStackEntry
+            TSLog.d("MainActivity", "onNewIntent: previousBackStackEntry = $previousEntry")
+
+            if (previousEntry != null) {
+                navController.popBackStack(route = "main", inclusive = false)
+            } else {
+                TSLog.e("MainActivity", "onNewIntent: No previous back stack entry, navigating directly to 'main'")
+                navController.navigate("main") {
+                    popUpTo("main") { inclusive = true }
+                }
+            }
+        }
     }
-  }
+}
+
+
 
   private fun login(urlString: String) {
     // Launch coroutine to listen for state changes. When the user completes login, relaunch
