@@ -53,7 +53,7 @@ enum class ErrorDialogType {
 
 @Composable
 fun ErrorDialog(type: ErrorDialogType, action: () -> Unit = {}) {
-    ErrorDialog(
+  ErrorDialog(
         title = type.title,
         message = stringResource(id = type.message),
         buttonText = type.buttonText,
@@ -68,7 +68,7 @@ fun ErrorDialog(
     @StringRes buttonText: Int = R.string.ok,
     onDismiss: () -> Unit = {}
 ) {
-    ErrorDialog(
+  ErrorDialog(
         title = title,
         message = stringResource(id = message),
         buttonText = buttonText,
