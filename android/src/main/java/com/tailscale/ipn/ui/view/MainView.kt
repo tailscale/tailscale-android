@@ -543,7 +543,7 @@ fun PeerList(
   val enableSearch = !isAndroidTV()
 
   Column(modifier = Modifier.fillMaxSize()) {
-    if (enableSearch && FeatureFlags.isEnabled("enable_new_search")) {
+    if (FeatureFlags.isEnabled("enable_new_search")) {
       Search(onSearchBarClick)
     } else {
       if (enableSearch) {
