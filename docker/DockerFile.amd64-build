@@ -5,7 +5,7 @@ FROM --platform=linux/amd64 eclipse-temurin:20-jdk
 
 # To enable running android tools such as aapt
 RUN apt-get update && apt-get -y upgrade
-RUN apt-get install -y libz1 libstdc++6 unzip
+RUN apt-get install -y libz1 libstdc++6 unzip zip
 # For Go:
 RUN apt-get -y --no-install-recommends install curl gcc
 RUN apt-get -y --no-install-recommends install ca-certificates libc6-dev git
