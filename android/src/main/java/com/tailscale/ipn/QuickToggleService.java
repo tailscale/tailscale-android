@@ -60,9 +60,13 @@ public class QuickToggleService extends TileService {
         }
     }
 
-    @SuppressWarnings("deprecation")
     @Override
     public void onClick() {
+        unlockAndRun(this::secureOnTileClick);
+    }
+
+    @SuppressWarnings("deprecation")
+    private void secureOnTileClick() {
         boolean r;
         synchronized (lock) {
             r = UninitializedApp.get().isAbleToStartVPN();
