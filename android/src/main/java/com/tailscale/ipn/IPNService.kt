@@ -132,6 +132,14 @@ open class IPNService : VpnService(), libtailscale.IPNService {
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
   }
 
+  private fun allowApp(b: Builder, name: String) {
+    try {
+      b.addAllowedApplication(name)
+    } catch (e: PackageManager.NameNotFoundException) {
+      TSLog.d(TAG, "Failed to add allowed application: $e")
+    }
+  }
+
   private fun disallowApp(b: Builder, name: String) {
     try {
       b.addDisallowedApplication(name)
@@ -151,23 +159,49 @@ open class IPNService : VpnService(), libtailscale.IPNService {
     }
     b.setUnderlyingNetworks(null) // Use all available networks.
 
-    val includedPackages: List<String> =
+    val mdmAllowed =
         MDMSettings.includedPackages.flow.value.value?.split(",")?.map { it.trim() } ?: emptyList()
-    if (includedPackages.isNotEmpty()) {
-      // If an admin defined a list of packages that are exclusively allowed to be used via
-      // Tailscale,
-      // then only allow those apps.
-      for (packageName in includedPackages) {
+    val mdmDisallowed =
+        MDMSettings.excludedPackages.flow.value.value?.split(",")?.map { it.trim() } ?: emptyList()
+
+    var packagesList: List<String>
+    var allowPackages: Boolean
+    if (mdmAllowed.isNotEmpty()) {
+      // An admin defined a list of packages that are exclusively allowed to be used via
+      // Tailscale, so only allow those.
+      packagesList = mdmAllowed
+      allowPackages = true
+      TSLog.d(TAG, "Included application packages were set via MDM: $mdmAllowed")
+    } else if (mdmDisallowed.isNotEmpty()) {
+      // An admin defined a list of packages that are excluded from accessing Tailscale,
+      // so ignore user definitions and only exclude those
+      packagesList = mdmDisallowed
+      allowPackages = false
+      TSLog.d(TAG, "Excluded application packages were set via MDM: $mdmDisallowed")
+    } else {
+      // Otherwise, prevent  user manually disallowed apps from getting their traffic + DNS routed
+      // via Tailscale
+      packagesList = UninitializedApp.get().selectedPackageNames()
+      allowPackages = UninitializedApp.get().allowSelectedPackages()
+      TSLog.d(TAG, "Application packages were set by user: $packagesList")
+    }
+
+    if (allowPackages) {
+      // There always needs to be at least one allowed application for the VPN service to filter the
+      // traffic so add our own application by default to fulfill that requirement
+      packagesList += "com.tailscale.ipn"
+
+      for (packageName in packagesList) {
         TSLog.d(TAG, "Including app: $packageName")
-        b.addAllowedApplication(packageName)
+        allowApp(b, packageName)
       }
     } else {
-      // Otherwise, prevent certain apps from getting their traffic + DNS routed via Tailscale:
-      // - any app that the user manually disallowed in the GUI
-      // - any app that we disallowed via hard-coding
-      for (disallowedPackageName in UninitializedApp.get().disallowedPackageNames()) {
-        TSLog.d(TAG, "Disallowing app: $disallowedPackageName")
-        disallowApp(b, disallowedPackageName)
+      // Make sure to also exclude hard-coded apps that are known to cause issues
+      packagesList += UninitializedApp.get().builtInDisallowedPackageNames
+
+      for (packageName in packagesList) {
+        TSLog.d(TAG, "Disallowing app: $packageName")
+        disallowApp(b, packageName)
       }
     }
 
