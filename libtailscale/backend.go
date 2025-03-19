@@ -308,11 +308,26 @@ func (a *App) newBackend(dataDir, directFileRoot string, appCtx AppContext, stor
 		w.Start()
 	}
 	lb, err := ipnlocal.NewLocalBackend(logf, logID.Public(), sys, 0)
+
+	shareFileHelper := <-onShareFileHelper
+	fileOps := NewAndroidFileOps(shareFileHelper)
+	lb.SetFileOps(fileOps)
+
 	if err != nil {
 		engine.Close()
 		return nil, fmt.Errorf("runBackend: NewLocalBackend: %v", err)
 	}
 	lb.SetDirectFileRoot(directFileRoot)
+
+	// directFileRoot may be reset at some time after the backend is created.
+	go func() {
+		for {
+			select {
+			case filepath := <-onFilePath:
+				lb.SetDirectFileRoot(filepath)
+			}
+		}
+	}()
 
 	if err := ns.Start(lb); err != nil {
 		return nil, fmt.Errorf("startNetstack: %w", err)

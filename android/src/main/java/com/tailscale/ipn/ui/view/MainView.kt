@@ -209,6 +209,7 @@ fun MainView(
                 PromptPermissionsIfNecessary()
 
                 viewModel.showVPNPermissionLauncherIfUnauthorized()
+                viewModel.showDirectoryPickerLauncher()
 
                 if (showKeyExpiry) {
                   ExpiryNotification(netmap = netmap, action = { viewModel.login() })
@@ -239,7 +240,9 @@ fun MainView(
                     { viewModel.login() },
                     loginAtUrl,
                     netmap?.SelfNode,
-                    { viewModel.showVPNPermissionLauncherIfUnauthorized() })
+                    { viewModel.showVPNPermissionLauncherIfUnauthorized()
+                      viewModel.showDirectoryPickerLauncher()
+                    } )
               }
             }
           }
@@ -415,11 +418,11 @@ fun ConnectView(
     loginAction: () -> Unit,
     loginAtUrlAction: (String) -> Unit,
     selfNode: Tailcfg.Node?,
-    showVPNPermissionLauncherIfUnauthorized: () -> Unit
+    showVPNPermissionAndDirectoryPickerLaunchers: () -> Unit
 ) {
   LaunchedEffect(isPrepared) {
     if (!isPrepared && shouldStartAutomatically) {
-      showVPNPermissionLauncherIfUnauthorized()
+      showVPNPermissionAndDirectoryPickerLaunchers()
     }
   }
   Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {

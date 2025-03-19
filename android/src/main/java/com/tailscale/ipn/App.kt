@@ -14,8 +14,8 @@ import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
+import android.net.Uri
 import android.os.Build
-import android.os.Environment
 import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
@@ -35,6 +35,7 @@ import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.viewModel.VpnViewModel
 import com.tailscale.ipn.ui.viewModel.VpnViewModelFactory
 import com.tailscale.ipn.util.FeatureFlags
+import com.tailscale.ipn.util.ShareFileHelper
 import com.tailscale.ipn.util.TSLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -46,7 +47,6 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import libtailscale.Libtailscale
-import java.io.File
 import java.io.IOException
 import java.net.NetworkInterface
 import java.security.GeneralSecurityException
@@ -57,6 +57,8 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
 
   companion object {
     private const val FILE_CHANNEL_ID = "tailscale-files"
+    // Key to store the SAF URI in EncryptedSharedPreferences.
+    private val PREF_KEY_SAF_URI = "saf_directory_uri"
     private const val TAG = "App"
     private lateinit var appInstance: App
 
@@ -148,17 +150,13 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
   }
 
   private fun initializeApp() {
-    val dataDir = this.filesDir.absolutePath
-
-    // Set this to enable direct mode for taildrop whereby downloads will be saved directly
-    // to the given folder.  We will preferentially use <shared>/Downloads and fallback to
-    // an app local directory "Taildrop" if we cannot create that.  This mode does not support
-    // user notifications for incoming files.
-    val directFileDir = this.prepareDownloadsFolder()
-    app = Libtailscale.start(dataDir, directFileDir.absolutePath, this)
-    Request.setApp(app)
-    Notifier.setApp(app)
-    Notifier.start(applicationScope)
+    // Check if a directory URI has already been stored.
+    val storedUri = getStoredDirectoryUri()
+    if (storedUri != null && storedUri.toString().startsWith("content://")) {
+      startLibtailscale(storedUri.toString())
+    } else {
+      startLibtailscale(this.getFilesDir().absolutePath)
+    }
     healthNotifier = HealthNotifier(Notifier.health, Notifier.state, applicationScope)
     connectivityManager = this.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     NetworkChangeCallback.monitorDnsChanges(connectivityManager, dns)
@@ -193,6 +191,18 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     }
     TSLog.init(this)
     FeatureFlags.initialize(mapOf("enable_new_search" to true))
+  }
+
+  /**
+   * Called when a SAF directory URI is available (either already stored or chosen). We must restart
+   * Tailscale because directFileRoot must be set before LocalBackend starts being used.
+   */
+  fun startLibtailscale(directFileRoot: String) {
+    ShareFileHelper.init(this, directFileRoot)
+    app = Libtailscale.start(this.filesDir.absolutePath, directFileRoot, this)
+    Request.setApp(app)
+    Notifier.setApp(app)
+    Notifier.start(applicationScope)
   }
 
   private fun initViewModels() {
@@ -235,6 +245,11 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
         key,
         EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
         EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM)
+  }
+
+  fun getStoredDirectoryUri(): Uri? {
+    val uriString = getEncryptedPrefs().getString(PREF_KEY_SAF_URI, null)
+    return uriString?.let { Uri.parse(it) }
   }
 
   /*
@@ -298,29 +313,6 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     }
 
     return sb.toString()
-  }
-
-  private fun prepareDownloadsFolder(): File {
-    var downloads = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-
-    try {
-      if (!downloads.exists()) {
-        downloads.mkdirs()
-      }
-    } catch (e: Exception) {
-      TSLog.e(TAG, "Failed to create downloads folder: $e")
-      downloads = File(this.filesDir, "Taildrop")
-      try {
-        if (!downloads.exists()) {
-          downloads.mkdirs()
-        }
-      } catch (e: Exception) {
-        TSLog.e(TAG, "Failed to create Taildrop folder: $e")
-        downloads = File("")
-      }
-    }
-
-    return downloads
   }
 
   @Throws(
