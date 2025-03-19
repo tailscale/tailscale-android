@@ -32,9 +32,10 @@ const (
 
 func newApp(dataDir, directFileRoot string, appCtx AppContext) Application {
 	a := &App{
-		directFileRoot: directFileRoot,
-		dataDir:        dataDir,
-		appCtx:         appCtx,
+		directFileRoot:   directFileRoot,
+		dataDir:          dataDir,
+		appCtx:           appCtx,
+		backendRestartCh: make(chan struct{}, 1),
 	}
 	a.ready.Add(2)
 
@@ -42,6 +43,8 @@ func newApp(dataDir, directFileRoot string, appCtx AppContext) Application {
 	a.policyStore = &syspolicyHandler{a: a}
 	netmon.RegisterInterfaceGetter(a.getInterfaces)
 	syspolicy.RegisterHandler(a.policyStore)
+	go a.watchFileOpsChanges()
+
 	go func() {
 		defer func() {
 			if p := recover(); p != nil {

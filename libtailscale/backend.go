@@ -43,8 +43,9 @@ import (
 type App struct {
 	dataDir string
 
-	// enables direct file mode for the taildrop manager
-	directFileRoot string
+	// passes along SAF file information for the taildrop manager
+	directFileRoot  string
+	shareFileHelper ShareFileHelper
 
 	// appCtx is a global reference to the com.tailscale.ipn.App instance.
 	appCtx AppContext
@@ -56,6 +57,9 @@ type App struct {
 	localAPIHandler http.Handler
 	backend         *ipnlocal.LocalBackend
 	ready           sync.WaitGroup
+	backendMu       sync.Mutex
+
+	backendRestartCh chan struct{}
 }
 
 func start(dataDir, directFileRoot string, appCtx AppContext) Application {
@@ -110,6 +114,23 @@ type backend struct {
 type settingsFunc func(*router.Config, *dns.OSConfig) error
 
 func (a *App) runBackend(ctx context.Context) error {
+	for {
+		err := a.runBackendOnce(ctx)
+		if err != nil {
+			log.Printf("runBackendOnce error: %v", err)
+		}
+
+		// Wait for a restart trigger
+		<-a.backendRestartCh
+	}
+}
+
+func (a *App) runBackendOnce(ctx context.Context) error {
+	select {
+	case <-a.backendRestartCh:
+	default:
+	}
+
 	paths.AppSharedDir.Store(a.dataDir)
 	hostinfo.SetOSVersion(a.osVersion())
 	hostinfo.SetPackage(a.appCtx.GetInstallSource())
@@ -125,7 +146,7 @@ func (a *App) runBackend(ctx context.Context) error {
 	}
 	configs := make(chan configPair)
 	configErrs := make(chan error)
-	b, err := a.newBackend(a.dataDir, a.directFileRoot, a.appCtx, a.store, func(rcfg *router.Config, dcfg *dns.OSConfig) error {
+	b, err := a.newBackend(a.dataDir, a.appCtx, a.store, func(rcfg *router.Config, dcfg *dns.OSConfig) error {
 		if rcfg == nil {
 			return nil
 		}
@@ -242,7 +263,7 @@ func (a *App) runBackend(ctx context.Context) error {
 	}
 }
 
-func (a *App) newBackend(dataDir, directFileRoot string, appCtx AppContext, store *stateStore,
+func (a *App) newBackend(dataDir string, appCtx AppContext, store *stateStore,
 	settings settingsFunc) (*backend, error) {
 
 	sys := new(tsd.System)
@@ -314,15 +335,15 @@ func (a *App) newBackend(dataDir, directFileRoot string, appCtx AppContext, stor
 		w.Start()
 	}
 	lb, err := ipnlocal.NewLocalBackend(logf, logID.Public(), sys, 0)
+	if ext, ok := ipnlocal.GetExt[*taildrop.Extension](lb); ok {
+		ext.SetFileOps(NewAndroidFileOps(a.shareFileHelper))
+		ext.SetDirectFileRoot(a.directFileRoot)
+	}
+
 	if err != nil {
 		engine.Close()
 		return nil, fmt.Errorf("runBackend: NewLocalBackend: %v", err)
 	}
-
-	if ext, ok := ipnlocal.GetExt[*taildrop.Extension](lb); ok {
-		ext.SetDirectFileRoot(directFileRoot)
-	}
-
 	if err := ns.Start(lb); err != nil {
 		return nil, fmt.Errorf("startNetstack: %w", err)
 	}
@@ -341,6 +362,21 @@ func (a *App) newBackend(dataDir, directFileRoot string, appCtx AppContext, stor
 		a.ready.Done()
 	}()
 	return b, nil
+}
+
+func (a *App) watchFileOpsChanges() {
+	for {
+		select {
+		case newPath := <-onFilePath:
+			log.Printf("Got new directFileRoot")
+			a.directFileRoot = newPath
+			a.backendRestartCh <- struct{}{}
+		case helper := <-onShareFileHelper:
+			log.Printf("Got shareFIleHelper")
+			a.shareFileHelper = helper
+			a.backendRestartCh <- struct{}{}
+		}
+	}
 }
 
 func (b *backend) isConfigNonNilAndDifferent(rcfg *router.Config, dcfg *dns.OSConfig) bool {
