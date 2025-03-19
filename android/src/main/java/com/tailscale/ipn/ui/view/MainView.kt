@@ -98,6 +98,7 @@ import com.tailscale.ipn.ui.theme.surfaceContainerListItem
 import com.tailscale.ipn.ui.theme.warningButton
 import com.tailscale.ipn.ui.theme.warningListItem
 import com.tailscale.ipn.ui.util.AndroidTVUtil.isAndroidTV
+import com.tailscale.ipn.ui.util.AndroidTVUtil
 import com.tailscale.ipn.ui.util.AutoResizingText
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.LoadingIndicator
@@ -212,6 +213,9 @@ fun MainView(
                 PromptPermissionsIfNecessary()
                 viewModel.maybeRequestVpnPermission()
                 LaunchVpnPermissionIfNeeded(viewModel)
+                if (AndroidTVUtil.isAndroidTV()){
+                  viewModel.showDirectoryPickerLauncher()
+                }
 
                 if (showKeyExpiry) {
                   ExpiryNotification(netmap = netmap, action = { viewModel.login() })
@@ -242,7 +246,11 @@ fun MainView(
                     { viewModel.login() },
                     loginAtUrl,
                     netmap?.SelfNode,
-                    { viewModel.showVPNPermissionLauncherIfUnauthorized() })
+                    { viewModel.showVPNPermissionLauncherIfUnauthorized()
+                      if (!AndroidTVUtil.isAndroidTV()){
+                        viewModel.showDirectoryPickerLauncher()
+                      }
+                    } )
               }
             }
           }
@@ -433,11 +441,11 @@ fun ConnectView(
     loginAction: () -> Unit,
     loginAtUrlAction: (String) -> Unit,
     selfNode: Tailcfg.Node?,
-    showVPNPermissionLauncherIfUnauthorized: () -> Unit
+    showVPNPermissionAndDirectoryPickerLaunchers: () -> Unit
 ) {
   LaunchedEffect(isPrepared) {
     if (!isPrepared && shouldStartAutomatically) {
-      showVPNPermissionLauncherIfUnauthorized()
+      showVPNPermissionAndDirectoryPickerLaunchers()
     }
   }
   Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
