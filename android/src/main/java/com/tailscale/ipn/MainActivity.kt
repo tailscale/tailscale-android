@@ -58,7 +58,6 @@ import com.tailscale.ipn.ui.view.ExitNodePicker
 import com.tailscale.ipn.ui.view.HealthView
 import com.tailscale.ipn.ui.view.IntroView
 import com.tailscale.ipn.ui.view.LoginQRView
-import com.tailscale.ipn.ui.view.LoginWithAuthKeyView
 import com.tailscale.ipn.ui.view.LoginWithCustomControlURLView
 import com.tailscale.ipn.ui.view.MDMSettingsDebugView
 import com.tailscale.ipn.ui.view.MainView
@@ -283,9 +282,6 @@ class MainActivity : ComponentActivity() {
                   }
                   composable("intro", exitTransition = { fadeOut(animationSpec = tween(150)) }) {
                     IntroView(backTo("main"))
-                  }
-                  composable("loginWithAuthKey") {
-                    LoginWithAuthKeyView(onNavigateHome = backTo("main"), backTo("userSwitcher"))
                   }
                   composable("loginWithCustomControl") {
                     LoginWithCustomControlURLView(
