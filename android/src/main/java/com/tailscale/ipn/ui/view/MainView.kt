@@ -540,13 +540,15 @@ fun PeerList(
   var isListFocussed by remember { mutableStateOf(false) }
   val expandedPeer = viewModel.expandedMenuPeer.collectAsState()
   val localClipboardManager = LocalClipboardManager.current
-  val enableSearch = !isAndroidTV()
+  // Restrict search to devices running API 33+ (see https://github.com/tailscale/corp/issues/27375)
+  val enableSearch = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+
 
   Column(modifier = Modifier.fillMaxSize()) {
-    if (FeatureFlags.isEnabled("enable_new_search")) {
+    if (enableSearch && FeatureFlags.isEnabled("enable_new_search")) {
       Search(onSearchBarClick)
     } else {
-      if (enableSearch) {
+      if (!isAndroidTV()) {
         Box(
             modifier =
                 Modifier.fillMaxWidth().background(color = MaterialTheme.colorScheme.surface)) {
