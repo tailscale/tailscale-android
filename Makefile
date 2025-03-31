@@ -10,7 +10,7 @@
 # with this name, it will be used.
 #
 # The convention here is tailscale-android-build-amd64-<date>
-DOCKER_IMAGE := tailscale-android-build-amd64-191124
+DOCKER_IMAGE := tailscale-android-build-amd64-031325-1
 export TS_USE_TOOLCHAIN=1
 
 # Auto-select an NDK from ANDROID_HOME (choose highest version available)
@@ -46,7 +46,7 @@ else
     ANDROID_TOOLS_URL := "https://dl.google.com/android/repository/commandlinetools-mac-9477386_latest.zip"
     ANDROID_TOOLS_SUM := "2072ffce4f54cdc0e6d2074d2f381e7e579b7d63e915c220b96a7db95b2900ee  commandlinetools-mac-9477386_latest.zip"
 endif
-ANDROID_SDK_PACKAGES := 'platforms;android-31' 'extras;android;m2repository' 'ndk;23.1.7779620' 'platform-tools' 'build-tools;33.0.2'
+ANDROID_SDK_PACKAGES := 'platforms;android-34' 'extras;android;m2repository' 'ndk;23.1.7779620' 'platform-tools' 'build-tools;34.0.0'
 
 # Attempt to find an ANDROID_SDK_ROOT / ANDROID_HOME based either from
 # preexisting environment or common locations.
