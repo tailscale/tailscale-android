@@ -6,7 +6,7 @@ require (
 	github.com/tailscale/wireguard-go v0.0.0-20250107165329-0b8b35511f19
 	golang.org/x/mobile v0.0.0-20240806205939-81131f6468ab
 	inet.af/netaddr v0.0.0-20220617031823-097006376321
-	tailscale.com v1.81.0-pre.0.20250224230719-8d7033fe7f58
+	tailscale.com v1.83.0-pre.0.20250326212221-1ec1a60c107b
 )
 
 require (
@@ -34,7 +34,7 @@ require (
 	github.com/djherbis/times v1.6.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/gaissmai/bart v0.18.0 // indirect
-	github.com/go-json-experiment/json v0.0.0-20250103232110-6a9a0fde9288 // indirect
+	github.com/go-json-experiment/json v0.0.0-20250223041408-d3c622f1b874 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/godbus/dbus/v5 v5.1.1-0.20230522191255-76236955d466 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
@@ -76,10 +76,10 @@ require (
 	go4.org/mem v0.0.0-20240501181205-ae6ca9944745 // indirect
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba // indirect
 	go4.org/unsafe/assume-no-moving-gc v0.0.0-20230525183740-e7c30c78aeb2 // indirect
-	golang.org/x/crypto v0.33.0 // indirect
+	golang.org/x/crypto v0.35.0 // indirect
 	golang.org/x/exp v0.0.0-20250210185358-939b2ce775ac // indirect
 	golang.org/x/mod v0.23.0 // indirect
-	golang.org/x/net v0.35.0 // indirect
+	golang.org/x/net v0.36.0 // indirect
 	golang.org/x/sync v0.11.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/term v0.29.0 // indirect
