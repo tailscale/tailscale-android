@@ -31,7 +31,7 @@ class Ipn {
     }
   }
 
-  // A nofitication message recieved on the Notify bus.  Fields will be populated based
+  // A notification message received on the Notify bus.  Fields will be populated based
   // on which NotifyWatchOpts were set when the Notifier was created.
   @Serializable
   data class Notify(
