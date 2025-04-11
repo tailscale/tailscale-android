@@ -3,10 +3,10 @@ module github.com/tailscale/tailscale-android
 go 1.24.0
 
 require (
-	github.com/tailscale/wireguard-go v0.0.0-20250107165329-0b8b35511f19
+	github.com/tailscale/wireguard-go v0.0.0-20250304000100-91a0587fb251
 	golang.org/x/mobile v0.0.0-20240806205939-81131f6468ab
 	inet.af/netaddr v0.0.0-20220617031823-097006376321
-	tailscale.com v1.82.2
+	tailscale.com v1.83.0-pre.0.20250410183448-6c914409cd03
 )
 
 require (
@@ -81,7 +81,7 @@ require (
 	golang.org/x/mod v0.23.0 // indirect
 	golang.org/x/net v0.36.0 // indirect
 	golang.org/x/sync v0.11.0 // indirect
-	golang.org/x/sys v0.30.0 // indirect
+	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/term v0.29.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
 	golang.org/x/time v0.10.0 // indirect
