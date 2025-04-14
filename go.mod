@@ -5,7 +5,6 @@ go 1.24.0
 require (
 	github.com/tailscale/wireguard-go v0.0.0-20250304000100-91a0587fb251
 	golang.org/x/mobile v0.0.0-20240806205939-81131f6468ab
-	inet.af/netaddr v0.0.0-20220617031823-097006376321
 	tailscale.com v1.83.0-pre.0.20250410161426-6fb5e3b0cb5c
 )
 
@@ -72,10 +71,8 @@ require (
 	github.com/u-root/uio v0.0.0-20240224005618-d2acac8f3701 // indirect
 	github.com/vishvananda/netns v0.0.4 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
-	go4.org/intern v0.0.0-20211027215823-ae77deb06f29 // indirect
 	go4.org/mem v0.0.0-20240501181205-ae6ca9944745 // indirect
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba // indirect
-	go4.org/unsafe/assume-no-moving-gc v0.0.0-20230525183740-e7c30c78aeb2 // indirect
 	golang.org/x/crypto v0.35.0 // indirect
 	golang.org/x/exp v0.0.0-20250210185358-939b2ce775ac // indirect
 	golang.org/x/mod v0.23.0 // indirect
