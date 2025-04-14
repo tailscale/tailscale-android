@@ -10,7 +10,7 @@
 # with this name, it will be used.
 #
 # The convention here is tailscale-android-build-amd64-<date>
-DOCKER_IMAGE := tailscale-android-build-amd64-031325-1
+DOCKER_IMAGE := tailscale-android-build-amd64-041425-1
 export TS_USE_TOOLCHAIN=1
 
 # Auto-select an NDK from ANDROID_HOME (choose highest version available)
@@ -355,13 +355,12 @@ docker-remove-build-image: ## Removes the current docker build image
 docker-all: docker-build-image docker-run-build $(DOCKER_IMAGE)
 
 .PHONY: docker-shell
-docker-shell: ## Builds a docker image with the android build env and opens a shell
-	docker build -f docker/DockerFile.amd64-shell -t tailscale-android-shell-amd64 .
-	docker run --rm -v $(CURDIR):/build/tailscale-android -it tailscale-android-shell-amd64
+docker-shell: docker-build-image ## Builds a docker image with the android build env and opens a shell
+	docker run --rm -v $(CURDIR):/build/tailscale-android -it $(DOCKER_IMAGE) /bin/bash
 
 .PHONY: docker-remove-shell-image
 docker-remove-shell-image: ## Removes all docker shell image
-	docker rmi --force tailscale-android-shell-amd64
+	@echo "docker-remove-shell-image retained for backward compatibility, but is a no-op; docker-shell now uses build image"
 
 .PHONY: clean
 clean: ## Remove build artifacts. Does not purge docker build envs. Use dockerRemoveEnv for that.
