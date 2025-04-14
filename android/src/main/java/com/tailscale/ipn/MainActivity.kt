@@ -6,6 +6,7 @@ package com.tailscale.ipn
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.AlertDialog
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.RestrictionsManager
@@ -14,14 +15,15 @@ import android.content.res.Configuration.SCREENLAYOUT_SIZE_LARGE
 import android.content.res.Configuration.SCREENLAYOUT_SIZE_MASK
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContract
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.animation.core.LinearOutSlowInEasing
@@ -89,8 +91,14 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import libtailscale.Libtailscale
+import java.io.IOException
+import java.security.GeneralSecurityException
 
 class MainActivity : ComponentActivity() {
+  // Key to store the SAF URI in EncryptedSharedPreferences.
+  private val PREF_KEY_SAF_URI = "saf_directory_uri"
+  lateinit var safUriReceiver: BroadcastReceiver
   private lateinit var navController: NavHostController
   private lateinit var vpnPermissionLauncher: ActivityResultLauncher<Intent>
   private val viewModel: MainViewModel by lazy {
@@ -150,6 +158,24 @@ class MainActivity : ComponentActivity() {
         }
     viewModel.setVpnPermissionLauncher(vpnPermissionLauncher)
 
+    val directoryPickerLauncher =
+        registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri: Uri? ->
+          if (uri != null) {
+            // Persist permissions for future access.
+            contentResolver.takePersistableUriPermission(
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+            // Set the directory to download files to directly.
+            Libtailscale.setDirectFileRoot(uri.toString())
+            saveFileDirectory(uri)
+          } else {
+            TSLog.d(
+                "MainActivity", "Taildrop directory not saved. Will fall back to internal storage.")
+          }
+        }
+
+    viewModel.setDirectoryPickerLauncher(directoryPickerLauncher)
+
     setContent {
       navController = rememberNavController()
 
@@ -198,7 +224,7 @@ class MainActivity : ComponentActivity() {
                           onNavigateToSearch = {
                             viewModel.enableSearchAutoFocus()
                             navController.navigate("search")
-                        })
+                          })
 
                   val settingsNav =
                       SettingsNav(
@@ -245,9 +271,8 @@ class MainActivity : ComponentActivity() {
                         viewModel = viewModel,
                         navController = navController,
                         onNavigateBack = { navController.popBackStack() },
-                        autoFocus = autoFocus
-                    )
-                }
+                        autoFocus = autoFocus)
+                  }
                   composable("settings") { SettingsView(settingsNav) }
                   composable("exitNodes") { ExitNodePicker(exitNodePickerNav) }
                   composable("health") { HealthView(backTo("main")) }
@@ -365,23 +390,28 @@ class MainActivity : ComponentActivity() {
   override fun onNewIntent(intent: Intent) {
     super.onNewIntent(intent)
     if (intent.getBooleanExtra(START_AT_ROOT, false)) {
-        if (this::navController.isInitialized) {
-            val previousEntry = navController.previousBackStackEntry
-            TSLog.d("MainActivity", "onNewIntent: previousBackStackEntry = $previousEntry")
+      if (this::navController.isInitialized) {
+        val previousEntry = navController.previousBackStackEntry
+        TSLog.d("MainActivity", "onNewIntent: previousBackStackEntry = $previousEntry")
 
-            if (previousEntry != null) {
-                navController.popBackStack(route = "main", inclusive = false)
-            } else {
-                TSLog.e("MainActivity", "onNewIntent: No previous back stack entry, navigating directly to 'main'")
-                navController.navigate("main") {
-                    popUpTo("main") { inclusive = true }
-                }
-            }
+        if (previousEntry != null) {
+          navController.popBackStack(route = "main", inclusive = false)
+        } else {
+          TSLog.e(
+              "MainActivity",
+              "onNewIntent: No previous back stack entry, navigating directly to 'main'")
+          navController.navigate("main") { popUpTo("main") { inclusive = true } }
         }
+      }
     }
-}
+  }
 
-
+  @Throws(IOException::class, GeneralSecurityException::class)
+  fun saveFileDirectory(directoryUri: Uri) {
+    val prefs = App.get().getEncryptedPrefs()
+    prefs.edit().putString(PREF_KEY_SAF_URI, directoryUri.toString()).apply()
+    App.get().startLibtailscale(directoryUri.toString())
+  }
 
   private fun login(urlString: String) {
     // Launch coroutine to listen for state changes. When the user completes login, relaunch
