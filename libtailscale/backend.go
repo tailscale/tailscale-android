@@ -225,6 +225,8 @@ func (a *App) runBackend(ctx context.Context) error {
 				if err := b.updateTUN(cfg.rcfg, cfg.dcfg); err != nil {
 					a.closeVpnService(err, b)
 				}
+			} else {
+				b.logger.Logf("Update TUN not called")
 			}
 		case s := <-onDisconnect:
 			b.CloseTUNs()

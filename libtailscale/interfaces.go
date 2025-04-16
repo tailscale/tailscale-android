@@ -166,6 +166,7 @@ type InputStream interface {
 // of various state changes.
 
 func RequestVPN(service IPNService) {
+	log.Printf("VPN requested")
 	onVPNRequested <- service
 }
 
