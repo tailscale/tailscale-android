@@ -207,6 +207,7 @@ func (b *backend) updateTUN(rcfg *router.Config, dcfg *dns.OSConfig) error {
 	b.logger.Logf("updateTUN: established VPN")
 
 	if parcelFD == nil {
+		b.logger.Logf("updateTUN: could not establish VPN because builder.Establish returned a nil ParcelFileDescriptor")
 		return errVPNNotPrepared
 	}
 
