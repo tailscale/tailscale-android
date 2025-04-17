@@ -377,7 +377,13 @@ open class UninitializedApp : Application() {
     // the VPN (i.e. we're logged in and machine is authorized).
     private const val ABLE_TO_START_VPN_KEY = "ableToStartVPN"
 
-    private const val DISALLOWED_APPS_KEY = "disallowedApps"
+    // The value is 'disallowedApps' as it used to represent
+    // only disallowed applications. This has been changed
+    // and allowing/disallowing is based on ALLOW_SELECTED_APPS_KEY
+    //
+    // The value is kept the same to not reset everyone's configuration
+    private const val SELECTED_APPS_KEY = "disallowedApps"
+    private const val ALLOW_SELECTED_APPS_KEY = "allowSelectedApps"
 
     // File for shared preferences that are not encrypted.
     private const val UNENCRYPTED_PREFERENCES = "unencrypted"
@@ -535,7 +541,7 @@ open class UninitializedApp : Application() {
     return builder.build()
   }
 
-  fun addUserDisallowedPackageName(packageName: String) {
+  fun addUserSelectedPackage(packageName: String) {
     if (packageName.isEmpty()) {
       TSLog.e(TAG, "addUserDisallowedPackageName called with empty packageName")
       return
@@ -544,13 +550,13 @@ open class UninitializedApp : Application() {
     getUnencryptedPrefs()
         .edit()
         .putStringSet(
-            DISALLOWED_APPS_KEY, disallowedPackageNames().toMutableSet().union(setOf(packageName)))
+            SELECTED_APPS_KEY, selectedPackageNames().toMutableSet().union(setOf(packageName)))
         .apply()
 
     this.restartVPN()
   }
 
-  fun removeUserDisallowedPackageName(packageName: String) {
+  fun removeUserSelectedPackage(packageName: String) {
     if (packageName.isEmpty()) {
       TSLog.e(TAG, "removeUserDisallowedPackageName called with empty packageName")
       return
@@ -559,23 +565,29 @@ open class UninitializedApp : Application() {
     getUnencryptedPrefs()
         .edit()
         .putStringSet(
-            DISALLOWED_APPS_KEY,
-            disallowedPackageNames().toMutableSet().subtract(setOf(packageName)))
+            SELECTED_APPS_KEY, selectedPackageNames().toMutableSet().subtract(setOf(packageName)))
         .apply()
 
     this.restartVPN()
   }
 
-  fun disallowedPackageNames(): List<String> {
-    val mdmDisallowed =
-        MDMSettings.excludedPackages.flow.value.value?.split(",")?.map { it.trim() } ?: emptyList()
-    if (mdmDisallowed.isNotEmpty()) {
-      TSLog.d(TAG, "Excluded application packages were set via MDM: $mdmDisallowed")
-      return builtInDisallowedPackageNames + mdmDisallowed
-    }
-    val userDisallowed =
-        getUnencryptedPrefs().getStringSet(DISALLOWED_APPS_KEY, emptySet())?.toList() ?: emptyList()
-    return builtInDisallowedPackageNames + userDisallowed
+  fun switchUserSelectedPackages() {
+    getUnencryptedPrefs()
+        .edit()
+        .putBoolean(ALLOW_SELECTED_APPS_KEY, !allowSelectedPackages())
+        .apply()
+    getUnencryptedPrefs().edit().putStringSet(SELECTED_APPS_KEY, setOf()).apply()
+
+    this.restartVPN()
+  }
+
+  fun selectedPackageNames(): List<String> {
+    return getUnencryptedPrefs().getStringSet(SELECTED_APPS_KEY, emptySet())?.toList()
+        ?: emptyList()
+  }
+
+  fun allowSelectedPackages(): Boolean {
+    return getUnencryptedPrefs().getBoolean(ALLOW_SELECTED_APPS_KEY, false)
   }
 
   fun getAppScopedViewModel(): VpnViewModel {
