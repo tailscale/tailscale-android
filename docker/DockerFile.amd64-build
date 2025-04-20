@@ -36,7 +36,7 @@ COPY Makefile Makefile
 RUN make androidsdk
 
 # Preload Gradle
-COPY android/gradlew android/build.gradle android
+COPY android/gradlew android/build.gradle android/
 COPY android/gradle android/gradle
 
 RUN chmod 755 android/gradlew && \
