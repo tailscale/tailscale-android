@@ -51,7 +51,7 @@ fun Avatar(
       modifier =
           Modifier.conditional(AndroidTVUtil.isAndroidTV(), { padding(4.dp) })
               .conditional(
-                AndroidTVUtil.isAndroidTV() && isFocusable,
+                  AndroidTVUtil.isAndroidTV() && isFocusable,
                   {
                     size((size * 1.5f).dp) // Focusable area is larger than the avatar
                   })

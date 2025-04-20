@@ -5,7 +5,6 @@ package com.tailscale.ipn.ui.view
 
 import android.app.Activity
 import android.os.Build
-import android.util.Log
 import android.window.OnBackInvokedCallback
 import android.window.OnBackInvokedDispatcher
 import androidx.annotation.RequiresApi

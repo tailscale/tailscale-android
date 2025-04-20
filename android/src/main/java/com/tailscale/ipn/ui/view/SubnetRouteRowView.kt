@@ -19,8 +19,8 @@ import androidx.compose.ui.unit.dp
 import com.tailscale.ipn.R
 
 /**
- * SubnetRouteRowView is a row in RunSubnetRouterView, representing a subnet route.
- * It provides options to edit or delete the route.
+ * SubnetRouteRowView is a row in RunSubnetRouterView, representing a subnet route. It provides
+ * options to edit or delete the route.
  *
  * @param route The subnet route itself (e.g., "192.168.1.0/24").
  * @param onEdit A callback invoked when the edit icon is clicked.
@@ -28,31 +28,32 @@ import com.tailscale.ipn.R
  */
 @Composable
 fun SubnetRouteRowView(
-    route: String, onEdit: () -> Unit, onDelete: () -> Unit, modifier: Modifier = Modifier
+    route: String,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    ListItem(
-        headlineContent = { Text(text = route, style = MaterialTheme.typography.bodyMedium) },
-        trailingContent = {
-            Row {
-                IconButton(onClick = onEdit) {
-                    Icon(
-                        painterResource(R.drawable.pencil),
-                        contentDescription = stringResource(R.string.edit_route),
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                IconButton(
-                    onClick = onDelete,
-                    colors = IconButtonDefaults.iconButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                ) {
-                    Icon(
-                        painterResource(R.drawable.xmark),
-                        contentDescription = stringResource(R.string.delete_route),
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
-        },
-        modifier = modifier
-    )
+  ListItem(
+      headlineContent = { Text(text = route, style = MaterialTheme.typography.bodyMedium) },
+      trailingContent = {
+        Row {
+          IconButton(onClick = onEdit) {
+            Icon(
+                painterResource(R.drawable.pencil),
+                contentDescription = stringResource(R.string.edit_route),
+                modifier = Modifier.size(24.dp))
+          }
+          IconButton(
+              onClick = onDelete,
+              colors =
+                  IconButtonDefaults.iconButtonColors(
+                      contentColor = MaterialTheme.colorScheme.error)) {
+                Icon(
+                    painterResource(R.drawable.xmark),
+                    contentDescription = stringResource(R.string.delete_route),
+                    modifier = Modifier.size(24.dp))
+              }
+        }
+      },
+      modifier = modifier)
 }

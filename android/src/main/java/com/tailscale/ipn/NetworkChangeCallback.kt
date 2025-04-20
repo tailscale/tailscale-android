@@ -9,9 +9,9 @@ import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.util.Log
 import com.tailscale.ipn.util.TSLog
-import libtailscale.Libtailscale
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
+import libtailscale.Libtailscale
 
 object NetworkChangeCallback {
 

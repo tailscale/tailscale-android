@@ -36,6 +36,11 @@ import com.tailscale.ipn.ui.viewModel.VpnViewModel
 import com.tailscale.ipn.ui.viewModel.VpnViewModelFactory
 import com.tailscale.ipn.util.FeatureFlags
 import com.tailscale.ipn.util.TSLog
+import java.io.File
+import java.io.IOException
+import java.net.NetworkInterface
+import java.security.GeneralSecurityException
+import java.util.Locale
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -46,11 +51,6 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import libtailscale.Libtailscale
-import java.io.File
-import java.io.IOException
-import java.net.NetworkInterface
-import java.security.GeneralSecurityException
-import java.util.Locale
 
 class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
   val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)

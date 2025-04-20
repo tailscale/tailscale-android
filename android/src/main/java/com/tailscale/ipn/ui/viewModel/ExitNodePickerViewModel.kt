@@ -12,12 +12,12 @@ import com.tailscale.ipn.ui.model.StableNodeID
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.set
+import java.util.TreeMap
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.util.TreeMap
 
 data class ExitNodePickerNav(
     val onNavigateBackHome: () -> Unit,

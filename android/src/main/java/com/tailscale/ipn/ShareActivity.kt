@@ -21,12 +21,12 @@ import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.util.universalFit
 import com.tailscale.ipn.ui.view.TaildropView
 import com.tailscale.ipn.util.TSLog
+import kotlin.random.Random
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.random.Random
 
 // ShareActivity is the entry point for Taildrop share intents
 class ShareActivity : ComponentActivity() {
@@ -92,25 +92,22 @@ class ShareActivity : ComponentActivity() {
           }
         }
 
-        val pendingFiles: List<Ipn.OutgoingFile> =
+    val pendingFiles: List<Ipn.OutgoingFile> =
         uris?.filterNotNull()?.mapNotNull { uri ->
-            contentResolver?.query(uri, null, null, null, null)?.use { cursor ->
-                val nameCol = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                val sizeCol = cursor.getColumnIndex(OpenableColumns.SIZE)
-    
-                if (cursor.moveToFirst()) {
-                    val name: String = cursor.getString(nameCol)
-                        ?: generateFallbackName(uri)
-                    val size: Long = cursor.getLong(sizeCol)
-                    Ipn.OutgoingFile(Name = name, DeclaredSize = size).apply {
-                        this.uri = uri
-                    }
-                } else {
-                    TSLog.e(TAG, "Cursor is empty for URI: $uri")
-                    null
-                }
+          contentResolver?.query(uri, null, null, null, null)?.use { cursor ->
+            val nameCol = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+            val sizeCol = cursor.getColumnIndex(OpenableColumns.SIZE)
+
+            if (cursor.moveToFirst()) {
+              val name: String = cursor.getString(nameCol) ?: generateFallbackName(uri)
+              val size: Long = cursor.getLong(sizeCol)
+              Ipn.OutgoingFile(Name = name, DeclaredSize = size).apply { this.uri = uri }
+            } else {
+              TSLog.e(TAG, "Cursor is empty for URI: $uri")
+              null
             }
-        } ?: emptyList()    
+          }
+        } ?: emptyList()
 
     if (pendingFiles.isEmpty()) {
       TSLog.e(TAG, "Share failure - no files extracted from intent")
@@ -124,5 +121,5 @@ class ShareActivity : ComponentActivity() {
     val mimeType = contentResolver?.getType(uri)
     val extension = mimeType?.let { MimeTypeMap.getSingleton().getExtensionFromMimeType(it) }
     return if (extension != null) "$randomId.$extension" else randomId.toString()
-}
+  }
 }

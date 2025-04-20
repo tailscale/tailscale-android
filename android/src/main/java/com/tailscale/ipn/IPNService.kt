@@ -12,12 +12,12 @@ import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.util.TSLog
+import java.util.UUID
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import libtailscale.Libtailscale
-import java.util.UUID
 
 open class IPNService : VpnService(), libtailscale.IPNService {
   private val TAG = "IPNService"
