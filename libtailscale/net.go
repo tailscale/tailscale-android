@@ -14,7 +14,6 @@ import (
 	"syscall"
 
 	"github.com/tailscale/wireguard-go/tun"
-	"inet.af/netaddr"
 	"tailscale.com/net/dns"
 	"tailscale.com/net/netmon"
 	"tailscale.com/util/dnsname"
@@ -102,9 +101,9 @@ func (a *App) getInterfaces() ([]netmon.Interface, error) {
 
 		addrs := strings.Trim(fields[1], " \n")
 		for _, addr := range strings.Split(addrs, " ") {
-			ip, err := netaddr.ParseIPPrefix(addr)
+			_, ipnet, err := net.ParseCIDR(addr)
 			if err == nil {
-				newIf.AltAddrs = append(newIf.AltAddrs, ip.IPNet())
+				newIf.AltAddrs = append(newIf.AltAddrs, ipnet)
 			}
 		}
 
@@ -208,6 +207,7 @@ func (b *backend) updateTUN(rcfg *router.Config, dcfg *dns.OSConfig) error {
 	b.logger.Logf("updateTUN: established VPN")
 
 	if parcelFD == nil {
+		b.logger.Logf("updateTUN: could not establish VPN because builder.Establish returned a nil ParcelFileDescriptor")
 		return errVPNNotPrepared
 	}
 
