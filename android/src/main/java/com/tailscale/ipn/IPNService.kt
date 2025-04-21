@@ -136,7 +136,7 @@ open class IPNService : VpnService(), libtailscale.IPNService {
     try {
       b.addAllowedApplication(name)
     } catch (e: PackageManager.NameNotFoundException) {
-      TSLog.d(TAG, "Failed to add allowed application: $e")
+      TSLog.e(TAG, "Failed to add allowed application: $e")
     }
   }
 
@@ -144,7 +144,7 @@ open class IPNService : VpnService(), libtailscale.IPNService {
     try {
       b.addDisallowedApplication(name)
     } catch (e: PackageManager.NameNotFoundException) {
-      TSLog.d(TAG, "Failed to add disallowed application: $e")
+      TSLog.e(TAG, "Failed to add disallowed application: $e")
     }
   }
 
@@ -179,7 +179,7 @@ open class IPNService : VpnService(), libtailscale.IPNService {
       allowPackages = false
       TSLog.d(TAG, "Excluded application packages were set via MDM: $mdmDisallowed")
     } else {
-      // Otherwise, prevent  user manually disallowed apps from getting their traffic + DNS routed
+      // Otherwise, prevent user manually disallowed apps from getting their traffic + DNS routed
       // via Tailscale
       packagesList = UninitializedApp.get().selectedPackageNames()
       allowPackages = UninitializedApp.get().allowSelectedPackages()
@@ -189,7 +189,7 @@ open class IPNService : VpnService(), libtailscale.IPNService {
     if (allowPackages) {
       // There always needs to be at least one allowed application for the VPN service to filter the
       // traffic so add our own application by default to fulfill that requirement
-      packagesList += "com.tailscale.ipn"
+      packagesList += BuildConfig.APPLICATION_ID
 
       for (packageName in packagesList) {
         TSLog.d(TAG, "Including app: $packageName")

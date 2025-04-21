@@ -543,7 +543,7 @@ open class UninitializedApp : Application() {
 
   fun addUserSelectedPackage(packageName: String) {
     if (packageName.isEmpty()) {
-      TSLog.e(TAG, "addUserDisallowedPackageName called with empty packageName")
+      TSLog.e(TAG, "addUserSelectedPackage called with empty packageName")
       return
     }
 
@@ -558,7 +558,7 @@ open class UninitializedApp : Application() {
 
   fun removeUserSelectedPackage(packageName: String) {
     if (packageName.isEmpty()) {
-      TSLog.e(TAG, "removeUserDisallowedPackageName called with empty packageName")
+      TSLog.e(TAG, "removeUserSelectedPackage called with empty packageName")
       return
     }
 
