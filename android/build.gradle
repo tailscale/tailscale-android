@@ -139,7 +139,7 @@ dependencies {
     implementation "androidx.compose.animation:animation:1.7.4"
 
     // Navigation dependencies.
-    def nav_version = "2.8.2"
+    def nav_version = "2.8.5"
     implementation "androidx.navigation:navigation-compose:$nav_version"
     implementation "androidx.navigation:navigation-ui-ktx:$nav_version"
 
