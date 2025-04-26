@@ -3,6 +3,7 @@
 
 package com.tailscale.ipn.ui.view
 
+import android.os.Build
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -36,14 +37,13 @@ import com.tailscale.ipn.ui.viewModel.ExitNodePickerViewModel
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerViewModelFactory
 import com.tailscale.ipn.ui.viewModel.selected
 import kotlinx.coroutines.flow.MutableStateFlow
-import android.os.Build
 
 @Composable
 fun ExitNodePicker(
     nav: ExitNodePickerNav,
     model: ExitNodePickerViewModel = viewModel(factory = ExitNodePickerViewModelFactory(nav))
 ) {
-  LoadingIndicator.Wrap { 
+  LoadingIndicator.Wrap {
     Scaffold(topBar = { Header(R.string.choose_exit_node, onBack = nav.onNavigateBackHome) }) {
         innerPadding ->
       val tailnetExitNodes by model.tailnetExitNodes.collectAsState()
@@ -101,7 +101,8 @@ fun ExitNodePicker(
         }
 
         // https://developer.android.com/reference/android/net/VpnService.Builder#excludeRoute(android.net.IpPrefix) - excludeRoute is only supported in API 33+, so don't show the option if allow LAN access is not enabled.
-        if (!allowLanAccessMDMDisposition.value.hiddenFromUser && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        if (!allowLanAccessMDMDisposition.value.hiddenFromUser &&
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
           item(key = "allowLANAccess") {
             Lists.SectionDivider()
 

@@ -19,9 +19,9 @@ import com.tailscale.ipn.ui.theme.onBackgroundLogoDotEnabled
 import com.tailscale.ipn.ui.theme.standaloneLogoDotDisabled
 import com.tailscale.ipn.ui.theme.standaloneLogoDotEnabled
 import com.tailscale.ipn.ui.util.set
+import kotlin.concurrent.timer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlin.concurrent.timer
 
 // DotsMatrix represents the state of the progress indicator.
 typealias DotsMatrix = List<List<Boolean>>

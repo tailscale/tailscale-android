@@ -11,43 +11,43 @@ import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.theme.on
 
 sealed class ConnectionMode {
-    class NotConnected : ConnectionMode()
+  class NotConnected : ConnectionMode()
 
-    class Derp(val relayName: String) : ConnectionMode()
+  class Derp(val relayName: String) : ConnectionMode()
 
-    class Direct : ConnectionMode()
+  class Direct : ConnectionMode()
 
-    @Composable
-    fun titleString(): String {
-        return when (this) {
-            is NotConnected -> stringResource(id = R.string.not_connected)
-            is Derp -> stringResource(R.string.relayed_connection, relayName)
-            is Direct -> stringResource(R.string.direct_connection)
-        }
+  @Composable
+  fun titleString(): String {
+    return when (this) {
+      is NotConnected -> stringResource(id = R.string.not_connected)
+      is Derp -> stringResource(R.string.relayed_connection, relayName)
+      is Direct -> stringResource(R.string.direct_connection)
     }
+  }
 
-    fun contentKey(): String {
-        return when (this) {
-            is NotConnected -> "NotConnected"
-            is Derp -> "Derp($relayName)"
-            is Direct -> "Direct"
-        }
+  fun contentKey(): String {
+    return when (this) {
+      is NotConnected -> "NotConnected"
+      is Derp -> "Derp($relayName)"
+      is Direct -> "Direct"
     }
+  }
 
-    fun iconDrawable(): Int {
-        return when (this) {
-            is NotConnected -> R.drawable.xmark_circle
-            is Derp -> R.drawable.link_off
-            is Direct -> R.drawable.link
-        }
+  fun iconDrawable(): Int {
+    return when (this) {
+      is NotConnected -> R.drawable.xmark_circle
+      is Derp -> R.drawable.link_off
+      is Direct -> R.drawable.link
     }
+  }
 
-    @Composable
-    fun color(): Color {
-        return when (this) {
-            is NotConnected -> MaterialTheme.colorScheme.onPrimary
-            is Derp -> MaterialTheme.colorScheme.error
-            is Direct -> MaterialTheme.colorScheme.on
-        }
+  @Composable
+  fun color(): Color {
+    return when (this) {
+      is NotConnected -> MaterialTheme.colorScheme.onPrimary
+      is Derp -> MaterialTheme.colorScheme.error
+      is Direct -> MaterialTheme.colorScheme.on
     }
+  }
 }

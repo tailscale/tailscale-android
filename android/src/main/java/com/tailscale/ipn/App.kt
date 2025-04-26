@@ -30,27 +30,29 @@ import com.tailscale.ipn.mdm.MDMSettingsChangedReceiver
 import com.tailscale.ipn.ui.localapi.Client
 import com.tailscale.ipn.ui.localapi.Request
 import com.tailscale.ipn.ui.model.Ipn
+import com.tailscale.ipn.ui.model.Netmap
 import com.tailscale.ipn.ui.notifier.HealthNotifier
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.viewModel.VpnViewModel
 import com.tailscale.ipn.ui.viewModel.VpnViewModelFactory
 import com.tailscale.ipn.util.FeatureFlags
 import com.tailscale.ipn.util.TSLog
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
-import libtailscale.Libtailscale
 import java.io.File
 import java.io.IOException
 import java.net.NetworkInterface
 import java.security.GeneralSecurityException
 import java.util.Locale
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import libtailscale.Libtailscale
 
 class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
   val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -165,10 +167,15 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     initViewModels()
     applicationScope.launch {
       Notifier.state.collect { _ ->
-        combine(Notifier.state, MDMSettings.forceEnabled.flow) { state, forceEnabled ->
-              Pair(state, forceEnabled)
+        combine(Notifier.state, MDMSettings.forceEnabled.flow, Notifier.prefs, Notifier.netmap) {
+                state,
+                forceEnabled,
+                prefs,
+                netmap ->
+              Triple(state, forceEnabled, getExitNodeName(prefs, netmap))
             }
-            .collect { (state, hideDisconnectAction) ->
+            .distinctUntilChanged()
+            .collect { (state, hideDisconnectAction, exitNodeName) ->
               val ableToStartVPN = state > Ipn.State.NeedsMachineAuth
               // If VPN is stopped, show a disconnected notification. If it is running as a
               // foreground
@@ -183,7 +190,10 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
 
               // Update notification status when VPN is running
               if (vpnRunning) {
-                notifyStatus(vpnRunning = true, hideDisconnectAction = hideDisconnectAction.value)
+                notifyStatus(
+                    vpnRunning = true,
+                    hideDisconnectAction = hideDisconnectAction.value,
+                    exitNodeName = exitNodeName)
               }
             }
       }
@@ -397,6 +407,18 @@ open class UninitializedApp : Application() {
     fun get(): UninitializedApp {
       return appInstance
     }
+
+    /**
+     * Return the name of the active (but not the selected/prior one) exit node based on the
+     * provided [Ipn.Prefs] and [Netmap.NetworkMap].
+     *
+     * @return The name of the exit node or `null` if there isn't one.
+     */
+    fun getExitNodeName(prefs: Ipn.Prefs?, netmap: Netmap.NetworkMap?): String? {
+      return prefs?.activeExitNodeID?.let { exitNodeID ->
+        netmap?.Peers?.find { it.StableID == exitNodeID }?.exitNodeName
+      }
+    }
   }
 
   protected fun setUnprotectedInstance(instance: UninitializedApp) {
@@ -482,8 +504,12 @@ open class UninitializedApp : Application() {
     notificationManager.createNotificationChannel(channel)
   }
 
-  fun notifyStatus(vpnRunning: Boolean, hideDisconnectAction: Boolean) {
-    notifyStatus(buildStatusNotification(vpnRunning, hideDisconnectAction))
+  fun notifyStatus(
+      vpnRunning: Boolean,
+      hideDisconnectAction: Boolean,
+      exitNodeName: String? = null
+  ) {
+    notifyStatus(buildStatusNotification(vpnRunning, hideDisconnectAction, exitNodeName))
   }
 
   fun notifyStatus(notification: Notification) {
@@ -501,8 +527,16 @@ open class UninitializedApp : Application() {
     notificationManager.notify(STATUS_NOTIFICATION_ID, notification)
   }
 
-  fun buildStatusNotification(vpnRunning: Boolean, hideDisconnectAction: Boolean): Notification {
-    val message = getString(if (vpnRunning) R.string.connected else R.string.not_connected)
+  fun buildStatusNotification(
+      vpnRunning: Boolean,
+      hideDisconnectAction: Boolean,
+      exitNodeName: String? = null
+  ): Notification {
+    val title = getString(if (vpnRunning) R.string.connected else R.string.not_connected)
+    val message =
+        if (vpnRunning && exitNodeName != null) {
+          getString(R.string.using_exit_node, exitNodeName)
+        } else null
     val icon = if (vpnRunning) R.drawable.ic_notification else R.drawable.ic_notification_disabled
     val action =
         if (vpnRunning) IPNReceiver.INTENT_DISCONNECT_VPN else IPNReceiver.INTENT_CONNECT_VPN
@@ -526,7 +560,7 @@ open class UninitializedApp : Application() {
     val builder =
         NotificationCompat.Builder(this, STATUS_CHANNEL_ID)
             .setSmallIcon(icon)
-            .setContentTitle(getString(R.string.app_name))
+            .setContentTitle(title)
             .setContentText(message)
             .setAutoCancel(!vpnRunning)
             .setOnlyAlertOnce(!vpnRunning)

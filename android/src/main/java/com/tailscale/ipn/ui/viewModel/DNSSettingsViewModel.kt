@@ -18,12 +18,12 @@ import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.theme.off
 import com.tailscale.ipn.ui.theme.success
 import com.tailscale.ipn.ui.util.set
+import com.tailscale.ipn.util.TSLog
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import com.tailscale.ipn.util.TSLog
 
 class DNSSettingsViewModelFactory : ViewModelProvider.Factory {
   @Suppress("UNCHECKED_CAST")

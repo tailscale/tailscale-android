@@ -22,7 +22,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -63,12 +62,9 @@ fun TailnetLockSetupView(
           val interactionSource = remember { MutableInteractionSource() }
           ListItem(
               modifier =
-                  Modifier.focusable(
-                          interactionSource = interactionSource) 
-                      .clickable(
-                          interactionSource = interactionSource,
-                          indication = LocalIndication.current
-                          ) {},
+                  Modifier.focusable(interactionSource = interactionSource).clickable(
+                      interactionSource = interactionSource,
+                      indication = LocalIndication.current) {},
               leadingContent = {
                 Icon(
                     painter = painterResource(id = statusItem.icon),

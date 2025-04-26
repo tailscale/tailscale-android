@@ -3,8 +3,8 @@
 
 package com.tailscale.ipn.ui.model
 
-import kotlinx.serialization.Serializable
 import java.net.URL
+import kotlinx.serialization.Serializable
 
 class IpnState {
   @Serializable
