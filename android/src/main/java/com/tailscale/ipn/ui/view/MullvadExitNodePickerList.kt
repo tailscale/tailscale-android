@@ -45,9 +45,7 @@ fun MullvadExitNodePickerList(
 
           LazyColumn(modifier = Modifier.padding(innerPadding)) {
             val sortedCountries =
-                mullvadExitNodes.entries.toList().sortedBy {
-                  it.value.first().country.lowercase()
-                }
+                mullvadExitNodes.entries.toList().sortedBy { it.value.first().country.lowercase() }
             itemsWithDividers(sortedCountries) { (countryCode, nodes) ->
               val first = nodes.first()
 

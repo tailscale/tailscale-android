@@ -47,7 +47,7 @@ import com.tailscale.ipn.ui.viewModel.PingViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PeerDetails(
-  onNavigateBack: () -> Unit,
+    onNavigateBack: () -> Unit,
     nodeId: String,
     pingViewModel: PingViewModel,
     model: PeerDetailsViewModel =

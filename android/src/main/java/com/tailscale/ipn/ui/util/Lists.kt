@@ -47,34 +47,30 @@ object Lists {
       fontWeight: FontWeight? = null,
       focusable: Boolean = false,
       backgroundColor: Color = MaterialTheme.colorScheme.surface,
-      fontColor: Color? = null  
+      fontColor: Color? = null
   ) {
-      Box(
-          modifier = Modifier
-              .fillMaxWidth()
-              .background(color = backgroundColor, shape = RectangleShape)
-      ) {
+    Box(
+        modifier =
+            Modifier.fillMaxWidth().background(color = backgroundColor, shape = RectangleShape)) {
           if (fontColor != null) {
-              Text(
-                  text = title,
-                  modifier = Modifier
-                      .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = bottomPadding)
-                      .focusable(focusable),
-                  style = style,
-                  fontWeight = fontWeight,
-                  color = fontColor
-              )
+            Text(
+                text = title,
+                modifier =
+                    Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = bottomPadding)
+                        .focusable(focusable),
+                style = style,
+                fontWeight = fontWeight,
+                color = fontColor)
           } else {
-              Text(
-                  text = title,
-                  modifier = Modifier
-                      .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = bottomPadding)
-                      .focusable(focusable),
-                  style = style,
-                  fontWeight = fontWeight
-              )
+            Text(
+                text = title,
+                modifier =
+                    Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = bottomPadding)
+                        .focusable(focusable),
+                style = style,
+                fontWeight = fontWeight)
           }
-      }
+        }
   }
 
   @Composable

@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -57,9 +56,7 @@ fun LoginQRView(onDismiss: () -> Unit = {}, model: LoginQRViewModel = viewModel(
                 textAlign = TextAlign.Center)
 
             Box(
-                modifier =
-                    Modifier.size(200.dp)
-                        .background(MaterialTheme.colorScheme.onSurface),
+                modifier = Modifier.size(200.dp).background(MaterialTheme.colorScheme.onSurface),
                 contentAlignment = Alignment.Center) {
                   image?.let {
                     Image(
@@ -76,12 +73,11 @@ fun LoginQRView(onDismiss: () -> Unit = {}, model: LoginQRViewModel = viewModel(
             numCode?.let {
               Box(
                   modifier =
-                      Modifier
-                          .clip(RoundedCornerShape(6.dp))
+                      Modifier.clip(RoundedCornerShape(6.dp))
                           .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
                   contentAlignment = Alignment.Center) {
                     Text(
-                        text =it,
+                        text = it,
                         style =
                             MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onSurface)

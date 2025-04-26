@@ -56,7 +56,9 @@ class HealthNotifier(
             // When the client is Stopped, no warnings should get added, and any warnings added
             // previously should be removed.
             if (ipnState == Ipn.State.Stopped) {
-              TSLog.d(TAG, "Ignoring and dropping all pre-existing health messages in the Stopped state")
+              TSLog.d(
+                  TAG,
+                  "Ignoring and dropping all pre-existing health messages in the Stopped state")
               dropAllWarnings()
               return@collect
             } else {
@@ -131,9 +133,8 @@ class HealthNotifier(
 
   /**
    * Sets the icon displayed to represent the overall health state.
-   *
-   * - If there are any high severity warnings, or warnings that affect internet connectivity,
-   * a warning icon is displayed.
+   * - If there are any high severity warnings, or warnings that affect internet connectivity, a
+   *   warning icon is displayed.
    * - If there are any other kind of warnings, an info icon is displayed.
    * - If there are no warnings at all, no icon is set.
    */
@@ -171,8 +172,8 @@ class HealthNotifier(
   }
 
   /**
-   * Removes all warnings currently displayed, including any system notifications, and
-   * updates the icon (causing it to be set to null since the set of warnings is empty).
+   * Removes all warnings currently displayed, including any system notifications, and updates the
+   * icon (causing it to be set to null since the set of warnings is empty).
    */
   private fun dropAllWarnings() {
     removeNotifications(this.currentWarnings.value)

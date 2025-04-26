@@ -5,10 +5,8 @@ package com.tailscale.ipn.mdm
 
 import android.content.SharedPreferences
 import android.os.Bundle
-import com.tailscale.ipn.App
 import com.tailscale.ipn.ui.util.set
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 
 data class SettingState<T>(val value: T, val isSet: Boolean)
 
@@ -29,18 +27,21 @@ abstract class MDMSetting<T>(defaultValue: T, val key: String, val localizedTitl
   }
 
   protected abstract fun getFromBundle(bundle: Bundle): T
+
   protected abstract fun getFromPrefs(prefs: SharedPreferences): T
 }
 
 class BooleanMDMSetting(key: String, localizedTitle: String) :
     MDMSetting<Boolean>(false, key, localizedTitle) {
   override fun getFromBundle(bundle: Bundle) = bundle.getBoolean(key)
+
   override fun getFromPrefs(prefs: SharedPreferences) = prefs.getBoolean(key, false)
 }
 
 class StringMDMSetting(key: String, localizedTitle: String) :
     MDMSetting<String?>(null, key, localizedTitle) {
   override fun getFromBundle(bundle: Bundle) = bundle.getString(key)
+
   override fun getFromPrefs(prefs: SharedPreferences) = prefs.getString(key, null)
 }
 
@@ -50,13 +51,13 @@ class StringArrayListMDMSetting(key: String, localizedTitle: String) :
     // Try to retrieve the value as a String[] first
     val stringArray = bundle.getStringArray(key)
     if (stringArray != null) {
-        return stringArray.toList()
+      return stringArray.toList()
     }
-    
+
     // Optionally, handle other types if necessary
     val stringArrayList = bundle.getStringArrayList(key)
     if (stringArrayList != null) {
-        return stringArrayList
+      return stringArrayList
     }
 
     // If neither String[] nor ArrayList<String> is found, return null
@@ -64,7 +65,7 @@ class StringArrayListMDMSetting(key: String, localizedTitle: String) :
   }
 
   override fun getFromPrefs(prefs: SharedPreferences): List<String>? {
-      return prefs.getStringSet(key, HashSet<String>())?.toList()
+    return prefs.getStringSet(key, HashSet<String>())?.toList()
   }
 }
 
@@ -72,14 +73,15 @@ class AlwaysNeverUserDecidesMDMSetting(key: String, localizedTitle: String) :
     MDMSetting<AlwaysNeverUserDecides>(AlwaysNeverUserDecides.UserDecides, key, localizedTitle) {
   override fun getFromBundle(bundle: Bundle) =
       AlwaysNeverUserDecides.fromString(bundle.getString(key))
+
   override fun getFromPrefs(prefs: SharedPreferences) =
       AlwaysNeverUserDecides.fromString(prefs.getString(key, null))
 }
 
 class ShowHideMDMSetting(key: String, localizedTitle: String) :
     MDMSetting<ShowHide>(ShowHide.Show, key, localizedTitle) {
-  override fun getFromBundle(bundle: Bundle) =
-      ShowHide.fromString(bundle.getString(key))
+  override fun getFromBundle(bundle: Bundle) = ShowHide.fromString(bundle.getString(key))
+
   override fun getFromPrefs(prefs: SharedPreferences) =
       ShowHide.fromString(prefs.getString(key, null))
 }

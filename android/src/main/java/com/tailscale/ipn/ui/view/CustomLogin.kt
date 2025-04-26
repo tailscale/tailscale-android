@@ -140,11 +140,10 @@ fun LoginView(
                   placeholder = {
                     Text(strings.placeholder, style = MaterialTheme.typography.bodySmall)
                   },
-                  keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None)
-              )
+                  keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None))
             })
 
-        ListItem( 
+        ListItem(
             colors = MaterialTheme.colorScheme.listItem,
             headlineContent = {
               Box(modifier = Modifier.fillMaxWidth()) {
