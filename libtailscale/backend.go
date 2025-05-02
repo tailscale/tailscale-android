@@ -33,6 +33,7 @@ import (
 	"tailscale.com/types/logger"
 	"tailscale.com/types/logid"
 	"tailscale.com/types/netmap"
+	"tailscale.com/util/eventbus"
 	"tailscale.com/wgengine"
 	"tailscale.com/wgengine/netstack"
 	"tailscale.com/wgengine/router"
@@ -95,6 +96,8 @@ type backend struct {
 
 	logIDPublic logid.PublicID
 	logger      *logtail.Logger
+
+	bus *eventbus.Bus
 
 	// avoidEmptyDNS controls whether to use fallback nameservers
 	// when no nameservers are provided by Tailscale.
@@ -249,7 +252,9 @@ func (a *App) newBackend(dataDir, directFileRoot string, appCtx AppContext, stor
 		devices:  newTUNDevices(),
 		settings: settings,
 		appCtx:   appCtx,
+		bus:      eventbus.New(),
 	}
+
 	var logID logid.PrivateID
 	logID.UnmarshalText([]byte("dead0000dead0000dead0000dead0000dead0000dead0000dead0000dead0000"))
 	storedLogID, err := store.read(logPrefKey)
@@ -268,7 +273,7 @@ func (a *App) newBackend(dataDir, directFileRoot string, appCtx AppContext, stor
 		logID.UnmarshalText([]byte(storedLogID))
 	}
 
-	netMon, err := netmon.New(logf)
+	netMon, err := netmon.New(b.bus, logf)
 	if err != nil {
 		log.Printf("netmon.New: %w", err)
 	}
