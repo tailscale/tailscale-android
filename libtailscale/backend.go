@@ -18,6 +18,7 @@ import (
 
 	"tailscale.com/drive/driveimpl"
 	_ "tailscale.com/feature/condregister"
+	"tailscale.com/feature/taildrop"
 	"tailscale.com/hostinfo"
 	"tailscale.com/ipn"
 	"tailscale.com/ipn/ipnauth"
@@ -317,7 +318,10 @@ func (a *App) newBackend(dataDir, directFileRoot string, appCtx AppContext, stor
 		engine.Close()
 		return nil, fmt.Errorf("runBackend: NewLocalBackend: %v", err)
 	}
-	lb.SetDirectFileRoot(directFileRoot)
+
+	if ext, ok := ipnlocal.GetExt[*taildrop.Extension](lb); ok {
+		ext.SetDirectFileRoot(directFileRoot)
+	}
 
 	if err := ns.Start(lb); err != nil {
 		return nil, fmt.Errorf("startNetstack: %w", err)
