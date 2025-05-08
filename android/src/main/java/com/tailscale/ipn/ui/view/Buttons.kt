@@ -16,6 +16,8 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.tailscale.ipn.ui.theme.link
+import com.tailscale.ipn.ui.theme.secondaryButton
+import com.tailscale.ipn.ui.theme.warningButton
 
 @Composable
 fun PrimaryActionButton(onClick: () -> Unit, content: @Composable RowScope.() -> Unit) {
@@ -24,6 +26,28 @@ fun PrimaryActionButton(onClick: () -> Unit, content: @Composable RowScope.() ->
       contentPadding = PaddingValues(vertical = 12.dp),
       modifier = Modifier.fillMaxWidth(),
       content = content)
+}
+
+@Composable
+fun WarningActionButton(onClick: () -> Unit, content: @Composable RowScope.() -> Unit) {
+  Button(
+      onClick = onClick,
+      contentPadding = PaddingValues(vertical = 12.dp),
+      modifier = Modifier.fillMaxWidth(),
+      content = content,
+      colors = MaterialTheme.colorScheme.warningButton,
+  )
+}
+
+@Composable
+fun DismissActionButton(onClick: () -> Unit, content: @Composable RowScope.() -> Unit) {
+  Button(
+      onClick = onClick,
+      contentPadding = PaddingValues(vertical = 12.dp),
+      modifier = Modifier.fillMaxWidth(),
+      content = content,
+      colors = MaterialTheme.colorScheme.secondaryButton,
+  )
 }
 
 @Composable
