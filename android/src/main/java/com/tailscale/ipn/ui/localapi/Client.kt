@@ -14,9 +14,6 @@ import com.tailscale.ipn.ui.model.StableNodeID
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.util.InputStreamAdapter
 import com.tailscale.ipn.util.TSLog
-import java.nio.charset.Charset
-import kotlin.reflect.KType
-import kotlin.reflect.typeOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -26,6 +23,9 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
 import kotlinx.serialization.serializer
 import libtailscale.FilePart
+import java.nio.charset.Charset
+import kotlin.reflect.KType
+import kotlin.reflect.typeOf
 
 private object Endpoint {
   const val DEBUG = "debug"

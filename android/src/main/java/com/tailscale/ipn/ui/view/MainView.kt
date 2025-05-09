@@ -70,6 +70,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.tailscale.ipn.App
 import com.tailscale.ipn.R
@@ -207,8 +210,8 @@ fun MainView(
               Ipn.State.Running -> {
 
                 PromptPermissionsIfNecessary()
-
-                viewModel.showVPNPermissionLauncherIfUnauthorized()
+                viewModel.maybeRequestVpnPermission()
+                LaunchVpnPermissionIfNeeded(viewModel)
 
                 if (showKeyExpiry) {
                   ExpiryNotification(netmap = netmap, action = { viewModel.login() })
@@ -249,6 +252,21 @@ fun MainView(
           PingView(model = viewModel.pingViewModel)
         }
       }
+    }
+  }
+}
+
+@Composable
+fun LaunchVpnPermissionIfNeeded(viewModel: MainViewModel) {
+  val lifecycleOwner = LocalLifecycleOwner.current
+  val shouldRequest by viewModel.requestVpnPermission.collectAsState()
+
+  LaunchedEffect(shouldRequest) {
+    if (!shouldRequest) return@LaunchedEffect
+
+    // Defer showing permission launcher until activity is resumed to avoid silent RESULT_CANCELED
+    lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+      viewModel.showVPNPermissionLauncherIfUnauthorized()
     }
   }
 }
