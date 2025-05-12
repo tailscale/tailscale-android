@@ -44,6 +44,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.tailscale.ipn.mdm.MDMSettings
+import com.tailscale.ipn.mdm.ShowHide
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.theme.AppTheme
@@ -122,6 +123,9 @@ class MainActivity : ComponentActivity() {
     // grab app to make sure it initializes
     App.get()
     vpnViewModel = ViewModelProvider(App.get()).get(VpnViewModel::class.java)
+
+    val rm = getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
+    MDMSettings.update(App.get(), rm)
 
     // (jonathan) TODO: Force the app to be portrait on small screens until we have
     // proper landscape layout support
@@ -290,9 +294,7 @@ class MainActivity : ComponentActivity() {
                         onNavigateHome = backTo("main"), backTo("userSwitcher"))
                   }
                 }
-
-            // Show the intro screen one time
-            if (!introScreenViewed()) {
+            if (shouldDisplayOnboarding()) {
               navController.navigate("intro")
               setIntroScreenViewed(true)
             }
@@ -446,8 +448,11 @@ class MainActivity : ComponentActivity() {
     startActivity(intent)
   }
 
-  private fun introScreenViewed(): Boolean {
-    return getSharedPreferences("introScreen", Context.MODE_PRIVATE).getBoolean("seen", false)
+  private fun shouldDisplayOnboarding(): Boolean {
+    val onboardingFlowShowHide = MDMSettings.onboardingFlow.flow.value.value
+    val introSeen =
+        getSharedPreferences("introScreen", Context.MODE_PRIVATE).getBoolean("seen", false)
+    return (onboardingFlowShowHide == ShowHide.Show && !introSeen)
   }
 
   private fun setIntroScreenViewed(seen: Boolean) {

@@ -97,6 +97,9 @@ object MDMSettings {
   // Overrides the value provided by os.Hostname() in Go
   val hostname = StringMDMSetting("Hostname", "Device Hostname")
 
+  // Allows admins to skip the get started intro screen
+  val onboardingFlow = ShowHideMDMSetting("OnboardingFlow", "Suppress the intro screen")
+
   val allSettings by lazy {
     MDMSettings::class
         .declaredMemberProperties
