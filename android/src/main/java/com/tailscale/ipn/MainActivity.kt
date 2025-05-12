@@ -292,7 +292,7 @@ class MainActivity : ComponentActivity() {
                 }
 
             // Show the intro screen one time
-            if (!introScreenViewed()) {
+            if (!introScreenViewed() && !mdmTailscaleOnboardingSeen()) {
               navController.navigate("intro")
               setIntroScreenViewed(true)
             }
@@ -455,6 +455,10 @@ class MainActivity : ComponentActivity() {
         .edit()
         .putBoolean("seen", seen)
         .apply()
+  }
+
+  private fun mdmTailscaleOnboardingSeen(): Boolean {
+    return MDMSettings.tailscaleOnboardingSeen.flow.value.value
   }
 }
 
