@@ -314,15 +314,28 @@ func (a *App) newBackend(dataDir, directFileRoot string, appCtx AppContext, stor
 		w.Start()
 	}
 	lb, err := ipnlocal.NewLocalBackend(logf, logID.Public(), sys, 0)
+
+	shareFileHelper := <-onShareFileHelper
+	fileOps := NewAndroidFileOps(shareFileHelper)
+	if ext, ok := ipnlocal.GetExt[*taildrop.Extension](lb); ok {
+		ext.SetFileOps(fileOps)
+		ext.SetDirectFileRoot(directFileRoot)
+
+		// directFileRoot may be reset at some time after the backend is created.
+		go func() {
+			for {
+				select {
+				case filepath := <-onFilePath:
+					ext.SetDirectFileRoot(filepath)
+				}
+			}
+		}()
+	}
+
 	if err != nil {
 		engine.Close()
 		return nil, fmt.Errorf("runBackend: NewLocalBackend: %v", err)
 	}
-
-	if ext, ok := ipnlocal.GetExt[*taildrop.Extension](lb); ok {
-		ext.SetDirectFileRoot(directFileRoot)
-	}
-
 	if err := ns.Start(lb); err != nil {
 		return nil, fmt.Errorf("startNetstack: %w", err)
 	}
