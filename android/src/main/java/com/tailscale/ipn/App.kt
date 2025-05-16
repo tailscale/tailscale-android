@@ -7,7 +7,6 @@ import android.app.Application
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.PendingIntent
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -37,11 +36,6 @@ import com.tailscale.ipn.ui.viewModel.VpnViewModel
 import com.tailscale.ipn.ui.viewModel.VpnViewModelFactory
 import com.tailscale.ipn.util.FeatureFlags
 import com.tailscale.ipn.util.TSLog
-import java.io.File
-import java.io.IOException
-import java.net.NetworkInterface
-import java.security.GeneralSecurityException
-import java.util.Locale
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -53,6 +47,11 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import libtailscale.Libtailscale
+import java.io.File
+import java.io.IOException
+import java.net.NetworkInterface
+import java.security.GeneralSecurityException
+import java.util.Locale
 
 class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
   val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -470,25 +469,15 @@ open class UninitializedApp : Application() {
   }
 
   fun restartVPN() {
-    // Register a receiver to listen for the completion of stopVPN
-    val stopReceiver =
-        object : BroadcastReceiver() {
-          override fun onReceive(context: Context?, intent: Intent?) {
-            // Ensure stop intent is complete
-            if (intent?.action == IPNService.ACTION_STOP_VPN) {
-              // Unregister receiver after receiving the broadcast
-              context?.unregisterReceiver(this)
-              // Now start the VPN
-              startVPN()
-            }
-          }
-        }
-
-    // Register the receiver before stopping VPN
-    val intentFilter = IntentFilter(IPNService.ACTION_STOP_VPN)
-    this.registerReceiver(stopReceiver, intentFilter, Context.RECEIVER_NOT_EXPORTED)
-
-    stopVPN()
+    val intent =
+        Intent(this, IPNService::class.java).apply { action = IPNService.ACTION_RESTART_VPN }
+    try {
+      startService(intent)
+    } catch (illegalStateException: IllegalStateException) {
+      TSLog.e(TAG, "restartVPN hit IllegalStateException in startService(): $illegalStateException")
+    } catch (e: Exception) {
+      TSLog.e(TAG, "restartVPN hit exception in startService(): $e")
+    }
   }
 
   fun createNotificationChannel(id: String, name: String, description: String, importance: Int) {
@@ -569,33 +558,13 @@ open class UninitializedApp : Application() {
     return builder.build()
   }
 
-  fun addUserDisallowedPackageName(packageName: String) {
-    if (packageName.isEmpty()) {
-      TSLog.e(TAG, "addUserDisallowedPackageName called with empty packageName")
+  fun updateUserDisallowedPackageNames(packageNames: List<String>) {
+    if (packageNames.any { it.isEmpty() }) {
+      TSLog.e(TAG, "updateUserDisallowedPackageNames called with empty packageName(s)")
       return
     }
 
-    getUnencryptedPrefs()
-        .edit()
-        .putStringSet(
-            DISALLOWED_APPS_KEY, disallowedPackageNames().toMutableSet().union(setOf(packageName)))
-        .apply()
-
-    this.restartVPN()
-  }
-
-  fun removeUserDisallowedPackageName(packageName: String) {
-    if (packageName.isEmpty()) {
-      TSLog.e(TAG, "removeUserDisallowedPackageName called with empty packageName")
-      return
-    }
-
-    getUnencryptedPrefs()
-        .edit()
-        .putStringSet(
-            DISALLOWED_APPS_KEY,
-            disallowedPackageNames().toMutableSet().subtract(setOf(packageName)))
-        .apply()
+    getUnencryptedPrefs().edit().putStringSet(DISALLOWED_APPS_KEY, packageNames.toSet()).apply()
 
     this.restartVPN()
   }

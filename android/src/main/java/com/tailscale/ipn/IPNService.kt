@@ -12,12 +12,12 @@ import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.util.TSLog
-import java.util.UUID
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import libtailscale.Libtailscale
+import java.util.UUID
 
 open class IPNService : VpnService(), libtailscale.IPNService {
   private val TAG = "IPNService"
@@ -44,6 +44,13 @@ open class IPNService : VpnService(), libtailscale.IPNService {
         ACTION_STOP_VPN -> {
           app.setWantRunning(false)
           close()
+          START_NOT_STICKY
+        }
+        ACTION_RESTART_VPN -> {
+          app.setWantRunning(false){
+            close()
+            app.startVPN()
+          }
           START_NOT_STICKY
         }
         ACTION_START_VPN -> {
@@ -82,7 +89,6 @@ open class IPNService : VpnService(), libtailscale.IPNService {
       }
 
   override fun close() {
-    app.setWantRunning(false) {}
     Notifier.setState(Ipn.State.Stopping)
     disconnectVPN()
     Libtailscale.serviceDisconnect(this)
@@ -180,5 +186,6 @@ open class IPNService : VpnService(), libtailscale.IPNService {
   companion object {
     const val ACTION_START_VPN = "com.tailscale.ipn.START_VPN"
     const val ACTION_STOP_VPN = "com.tailscale.ipn.STOP_VPN"
+    const val ACTION_RESTART_VPN = "com.tailscale.ipn.RESTART_VPN"
   }
 }
