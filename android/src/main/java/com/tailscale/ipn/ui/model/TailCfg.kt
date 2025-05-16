@@ -105,7 +105,7 @@ class Tailcfg {
 
     // isExitNode reproduces the Go logic in local.go peerStatusFromNode
     val isExitNode: Boolean =
-        AllowedIPs?.contains("0.0.0.0/0") ?: false && AllowedIPs?.contains("::/0") ?: false
+        (AllowedIPs?.contains("0.0.0.0/0") ?: false) && (AllowedIPs?.contains("::/0") ?: false)
 
     val isMullvadNode: Boolean
       get() = Name.endsWith(".mullvad.ts.net.")
