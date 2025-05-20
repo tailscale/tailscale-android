@@ -162,6 +162,25 @@ type InputStream interface {
 	Close() error
 }
 
+// OutputStream provides an adapter between Java's OutputStream and Go's
+// io.WriteCloser.
+type OutputStream interface {
+	Write([]byte) (int, error)
+	Close() error
+}
+
+// ShareFileHelper corresponds to the Kotlin ShareFileHelper class
+type ShareFileHelper interface {
+	OpenFileWriter(fileName string) OutputStream
+
+	// OpenFileURI opens the file and returns its SAF URI.
+	OpenFileURI(filename string) string
+
+	// RenamePartialFile takes SAF URIs and a target file name,
+	// and returns the new SAF URI and an error.
+	RenamePartialFile(partialUri string, targetDirUri string, targetName string) string
+}
+
 // The below are global callbacks that allow the Java application to notify Go
 // of various state changes.
 
@@ -181,4 +200,24 @@ func SendLog(logstr []byte) {
 		// Channel is full, log not sent
 		log.Printf("Log %v not sent", logstr) // missing argument in original code
 	}
+}
+
+func SetShareFileHelper(fileHelper ShareFileHelper) {
+	// Drain the channel if there's an old value.
+	select {
+	case <-onShareFileHelper:
+	default:
+		// Channel was already empty.
+	}
+	select {
+	case onShareFileHelper <- fileHelper:
+	default:
+		// In the unlikely case the channel is still full, drain it and try again.
+		<-onShareFileHelper
+		onShareFileHelper <- fileHelper
+	}
+}
+
+func SetDirectFileRoot(filePath string) {
+	onFilePath <- filePath
 }

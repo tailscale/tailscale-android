@@ -10,17 +10,21 @@ import android.content.Context
 import android.content.Intent
 import android.content.RestrictionsManager
 import android.content.pm.ActivityInfo
+import android.content.pm.PackageManager
 import android.content.res.Configuration.SCREENLAYOUT_SIZE_LARGE
 import android.content.res.Configuration.SCREENLAYOUT_SIZE_MASK
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Process
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContract
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.animation.core.LinearOutSlowInEasing
@@ -88,8 +92,13 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import libtailscale.Libtailscale
+import java.io.IOException
+import java.security.GeneralSecurityException
 
 class MainActivity : ComponentActivity() {
+  // Key to store the SAF URI in EncryptedSharedPreferences.
+  val PREF_KEY_SAF_URI = "saf_directory_uri"
   private lateinit var navController: NavHostController
   private lateinit var vpnPermissionLauncher: ActivityResultLauncher<Intent>
   private val viewModel: MainViewModel by lazy {
@@ -148,6 +157,49 @@ class MainActivity : ComponentActivity() {
           }
         }
     viewModel.setVpnPermissionLauncher(vpnPermissionLauncher)
+
+    val directoryPickerLauncher =
+        registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri: Uri? ->
+          if (uri != null) {
+            try {
+              // Try to take persistable permissions for both read and write.
+              contentResolver.takePersistableUriPermission(
+                  uri,
+                  Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+            } catch (e: SecurityException) {
+              TSLog.e("MainActivity", "Failed to persist permissions: $e")
+            }
+
+            // Check if write permission is actually granted.
+            val writePermission =
+                this.checkUriPermission(
+                    uri, Process.myPid(), Process.myUid(), Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+            if (writePermission == PackageManager.PERMISSION_GRANTED) {
+              TSLog.d("MainActivity", "Write permission granted for $uri")
+
+              lifecycleScope.launch(Dispatchers.IO) {
+                try {
+                  Libtailscale.setDirectFileRoot(uri.toString())
+                  saveFileDirectory(uri)
+                } catch (e: Exception) {
+                  TSLog.e("MainActivity", "Failed to set Taildrop root: $e")
+                }
+              }
+            } else {
+              TSLog.d(
+                  "MainActivity",
+                  "Write access not granted for $uri. Falling back to internal storage.")
+              // Don't save directory URI and fall back to internal storage.
+                }
+          } else {
+            TSLog.d(
+                "MainActivity", "Taildrop directory not saved. Will fall back to internal storage.")
+
+            // Fall back to internal storage.
+          }
+        }
+
+    viewModel.setDirectoryPickerLauncher(directoryPickerLauncher)
 
     setContent {
       navController = rememberNavController()
@@ -366,16 +418,34 @@ class MainActivity : ComponentActivity() {
       if (this::navController.isInitialized) {
         val previousEntry = navController.previousBackStackEntry
         TSLog.d("MainActivity", "onNewIntent: previousBackStackEntry = $previousEntry")
+        if (this::navController.isInitialized) {
+          val previousEntry = navController.previousBackStackEntry
+          TSLog.d("MainActivity", "onNewIntent: previousBackStackEntry = $previousEntry")
 
-        if (previousEntry != null) {
-          navController.popBackStack(route = "main", inclusive = false)
-        } else {
-          TSLog.e(
-              "MainActivity",
-              "onNewIntent: No previous back stack entry, navigating directly to 'main'")
-          navController.navigate("main") { popUpTo("main") { inclusive = true } }
+          if (previousEntry != null) {
+            navController.popBackStack(route = "main", inclusive = false)
+          } else {
+            TSLog.e(
+                "MainActivity",
+                "onNewIntent: No previous back stack entry, navigating directly to 'main'")
+            navController.navigate("main") { popUpTo("main") { inclusive = true } }
+          }
         }
       }
+    }
+  }
+
+  @Throws(IOException::class, GeneralSecurityException::class)
+  fun saveFileDirectory(directoryUri: Uri) {
+    val prefs = App.get().getEncryptedPrefs()
+    prefs.edit().putString(PREF_KEY_SAF_URI, directoryUri.toString()).apply()
+    try {
+      // Must restart Tailscale because a new LocalBackend with the new directory must be created.
+      App.get().startLibtailscale(directoryUri.toString())
+    } catch (e: Exception) {
+      TSLog.d(
+          "MainActivity",
+          "saveFileDirectory: Failed to restart Libtailscale with the new directory: $e")
     }
   }
 
