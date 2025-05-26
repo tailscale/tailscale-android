@@ -15,9 +15,9 @@ import com.tailscale.ipn.ui.util.DisplayAddress
 import com.tailscale.ipn.ui.util.TimeUtil
 import com.tailscale.ipn.ui.util.flag
 import com.tailscale.ipn.ui.viewModel.PeerSettingInfo
-import java.util.Date
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
+import java.util.Date
 
 class Tailcfg {
   @Serializable
@@ -107,8 +107,13 @@ class Tailcfg {
     val isExitNode: Boolean =
         (AllowedIPs?.contains("0.0.0.0/0") ?: false) && (AllowedIPs?.contains("::/0") ?: false)
 
+    // mullvad nodes are exit nodes with a mullvad.ts.net domain *or* Location Info.
+    // These checks are intentionally redundant to avoid false negatives.
     val isMullvadNode: Boolean
-      get() = Name.endsWith(".mullvad.ts.net.")
+      get() =
+          Name.endsWith(".mullvad.ts.net") ||
+              ComputedName?.endsWith(".mullvad.ts.net") == true ||
+              Hostinfo.Location != null
 
     val displayName: String
       get() = ComputedName ?: Name
