@@ -68,6 +68,8 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
 
   // Select Taildrop directory
   private var directoryPickerLauncher: ActivityResultLauncher<Uri?>? = null
+  private val _showDirectoryPickerInterstitial = MutableStateFlow(false)
+  val showDirectoryPickerInterstitial: StateFlow<Boolean> = _showDirectoryPickerInterstitial
 
   // The list of peers
   private val _peers = MutableStateFlow<List<PeerSet>>(emptyList())
@@ -211,11 +213,16 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
   }
 
   fun showDirectoryPickerLauncher() {
+    _showDirectoryPickerInterstitial.set(false)
+    directoryPickerLauncher?.launch(null)
+  }
+
+  fun checkIfTaildropDirectorySelected() {
     val app = App.get()
     val storedUri = app.getStoredDirectoryUri()
     if (storedUri == null) {
       // No stored URI, so launch the directory picker.
-      directoryPickerLauncher?.launch(null)
+      _showDirectoryPickerInterstitial.set(true)
       return
     }
 
@@ -224,7 +231,7 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
       TSLog.d(
           "MainViewModel",
           "Stored directory URI is invalid or inaccessible; launching directory picker.")
-      directoryPickerLauncher?.launch(null)
+      _showDirectoryPickerInterstitial.set(true)
     } else {
       TSLog.d("MainViewModel", "Using stored directory URI: $storedUri")
     }
@@ -237,7 +244,7 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
     }
 
     viewModelScope.launch {
-      showDirectoryPickerLauncher()
+      checkIfTaildropDirectorySelected()
       isToggleInProgress.value = true
       try {
         val currentState = Notifier.state.value
