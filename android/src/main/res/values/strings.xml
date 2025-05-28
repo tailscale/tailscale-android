@@ -324,4 +324,10 @@
     <string name="hostname">Hostname</string>
     <string name="failed_to_save">Failed to save</string>
 
+    <!-- Strings for the taildrop directory picker interstitial -->
+    <string name="taildrop_directory_picker_title">Taildrop Directory</string>
+    <string name="taildrop_directory_picker_body">You have not selected a directory for incoming taildrop transfers. Please select or create a target directory.</string>
+    <string name="taildrop_directory_picker_info">What is taildrop?</string>
+    <string name="taildrop_directory_picker_button">Open Directory Picker</string>
+
 </resources>
