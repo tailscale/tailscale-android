@@ -95,6 +95,7 @@ class Ipn {
       var ExitNodeIDSet: Boolean? = null,
       var ExitNodeAllowLANAccessSet: Boolean? = null,
       var WantRunningSet: Boolean? = null,
+      var LoggedOutSet: Boolean? = null,
       var ShieldsUpSet: Boolean? = null,
       var AdvertiseRoutesSet: Boolean? = null,
       var ForceDaemonSet: Boolean? = null,
@@ -142,6 +143,12 @@ class Ipn {
       set(value) {
         field = value
         WantRunningSet = true
+      }
+
+      var LoggedOut: Boolean? = null
+      set (value) {
+        field = value
+        LoggedOutSet = true
       }
 
     var ShieldsUp: Boolean? = null
