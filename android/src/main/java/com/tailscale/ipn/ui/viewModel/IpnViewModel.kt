@@ -144,52 +144,60 @@ open class IpnViewModel : ViewModel() {
 
   // Login/Logout
 
+  /**
+   * Order of operations:
+   * 1. editPrefs() with WantRunning=true, LoggedOut=false if AuthKey != null
+   * 2. start() -> boots tailscaled; if an AuthKey was provided and WantRunning/LoggedOut were set
+   *    to true/false in step 1, backend will attempt to log in immediately.
+   * 3. startLoginInteractive() if LoggedOut wasn't set to false in step 1 and the user will be
+   *    directed to a URL to complete authentication
+   *
+   * Any failure short‑circuits the chain and invokes completionHandler once.
+   */
   fun login(
       maskedPrefs: Ipn.MaskedPrefs? = null,
       authKey: String? = null,
       completionHandler: (Result<Unit>) -> Unit = {}
   ) {
+    val client = Client(viewModelScope)
 
-    val loginAction = {
-      Client(viewModelScope).startLoginInteractive { result ->
-        result
-            .onSuccess { TSLog.d(TAG, "Login started: $it") }
-            .onFailure { TSLog.e(TAG, "Error starting login: ${it.message}") }
-        completionHandler(result)
-      }
+    val finalMaskedPrefs = maskedPrefs?.copy() ?: Ipn.MaskedPrefs()
+    finalMaskedPrefs.WantRunning = true
+    if (authKey != null) {
+      finalMaskedPrefs.LoggedOut = false
     }
 
-    // Need to stop running before logging in to clear routes:
-    // https://linear.app/tailscale/issue/ENG-3441/routesdns-is-not-cleared-when-switching-profiles-or-reauthenticating
-    val stopThenLogin = {
-      Client(viewModelScope).editPrefs(Ipn.MaskedPrefs().apply { WantRunning = false }) { result ->
-        result
-            .onSuccess { loginAction() }
-            .onFailure { TSLog.e(TAG, "Error setting wantRunning to false: ${it.message}") }
-      }
+    client.editPrefs(finalMaskedPrefs) { editResult ->
+      editResult
+          .onFailure {
+            TSLog.e(TAG, "editPrefs() failed: ${it.message}")
+            completionHandler(Result.failure(it))
+          }
+          .onSuccess {
+            val opts = Ipn.Options(UpdatePrefs = editResult.getOrThrow(), AuthKey = authKey)
+            client.start(opts) { startResult ->
+              startResult
+                  .onFailure {
+                    TSLog.e(TAG, "start() failed: ${it.message}")
+                    completionHandler(Result.failure(it))
+                  }
+                  .onSuccess {
+                    if (authKey.isNullOrEmpty()) {
+                      client.startLoginInteractive { loginResult ->
+                        loginResult
+                            .onFailure {
+                              TSLog.e(TAG, "startLoginInteractive() failed: ${it.message}")
+                              completionHandler(Result.failure(it))
+                            }
+                            .onSuccess { completionHandler(Result.success(Unit)) }
+                      }
+                    } else {
+                      completionHandler(Result.success(Unit))
+                    }
+                  }
+            }
+          }
     }
-
-    val startAction = {
-      Client(viewModelScope).start(Ipn.Options(AuthKey = authKey)) { start ->
-        start.onFailure { completionHandler(Result.failure(it)) }.onSuccess { stopThenLogin() }
-      }
-    }
-
-    // If an MDM control URL is set, we will always use that in lieu of anything the user sets.
-    var prefs = maskedPrefs
-    val mdmControlURL = MDMSettings.loginURL.flow.value.value
-
-    if (mdmControlURL != null) {
-      prefs = prefs ?: Ipn.MaskedPrefs()
-      prefs.ControlURL = mdmControlURL
-      TSLog.d(TAG, "Overriding control URL with MDM value: $mdmControlURL")
-    }
-
-    prefs?.let {
-      Client(viewModelScope).editPrefs(it) { result ->
-        result.onFailure { completionHandler(Result.failure(it)) }.onSuccess { startAction() }
-      }
-    } ?: run { startAction() }
   }
 
   fun loginWithAuthKey(authKey: String, completionHandler: (Result<Unit>) -> Unit = {}) {
