@@ -70,6 +70,7 @@ import com.tailscale.ipn.ui.view.ManagedByView
 import com.tailscale.ipn.ui.view.MullvadExitNodePicker
 import com.tailscale.ipn.ui.view.MullvadExitNodePickerList
 import com.tailscale.ipn.ui.view.MullvadInfoView
+import com.tailscale.ipn.ui.view.NotificationsView
 import com.tailscale.ipn.ui.view.PeerDetails
 import com.tailscale.ipn.ui.view.PermissionsView
 import com.tailscale.ipn.ui.view.RunExitNodeView
@@ -77,6 +78,7 @@ import com.tailscale.ipn.ui.view.SearchView
 import com.tailscale.ipn.ui.view.SettingsView
 import com.tailscale.ipn.ui.view.SplitTunnelAppPickerView
 import com.tailscale.ipn.ui.view.SubnetRoutingView
+import com.tailscale.ipn.ui.view.TaildropDirView
 import com.tailscale.ipn.ui.view.TailnetLockSetupView
 import com.tailscale.ipn.ui.view.UserSwitcherNav
 import com.tailscale.ipn.ui.view.UserSwitcherView
@@ -93,12 +95,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import libtailscale.Libtailscale
-import java.io.IOException
-import java.security.GeneralSecurityException
 
 class MainActivity : ComponentActivity() {
-  // Key to store the SAF URI in EncryptedSharedPreferences.
-  val PREF_KEY_SAF_URI = "saf_directory_uri"
   private lateinit var navController: NavHostController
   private lateinit var vpnPermissionLauncher: ActivityResultLauncher<Intent>
   private val viewModel: MainViewModel by lazy {
@@ -180,7 +178,7 @@ class MainActivity : ComponentActivity() {
               lifecycleScope.launch(Dispatchers.IO) {
                 try {
                   Libtailscale.setDirectFileRoot(uri.toString())
-                  saveFileDirectory(uri)
+                  TaildropDirectoryStore.saveFileDirectory(uri)
                 } catch (e: Exception) {
                   TSLog.e("MainActivity", "Failed to set Taildrop root: $e")
                 }
@@ -190,7 +188,7 @@ class MainActivity : ComponentActivity() {
                   "MainActivity",
                   "Write access not granted for $uri. Falling back to internal storage.")
               // Don't save directory URI and fall back to internal storage.
-                }
+            }
           } else {
             TSLog.d(
                 "MainActivity", "Taildrop directory not saved. Will fall back to internal storage.")
@@ -329,7 +327,16 @@ class MainActivity : ComponentActivity() {
                   composable("managedBy") { ManagedByView(backTo("settings")) }
                   composable("userSwitcher") { UserSwitcherView(userSwitcherNav) }
                   composable("permissions") {
-                    PermissionsView(backTo("settings"), ::openApplicationSettings)
+                    PermissionsView(
+                        backTo("settings"),
+                        { navController.navigate("taildropDir") },
+                        { navController.navigate("notifications") })
+                  }
+                  composable("taildropDir") {
+                    TaildropDirView(backTo("permissions"), directoryPickerLauncher)
+                  }
+                  composable("notifications") {
+                    NotificationsView(backTo("permissions"), ::openApplicationSettings)
                   }
                   composable("intro", exitTransition = { fadeOut(animationSpec = tween(150)) }) {
                     IntroView(backTo("main"))
@@ -432,20 +439,6 @@ class MainActivity : ComponentActivity() {
           }
         }
       }
-    }
-  }
-
-  @Throws(IOException::class, GeneralSecurityException::class)
-  fun saveFileDirectory(directoryUri: Uri) {
-    val prefs = App.get().getEncryptedPrefs()
-    prefs.edit().putString(PREF_KEY_SAF_URI, directoryUri.toString()).apply()
-    try {
-      // Must restart Tailscale because a new LocalBackend with the new directory must be created.
-      App.get().startLibtailscale(directoryUri.toString())
-    } catch (e: Exception) {
-      TSLog.d(
-          "MainActivity",
-          "saveFileDirectory: Failed to restart Libtailscale with the new directory: $e")
     }
   }
 
