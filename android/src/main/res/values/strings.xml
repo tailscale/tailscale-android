@@ -205,6 +205,8 @@
     <string name="hides_the_specified_categories_of_network_devices_from_the_devices_list_in_the_client">Hides the specified categories of network devices from the devices list in the client.</string>
     <string name="allow_lan_access_when_using_an_exit_node">Allow LAN access when using an exit node</string>
     <string name="enable_posture_checking">Enable posture checking</string>
+    <string name="device_serial_number">Serial number of the device that is running Tailscale</string>
+    <string name="device_serial_number_descr">Allows administrators to pass the serial number of the device to Tailscale client using MDM.</string>
     <string name="use_tailscale_dns_settings">Use Tailscale DNS settings</string>
     <string name="use_tailscale_subnets">Use Tailscale subnets</string>
     <string name="allow_incoming_connections">Allow incoming connections</string>
