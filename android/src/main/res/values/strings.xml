@@ -24,6 +24,8 @@
     <string name="no_results">No results</string>
     <string name="back">Back</string>
     <string name="clear_search">Clear search</string>
+    <string name="off">Off</string>
+    <string name="on">On</string>
 
     <!-- Strings for the about screen -->
     <string name="app_name" translatable="false">Tailscale</string>
@@ -221,7 +223,13 @@
     <string name="permission_write_external_storage_needed">We use storage in order to receive files with Taildrop.</string>
     <string name="permission_post_notifications">Notifications</string>
     <string name="permission_post_notifications_needed">We use notifications to help you troubleshoot broken connections, or notify you before you need to reauthenticate to your network. Persistent status notifications are off by default and can be enabled in system settings. </string>
-
+    <string name="open_notification_settings">Go to notification settings</string>
+    <string name="notification_settings_explanation">Persistent status notifications are off by default and can be enabled in system settings.</string>
+    <string name="taildrop_dir">Taildrop directory</string>
+    <string name="taildrop_dir_access">Taildrop directory access</string>
+    <string name="permission_taildrop_dir">Give Tailscale access to a folder in order to be able to download incoming files sent to you via Taildrop.</string>
+    <string name="dir_access">Directory access</string>
+    <string name="pick_dir">Pick a different directory</string>
 
     <!-- Strings for the share activity -->
     <string name="share">Send with Taildrop</string>
