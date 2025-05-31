@@ -67,6 +67,12 @@
         android:title="@string/enable_posture_checking" />
 
     <restriction
+        android:description="@string/device_serial_number_descr"
+        android:key="DeviceSerialNumber"
+        android:restrictionType="string"
+        android:title="@string/device_serial_number" />
+
+    <restriction
         android:entries="@array/always_never_userdecides_labels"
         android:entryValues="@array/always_never_userdecides"
         android:key="UseTailscaleDNSSettings"
