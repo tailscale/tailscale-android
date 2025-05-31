@@ -134,4 +134,12 @@
         android:key="Hostname"
         android:restrictionType="string"
         android:title="@string/hostname" />
+
+    <restriction
+        android:description="@string/skips_the_intro_page_shown_to_users_that_open_the_app_for_the_first_time"
+        android:entries="@array/show_hide_labels"
+        android:entryValues="@array/show_hide"
+        android:key="OnboardingFlow"
+        android:restrictionType="choice"
+        android:title="@string/onboarding_flow" />
 </restrictions>
