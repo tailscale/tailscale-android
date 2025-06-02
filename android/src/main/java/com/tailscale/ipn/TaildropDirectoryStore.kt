@@ -15,7 +15,7 @@ object TaildropDirectoryStore {
   @Throws(IOException::class, GeneralSecurityException::class)
   fun saveFileDirectory(directoryUri: Uri) {
     val prefs = App.get().getEncryptedPrefs()
-    prefs.edit().putString(PREF_KEY_SAF_URI, directoryUri.toString()).apply()
+    prefs.edit().putString(PREF_KEY_SAF_URI, directoryUri.toString()).commit()
     try {
       // Must restart Tailscale because a new LocalBackend with the new directory must be created.
       App.get().startLibtailscale(directoryUri.toString())

@@ -15,21 +15,23 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.theme.exitNodeToggleButton
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.friendlyDirName
 import com.tailscale.ipn.ui.viewModel.PermissionsViewModel
+import com.tailscale.ipn.util.TSLog
 
 @Composable
 fun TaildropDirView(
     backToPermissionsView: BackNavigation,
     openDirectoryLauncher: ActivityResultLauncher<Uri?>,
-    permissionsViewModel: PermissionsViewModel = viewModel()
+    permissionsViewModel: PermissionsViewModel
 ) {
   Scaffold(
       topBar = {
@@ -53,7 +55,8 @@ fun TaildropDirView(
           item("divider0") { Lists.SectionDivider() }
 
           item {
-            val currentDir = permissionsViewModel.currentDir.value
+            val currentDir by permissionsViewModel.currentDir.collectAsState()
+            TSLog.d("TaildropDirView", "currentDir in UI: $currentDir")
             val displayPath = currentDir?.let { friendlyDirName(it) } ?: "No access"
 
             ListItem(
