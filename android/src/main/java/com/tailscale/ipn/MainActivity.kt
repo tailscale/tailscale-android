@@ -25,6 +25,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContract
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.animation.core.LinearOutSlowInEasing
@@ -85,6 +86,7 @@ import com.tailscale.ipn.ui.view.UserSwitcherView
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerNav
 import com.tailscale.ipn.ui.viewModel.MainViewModel
 import com.tailscale.ipn.ui.viewModel.MainViewModelFactory
+import com.tailscale.ipn.ui.viewModel.PermissionsViewModel
 import com.tailscale.ipn.ui.viewModel.PingViewModel
 import com.tailscale.ipn.ui.viewModel.SettingsNav
 import com.tailscale.ipn.ui.viewModel.VpnViewModel
@@ -105,6 +107,7 @@ class MainActivity : ComponentActivity() {
     ViewModelProvider(this, MainViewModelFactory(vpnViewModel)).get(MainViewModel::class.java)
   }
   private lateinit var vpnViewModel: VpnViewModel
+  val permissionsViewModel: PermissionsViewModel by viewModels()
 
   companion object {
     private const val TAG = "Main Activity"
@@ -179,6 +182,7 @@ class MainActivity : ComponentActivity() {
                 try {
                   Libtailscale.setDirectFileRoot(uri.toString())
                   TaildropDirectoryStore.saveFileDirectory(uri)
+                  permissionsViewModel.refreshCurrentDir()
                 } catch (e: Exception) {
                   TSLog.e("MainActivity", "Failed to set Taildrop root: $e")
                 }
@@ -333,7 +337,8 @@ class MainActivity : ComponentActivity() {
                         { navController.navigate("notifications") })
                   }
                   composable("taildropDir") {
-                    TaildropDirView(backTo("permissions"), directoryPickerLauncher)
+                    TaildropDirView(
+                        backTo("permissions"), directoryPickerLauncher, permissionsViewModel)
                   }
                   composable("notifications") {
                     NotificationsView(backTo("permissions"), ::openApplicationSettings)
