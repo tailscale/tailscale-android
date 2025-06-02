@@ -26,6 +26,8 @@
     <string name="clear_search">Clear search</string>
     <string name="off">Off</string>
     <string name="on">On</string>
+    <string name="try_again">Try again</string>
+    <string name="cancel">Cancel</string>
 
     <!-- Strings for the about screen -->
     <string name="app_name" translatable="false">Tailscale</string>
@@ -312,7 +314,6 @@
     <string name="vpn_permission_denied">VPN permission denied</string>
     <string name="multiple_vpn_explainer">Only one VPN can be active, and it appears another is already running. Before starting Tailscale, disable the other VPN.</string>
     <string name="go_to_settings">Go to Settings</string>
-    <string name="cancel">Cancel</string>
     <string name="subnet_routes">Subnet routes</string>
     <string name="run_as_subnet_router_header">Advertise routes to machines that are not running Tailscale to make them available in your tailnet. Routes must be approved in the admin console.</string>
     <string name="open_kb_article">Open KB Article</string>
@@ -331,6 +332,10 @@
     <string name="specifies_a_device_name_to_be_used_instead_of_the_automatic_default">Specifies a device name to be used instead of the automatic default.</string>
     <string name="hostname">Hostname</string>
     <string name="failed_to_save">Failed to save</string>
+
+    <!-- Strings for fallback VPN dialog -->
+    <string name="vpn_permission_needed">VPN permission needed</string>
+    <string name="vpn_explainer">Tailscale needs VPN access, but it looks like your device may not show VPN settings. If you are using another VPN app or have work policies, disable them first, then try again.</string>
 
     <!-- Strings for the taildrop directory picker interstitial -->
     <string name="taildrop_directory_picker_title">Taildrop Directory</string>

@@ -154,6 +154,15 @@ class MainActivity : ComponentActivity() {
             } else {
               TSLog.d("VpnPermission", "Permission was denied by the user")
               vpnViewModel.setVpnPrepared(false)
+
+              AlertDialog.Builder(this)
+                  .setTitle(R.string.vpn_permission_needed)
+                  .setMessage(R.string.vpn_explainer)
+                  .setPositiveButton(R.string.try_again) { _, _ ->
+                    viewModel.showVPNPermissionLauncherIfUnauthorized()
+                  }
+                  .setNegativeButton(R.string.cancel, null)
+                  .show()
             }
           }
         }
