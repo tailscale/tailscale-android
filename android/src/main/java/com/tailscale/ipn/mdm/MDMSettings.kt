@@ -20,6 +20,8 @@ object MDMSettings {
 
   val forceEnabled = BooleanMDMSetting("ForceEnabled", "Force Enabled Connection Toggle")
 
+  val onboardingFlow = BooleanMDMSetting("OnboardingFlow", "Skip Onboarding Flow")
+
   // Handled on the backed
   val exitNodeID = StringMDMSetting("ExitNodeID", "Forced Exit Node: Stable ID")
 
@@ -61,7 +63,8 @@ object MDMSettings {
 
   // Handled on the backend
   val deviceSerialNumber =
-      StringMDMSetting("DeviceSerialNumber", "Serial number of the device that is running Tailscale")
+      StringMDMSetting(
+          "DeviceSerialNumber", "Serial number of the device that is running Tailscale")
 
   val useTailscaleDNSSettings =
       AlwaysNeverUserDecidesMDMSetting("UseTailscaleDNSSettings", "Use Tailscale DNS Settings")
@@ -97,6 +100,7 @@ object MDMSettings {
 
   // Handled on the backend
   val authKey = StringMDMSetting("AuthKey", "Auth Key for login")
+  // tskey-auth-kBUy7NiRQ411CNTRL-a8sEkPG4KcDP2Kts1CTRdDfjkDSxat5T
 
   // Overrides the value provided by os.Hostname() in Go
   val hostname = StringMDMSetting("Hostname", "Device Hostname")

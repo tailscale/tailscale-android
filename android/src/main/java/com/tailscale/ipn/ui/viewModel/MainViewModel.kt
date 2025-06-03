@@ -50,6 +50,14 @@ class MainViewModelFactory(private val vpnViewModel: VpnViewModel) : ViewModelPr
 
 @OptIn(FlowPreview::class)
 class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
+
+  companion object AuthKeyTracking {
+    data class AuthKeyFailure(val authKey: String? = null, var attempts: Int = 0)
+
+    // Non-null if we have tried to login with an auth key and it failed.
+    var authKeyFailure: AuthKeyFailure? = null
+  }
+
   // The user readable state of the system
   val stateRes: StateFlow<Int> = MutableStateFlow(userStringRes(State.NoState, State.NoState, true))
 
@@ -149,6 +157,40 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
             // Update the VPN toggle state
             _vpnToggleState.value = isOn
 
+            val authKey = getMDMAuthKey()
+            if (currentState == State.NeedsLogin &&
+                previousState != State.NeedsLogin &&
+                authKey != null) {
+
+              // Same auth key?  Too many attempts?  Stop trying, at least for the duration
+              // of this app session.
+              if (authKeyFailure != null &&
+                  authKeyFailure!!.authKey != authKey &&
+                  authKeyFailure!!.attempts > 3) {
+                TSLog.e("MainViewModel", "Failed to login with auth key: too many failed attempts")
+              } else {
+                // If we have an MDM'd auth key, try to login automatically
+                TSLog.d("MainViewModel", "Logging in with MDM auth key")
+                loginWithAuthKey(authKey) {
+                  it.onFailure { error ->
+                    TSLog.e("MainViewModel", "Failed to auto login with auth key: $error")
+                    var failureState = authKeyFailure ?: AuthKeyFailure(authKey, 0)
+                    if (authKey == failureState.authKey) {
+                      failureState.attempts = failureState.attempts + 1
+                    } else {
+                      // New auth key...  Reset our attempts
+                      failureState.attempts = 0
+                    }
+                    authKeyFailure = failureState
+                  }
+                  it.onSuccess {
+                    authKeyFailure = null
+                    // Successfully logged in, no further action needed
+                  }
+                }
+              }
+            }
+
             // Update the previous state
             previousState = currentState
           }
@@ -195,6 +237,11 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
     viewModelScope.launch {
       App.get().healthNotifier?.currentIcon?.collect { icon -> healthIcon.set(icon) }
     }
+  }
+
+  fun getMDMAuthKey(): String {
+    return "tskey-auth-kBUy7NiRQ411CNTRL-a8sEkPG4KcDP2Kts1CTRdDfjkDSxat5T"
+    /// return MDMSettings.authKey.flow.value.value
   }
 
   fun maybeRequestVpnPermission() {

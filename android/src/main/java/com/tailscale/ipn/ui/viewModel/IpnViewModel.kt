@@ -182,18 +182,18 @@ open class IpnViewModel : ViewModel() {
                     completionHandler(Result.failure(it))
                   }
                   .onSuccess {
-                    if (authKey.isNullOrEmpty()) {
-                      client.startLoginInteractive { loginResult ->
-                        loginResult
-                            .onFailure {
-                              TSLog.e(TAG, "startLoginInteractive() failed: ${it.message}")
-                              completionHandler(Result.failure(it))
-                            }
-                            .onSuccess { completionHandler(Result.success(Unit)) }
-                      }
-                    } else {
-                      completionHandler(Result.success(Unit))
+                    // if (authKey.isNullOrEmpty()) {
+                    client.startLoginInteractive { loginResult ->
+                      loginResult
+                          .onFailure {
+                            TSLog.e(TAG, "startLoginInteractive() failed: ${it.message}")
+                            completionHandler(Result.failure(it))
+                          }
+                          .onSuccess { completionHandler(Result.success(Unit)) }
                     }
+                    // } else {
+                    //   completionHandler(Result.success(Unit))
+                    // }
                   }
             }
           }

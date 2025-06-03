@@ -494,10 +494,6 @@ class MainActivity : ComponentActivity() {
     lifecycleScope.launch(Dispatchers.IO) { MDMSettings.update(App.get(), restrictionsManager) }
   }
 
-  override fun onStart() {
-    super.onStart()
-  }
-
   override fun onStop() {
     super.onStop()
     val restrictionsManager =
@@ -515,6 +511,11 @@ class MainActivity : ComponentActivity() {
   }
 
   private fun introScreenViewed(): Boolean {
+    // If the auth key is set, there is no need to render the intro screen.
+    if (MDMSettings.authKey.flow.value.value != null ||
+        MDMSettings.onboardingFlow.flow.value.value) {
+      return true
+    }
     return getSharedPreferences("introScreen", Context.MODE_PRIVATE).getBoolean("seen", false)
   }
 
