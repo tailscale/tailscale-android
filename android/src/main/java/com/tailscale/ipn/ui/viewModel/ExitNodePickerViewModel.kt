@@ -12,12 +12,12 @@ import com.tailscale.ipn.ui.model.StableNodeID
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.set
-import java.util.TreeMap
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.util.TreeMap
 
 data class ExitNodePickerNav(
     val onNavigateBackHome: () -> Unit,
@@ -75,7 +75,7 @@ class ExitNodePickerViewModel(private val nav: ExitNodePickerNav) : IpnViewModel
                             label = it.displayName,
                             online = MutableStateFlow(it.Online ?: false),
                             selected = it.StableID == exitNodeId,
-                            mullvad = it.Name.endsWith(".mullvad.ts.net."),
+                            mullvad = it.isMullvadNode,
                             priority = it.Hostinfo.Location?.Priority ?: 0,
                             countryCode = it.Hostinfo.Location?.CountryCode ?: "",
                             country = it.Hostinfo.Location?.Country ?: "",
