@@ -13,10 +13,13 @@ import com.tailscale.ipn.UninitializedApp
 import com.tailscale.ipn.ui.util.AndroidTVUtil.isAndroidTV
 
 object AndroidTVUtil {
+  private val FEATURE_FIRETV = "amazon.hardware.fire_tv"
+
   fun isAndroidTV(): Boolean {
     val pm = UninitializedApp.get().packageManager
     return (pm.hasSystemFeature(@Suppress("deprecation") PackageManager.FEATURE_TELEVISION) ||
-        pm.hasSystemFeature(PackageManager.FEATURE_LEANBACK))
+        pm.hasSystemFeature(PackageManager.FEATURE_LEANBACK) ||
+        pm.hasSystemFeature(FEATURE_FIRETV))
   }
 }
 
