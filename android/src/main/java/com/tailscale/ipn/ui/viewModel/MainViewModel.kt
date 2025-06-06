@@ -203,6 +203,7 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
 
   fun showVPNPermissionLauncherIfUnauthorized() {
     val vpnIntent = VpnService.prepare(App.get())
+    TSLog.d("VpnPermissions", "vpnIntent=$vpnIntent")
     if (vpnIntent != null) {
       vpnPermissionLauncher?.launch(vpnIntent)
     } else {
