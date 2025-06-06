@@ -220,6 +220,8 @@
     <string name="run_as_exit_node_visibility">Run as exit node visibility</string>
     <string name="defines_an_auth_key_that_will_be_used_for_login">Defines an auth key that will be used for login.</string>
     <string name="auth_key">Auth Key</string>
+    <string name="skips_the_intro_page_shown_to_users_that_open_the_app_for_the_first_time">Skips the intro page shown to users that open the app for the first time</string>
+    <string name="onboarding_flow">Skip the Onboarding Flow</string>
 
     <!-- Permissions Management -->
     <string name="permissions">Permissions</string>
