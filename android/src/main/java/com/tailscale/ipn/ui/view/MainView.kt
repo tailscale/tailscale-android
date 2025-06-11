@@ -215,13 +215,15 @@ fun MainView(
 
             when (state) {
               Ipn.State.Running -> {
-
-                PromptPermissionsIfNecessary()
                 viewModel.maybeRequestVpnPermission()
                 LaunchVpnPermissionIfNeeded(viewModel)
-                LaunchedEffect(state) {
-                  if (state == Ipn.State.Running && !isAndroidTV()) {
-                    viewModel.checkIfTaildropDirectorySelected()
+                PromptForMissingPermissions(viewModel)
+
+                if (!viewModel.skipPromptsForAuthKeyLogin()) {
+                  LaunchedEffect(state) {
+                    if (state == Ipn.State.Running && !isAndroidTV()) {
+                      viewModel.checkIfTaildropDirectorySelected()
+                    }
                   }
                 }
 
@@ -795,7 +797,11 @@ fun ExpiryNotification(netmap: Netmap.NetworkMap?, action: () -> Unit = {}) {
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun PromptPermissionsIfNecessary() {
+fun PromptForMissingPermissions(viewModel: MainViewModel) {
+  if (viewModel.skipPromptsForAuthKeyLogin()) {
+    return
+  }
+
   Permissions.prompt.forEach { (permission, state) ->
     ErrorDialog(
         title = permission.title,

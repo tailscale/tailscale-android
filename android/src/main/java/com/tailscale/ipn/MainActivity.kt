@@ -137,6 +137,11 @@ class MainActivity : ComponentActivity() {
     val rm = getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
     MDMSettings.update(App.get(), rm)
 
+    if (MDMSettings.onboardingFlow.flow.value.value == ShowHide.Hide ||
+        MDMSettings.authKey.flow.value.value != null) {
+      setIntroScreenViewed(true)
+    }
+
     // (jonathan) TODO: Force the app to be portrait on small screens until we have
     // proper landscape layout support
     if (!isLandscapeCapable()) {
@@ -367,7 +372,7 @@ class MainActivity : ComponentActivity() {
                         onNavigateHome = backTo("main"), backTo("userSwitcher"))
                   }
                 }
-            if (shouldDisplayOnboarding()) {
+            if (isIntroScreenViewedSet()) {
               navController.navigate("intro")
               setIntroScreenViewed(true)
             }
@@ -505,10 +510,6 @@ class MainActivity : ComponentActivity() {
     lifecycleScope.launch(Dispatchers.IO) { MDMSettings.update(App.get(), restrictionsManager) }
   }
 
-  override fun onStart() {
-    super.onStart()
-  }
-
   override fun onStop() {
     super.onStop()
     val restrictionsManager =
@@ -525,11 +526,8 @@ class MainActivity : ComponentActivity() {
     startActivity(intent)
   }
 
-  private fun shouldDisplayOnboarding(): Boolean {
-    val onboardingFlowShowHide = MDMSettings.onboardingFlow.flow.value.value
-    val introSeen =
-        getSharedPreferences("introScreen", Context.MODE_PRIVATE).getBoolean("seen", false)
-    return (onboardingFlowShowHide == ShowHide.Show && !introSeen)
+  private fun isIntroScreenViewedSet(): Boolean {
+    return !getSharedPreferences("introScreen", Context.MODE_PRIVATE).getBoolean("seen", false)
   }
 
   private fun setIntroScreenViewed(seen: Boolean) {
