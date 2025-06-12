@@ -165,9 +165,20 @@ func (b *backend) updateTUN(rcfg *router.Config, dcfg *dns.OSConfig) error {
 		b.logger.Logf("updateTUN: set nameservers")
 	}
 
+	apiLevel, err := b.appCtx.GetAPILevel()
+	supportsExcludeRoutes := false
+	if err == nil && apiLevel >= 33 {
+		supportsExcludeRoutes = true
+	}
+
 	for _, route := range rcfg.Routes {
 		// Normalize route address; Builder.addRoute does not accept non-zero masked bits.
 		route = route.Masked()
+
+		if !supportsExcludeRoutes && isLocalRoute(rcfg, route) {
+			continue
+		}
+
 		if err := builder.AddRoute(route.Addr().String(), int32(route.Bits())); err != nil {
 			return err
 		}
@@ -235,6 +246,15 @@ func (b *backend) updateTUN(rcfg *router.Config, dcfg *dns.OSConfig) error {
 	b.lastCfg = rcfg
 	b.lastDNSCfg = dcfg
 	return nil
+}
+
+func isLocalRoute(rcfg *router.Config, r netip.Prefix) bool {
+	for _, lr := range rcfg.LocalRoutes {
+		if lr.Masked() == r {
+			return true
+		}
+	}
+	return false
 }
 
 func closeFileDescriptor() error {

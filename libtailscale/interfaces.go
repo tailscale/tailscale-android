@@ -32,6 +32,9 @@ type AppContext interface {
 	// GetOSVersion gets the Android version.
 	GetOSVersion() (string, error)
 
+	// GetAPILevel gets the SDK version.
+	GetAPILevel() (int32, error)
+
 	// GetModelName gets the Android device's model name.
 	GetModelName() (string, error)
 

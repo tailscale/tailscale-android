@@ -77,6 +77,15 @@ func (a *App) osVersion() string {
 	return version
 }
 
+// apiLevel returns android.os.Build.VERSION.SDK_INT.
+func (a *App) apiLevel() int32 {
+	level, err := a.appCtx.GetAPILevel()
+	if err != nil {
+		panic(err)
+	}
+	return level
+}
+
 // modelName return the MANUFACTURER + MODEL from
 // android.os.Build.
 func (a *App) modelName() string {
