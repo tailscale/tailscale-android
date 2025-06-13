@@ -109,10 +109,11 @@ import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.PeerSet
 import com.tailscale.ipn.ui.util.itemsWithDividers
 import com.tailscale.ipn.ui.util.set
+import com.tailscale.ipn.ui.viewModel.AppViewModel
 import com.tailscale.ipn.ui.viewModel.IpnViewModel.NodeState
 import com.tailscale.ipn.ui.viewModel.MainViewModel
-import com.tailscale.ipn.ui.viewModel.VpnViewModel
 import com.tailscale.ipn.util.FeatureFlags
+import com.tailscale.ipn.util.ShareFileHelper
 
 // Navigation actions for the MainView
 data class MainViewNavigation(
@@ -129,6 +130,7 @@ fun MainView(
     loginAtUrl: (String) -> Unit,
     navigation: MainViewNavigation,
     viewModel: MainViewModel,
+    appViewModel: AppViewModel
 ) {
   val currentPingDevice by viewModel.pingViewModel.peer.collectAsState()
   val healthIcon by viewModel.healthIcon.collectAsState()
@@ -152,7 +154,7 @@ fun MainView(
             val disableToggle by MDMSettings.forceEnabled.flow.collectAsState()
             val showKeyExpiry by viewModel.showExpiry.collectAsState(initial = false)
             val showDirectoryPickerInterstitial by
-                viewModel.showDirectoryPickerInterstitial.collectAsState()
+                appViewModel.showDirectoryPickerInterstitial.collectAsState()
 
             // Hide the header only on Android TV when the user needs to login
             val hideHeader = (isAndroidTV() && state == Ipn.State.NeedsLogin)
@@ -219,14 +221,6 @@ fun MainView(
                 LaunchVpnPermissionIfNeeded(viewModel)
                 PromptForMissingPermissions(viewModel)
 
-                if (!viewModel.skipPromptsForAuthKeyLogin()) {
-                  LaunchedEffect(state) {
-                    if (state == Ipn.State.Running && !isAndroidTV()) {
-                      viewModel.checkIfTaildropDirectorySelected()
-                    }
-                  }
-                }
-
                 if (showKeyExpiry) {
                   ExpiryNotification(netmap = netmap, action = { viewModel.login() })
                 }
@@ -257,25 +251,6 @@ fun MainView(
                     loginAtUrl,
                     netmap?.SelfNode,
                     { viewModel.showVPNPermissionLauncherIfUnauthorized() })
-              }
-            }
-
-            showDirectoryPickerInterstitial.let { show ->
-              if (show) {
-                AppTheme {
-                  AlertDialog(
-                      onDismissRequest = { viewModel.showDirectoryPickerLauncher() },
-                      title = {
-                        Text(text = stringResource(id = R.string.taildrop_directory_picker_title))
-                      },
-                      text = { TaildropDirectoryPickerPrompt() },
-                      confirmButton = {
-                        PrimaryActionButton(onClick = { viewModel.showDirectoryPickerLauncher() }) {
-                          Text(
-                              text = stringResource(id = R.string.taildrop_directory_picker_button))
-                        }
-                      })
-                }
               }
             }
           }
@@ -869,8 +844,8 @@ fun Search(
 @Preview
 @Composable
 fun MainViewPreview() {
-  val vpnViewModel = VpnViewModel(App.get())
-  val vm = MainViewModel(vpnViewModel)
+  val appViewModel = AppViewModel(App.get(), ShareFileHelper.taildropPrompt)
+  val vm = MainViewModel(appViewModel)
 
   MainView(
       {},
@@ -880,5 +855,6 @@ fun MainViewPreview() {
           onNavigateToExitNodes = {},
           onNavigateToHealth = {},
           onNavigateToSearch = {}),
-      vm)
+      vm,
+      appViewModel)
 }

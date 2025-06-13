@@ -29,8 +29,8 @@ func (ops *AndroidFileOps) OpenFileWriter(filename string) (io.WriteCloser, stri
 	return outputStream, uri, nil
 }
 
-func (ops *AndroidFileOps) RenamePartialFile(partialUri, targetDirUri, targetName string) (string, error) {
-	newURI := ops.helper.RenamePartialFile(partialUri, targetDirUri, targetName)
+func (ops *AndroidFileOps) RenamePartialFile(partialUri, targetName string) (string, error) {
+	newURI := ops.helper.RenamePartialFile(partialUri, targetName)
 	if newURI == "" {
 		return "", fmt.Errorf("failed to rename partial file via SAF")
 	}
