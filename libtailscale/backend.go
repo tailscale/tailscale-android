@@ -59,7 +59,7 @@ type App struct {
 	ready           sync.WaitGroup
 	backendMu       sync.Mutex
 
-	backendRestartCh chan struct{}
+	taildropReady chan struct{}
 }
 
 func start(dataDir, directFileRoot string, appCtx AppContext) Application {
@@ -114,23 +114,6 @@ type backend struct {
 type settingsFunc func(*router.Config, *dns.OSConfig) error
 
 func (a *App) runBackend(ctx context.Context) error {
-	for {
-		err := a.runBackendOnce(ctx)
-		if err != nil {
-			log.Printf("runBackendOnce error: %v", err)
-		}
-
-		// Wait for a restart trigger
-		<-a.backendRestartCh
-	}
-}
-
-func (a *App) runBackendOnce(ctx context.Context) error {
-	select {
-	case <-a.backendRestartCh:
-	default:
-	}
-
 	paths.AppSharedDir.Store(a.dataDir)
 	hostinfo.SetOSVersion(a.osVersion())
 	hostinfo.SetPackage(a.appCtx.GetInstallSource())
@@ -337,8 +320,12 @@ func (a *App) newBackend(dataDir string, appCtx AppContext, store *stateStore,
 	}
 	lb, err := ipnlocal.NewLocalBackend(logf, logID.Public(), sys, 0)
 	if ext, ok := ipnlocal.GetExt[*taildrop.Extension](lb); ok {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("panic in taildrop extension init: %v", r)
+			}
+		}()
 		ext.SetFileOps(NewAndroidFileOps(a.shareFileHelper))
-		ext.SetDirectFileRoot(a.directFileRoot)
 	}
 
 	if err != nil {
@@ -368,16 +355,15 @@ func (a *App) newBackend(dataDir string, appCtx AppContext, store *stateStore,
 func (a *App) watchFileOpsChanges() {
 	for {
 		select {
-		case newPath := <-onFilePath:
-			log.Printf("Got new directFileRoot")
-			a.directFileRoot = newPath
-			a.backendRestartCh <- struct{}{}
 		case helper := <-onShareFileHelper:
-			log.Printf("Got shareFIleHelper")
+			log.Printf("Got shareFileHelper")
 			a.shareFileHelper = helper
-			a.backendRestartCh <- struct{}{}
 		}
 	}
+}
+
+func (a *App) WaitForTaildropReady() {
+	<-a.taildropReady
 }
 
 func (b *backend) isConfigNonNilAndDifferent(rcfg *router.Config, dcfg *dns.OSConfig) bool {

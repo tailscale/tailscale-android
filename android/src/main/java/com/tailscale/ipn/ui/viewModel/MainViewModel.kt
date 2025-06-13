@@ -4,7 +4,6 @@
 package com.tailscale.ipn.ui.viewModel
 
 import android.content.Intent
-import android.net.Uri
 import android.net.VpnService
 import androidx.activity.result.ActivityResultLauncher
 import androidx.compose.runtime.getValue
@@ -12,7 +11,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.text.AnnotatedString
-import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -38,18 +36,18 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
 import java.time.Duration
 
-class MainViewModelFactory(private val vpnViewModel: VpnViewModel) : ViewModelProvider.Factory {
+class MainViewModelFactory(private val appViewModel: AppViewModel) : ViewModelProvider.Factory {
   @Suppress("UNCHECKED_CAST")
   override fun <T : ViewModel> create(modelClass: Class<T>): T {
     if (modelClass.isAssignableFrom(MainViewModel::class.java)) {
-      return MainViewModel(vpnViewModel) as T
+      return MainViewModel(appViewModel) as T
     }
     throw IllegalArgumentException("Unknown ViewModel class")
   }
 }
 
 @OptIn(FlowPreview::class)
-class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
+class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
   // The user readable state of the system
   val stateRes: StateFlow<Int> = MutableStateFlow(userStringRes(State.NoState, State.NoState, true))
 
@@ -65,11 +63,6 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
   private var vpnPermissionLauncher: ActivityResultLauncher<Intent>? = null
   private val _requestVpnPermission = MutableStateFlow(false)
   val requestVpnPermission: StateFlow<Boolean> = _requestVpnPermission
-
-  // Select Taildrop directory
-  private var directoryPickerLauncher: ActivityResultLauncher<Uri?>? = null
-  private val _showDirectoryPickerInterstitial = MutableStateFlow(false)
-  val showDirectoryPickerInterstitial: StateFlow<Boolean> = _showDirectoryPickerInterstitial
 
   // The list of peers
   private val _peers = MutableStateFlow<List<PeerSet>>(emptyList())
@@ -97,9 +90,9 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
 
   var pingViewModel: PingViewModel = PingViewModel()
 
-  val isVpnPrepared: StateFlow<Boolean> = vpnViewModel.vpnPrepared
+  val isVpnPrepared: StateFlow<Boolean> = appViewModel.vpnPrepared
 
-  val isVpnActive: StateFlow<Boolean> = vpnViewModel.vpnActive
+  val isVpnActive: StateFlow<Boolean> = appViewModel.vpnActive
 
   var searchJob: Job? = null
 
@@ -214,39 +207,10 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
     if (vpnIntent != null) {
       vpnPermissionLauncher?.launch(vpnIntent)
     } else {
-      vpnViewModel.setVpnPrepared(true)
+      appViewModel.setVpnPrepared(true)
       startVPN()
     }
     _requestVpnPermission.value = false // reset
-  }
-
-  fun showDirectoryPickerLauncher() {
-    _showDirectoryPickerInterstitial.set(false)
-    directoryPickerLauncher?.launch(null)
-  }
-
-  fun checkIfTaildropDirectorySelected() {
-    if (skipPromptsForAuthKeyLogin()) {
-      return
-    }
-
-    val app = App.get()
-    val storedUri = app.getStoredDirectoryUri()
-    if (storedUri == null) {
-      // No stored URI, so launch the directory picker.
-      _showDirectoryPickerInterstitial.set(true)
-      return
-    }
-
-    val documentFile = DocumentFile.fromTreeUri(app, storedUri)
-    if (documentFile == null || !documentFile.exists() || !documentFile.canWrite()) {
-      TSLog.d(
-          "MainViewModel",
-          "Stored directory URI is invalid or inaccessible; launching directory picker.")
-      _showDirectoryPickerInterstitial.set(true)
-    } else {
-      TSLog.d("MainViewModel", "Using stored directory URI: $storedUri")
-    }
   }
 
   fun toggleVpn(desiredState: Boolean) {
@@ -256,11 +220,10 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
     }
 
     viewModelScope.launch {
-      checkIfTaildropDirectorySelected()
       isToggleInProgress.value = true
       try {
         val currentState = Notifier.state.value
-        val isPrepared = vpnViewModel.vpnPrepared.value
+        val isPrepared = appViewModel.vpnPrepared.value
 
         if (desiredState) {
           // User wants to turn ON the VPN
@@ -295,10 +258,6 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
   fun setVpnPermissionLauncher(launcher: ActivityResultLauncher<Intent>) {
     // No intent means we're already authorized
     vpnPermissionLauncher = launcher
-  }
-
-  fun setDirectoryPickerLauncher(launcher: ActivityResultLauncher<Uri?>) {
-    directoryPickerLauncher = launcher
   }
 }
 
