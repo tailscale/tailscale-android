@@ -33,8 +33,8 @@ import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.Netmap
 import com.tailscale.ipn.ui.notifier.HealthNotifier
 import com.tailscale.ipn.ui.notifier.Notifier
-import com.tailscale.ipn.ui.viewModel.VpnViewModel
-import com.tailscale.ipn.ui.viewModel.VpnViewModelFactory
+import com.tailscale.ipn.ui.viewModel.AppViewModel
+import com.tailscale.ipn.ui.viewModel.AppViewModelFactory
 import com.tailscale.ipn.util.FeatureFlags
 import com.tailscale.ipn.util.ShareFileHelper
 import com.tailscale.ipn.util.TSLog
@@ -211,7 +211,7 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
    * Tailscale because directFileRoot must be set before LocalBackend starts being used.
    */
   fun startLibtailscale(directFileRoot: String) {
-    ShareFileHelper.init(this, directFileRoot)
+    ShareFileHelper.init(this, directFileRoot, applicationScope)
     app = Libtailscale.start(this.filesDir.absolutePath, directFileRoot, this)
     Request.setApp(app)
     Notifier.setApp(app)
@@ -219,7 +219,9 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
   }
 
   private fun initViewModels() {
-    vpnViewModel = ViewModelProvider(this, VpnViewModelFactory(this)).get(VpnViewModel::class.java)
+    appViewModel =
+        ViewModelProvider(this, AppViewModelFactory(this, ShareFileHelper.observeTaildropPrompt()))
+            .get(AppViewModel::class.java)
   }
 
   fun setWantRunning(wantRunning: Boolean, onSuccess: (() -> Unit)? = null) {
@@ -227,7 +229,7 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
       result.fold(
           onSuccess = { onSuccess?.invoke() },
           onFailure = { error ->
-            TSLog.d("TAG", "Set want running: failed to update preferences: ${error.message}")
+            TSLog.d(TAG, "Set want running: failed to update preferences: ${error.message}")
           })
     }
     Client(applicationScope)
@@ -390,7 +392,7 @@ open class UninitializedApp : Application() {
     private lateinit var appInstance: UninitializedApp
     lateinit var notificationManager: NotificationManagerCompat
 
-    lateinit var vpnViewModel: VpnViewModel
+    lateinit var appViewModel: AppViewModel
 
     @JvmStatic
     fun get(): UninitializedApp {
@@ -577,8 +579,8 @@ open class UninitializedApp : Application() {
     return builtInDisallowedPackageNames + userDisallowed
   }
 
-  fun getAppScopedViewModel(): VpnViewModel {
-    return vpnViewModel
+  fun getAppScopedViewModel(): AppViewModel {
+    return appViewModel
   }
 
   val builtInDisallowedPackageNames: List<String> =

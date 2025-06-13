@@ -84,13 +84,14 @@ import com.tailscale.ipn.ui.view.TaildropDirView
 import com.tailscale.ipn.ui.view.TailnetLockSetupView
 import com.tailscale.ipn.ui.view.UserSwitcherNav
 import com.tailscale.ipn.ui.view.UserSwitcherView
+import com.tailscale.ipn.ui.viewModel.AppViewModel
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerNav
 import com.tailscale.ipn.ui.viewModel.MainViewModel
 import com.tailscale.ipn.ui.viewModel.MainViewModelFactory
 import com.tailscale.ipn.ui.viewModel.PermissionsViewModel
 import com.tailscale.ipn.ui.viewModel.PingViewModel
 import com.tailscale.ipn.ui.viewModel.SettingsNav
-import com.tailscale.ipn.ui.viewModel.VpnViewModel
+import com.tailscale.ipn.util.ShareFileHelper
 import com.tailscale.ipn.util.TSLog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
@@ -104,10 +105,10 @@ class MainActivity : ComponentActivity() {
   private lateinit var vpnPermissionLauncher: ActivityResultLauncher<Intent>
   private val viewModel: MainViewModel by lazy {
     val app = App.get()
-    vpnViewModel = app.getAppScopedViewModel()
-    ViewModelProvider(this, MainViewModelFactory(vpnViewModel)).get(MainViewModel::class.java)
+    appViewModel = app.getAppScopedViewModel()
+    ViewModelProvider(this, MainViewModelFactory(appViewModel)).get(MainViewModel::class.java)
   }
-  private lateinit var vpnViewModel: VpnViewModel
+  private lateinit var appViewModel: AppViewModel
   val permissionsViewModel: PermissionsViewModel by viewModels()
 
   companion object {
@@ -132,7 +133,7 @@ class MainActivity : ComponentActivity() {
 
     // grab app to make sure it initializes
     App.get()
-    vpnViewModel = ViewModelProvider(App.get()).get(VpnViewModel::class.java)
+    appViewModel = ViewModelProvider(App.get()).get(AppViewModel::class.java)
 
     val rm = getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
     MDMSettings.update(App.get(), rm)
@@ -154,7 +155,7 @@ class MainActivity : ComponentActivity() {
         registerForActivityResult(VpnPermissionContract()) { granted ->
           if (granted) {
             TSLog.d("VpnPermission", "VPN permission granted")
-            vpnViewModel.setVpnPrepared(true)
+            appViewModel.setVpnPrepared(true)
             App.get().startVPN()
           } else {
             if (isAnotherVpnActive(this)) {
@@ -162,7 +163,7 @@ class MainActivity : ComponentActivity() {
               showOtherVPNConflictDialog()
             } else {
               TSLog.d("VpnPermission", "Permission was denied by the user")
-              vpnViewModel.setVpnPrepared(false)
+              appViewModel.setVpnPrepared(false)
 
               AlertDialog.Builder(this)
                   .setTitle(R.string.vpn_permission_needed)
@@ -201,6 +202,7 @@ class MainActivity : ComponentActivity() {
                   Libtailscale.setDirectFileRoot(uri.toString())
                   TaildropDirectoryStore.saveFileDirectory(uri)
                   permissionsViewModel.refreshCurrentDir()
+                  ShareFileHelper.notifyDirectoryReady()
                 } catch (e: Exception) {
                   TSLog.e("MainActivity", "Failed to set Taildrop root: $e")
                 }
@@ -219,7 +221,7 @@ class MainActivity : ComponentActivity() {
           }
         }
 
-    viewModel.setDirectoryPickerLauncher(directoryPickerLauncher)
+    appViewModel.setDirectoryPickerLauncher(directoryPickerLauncher)
 
     setContent {
       navController = rememberNavController()
@@ -308,7 +310,11 @@ class MainActivity : ComponentActivity() {
                           onNavigateToAuthKey = { navController.navigate("loginWithAuthKey") })
 
                   composable("main", enterTransition = { fadeIn(animationSpec = tween(150)) }) {
-                    MainView(loginAtUrl = ::login, navigation = mainViewNav, viewModel = viewModel)
+                    MainView(
+                        loginAtUrl = ::login,
+                        navigation = mainViewNav,
+                        viewModel = viewModel,
+                        appViewModel = appViewModel)
                   }
                   composable("search") {
                     val autoFocus = viewModel.autoFocusSearch

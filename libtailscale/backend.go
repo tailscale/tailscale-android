@@ -372,7 +372,7 @@ func (a *App) watchFileOpsChanges() {
 			a.directFileRoot = newPath
 			a.backendRestartCh <- struct{}{}
 		case helper := <-onShareFileHelper:
-			log.Printf("Got shareFIleHelper")
+			log.Printf("Got shareFileHelper")
 			a.shareFileHelper = helper
 			a.backendRestartCh <- struct{}{}
 		}
