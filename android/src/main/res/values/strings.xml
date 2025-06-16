@@ -136,7 +136,7 @@
     <string name="invalidAuthKeyTitle">Invalid key</string>
     <string name="custom_control_url_title">Custom control server URL</string>
     <string name="auth_key_input_title">Auth key</string>
-
+    
     <!-- Strings for ExitNode picker -->
     <string name="choose_exit_node">Choose exit node</string>
     <string name="choose_mullvad_exit_node">Mullvad exit nodes</string>
