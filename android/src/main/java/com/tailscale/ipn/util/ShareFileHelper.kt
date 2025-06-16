@@ -6,6 +6,7 @@ package com.tailscale.ipn.util
 import android.content.Context
 import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
+import com.tailscale.ipn.ui.util.InputStreamAdapter
 import com.tailscale.ipn.ui.util.OutputStreamAdapter
 import libtailscale.Libtailscale
 import java.io.IOException
@@ -123,6 +124,22 @@ object ShareFileHelper : libtailscale.ShareFileHelper {
     }
   }
 
+  @Throws(IOException::class)
+  override fun deleteFile(uriString: String) {
+    val ctx = appContext ?: throw IOException("DeleteFile: not initialized")
+
+    val uri = Uri.parse(uriString)
+    val doc =
+        DocumentFile.fromSingleUri(ctx, uri)
+            ?: throw IOException("DeleteFile: cannot resolve URI $uriString")
+
+    if (!doc.delete()) {
+      throw IOException("DeleteFile: delete() returned false for $uriString")
+    }
+  }
+
+  override fun treeURI(): String = savedUri ?: throw IllegalStateException("not initialized")
+
   fun generateNewFilename(filename: String): String {
     val dotIndex = filename.lastIndexOf('.')
     val baseName = if (dotIndex != -1) filename.substring(0, dotIndex) else filename
@@ -130,5 +147,52 @@ object ShareFileHelper : libtailscale.ShareFileHelper {
 
     val uuid = UUID.randomUUID()
     return "$baseName-$uuid$extension"
+  }
+
+  fun listPartialFiles(suffix: String): Array<String> {
+    val context = appContext ?: return emptyArray()
+    val rootUri = savedUri ?: return emptyArray()
+    val dir = DocumentFile.fromTreeUri(context, Uri.parse(rootUri)) ?: return emptyArray()
+
+    return dir.listFiles()
+        .filter { it.name?.endsWith(suffix) == true }
+        .mapNotNull { it.name }
+        .toTypedArray()
+  }
+
+  override fun listPartialFilesJSON(suffix: String): String {
+    return listPartialFiles(suffix)
+        .joinToString(prefix = "[\"", separator = "\",\"", postfix = "\"]")
+  }
+
+  override fun openPartialFileReader(name: String): libtailscale.InputStream? {
+    val context = appContext ?: return null
+    val rootUri = savedUri ?: return null
+    val dir = DocumentFile.fromTreeUri(context, Uri.parse(rootUri)) ?: return null
+
+    // We know `name` includes the suffix (e.g. ".<id>.partial"), but the actual
+    // file in SAF might include extra bits, so let's just match by that suffix.
+    // You could also match exactly `endsWith(name)` if the filenames line up
+    val suffix = name.substringAfterLast('.', ".$name") // or hard-code ".partial"
+
+    val file =
+        dir.listFiles().firstOrNull {
+          val fname = it.name ?: return@firstOrNull false
+          // call the String overload explicitly:
+          fname.endsWith(suffix, /*ignoreCase=*/ false)
+        }
+            ?: run {
+              TSLog.d("ShareFileHelper", "no file ending with $suffix in SAF directory")
+              return null
+            }
+
+    TSLog.d("ShareFileHelper", "found SAF file ${file.name}, opening")
+    val inStream =
+        context.contentResolver.openInputStream(file.uri)
+            ?: run {
+              TSLog.d("ShareFileHelper", "openInputStream returned null for ${file.uri}")
+              return null
+            }
+    return InputStreamAdapter(inStream)
   }
 }
