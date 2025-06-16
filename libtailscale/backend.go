@@ -266,7 +266,7 @@ func (a *App) runBackendOnce(ctx context.Context) error {
 func (a *App) newBackend(dataDir string, appCtx AppContext, store *stateStore,
 	settings settingsFunc) (*backend, error) {
 
-	sys := new(tsd.System)
+	sys := tsd.NewSystem()
 	sys.Set(store)
 
 	logf := logger.RusagePrefixLog(log.Printf)
