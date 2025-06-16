@@ -230,27 +230,6 @@ func (r *Response) Flush() {
 	})
 }
 
-func adaptInputStream(in InputStream) io.ReadCloser {
-	if in == nil {
-		return nil
-	}
-	r, w := io.Pipe()
-	go func() {
-		defer w.Close()
-		for {
-			b, err := in.Read()
-			if err != nil {
-				log.Printf("error reading from inputstream: %s", err)
-			}
-			if b == nil {
-				return
-			}
-			w.Write(b)
-		}
-	}()
-	return r
-}
-
 // Below taken from Go stdlib
 var quoteEscaper = strings.NewReplacer("\\", "\\\\", `"`, "\\\"")
 
