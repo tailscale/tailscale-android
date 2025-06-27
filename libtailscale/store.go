@@ -5,6 +5,8 @@ package libtailscale
 
 import (
 	"encoding/base64"
+	"encoding/json"
+	"iter"
 
 	"tailscale.com/ipn"
 )
@@ -22,6 +24,28 @@ func newStateStore(appCtx AppContext) *stateStore {
 		appCtx: appCtx,
 	}
 }
+
+func (s *stateStore) All() iter.Seq2[ipn.StateKey, []byte] {
+	rawJSON := s.appCtx.GetStateStoreKeysJSON()
+	var keys []string
+	if err := json.Unmarshal([]byte(rawJSON), &keys); err != nil {
+		return func(yield func(ipn.StateKey, []byte) bool) {}
+	}
+	return func(yield func(ipn.StateKey, []byte) bool) {
+		for _, k := range keys {
+			blob, err := s.ReadState(ipn.StateKey(k))
+			if err != nil {
+				continue
+			}
+			if !yield(ipn.StateKey(k), blob) {
+				return
+			}
+		}
+	}
+}
+
+// compile-time assertion that store must implement ipn.StateStore to give immediate feedback on interface drift.
+var _ ipn.StateStore = (*stateStore)(nil)
 
 func prefKeyFor(id ipn.StateKey) string {
 	return "statestore-" + string(id)
