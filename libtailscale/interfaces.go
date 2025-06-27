@@ -29,6 +29,10 @@ type AppContext interface {
 	// at the given key, or returns empty string if unset.
 	DecryptFromPref(key string) (string, error)
 
+	// GetStateStoreKeysJson retrieves all keys stored in the encrypted SharedPreferences,
+	// strips off the "statestore-" prefix, and returns them as a JSON array.
+	GetStateStoreKeysJSON() string
+
 	// GetOSVersion gets the Android version.
 	GetOSVersion() (string, error)
 

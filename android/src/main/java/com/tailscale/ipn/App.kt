@@ -248,6 +248,16 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     return getEncryptedPrefs().getString(prefKey, null)
   }
 
+  override fun getStateStoreKeysJSON(): String {
+    val prefix = "statestore-"
+    val keys = getEncryptedPrefs()
+                  .getAll()
+                  .keys
+                  .filter { it.startsWith(prefix) }
+                  .map   { it.removePrefix(prefix) }
+    return org.json.JSONArray(keys).toString()
+  }
+
   @Throws(IOException::class, GeneralSecurityException::class)
   fun getEncryptedPrefs(): SharedPreferences {
     val key = MasterKey.Builder(this).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build()
