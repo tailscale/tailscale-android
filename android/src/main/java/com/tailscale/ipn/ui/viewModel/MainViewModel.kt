@@ -221,8 +221,10 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
   }
 
   fun showDirectoryPickerLauncher() {
-    _showDirectoryPickerInterstitial.set(false)
-    directoryPickerLauncher?.launch(null)
+    directoryPickerLauncher?.let {
+      _showDirectoryPickerInterstitial.set(false)
+      it.launch(null)
+    }
   }
 
   fun checkIfTaildropDirectorySelected() {
@@ -233,17 +235,23 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
     val app = App.get()
     val storedUri = app.getStoredDirectoryUri()
     if (storedUri == null) {
-      // No stored URI, so launch the directory picker.
-      _showDirectoryPickerInterstitial.set(true)
+      if (directoryPickerLauncher != null) {
+        // No stored URI, so launch the directory picker.
+        _showDirectoryPickerInterstitial.set(true)
+      }
       return
     }
 
     val documentFile = DocumentFile.fromTreeUri(app, storedUri)
     if (documentFile == null || !documentFile.exists() || !documentFile.canWrite()) {
-      TSLog.d(
-          "MainViewModel",
-          "Stored directory URI is invalid or inaccessible; launching directory picker.")
-      _showDirectoryPickerInterstitial.set(true)
+      if (directoryPickerLauncher != null) {
+        TSLog.d(
+            "MainViewModel",
+            "Stored directory URI is invalid or inaccessible; launching directory picker.")
+        _showDirectoryPickerInterstitial.set(true)
+      } else {
+        TSLog.d("MainViewModel", "Directory picker activity not available")
+      }
     } else {
       TSLog.d("MainViewModel", "Using stored directory URI: $storedUri")
     }
