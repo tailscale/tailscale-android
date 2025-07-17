@@ -347,4 +347,10 @@
     <string name="taildrop_directory_picker_info">What is taildrop?</string>
     <string name="taildrop_directory_picker_button">Open Directory Picker</string>
 
+    <!-- Strings for shortcuts -->
+    <string name="shortcut_enable_vpn_short">Enable VPN</string>
+    <string name="shortcut_enable_vpn_long">Enable Tailscale VPN</string>
+    <string name="shortcut_disable_vpn_short">Disable VPN</string>
+    <string name="shortcut_disable_vpn_long">Disable Tailscale VPN</string>
+
 </resources>
