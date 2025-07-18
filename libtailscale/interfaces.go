@@ -177,12 +177,22 @@ type OutputStream interface {
 type ShareFileHelper interface {
 	OpenFileWriter(fileName string) OutputStream
 
+	OpenFileWriterAt(fileName string, offset int64) OutputStream
+
 	// OpenFileURI opens the file and returns its SAF URI.
 	OpenFileURI(filename string) string
 
 	// RenamePartialFile takes SAF URIs and a target file name,
 	// and returns the new SAF URI and an error.
-	RenamePartialFile(partialUri string, targetDirUri string, targetName string) string
+	RenamePartialFile(oldPath string, newPath string, targetName string) string
+
+	ListPartialFilesJSON(suffix string) string
+
+	OpenPartialFileReader(name string) InputStream
+
+	DeleteFile(uriString string) error
+
+	TreeURI() string
 }
 
 // The below are global callbacks that allow the Java application to notify Go
