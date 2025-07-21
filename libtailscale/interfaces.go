@@ -125,6 +125,8 @@ type Application interface {
 	// on every new ipn.Notify message. The returned NotificationManager
 	// allows the watcher to stop watching notifications.
 	WatchNotifications(mask int, cb NotificationCallback) NotificationManager
+
+	WaitForTaildropReady()
 }
 
 // FileParts is an array of multiple FileParts.
@@ -182,7 +184,7 @@ type ShareFileHelper interface {
 
 	// RenamePartialFile takes SAF URIs and a target file name,
 	// and returns the new SAF URI and an error.
-	RenamePartialFile(partialUri string, targetDirUri string, targetName string) string
+	RenamePartialFile(partialUri string, targetName string) string
 }
 
 // The below are global callbacks that allow the Java application to notify Go
@@ -220,8 +222,4 @@ func SetShareFileHelper(fileHelper ShareFileHelper) {
 		<-onShareFileHelper
 		onShareFileHelper <- fileHelper
 	}
-}
-
-func SetDirectFileRoot(filePath string) {
-	onFilePath <- filePath
 }

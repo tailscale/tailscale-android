@@ -151,8 +151,6 @@ fun MainView(
             val showExitNodePicker by MDMSettings.exitNodesPicker.flow.collectAsState()
             val disableToggle by MDMSettings.forceEnabled.flow.collectAsState()
             val showKeyExpiry by viewModel.showExpiry.collectAsState(initial = false)
-            val showDirectoryPickerInterstitial by
-                viewModel.showDirectoryPickerInterstitial.collectAsState()
 
             // Hide the header only on Android TV when the user needs to login
             val hideHeader = (isAndroidTV() && state == Ipn.State.NeedsLogin)
