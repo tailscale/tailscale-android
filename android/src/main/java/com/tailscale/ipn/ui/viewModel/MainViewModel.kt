@@ -23,6 +23,7 @@ import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.Ipn.State
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.notifier.Notifier
+import com.tailscale.ipn.ui.util.AndroidTVUtil
 import com.tailscale.ipn.ui.util.PeerCategorizer
 import com.tailscale.ipn.ui.util.PeerSet
 import com.tailscale.ipn.ui.util.TimeUtil
@@ -226,7 +227,7 @@ class MainViewModel(private val vpnViewModel: VpnViewModel) : IpnViewModel() {
   }
 
   fun checkIfTaildropDirectorySelected() {
-    if (skipPromptsForAuthKeyLogin()) {
+    if (skipPromptsForAuthKeyLogin() || AndroidTVUtil.isAndroidTV()) {
       return
     }
 
