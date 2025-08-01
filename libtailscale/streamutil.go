@@ -8,7 +8,7 @@ import (
 	"log"
 )
 
-// adaptInputStream wraps a libtailscale.InputStream into an io.ReadCloser.
+// adaptInputStream wraps an [InputStream] into an [io.ReadCloser].
 // It launches a goroutine to stream reads into a pipe.
 func adaptInputStream(in InputStream) io.ReadCloser {
 	if in == nil {
@@ -20,12 +20,16 @@ func adaptInputStream(in InputStream) io.ReadCloser {
 		for {
 			b, err := in.Read()
 			if err != nil {
-				log.Printf("error reading from inputstream: %s", err)
+				log.Printf("error reading from inputstream: %v", err)
+				return
 			}
 			if b == nil {
 				return
 			}
-			w.Write(b)
+			if _, err := w.Write(b); err != nil {
+				log.Printf("error writing to pipe: %v", err)
+				return
+			}
 		}
 	}()
 	return r

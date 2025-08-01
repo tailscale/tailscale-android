@@ -49,91 +49,90 @@ object ShareFileHelper : libtailscale.ShareFileHelper {
     return file.uri.toString() to os
   }
 
-  private fun openWriterFD(fileName: String, offset: Long): Pair<String, SeekableOutputStream?> {
-
-    val ctx = appContext ?: return "" to null
-    val dirUri = savedUri ?: return "" to null
-    val dir = DocumentFile.fromTreeUri(ctx, Uri.parse(dirUri)) ?: return "" to null
-
-    // Reuse existing doc if it exists
+  @Throws(IOException::class)
+  private fun openWriterFD(fileName: String, offset: Long): Pair<String, SeekableOutputStream> {
+    val ctx = appContext ?: throw IOException("App context not initialized")
+    val dirUri = savedUri ?: throw IOException("No directory URI")
+    val dir =
+        DocumentFile.fromTreeUri(ctx, Uri.parse(dirUri))
+            ?: throw IOException("Invalid tree URI: $dirUri")
     val file =
         dir.findFile(fileName)
             ?: dir.createFile("application/octet-stream", fileName)
-            ?: return "" to null
+            ?: throw IOException("Failed to create file: $fileName")
 
-    // Always get a ParcelFileDescriptor so we can sync
-    val pfd = ctx.contentResolver.openFileDescriptor(file.uri, "rw") ?: return "" to null
+    val pfd =
+        ctx.contentResolver.openFileDescriptor(file.uri, "rw")
+            ?: throw IOException("Failed to open file descriptor for ${file.uri}")
     val fos = FileOutputStream(pfd.fileDescriptor)
 
     if (offset != 0L) fos.channel.position(offset) else fos.channel.truncate(0)
-
     return file.uri.toString() to SeekableOutputStream(fos, pfd)
   }
 
   private val currentUri = ConcurrentHashMap<String, String>()
 
-  override fun openFileWriter(fileName: String): libtailscale.OutputStream {
-    val (uri, stream) = openWriterFD(fileName, 0)
-    currentUri[fileName] = uri // 🠚 cache the exact doc we opened
-    return OutputStreamAdapter(stream ?: OutputStream.nullOutputStream())
-  }
-
-  override fun openFileWriterAt(fileName: String, offset: Long): libtailscale.OutputStream {
+  @Throws(IOException::class)
+  override fun openFileWriter(fileName: String, offset: Long): libtailscale.OutputStream {
     val (uri, stream) = openWriterFD(fileName, offset)
+    if (stream == null) {
+      throw IOException("Failed to open file writer for $fileName")
+    }
     currentUri[fileName] = uri
-    return OutputStreamAdapter(stream ?: OutputStream.nullOutputStream())
+    return OutputStreamAdapter(stream)
   }
 
-  override fun openFileURI(fileName: String): String {
+  @Throws(IOException::class)
+  override fun getFileURI(fileName: String): String {
     currentUri[fileName]?.let {
       return it
     }
-    val ctx = appContext ?: return ""
-    val dirStr = savedUri ?: return ""
-    val dir = DocumentFile.fromTreeUri(ctx, Uri.parse(dirStr)) ?: return ""
 
-    val file = dir.findFile(fileName) ?: return ""
+    val ctx = appContext ?: throw IOException("App context not initialized")
+    val dirStr = savedUri ?: throw IOException("No saved directory URI")
+    val dir =
+        DocumentFile.fromTreeUri(ctx, Uri.parse(dirStr))
+            ?: throw IOException("Invalid tree URI: $dirStr")
+
+    val file = dir.findFile(fileName) ?: throw IOException("File not found: $fileName")
     val uri = file.uri.toString()
-
     currentUri[fileName] = uri
     return uri
   }
 
-  override fun renamePartialFile(
-      partialUri: String,
-      targetDirUri: String,
-      targetName: String
-  ): String {
+  @Throws(IOException::class)
+  override fun renameFile(oldPath: String, targetName: String): String {
     val ctx = appContext ?: throw IOException("not initialized")
-    val srcUri = Uri.parse(partialUri)
+    val dirUri = savedUri ?: throw IOException("directory not set")
+    val srcUri = Uri.parse(oldPath)
     val dir =
-        DocumentFile.fromTreeUri(ctx, Uri.parse(targetDirUri))
-            ?: throw IOException("cannot open dir $targetDirUri")
-
+        DocumentFile.fromTreeUri(ctx, Uri.parse(dirUri))
+            ?: throw IOException("cannot open dir $dirUri")
+  
     var finalName = targetName
     dir.findFile(finalName)?.let { existing ->
       if (lengthOfUri(ctx, existing.uri) == 0L) {
-        existing.delete() // remove stale 0‑byte file
+        existing.delete()
       } else {
         finalName = generateNewFilename(finalName)
       }
     }
-
+  
     try {
       DocumentsContract.renameDocument(ctx.contentResolver, srcUri, finalName)?.also { newUri ->
         runCatching { ctx.contentResolver.delete(srcUri, null, null) }
         cleanupPartials(dir, targetName)
         return newUri.toString()
       }
-    } catch (_: Exception) {
-      // rename not supported; fall through to copy‑delete
-    }
+    } catch (e: Exception) {
+      TSLog.w("renameFile", "renameDocument fallback triggered for $srcUri -> $finalName: ${e.message}")
 
-    // fallback - copy contents then delete source
+    }
+  
     val dest =
         dir.createFile("application/octet-stream", finalName)
             ?: throw IOException("createFile failed for $finalName")
-
+  
     ctx.contentResolver.openInputStream(srcUri).use { inp ->
       ctx.contentResolver.openOutputStream(dest.uri, "w").use { out ->
         if (inp == null || out == null) {
@@ -143,7 +142,7 @@ object ShareFileHelper : libtailscale.ShareFileHelper {
         inp.copyTo(out)
       }
     }
-    // delete the original .partial
+  
     ctx.contentResolver.delete(srcUri, null, null)
     cleanupPartials(dir, targetName)
     return dest.uri.toString()
@@ -163,33 +162,35 @@ object ShareFileHelper : libtailscale.ShareFileHelper {
   }
 
   @Throws(IOException::class)
-  override fun deleteFile(uriString: String) {
+  override fun deleteFile(uri: String) {
     val ctx = appContext ?: throw IOException("DeleteFile: not initialized")
 
-    val uri = Uri.parse(uriString)
+    val uri = Uri.parse(uri)
     val doc =
         DocumentFile.fromSingleUri(ctx, uri)
-            ?: throw IOException("DeleteFile: cannot resolve URI $uriString")
+            ?: throw IOException("DeleteFile: cannot resolve URI $uri")
 
     if (!doc.delete()) {
-      throw IOException("DeleteFile: delete() returned false for $uriString")
+      throw IOException("DeleteFile: delete() returned false for $uri")
     }
   }
 
-  override fun treeURI(): String = savedUri ?: throw IllegalStateException("not initialized")
-
+  @Throws(IOException::class)
   override fun getFileInfo(fileName: String): String {
-    val context = appContext ?: return ""
-    val dirUri = savedUri ?: return ""
-    val dir = DocumentFile.fromTreeUri(context, Uri.parse(dirUri)) ?: return ""
+    val context = appContext ?: throw IOException("app context not initialized")
+    val dirUri = savedUri ?: throw IOException("SAF URI not initialized")
+    val dir =
+        DocumentFile.fromTreeUri(context, Uri.parse(dirUri))
+            ?: throw IOException("could not resolve SAF root")
 
-    val file = dir.findFile(fileName) ?: return ""
+    val file =
+        dir.findFile(fileName) ?: throw IOException("file \"$fileName\" not found in SAF directory")
 
-    val name = file.name ?: return ""
+    val name = file.name ?: throw IOException("file name missing for $fileName")
     val size = file.length()
-    val modTime = file.lastModified() // milliseconds since epoch
+    val modTime = file.lastModified()
 
-    return """{"name":${jsonEscape(name)},"size":$size,"modTime":$modTime}"""
+    return """{"name":${JSONObject.quote(name)},"size":$size,"modTime":$modTime}"""
   }
 
   private fun jsonEscape(s: String): String {
@@ -216,71 +217,66 @@ object ShareFileHelper : libtailscale.ShareFileHelper {
         .toTypedArray()
   }
 
-  override fun listPartialFilesJSON(suffix: String): String {
-    return listPartialFiles(suffix)
-        .joinToString(prefix = "[\"", separator = "\",\"", postfix = "\"]")
+  @Throws(IOException::class)
+  override fun listFilesJSON(suffix: String): String {
+    val list = listPartialFiles(suffix)
+    if (list.isEmpty()) {
+      throw IOException("no files found matching suffix \"$suffix\"")
+    }
+    return list.joinToString(prefix = "[\"", separator = "\",\"", postfix = "\"]")
   }
 
-  override fun openPartialFileReader(name: String): libtailscale.InputStream? {
-    val context = appContext ?: return null
-    val rootUri = savedUri ?: return null
-    val dir = DocumentFile.fromTreeUri(context, Uri.parse(rootUri)) ?: return null
+  @Throws(IOException::class)
+  override fun openFileReader(name: String): libtailscale.InputStream {
+    val context = appContext ?: throw IOException("app context not initialized")
+    val rootUri = savedUri ?: throw IOException("SAF URI not initialized")
+    val dir =
+        DocumentFile.fromTreeUri(context, Uri.parse(rootUri))
+            ?: throw IOException("could not open SAF root")
 
-    // We know `name` includes the suffix (e.g. ".<id>.partial"), but the actual
-    // file in SAF might include extra bits, so let's just match by that suffix.
-    // You could also match exactly `endsWith(name)` if the filenames line up
-    val suffix = name.substringAfterLast('.', ".$name") // or hard-code ".partial"
+    val suffix = name.substringAfterLast('.', ".$name")
 
     val file =
         dir.listFiles().firstOrNull {
           val fname = it.name ?: return@firstOrNull false
-          // call the String overload explicitly:
-          fname.endsWith(suffix, /*ignoreCase=*/ false)
-        }
-            ?: run {
-              TSLog.d("ShareFileHelper", "no file ending with $suffix in SAF directory")
-              return null
-            }
+          fname.endsWith(suffix, ignoreCase = false)
+        } ?: throw IOException("no file ending with \"$suffix\" in SAF directory")
 
-    TSLog.d("ShareFileHelper", "found SAF file ${file.name}, opening")
     val inStream =
         context.contentResolver.openInputStream(file.uri)
-            ?: run {
-              TSLog.d("ShareFileHelper", "openInputStream returned null for ${file.uri}")
-              return null
-            }
+            ?: throw IOException("openInputStream returned null for ${file.uri}")
+
     return InputStreamAdapter(inStream)
   }
-}
 
-private class SeekableOutputStream(
-    private val fos: FileOutputStream,
-    private val pfd: ParcelFileDescriptor
-) : OutputStream() {
+  private class SeekableOutputStream(
+      private val fos: FileOutputStream,
+      private val pfd: ParcelFileDescriptor
+  ) : OutputStream() {
 
-  private var closed = false
+    private var closed = false
 
-  override fun write(b: Int) = fos.write(b)
+    override fun write(b: Int) = fos.write(b)
 
-  override fun write(b: ByteArray) = fos.write(b)
+    override fun write(b: ByteArray) = fos.write(b)
 
-  override fun write(b: ByteArray, off: Int, len: Int) {
-    fos.write(b, off, len)
-  }
+    override fun write(b: ByteArray, off: Int, len: Int) {
+      fos.write(b, off, len)
+    }
 
-  override fun close() {
-    if (!closed) {
-      closed = true
-      try {
-        fos.flush()
-        fos.fd.sync() // blocks until data + metadata are durable
-        val size = fos.channel.size()
-      } finally {
-        fos.close()
-        pfd.close()
+    override fun close() {
+      if (!closed) {
+        closed = true
+        try {
+          fos.flush()
+          fos.fd.sync() // blocks until data + metadata are durable
+        } finally {
+          fos.close()
+          pfd.close()
+        }
       }
     }
-  }
 
-  override fun flush() = fos.flush()
+    override fun flush() = fos.flush()
+  }
 }

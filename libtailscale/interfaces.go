@@ -175,45 +175,36 @@ type OutputStream interface {
 
 // ShareFileHelper corresponds to the Kotlin ShareFileHelper class
 type ShareFileHelper interface {
-	// OpenFileWriter creates or truncates a file named fileName
-	// and returns an OutputStream for writing to it from the beginning.
-	// Returns nil if the file cannot be opened.
-	OpenFileWriter(fileName string) OutputStream
+	// OpenFileWriter creates or truncates a file named fileName at a given offset,
+	// returning an OutputStream for writing. Returns an error if the file cannot be opened.
+	OpenFileWriter(fileName string, offset int64) (stream OutputStream, err error)
 
-	// OpenFileWriterAt opens fileName for writing at a given offset.
-	// Returns nil if the file cannot be opened.
-	OpenFileWriterAt(fileName string, offset int64) OutputStream
+	// GetFileURI returns the SAF URI string for the file named fileName,
+	// or an error if the file cannot be resolved.
+	GetFileURI(fileName string) (uri string, err error)
 
-	// OpenFileURI returns the SAF URI string for the file named fileName,
-	// or an empty string if the file cannot be resolved.
-	OpenFileURI(fileName string) string
+	// RenameFile renames the file at oldPath (a SAF URI) into the Taildrop directory,
+	// giving it the new targetName. Returns the SAF URI of the renamed file, or an error.
+	RenameFile(oldPath string, targetName string) (newURI string, err error)
 
-	// RenamePartialFile renames the file at oldPath (a SAF URI)
-	// into the directory identified by newPath (a tree URI),
-	// giving it the new targetName. Returns the SAF URI of the renamed file,
-	// or an empty string if the operation failed.
-	RenamePartialFile(oldPath string, newPath string, targetName string) string
+	// ListFilesJSON returns a JSON-encoded list of filenames in the Taildrop directory
+	// that end with the specified suffix. If the suffix is empty, it returns all files.
+	// Returns an error if no matching files are found or the directory cannot be accessed.
+	ListFilesJSON(suffix string) (json string, err error)
 
-	// ListPartialFilesJSON returns a JSON-encoded list of partial filenames
-	// (e.g., ["foo.partial", "bar.partial"]) that match the given suffix.
-	ListPartialFilesJSON(suffix string) string
-
-	// OpenPartialFileReader opens the file with the given name (typically a .partial file)
+	// OpenFileReader opens the file with the given name (typically a .partial file)
 	// and returns an InputStream for reading its contents.
-	// Returns nil if the file cannot be opened.
-	OpenPartialFileReader(name string) InputStream
+	// Returns an error if the file cannot be opened.
+	OpenFileReader(name string) (stream InputStream, err error)
 
 	// DeleteFile deletes the file identified by the given SAF URI string.
 	// Returns an error if the file could not be deleted.
-	DeleteFile(uriString string) error
+	DeleteFile(uri string) error
 
-	// TreeURI returns the SAF tree URI representing the root directory for Taildrop files.
-	// This is typically the URI granted by the user via the Android directory picker.
-	TreeURI() string
-
-	// GetFileInfo returns a JSON-encoded string with file metadata for fileName.
-	// Returns an empty string if the file does not exist or cannot be accessed.
-	GetFileInfo(fileName string) string
+	// GetFileInfo returns a JSON-encoded string containing metadata for fileName,
+	// matching the fields of androidFileInfo (name, size, modTime).
+	// Returns an error if the file does not exist or cannot be accessed.
+	GetFileInfo(fileName string) (json string, err error)
 }
 
 // The below are global callbacks that allow the Java application to notify Go
