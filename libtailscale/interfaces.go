@@ -175,14 +175,45 @@ type OutputStream interface {
 
 // ShareFileHelper corresponds to the Kotlin ShareFileHelper class
 type ShareFileHelper interface {
+	// OpenFileWriter creates or truncates a file named fileName
+	// and returns an OutputStream for writing to it from the beginning.
+	// Returns nil if the file cannot be opened.
 	OpenFileWriter(fileName string) OutputStream
 
-	// OpenFileURI opens the file and returns its SAF URI.
-	OpenFileURI(filename string) string
+	// OpenFileWriterAt opens fileName for writing at a given offset.
+	// Returns nil if the file cannot be opened.
+	OpenFileWriterAt(fileName string, offset int64) OutputStream
 
-	// RenamePartialFile takes SAF URIs and a target file name,
-	// and returns the new SAF URI and an error.
-	RenamePartialFile(partialUri string, targetDirUri string, targetName string) string
+	// OpenFileURI returns the SAF URI string for the file named fileName,
+	// or an empty string if the file cannot be resolved.
+	OpenFileURI(fileName string) string
+
+	// RenamePartialFile renames the file at oldPath (a SAF URI)
+	// into the directory identified by newPath (a tree URI),
+	// giving it the new targetName. Returns the SAF URI of the renamed file,
+	// or an empty string if the operation failed.
+	RenamePartialFile(oldPath string, newPath string, targetName string) string
+
+	// ListPartialFilesJSON returns a JSON-encoded list of partial filenames
+	// (e.g., ["foo.partial", "bar.partial"]) that match the given suffix.
+	ListPartialFilesJSON(suffix string) string
+
+	// OpenPartialFileReader opens the file with the given name (typically a .partial file)
+	// and returns an InputStream for reading its contents.
+	// Returns nil if the file cannot be opened.
+	OpenPartialFileReader(name string) InputStream
+
+	// DeleteFile deletes the file identified by the given SAF URI string.
+	// Returns an error if the file could not be deleted.
+	DeleteFile(uriString string) error
+
+	// TreeURI returns the SAF tree URI representing the root directory for Taildrop files.
+	// This is typically the URI granted by the user via the Android directory picker.
+	TreeURI() string
+
+	// GetFileInfo returns a JSON-encoded string with file metadata for fileName.
+	// Returns an empty string if the file does not exist or cannot be accessed.
+	GetFileInfo(fileName string) string
 }
 
 // The below are global callbacks that allow the Java application to notify Go
