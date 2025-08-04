@@ -13,7 +13,7 @@
     <string name="not_connected">Not connected</string>
     <string name="empty" translatable="false"> </string>
     <string name="template" translatable="false">%s</string>
-    <string name="selected">Selected</string>
+    <string name="selected">Selected</string> 
     <string name="offline">Offline</string>
     <string name="ok">OK</string>
     <string name="_continue">Continue</string>
@@ -136,6 +136,20 @@
     <string name="invalidAuthKeyTitle">Invalid key</string>
     <string name="custom_control_url_title">Custom control server URL</string>
     <string name="auth_key_input_title">Auth key</string>
+
+    <string name="delete_tailnet">Delete tailnet</string>
+    <string name="contact_support">Contact support</string>
+    <string name="request_deletion_nonowner">All requests related to the removal or deletion of data are handled by our Support team. To open a request, tap the Contact Support button below to be taken to our contact form in the browser. Complete the form, and a Customer Support Engineer will work with you directly to assist.</string>
+    <string name="request_deletion_owner_part1">
+    As the owner of this tailnet, to remove yourself from the tailnet you can either reassign ownership and contact our Support team, or delete the whole tailnet through the admin console. To do the latter, go to
+</string>
+<string name="request_deletion_owner_part2a">
+    and look for “Delete tailnet”.
+</string>
+
+<string name="request_deletion_owner_part2b">
+    All requests related to the removal or deletion of data are handled by our Support team. To open a request, tap the Contact Support button below to be taken to our contact form in the browser. Complete the form, and a Customer Support Engineer will work with you directly to assist.
+</string>
 
     <!-- Strings for ExitNode picker -->
     <string name="choose_exit_node">Choose exit node</string>
