@@ -51,7 +51,7 @@ fun UserSwitcherView(nav: UserSwitcherNav, viewModel: UserSwitcherViewModel = vi
   val currentUser by viewModel.loggedInUser.collectAsState()
   val showHeaderMenu by viewModel.showHeaderMenu.collectAsState()
 
-  Scaffold(
+  Scaffold( 
       topBar = {
         Header(
             R.string.accounts,
