@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
@@ -33,6 +34,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -52,10 +56,14 @@ data class UserSwitcherNav(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserSwitcherView(nav: UserSwitcherNav, viewModel: UserSwitcherViewModel = viewModel()) {
-
   val users by viewModel.loginProfiles.collectAsState()
   val currentUser by viewModel.loggedInUser.collectAsState()
   val showHeaderMenu by viewModel.showHeaderMenu.collectAsState()
+  var showDeleteDialog by remember { mutableStateOf(false) }
+  val context = LocalContext.current
+  val netmapState by viewModel.netmap.collectAsState()
+  val capabilityIsOwner = "https://tailscale.com/cap/is-owner"
+  val isOwner = netmapState?.hasCap(capabilityIsOwner) == true
 
   Scaffold( 
       topBar = {
@@ -145,10 +153,46 @@ fun UserSwitcherView(nav: UserSwitcherNav, viewModel: UserSwitcherViewModel = vi
                         })
                   }
 
+                  Lists.SectionDivider()
+                  Setting.Text(R.string.delete_tailnet, destructive = true) {
+                    showDeleteDialog = true
+                  }
                 }
               }
             }
       }
+
+  if (showDeleteDialog) {
+    AlertDialog(
+        onDismissRequest = { showDeleteDialog = false },
+        title = { Text(text = stringResource(R.string.delete_tailnet)) },
+        text = {
+          if (isOwner) {
+            OwnerDeleteDialogText {
+              val uri = Uri.parse("https://login.tailscale.com/admin/settings/general")
+              context.startActivity(Intent(Intent.ACTION_VIEW, uri))
+            }
+          } else {
+            Text(stringResource(R.string.request_deletion_nonowner))
+          }
+        },
+        confirmButton = {
+          TextButton(
+              onClick = {
+                val intent =
+                    Intent(Intent.ACTION_VIEW, Uri.parse("https://tailscale.com/contact/support"))
+                context.startActivity(intent)
+                showDeleteDialog = false
+              }) {
+                Text(text = stringResource(R.string.contact_support))
+              }
+        },
+        dismissButton = {
+          TextButton(onClick = { showDeleteDialog = false }) {
+            Text(text = stringResource(R.string.cancel))
+          }
+        })
+  }
 }
 
 @Composable
@@ -176,6 +220,41 @@ fun FusMenu(
             },
             text = stringResource(id = R.string.auth_key_menu))
       }
+}
+
+@Composable
+fun OwnerDeleteDialogText(onSettingsClick: () -> Unit) {
+  val part1 = stringResource(R.string.request_deletion_owner_part1)
+  val part2a = stringResource(R.string.request_deletion_owner_part2a)
+  val part2b = stringResource(R.string.request_deletion_owner_part2b)
+
+  val annotatedText = buildAnnotatedString {
+    append(part1 + " ")
+
+    pushStringAnnotation(
+        tag = "settings", annotation = "https://login.tailscale.com/admin/settings/general")
+    withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.primary)) {
+      append("Settings > General")
+    }
+    pop()
+
+    append(" $part2a\n\n") // newline after "Delete tailnet."
+    append(part2b)
+  }
+
+  val context = LocalContext.current
+  ClickableText(
+      text = annotatedText,
+      style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
+      onClick = { offset ->
+        annotatedText
+            .getStringAnnotations(tag = "settings", start = offset, end = offset)
+            .firstOrNull()
+            ?.let { annotation ->
+              val intent = Intent(Intent.ACTION_VIEW, Uri.parse(annotation.item))
+              context.startActivity(intent)
+            }
+      })
 }
 
 @Composable
