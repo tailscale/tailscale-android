@@ -38,15 +38,15 @@ import com.tailscale.ipn.ui.util.AndroidTVUtil.isAndroidTV
 import com.tailscale.ipn.ui.util.AppVersion
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.set
+import com.tailscale.ipn.ui.viewModel.AppViewModel
 import com.tailscale.ipn.ui.viewModel.SettingsNav
 import com.tailscale.ipn.ui.viewModel.SettingsViewModel
-import com.tailscale.ipn.ui.viewModel.VpnViewModel
 
 @Composable
 fun SettingsView(
     settingsNav: SettingsNav,
     viewModel: SettingsViewModel = viewModel(),
-    vpnViewModel: VpnViewModel = viewModel()
+    appViewModel: AppViewModel = viewModel()
 ) {
   val handler = LocalUriHandler.current
 
@@ -55,7 +55,7 @@ fun SettingsView(
   val managedByOrganization by viewModel.managedByOrganization.collectAsState()
   val tailnetLockEnabled by viewModel.tailNetLockEnabled.collectAsState()
   val corpDNSEnabled by viewModel.corpDNSEnabled.collectAsState()
-  val isVPNPrepared by vpnViewModel.vpnPrepared.collectAsState()
+  val isVPNPrepared by appViewModel.vpnPrepared.collectAsState()
   val showTailnetLock by MDMSettings.manageTailnetLock.flow.collectAsState()
   val useTailscaleSubnets by MDMSettings.useTailscaleSubnets.flow.collectAsState()
 

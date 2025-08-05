@@ -33,8 +33,8 @@ import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.Netmap
 import com.tailscale.ipn.ui.notifier.HealthNotifier
 import com.tailscale.ipn.ui.notifier.Notifier
-import com.tailscale.ipn.ui.viewModel.VpnViewModel
-import com.tailscale.ipn.ui.viewModel.VpnViewModelFactory
+import com.tailscale.ipn.ui.viewModel.AppViewModel
+import com.tailscale.ipn.ui.viewModel.AppViewModelFactory
 import com.tailscale.ipn.util.FeatureFlags
 import com.tailscale.ipn.util.ShareFileHelper
 import com.tailscale.ipn.util.TSLog
@@ -211,15 +211,17 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
    * Tailscale because directFileRoot must be set before LocalBackend starts being used.
    */
   fun startLibtailscale(directFileRoot: String) {
-    ShareFileHelper.init(this, directFileRoot)
     app = Libtailscale.start(this.filesDir.absolutePath, directFileRoot, this)
+    ShareFileHelper.init(this, app, directFileRoot, applicationScope)
     Request.setApp(app)
     Notifier.setApp(app)
     Notifier.start(applicationScope)
   }
 
   private fun initViewModels() {
-    vpnViewModel = ViewModelProvider(this, VpnViewModelFactory(this)).get(VpnViewModel::class.java)
+    appViewModel =
+        ViewModelProvider(this, AppViewModelFactory(this, ShareFileHelper.observeTaildropPrompt()))
+            .get(AppViewModel::class.java)
   }
 
   fun setWantRunning(wantRunning: Boolean, onSuccess: (() -> Unit)? = null) {
@@ -250,11 +252,12 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
 
   override fun getStateStoreKeysJSON(): String {
     val prefix = "statestore-"
-    val keys = getEncryptedPrefs()
-                  .getAll()
-                  .keys
-                  .filter { it.startsWith(prefix) }
-                  .map   { it.removePrefix(prefix) }
+    val keys =
+        getEncryptedPrefs()
+            .getAll()
+            .keys
+            .filter { it.startsWith(prefix) }
+            .map { it.removePrefix(prefix) }
     return org.json.JSONArray(keys).toString()
   }
 
@@ -400,7 +403,7 @@ open class UninitializedApp : Application() {
     private lateinit var appInstance: UninitializedApp
     lateinit var notificationManager: NotificationManagerCompat
 
-    lateinit var vpnViewModel: VpnViewModel
+    lateinit var appViewModel: AppViewModel
 
     @JvmStatic
     fun get(): UninitializedApp {
@@ -587,8 +590,8 @@ open class UninitializedApp : Application() {
     return builtInDisallowedPackageNames + userDisallowed
   }
 
-  fun getAppScopedViewModel(): VpnViewModel {
-    return vpnViewModel
+  fun getAppScopedViewModel(): AppViewModel {
+    return appViewModel
   }
 
   val builtInDisallowedPackageNames: List<String> =

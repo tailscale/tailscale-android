@@ -32,7 +32,6 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -71,13 +70,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.tailscale.ipn.App
 import com.tailscale.ipn.R
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.mdm.ShowHide
@@ -87,7 +84,6 @@ import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.Netmap
 import com.tailscale.ipn.ui.model.Permissions
 import com.tailscale.ipn.ui.model.Tailcfg
-import com.tailscale.ipn.ui.theme.AppTheme
 import com.tailscale.ipn.ui.theme.customErrorContainer
 import com.tailscale.ipn.ui.theme.disabled
 import com.tailscale.ipn.ui.theme.errorButton
@@ -109,9 +105,9 @@ import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.PeerSet
 import com.tailscale.ipn.ui.util.itemsWithDividers
 import com.tailscale.ipn.ui.util.set
+import com.tailscale.ipn.ui.viewModel.AppViewModel
 import com.tailscale.ipn.ui.viewModel.IpnViewModel.NodeState
 import com.tailscale.ipn.ui.viewModel.MainViewModel
-import com.tailscale.ipn.ui.viewModel.VpnViewModel
 import com.tailscale.ipn.util.FeatureFlags
 
 // Navigation actions for the MainView
@@ -129,9 +125,17 @@ fun MainView(
     loginAtUrl: (String) -> Unit,
     navigation: MainViewNavigation,
     viewModel: MainViewModel,
+    appViewModel: AppViewModel
 ) {
   val currentPingDevice by viewModel.pingViewModel.peer.collectAsState()
   val healthIcon by viewModel.healthIcon.collectAsState()
+  val showDirectoryPicker = appViewModel.showDirectoryPickerInterstitial.collectAsState(null)
+
+    LaunchedEffect(showDirectoryPicker.value) {
+        if (showDirectoryPicker.value != null) {
+            appViewModel.directoryPickerLauncher?.launch(null)
+        }
+    }
 
   LoadingIndicator.Wrap {
     Scaffold(contentWindowInsets = WindowInsets.Companion.statusBars) { paddingInsets ->
@@ -151,8 +155,6 @@ fun MainView(
             val showExitNodePicker by MDMSettings.exitNodesPicker.flow.collectAsState()
             val disableToggle by MDMSettings.forceEnabled.flow.collectAsState()
             val showKeyExpiry by viewModel.showExpiry.collectAsState(initial = false)
-            val showDirectoryPickerInterstitial by
-                viewModel.showDirectoryPickerInterstitial.collectAsState()
 
             // Hide the header only on Android TV when the user needs to login
             val hideHeader = (isAndroidTV() && state == Ipn.State.NeedsLogin)
@@ -222,7 +224,7 @@ fun MainView(
                 if (!viewModel.skipPromptsForAuthKeyLogin()) {
                   LaunchedEffect(state) {
                     if (state == Ipn.State.Running && !isAndroidTV()) {
-                      viewModel.checkIfTaildropDirectorySelected()
+                      appViewModel.checkIfTaildropDirectorySelected()
                     }
                   }
                 }
@@ -257,25 +259,6 @@ fun MainView(
                     loginAtUrl,
                     netmap?.SelfNode,
                     { viewModel.showVPNPermissionLauncherIfUnauthorized() })
-              }
-            }
-
-            showDirectoryPickerInterstitial.let { show ->
-              if (show) {
-                AppTheme {
-                  AlertDialog(
-                      onDismissRequest = { viewModel.showDirectoryPickerLauncher() },
-                      title = {
-                        Text(text = stringResource(id = R.string.taildrop_directory_picker_title))
-                      },
-                      text = { TaildropDirectoryPickerPrompt() },
-                      confirmButton = {
-                        PrimaryActionButton(onClick = { viewModel.showDirectoryPickerLauncher() }) {
-                          Text(
-                              text = stringResource(id = R.string.taildrop_directory_picker_button))
-                        }
-                      })
-                }
               }
             }
           }
@@ -865,12 +848,12 @@ fun Search(
             }
       }
 }
-
+/*
 @Preview
 @Composable
 fun MainViewPreview() {
-  val vpnViewModel = VpnViewModel(App.get())
-  val vm = MainViewModel(vpnViewModel)
+  val appViewModel = AppViewModel(App.get())
+  val vm = MainViewModel(appViewModel)
 
   MainView(
       {},
@@ -880,5 +863,7 @@ fun MainViewPreview() {
           onNavigateToExitNodes = {},
           onNavigateToHealth = {},
           onNavigateToSearch = {}),
-      vm)
+      vm,
+      appViewModel)
 }
+*/

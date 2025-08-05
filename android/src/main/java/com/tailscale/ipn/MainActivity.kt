@@ -34,13 +34,20 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.core.net.toUri
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -75,39 +82,43 @@ import com.tailscale.ipn.ui.view.MullvadInfoView
 import com.tailscale.ipn.ui.view.NotificationsView
 import com.tailscale.ipn.ui.view.PeerDetails
 import com.tailscale.ipn.ui.view.PermissionsView
+import com.tailscale.ipn.ui.view.PrimaryActionButton
 import com.tailscale.ipn.ui.view.RunExitNodeView
 import com.tailscale.ipn.ui.view.SearchView
 import com.tailscale.ipn.ui.view.SettingsView
 import com.tailscale.ipn.ui.view.SplitTunnelAppPickerView
 import com.tailscale.ipn.ui.view.SubnetRoutingView
 import com.tailscale.ipn.ui.view.TaildropDirView
+import com.tailscale.ipn.ui.view.TaildropDirectoryPickerPrompt
 import com.tailscale.ipn.ui.view.TailnetLockSetupView
 import com.tailscale.ipn.ui.view.UserSwitcherNav
 import com.tailscale.ipn.ui.view.UserSwitcherView
+import com.tailscale.ipn.ui.viewModel.AppViewModel
+import com.tailscale.ipn.ui.viewModel.AppViewModelFactory
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerNav
 import com.tailscale.ipn.ui.viewModel.MainViewModel
 import com.tailscale.ipn.ui.viewModel.MainViewModelFactory
 import com.tailscale.ipn.ui.viewModel.PermissionsViewModel
 import com.tailscale.ipn.ui.viewModel.PingViewModel
 import com.tailscale.ipn.ui.viewModel.SettingsNav
-import com.tailscale.ipn.ui.viewModel.VpnViewModel
+import com.tailscale.ipn.util.ShareFileHelper
 import com.tailscale.ipn.util.TSLog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import libtailscale.Libtailscale
 
 class MainActivity : ComponentActivity() {
   private lateinit var navController: NavHostController
   private lateinit var vpnPermissionLauncher: ActivityResultLauncher<Intent>
-  private val viewModel: MainViewModel by lazy {
-    val app = App.get()
-    vpnViewModel = app.getAppScopedViewModel()
-    ViewModelProvider(this, MainViewModelFactory(vpnViewModel)).get(MainViewModel::class.java)
+  private val appViewModel: AppViewModel by viewModels {
+    AppViewModelFactory(
+        application = this.application, taildropPrompt = ShareFileHelper.taildropPrompt)
   }
-  private lateinit var vpnViewModel: VpnViewModel
+
+  private val viewModel: MainViewModel by viewModels { MainViewModelFactory(appViewModel) }
+
   val permissionsViewModel: PermissionsViewModel by viewModels()
 
   companion object {
@@ -132,7 +143,6 @@ class MainActivity : ComponentActivity() {
 
     // grab app to make sure it initializes
     App.get()
-    vpnViewModel = ViewModelProvider(App.get()).get(VpnViewModel::class.java)
 
     val rm = getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
     MDMSettings.update(App.get(), rm)
@@ -154,7 +164,7 @@ class MainActivity : ComponentActivity() {
         registerForActivityResult(VpnPermissionContract()) { granted ->
           if (granted) {
             TSLog.d("VpnPermission", "VPN permission granted")
-            vpnViewModel.setVpnPrepared(true)
+            appViewModel.setVpnPrepared(true)
             App.get().startVPN()
           } else {
             if (isAnotherVpnActive(this)) {
@@ -162,7 +172,7 @@ class MainActivity : ComponentActivity() {
               showOtherVPNConflictDialog()
             } else {
               TSLog.d("VpnPermission", "Permission was denied by the user")
-              vpnViewModel.setVpnPrepared(false)
+              appViewModel.setVpnPrepared(false)
 
               AlertDialog.Builder(this)
                   .setTitle(R.string.vpn_permission_needed)
@@ -198,9 +208,10 @@ class MainActivity : ComponentActivity() {
 
               lifecycleScope.launch(Dispatchers.IO) {
                 try {
-                  Libtailscale.setDirectFileRoot(uri.toString())
                   TaildropDirectoryStore.saveFileDirectory(uri)
                   permissionsViewModel.refreshCurrentDir()
+                  ShareFileHelper.notifyDirectoryReady()
+                  ShareFileHelper.setUri(uri.toString())
                 } catch (e: Exception) {
                   TSLog.e("MainActivity", "Failed to set Taildrop root: $e")
                 }
@@ -219,9 +230,38 @@ class MainActivity : ComponentActivity() {
           }
         }
 
-    viewModel.setDirectoryPickerLauncher(directoryPickerLauncher)
+    appViewModel.directoryPickerLauncher = directoryPickerLauncher
 
     setContent {
+      var showDialog by remember { mutableStateOf(false) }
+
+      LaunchedEffect(Unit) {
+        appViewModel.showDirectoryPickerInterstitial.collect { showDialog = true }
+      }
+
+      if (showDialog) {
+        AppTheme {
+          AlertDialog(
+              onDismissRequest = {
+                showDialog = false
+                appViewModel.directoryPickerLauncher?.launch(null)
+              },
+              title = {
+                Text(text = stringResource(id = R.string.taildrop_directory_picker_title))
+              },
+              text = { TaildropDirectoryPickerPrompt() },
+              confirmButton = {
+                PrimaryActionButton(
+                    onClick = {
+                      showDialog = false
+                      appViewModel.directoryPickerLauncher?.launch(null)
+                    }) {
+                      Text(text = stringResource(id = R.string.taildrop_directory_picker_button))
+                    }
+              })
+        }
+      }
+
       navController = rememberNavController()
 
       AppTheme {
@@ -308,7 +348,11 @@ class MainActivity : ComponentActivity() {
                           onNavigateToAuthKey = { navController.navigate("loginWithAuthKey") })
 
                   composable("main", enterTransition = { fadeIn(animationSpec = tween(150)) }) {
-                    MainView(loginAtUrl = ::login, navigation = mainViewNav, viewModel = viewModel)
+                    MainView(
+                        loginAtUrl = ::login,
+                        navigation = mainViewNav,
+                        viewModel = viewModel,
+                        appViewModel = appViewModel)
                   }
                   composable("search") {
                     val autoFocus = viewModel.autoFocusSearch
@@ -318,7 +362,9 @@ class MainActivity : ComponentActivity() {
                         onNavigateBack = { navController.popBackStack() },
                         autoFocus = autoFocus)
                   }
-                  composable("settings") { SettingsView(settingsNav) }
+                  composable("settings") {
+                    SettingsView(settingsNav = settingsNav, appViewModel = appViewModel)
+                  }
                   composable("exitNodes") { ExitNodePicker(exitNodePickerNav) }
                   composable("health") { HealthView(backTo("main")) }
                   composable("mullvad") { MullvadExitNodePickerList(exitNodePickerNav) }

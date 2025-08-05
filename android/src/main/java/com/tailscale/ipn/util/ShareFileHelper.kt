@@ -8,8 +8,15 @@ import android.net.Uri
 import android.os.ParcelFileDescriptor
 import android.provider.DocumentsContract
 import androidx.documentfile.provider.DocumentFile
+import com.tailscale.ipn.TaildropDirectoryStore
 import com.tailscale.ipn.ui.util.InputStreamAdapter
 import com.tailscale.ipn.ui.util.OutputStreamAdapter
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import libtailscale.Libtailscale
 import org.json.JSONObject
 import java.io.FileOutputStream
@@ -22,17 +29,63 @@ data class SafFile(val fd: Int, val uri: String)
 
 object ShareFileHelper : libtailscale.ShareFileHelper {
   private var appContext: Context? = null
+  private var app: libtailscale.Application? = null
   private var savedUri: String? = null
+  private var scope: CoroutineScope? = null
 
   @JvmStatic
-  fun init(context: Context, uri: String) {
+  fun init(context: Context, app: libtailscale.Application, uri: String, appScope: CoroutineScope) {
     appContext = context.applicationContext
+    this.app = app
     savedUri = uri
+    scope = appScope
     Libtailscale.setShareFileHelper(this)
+    TSLog.d("ShareFileHelper", "init ShareFileHelper with savedUri: $savedUri")
   }
 
   // A simple data class that holds a SAF OutputStream along with its URI.
   data class SafStream(val uri: String, val stream: OutputStream)
+
+  val taildropPrompt = MutableSharedFlow<Unit>(replay = 1)
+
+  fun observeTaildropPrompt(): Flow<Unit> = taildropPrompt
+
+  @Volatile private var directoryReady: CompletableDeferred<Unit>? = null
+
+  fun hasValidTaildropDir(): Boolean {
+    val uri = TaildropDirectoryStore.loadSavedDir()
+    if (uri == null) return false
+
+    // Only SAF tree URIs are supported
+    if (uri.scheme != "content") {
+      TSLog.w("ShareFileHelper", "Invalid URI scheme for taildrop dir: ${uri.scheme}")
+      return false
+    }
+
+    val context = appContext ?: return false
+    val docFile = DocumentFile.fromTreeUri(context, uri)
+
+    if (docFile == null || !docFile.exists() || !docFile.canWrite()) {
+      TSLog.w("ShareFileHelper", "Stored taildrop URI is invalid or inaccessible: $uri")
+      return false
+    }
+
+    return true
+  }
+
+  private suspend fun waitUntilTaildropDirReady() {
+    if (!hasValidTaildropDir()) {
+      if (directoryReady?.isActive != true) {
+        directoryReady = CompletableDeferred()
+        scope?.launch { taildropPrompt.emit(Unit) }
+      }
+      directoryReady?.await()
+    }
+  }
+
+  fun notifyDirectoryReady() {
+    directoryReady?.takeIf { !it.isCompleted }?.complete(Unit)
+  }
 
   // A helper function that opens or creates a SafStream for a given file.
   private fun openSafFileOutputStream(fileName: String): Pair<String, OutputStream?> {
@@ -74,6 +127,7 @@ object ShareFileHelper : libtailscale.ShareFileHelper {
 
   @Throws(IOException::class)
   override fun openFileWriter(fileName: String, offset: Long): libtailscale.OutputStream {
+    runBlocking { waitUntilTaildropDirReady() }
     val (uri, stream) = openWriterFD(fileName, offset)
     if (stream == null) {
       throw IOException("Failed to open file writer for $fileName")
@@ -84,6 +138,7 @@ object ShareFileHelper : libtailscale.ShareFileHelper {
 
   @Throws(IOException::class)
   override fun getFileURI(fileName: String): String {
+    runBlocking { waitUntilTaildropDirReady() }
     currentUri[fileName]?.let {
       return it
     }
@@ -108,7 +163,7 @@ object ShareFileHelper : libtailscale.ShareFileHelper {
     val dir =
         DocumentFile.fromTreeUri(ctx, Uri.parse(dirUri))
             ?: throw IOException("cannot open dir $dirUri")
-  
+
     var finalName = targetName
     dir.findFile(finalName)?.let { existing ->
       if (lengthOfUri(ctx, existing.uri) == 0L) {
@@ -117,7 +172,7 @@ object ShareFileHelper : libtailscale.ShareFileHelper {
         finalName = generateNewFilename(finalName)
       }
     }
-  
+
     try {
       DocumentsContract.renameDocument(ctx.contentResolver, srcUri, finalName)?.also { newUri ->
         runCatching { ctx.contentResolver.delete(srcUri, null, null) }
@@ -125,14 +180,14 @@ object ShareFileHelper : libtailscale.ShareFileHelper {
         return newUri.toString()
       }
     } catch (e: Exception) {
-      TSLog.w("renameFile", "renameDocument fallback triggered for $srcUri -> $finalName: ${e.message}")
-
+      TSLog.w(
+          "renameFile", "renameDocument fallback triggered for $srcUri -> $finalName: ${e.message}")
     }
-  
+
     val dest =
         dir.createFile("application/octet-stream", finalName)
             ?: throw IOException("createFile failed for $finalName")
-  
+
     ctx.contentResolver.openInputStream(srcUri).use { inp ->
       ctx.contentResolver.openOutputStream(dest.uri, "w").use { out ->
         if (inp == null || out == null) {
@@ -142,7 +197,7 @@ object ShareFileHelper : libtailscale.ShareFileHelper {
         inp.copyTo(out)
       }
     }
-  
+
     ctx.contentResolver.delete(srcUri, null, null)
     cleanupPartials(dir, targetName)
     return dest.uri.toString()
@@ -247,6 +302,10 @@ object ShareFileHelper : libtailscale.ShareFileHelper {
             ?: throw IOException("openInputStream returned null for ${file.uri}")
 
     return InputStreamAdapter(inStream)
+  }
+
+  fun setUri(uri: String) {
+    savedUri = uri
   }
 
   private class SeekableOutputStream(
