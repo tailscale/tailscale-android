@@ -53,7 +53,7 @@ import com.tailscale.ipn.mdm.ShowHide
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.theme.AppTheme
-import com.tailscale.ipn.ui.util.AndroidTVUtil
+import com.tailscale.ipn.ui.util.AndroidTVUtil.isAndroidTV
 import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.util.universalFit
 import com.tailscale.ipn.ui.view.AboutView
@@ -177,49 +177,53 @@ class MainActivity : ComponentActivity() {
         }
     viewModel.setVpnPermissionLauncher(vpnPermissionLauncher)
 
-    val directoryPickerLauncher =
-        registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri: Uri? ->
-          if (uri != null) {
-            try {
-              // Try to take persistable permissions for both read and write.
-              contentResolver.takePersistableUriPermission(
-                  uri,
-                  Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-            } catch (e: SecurityException) {
-              TSLog.e("MainActivity", "Failed to persist permissions: $e")
-            }
+    var directoryPickerLauncher: ActivityResultLauncher<Uri?>? = null
+    if (canOpenDocumentTree()) {
+      directoryPickerLauncher =
+          registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri: Uri? ->
+            if (uri != null) {
+              try {
+                // Try to take persistable permissions for both read and write.
+                contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+              } catch (e: SecurityException) {
+                TSLog.e("MainActivity", "Failed to persist permissions: $e")
+              }
 
-            // Check if write permission is actually granted.
-            val writePermission =
-                this.checkUriPermission(
-                    uri, Process.myPid(), Process.myUid(), Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-            if (writePermission == PackageManager.PERMISSION_GRANTED) {
-              TSLog.d("MainActivity", "Write permission granted for $uri")
+              // Check if write permission is actually granted.
+              val writePermission =
+                  this.checkUriPermission(
+                      uri, Process.myPid(), Process.myUid(), Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+              if (writePermission == PackageManager.PERMISSION_GRANTED) {
+                TSLog.d("MainActivity", "Write permission granted for $uri")
 
-              lifecycleScope.launch(Dispatchers.IO) {
-                try {
-                  Libtailscale.setDirectFileRoot(uri.toString())
-                  TaildropDirectoryStore.saveFileDirectory(uri)
-                  permissionsViewModel.refreshCurrentDir()
-                } catch (e: Exception) {
-                  TSLog.e("MainActivity", "Failed to set Taildrop root: $e")
+                lifecycleScope.launch(Dispatchers.IO) {
+                  try {
+                    Libtailscale.setDirectFileRoot(uri.toString())
+                    TaildropDirectoryStore.saveFileDirectory(uri)
+                    permissionsViewModel.refreshCurrentDir()
+                  } catch (e: Exception) {
+                    TSLog.e("MainActivity", "Failed to set Taildrop root: $e")
+                  }
                 }
+              } else {
+                TSLog.d(
+                    "MainActivity",
+                    "Write access not granted for $uri. Falling back to internal storage.")
+                // Don't save directory URI and fall back to internal storage.
               }
             } else {
               TSLog.d(
                   "MainActivity",
-                  "Write access not granted for $uri. Falling back to internal storage.")
-              // Don't save directory URI and fall back to internal storage.
+                  "Taildrop directory not saved. Will fall back to internal storage.")
+
+              // Fall back to internal storage.
             }
-          } else {
-            TSLog.d(
-                "MainActivity", "Taildrop directory not saved. Will fall back to internal storage.")
-
-            // Fall back to internal storage.
           }
-        }
 
-    viewModel.setDirectoryPickerLauncher(directoryPickerLauncher)
+      viewModel.setDirectoryPickerLauncher(directoryPickerLauncher)
+    }
 
     setContent {
       navController = rememberNavController()
@@ -354,9 +358,11 @@ class MainActivity : ComponentActivity() {
                         { navController.navigate("taildropDir") },
                         { navController.navigate("notifications") })
                   }
-                  composable("taildropDir") {
-                    TaildropDirView(
-                        backTo("permissions"), directoryPickerLauncher, permissionsViewModel)
+                  directoryPickerLauncher?.let {
+                    val launcher = it
+                    composable("taildropDir") {
+                      TaildropDirView(backTo("permissions"), launcher, permissionsViewModel)
+                    }
                   }
                   composable("notifications") {
                     NotificationsView(backTo("permissions"), ::openApplicationSettings)
@@ -406,6 +412,16 @@ class MainActivity : ComponentActivity() {
     lifecycleScope.launch { Notifier.loginFinished.collect { _ -> loginQRCode.set(null) } }
   }
 
+  // Most AndroidTV's don't support this and the UX is completely broken regardless.   We have
+  // reports of some old devices throwing ActivityNotFound exceptions on TV as well, so we
+  // carefully guard against the attempt.
+  private fun Context.canOpenDocumentTree(): Boolean {
+    return !isAndroidTV() &&
+        Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
+            .addCategory(Intent.CATEGORY_DEFAULT)
+            .resolveActivity(packageManager) != null
+  }
+
   private fun showOtherVPNConflictDialog() {
     AlertDialog.Builder(this)
         .setTitle(R.string.vpn_permission_denied)
@@ -437,7 +453,7 @@ class MainActivity : ComponentActivity() {
   // Returns true if we should render a QR code instead of launching a browser
   // for login requests
   private fun useQRCodeLogin(): Boolean {
-    return AndroidTVUtil.isAndroidTV()
+    return isAndroidTV()
   }
 
   override fun onNewIntent(intent: Intent) {
