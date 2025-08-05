@@ -136,7 +136,6 @@
     <string name="invalidAuthKeyTitle">Invalid key</string>
     <string name="custom_control_url_title">Custom control server URL</string>
     <string name="auth_key_input_title">Auth key</string>
-
     <string name="delete_tailnet">Delete tailnet</string>
     <string name="contact_support">Contact support</string>
     <string name="request_deletion_nonowner">All requests related to the removal or deletion of data are handled by our Support team. To open a request, tap the Contact Support button below to be taken to our contact form in the browser. Complete the form, and a Customer Support Engineer will work with you directly to assist.</string>

@@ -24,3 +24,4 @@ class OutputStreamAdapter(private val outputStream: OutputStream) : libtailscale
     outputStream.close()
   }
 }
+

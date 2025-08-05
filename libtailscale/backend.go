@@ -337,7 +337,7 @@ func (a *App) newBackend(dataDir string, appCtx AppContext, store *stateStore,
 	}
 	lb, err := ipnlocal.NewLocalBackend(logf, logID.Public(), sys, 0)
 	if ext, ok := ipnlocal.GetExt[*taildrop.Extension](lb); ok {
-		ext.SetFileOps(NewAndroidFileOps(a.shareFileHelper))
+		ext.SetFileOps(newAndroidFileOps(a.shareFileHelper))
 		ext.SetDirectFileRoot(a.directFileRoot)
 	}
 
