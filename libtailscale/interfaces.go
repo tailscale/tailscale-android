@@ -243,7 +243,3 @@ func SetShareFileHelper(fileHelper ShareFileHelper) {
 		onShareFileHelper <- fileHelper
 	}
 }
-
-func SetDirectFileRoot(filePath string) {
-	onFilePath <- filePath
-}
