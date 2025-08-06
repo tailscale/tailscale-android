@@ -70,11 +70,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.tailscale.ipn.App
 import com.tailscale.ipn.R
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.mdm.ShowHide
@@ -109,6 +111,7 @@ import com.tailscale.ipn.ui.viewModel.AppViewModel
 import com.tailscale.ipn.ui.viewModel.IpnViewModel.NodeState
 import com.tailscale.ipn.ui.viewModel.MainViewModel
 import com.tailscale.ipn.util.FeatureFlags
+import kotlinx.coroutines.flow.emptyFlow
 
 // Navigation actions for the MainView
 data class MainViewNavigation(
@@ -131,11 +134,11 @@ fun MainView(
   val healthIcon by viewModel.healthIcon.collectAsState()
   val showDirectoryPicker = appViewModel.showDirectoryPickerInterstitial.collectAsState(null)
 
-    LaunchedEffect(showDirectoryPicker.value) {
-        if (showDirectoryPicker.value != null) {
-            appViewModel.directoryPickerLauncher?.launch(null)
-        }
+  LaunchedEffect(showDirectoryPicker.value) {
+    if (showDirectoryPicker.value != null) {
+      appViewModel.directoryPickerLauncher?.launch(null)
     }
+  }
 
   LoadingIndicator.Wrap {
     Scaffold(contentWindowInsets = WindowInsets.Companion.statusBars) { paddingInsets ->
@@ -220,14 +223,6 @@ fun MainView(
                 viewModel.maybeRequestVpnPermission()
                 LaunchVpnPermissionIfNeeded(viewModel)
                 PromptForMissingPermissions(viewModel)
-
-                if (!viewModel.skipPromptsForAuthKeyLogin()) {
-                  LaunchedEffect(state) {
-                    if (state == Ipn.State.Running && !isAndroidTV()) {
-                      appViewModel.checkIfTaildropDirectorySelected()
-                    }
-                  }
-                }
 
                 if (showKeyExpiry) {
                   ExpiryNotification(netmap = netmap, action = { viewModel.login() })
@@ -848,11 +843,12 @@ fun Search(
             }
       }
 }
-/*
+
 @Preview
 @Composable
 fun MainViewPreview() {
-  val appViewModel = AppViewModel(App.get())
+  val fakePrompt = emptyFlow<Unit>()
+  val appViewModel = AppViewModel(App.get(), fakePrompt)
   val vm = MainViewModel(appViewModel)
 
   MainView(
@@ -866,4 +862,3 @@ fun MainViewPreview() {
       vm,
       appViewModel)
 }
-*/

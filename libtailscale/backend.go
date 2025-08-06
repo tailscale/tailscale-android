@@ -58,8 +58,6 @@ type App struct {
 	backend         *ipnlocal.LocalBackend
 	ready           sync.WaitGroup
 	backendMu       sync.Mutex
-
-	backendRestartCh chan struct{}
 }
 
 func start(dataDir, directFileRoot string, appCtx AppContext) Application {

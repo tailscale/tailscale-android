@@ -127,6 +127,8 @@ object ShareFileHelper : libtailscale.ShareFileHelper {
 
   @Throws(IOException::class)
   override fun openFileWriter(fileName: String, offset: Long): libtailscale.OutputStream {
+    TSLog.d("ShareFileHelper", "openFileWriter called for $fileName\n" +
+      Throwable().stackTraceToString())
     runBlocking { waitUntilTaildropDirReady() }
     val (uri, stream) = openWriterFD(fileName, offset)
     if (stream == null) {
@@ -218,6 +220,7 @@ object ShareFileHelper : libtailscale.ShareFileHelper {
 
   @Throws(IOException::class)
   override fun deleteFile(uri: String) {
+    runBlocking { waitUntilTaildropDirReady() }
     val ctx = appContext ?: throw IOException("DeleteFile: not initialized")
 
     val uri = Uri.parse(uri)
@@ -283,6 +286,7 @@ object ShareFileHelper : libtailscale.ShareFileHelper {
 
   @Throws(IOException::class)
   override fun openFileReader(name: String): libtailscale.InputStream {
+    runBlocking { waitUntilTaildropDirReady() }
     val context = appContext ?: throw IOException("app context not initialized")
     val rootUri = savedUri ?: throw IOException("SAF URI not initialized")
     val dir =

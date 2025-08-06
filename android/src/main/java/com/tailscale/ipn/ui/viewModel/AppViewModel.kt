@@ -57,6 +57,8 @@ class AppViewModel(application: Application, private val taildropPrompt: Flow<Un
   var directoryPickerLauncher: ActivityResultLauncher<Uri?>? = null
   private val _showDirectoryPickerInterstitial = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
   val showDirectoryPickerInterstitial: SharedFlow<Unit> = _showDirectoryPickerInterstitial
+  private val _triggerDirectoryPicker = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+  val triggerDirectoryPicker: SharedFlow<Unit> = _triggerDirectoryPicker
   val TAG = "AppViewModel"
 
   init {
@@ -71,6 +73,10 @@ class AppViewModel(application: Application, private val taildropPrompt: Flow<Un
         checkIfTaildropDirectorySelected()
       }
     }
+  }
+
+  fun requestDirectoryPicker() {
+    _triggerDirectoryPicker.tryEmit(Unit)
   }
 
   private fun prepareVpn() {
@@ -99,7 +105,7 @@ class AppViewModel(application: Application, private val taildropPrompt: Flow<Un
       TSLog.d(
           "MainViewModel",
           "Stored directory URI is invalid or inaccessible; launching directory picker.")
-      viewModelScope.launch { _showDirectoryPickerInterstitial.tryEmit(Unit) }
+      viewModelScope.launch { requestDirectoryPicker() }
     } else {
       TSLog.d("MainViewModel", "Using stored directory URI: $storedUri")
     }

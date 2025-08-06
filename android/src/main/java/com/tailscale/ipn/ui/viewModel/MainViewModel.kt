@@ -12,7 +12,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.text.AnnotatedString
-import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -23,7 +22,6 @@ import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.Ipn.State
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.notifier.Notifier
-import com.tailscale.ipn.ui.util.AndroidTVUtil
 import com.tailscale.ipn.ui.util.PeerCategorizer
 import com.tailscale.ipn.ui.util.PeerSet
 import com.tailscale.ipn.ui.util.TimeUtil
@@ -160,6 +158,10 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
             // Update the previous state
             previousState = currentState
           }
+    }
+
+    viewModelScope.launch {
+      isVpnActive.collect { active -> TSLog.d("KARI", "🏷️ isVpnActive changed: $active") }
     }
 
     viewModelScope.launch {

@@ -48,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.core.net.toUri
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -94,7 +95,6 @@ import com.tailscale.ipn.ui.view.TailnetLockSetupView
 import com.tailscale.ipn.ui.view.UserSwitcherNav
 import com.tailscale.ipn.ui.view.UserSwitcherView
 import com.tailscale.ipn.ui.viewModel.AppViewModel
-import com.tailscale.ipn.ui.viewModel.AppViewModelFactory
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerNav
 import com.tailscale.ipn.ui.viewModel.MainViewModel
 import com.tailscale.ipn.ui.viewModel.MainViewModelFactory
@@ -112,12 +112,9 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
   private lateinit var navController: NavHostController
   private lateinit var vpnPermissionLauncher: ActivityResultLauncher<Intent>
-  private val appViewModel: AppViewModel by viewModels {
-    AppViewModelFactory(
-        application = this.application, taildropPrompt = ShareFileHelper.taildropPrompt)
-  }
 
-  private val viewModel: MainViewModel by viewModels { MainViewModelFactory(appViewModel) }
+  private lateinit var appViewModel: AppViewModel
+  private lateinit var viewModel: MainViewModel
 
   val permissionsViewModel: PermissionsViewModel by viewModels()
 
@@ -143,6 +140,11 @@ class MainActivity : ComponentActivity() {
 
     // grab app to make sure it initializes
     App.get()
+
+    appViewModel = (application as App).getAppScopedViewModel()
+
+    viewModel =
+        ViewModelProvider(this, MainViewModelFactory(appViewModel)).get(MainViewModel::class.java)
 
     val rm = getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
     MDMSettings.update(App.get(), rm)
@@ -232,6 +234,19 @@ class MainActivity : ComponentActivity() {
 
     appViewModel.directoryPickerLauncher = directoryPickerLauncher
 
+    lifecycleScope.launchWhenStarted {
+      appViewModel.triggerDirectoryPicker.collect {
+        AlertDialog.Builder(this@MainActivity)
+            .setTitle(R.string.taildrop_directory_picker_title)
+            .setMessage(R.string.taildrop_directory_picker_body)
+            .setPositiveButton(R.string.taildrop_directory_picker_button) { _, _ ->
+              appViewModel.directoryPickerLauncher?.launch(null)
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+      }
+    }
+
     setContent {
       var showDialog by remember { mutableStateOf(false) }
 
@@ -242,10 +257,7 @@ class MainActivity : ComponentActivity() {
       if (showDialog) {
         AppTheme {
           AlertDialog(
-              onDismissRequest = {
-                showDialog = false
-                appViewModel.directoryPickerLauncher?.launch(null)
-              },
+              onDismissRequest = { showDialog = false },
               title = {
                 Text(text = stringResource(id = R.string.taildrop_directory_picker_title))
               },
