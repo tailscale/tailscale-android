@@ -34,10 +34,18 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.core.net.toUri
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.ViewModelProvider
@@ -75,39 +83,38 @@ import com.tailscale.ipn.ui.view.MullvadInfoView
 import com.tailscale.ipn.ui.view.NotificationsView
 import com.tailscale.ipn.ui.view.PeerDetails
 import com.tailscale.ipn.ui.view.PermissionsView
+import com.tailscale.ipn.ui.view.PrimaryActionButton
 import com.tailscale.ipn.ui.view.RunExitNodeView
 import com.tailscale.ipn.ui.view.SearchView
 import com.tailscale.ipn.ui.view.SettingsView
 import com.tailscale.ipn.ui.view.SplitTunnelAppPickerView
 import com.tailscale.ipn.ui.view.SubnetRoutingView
 import com.tailscale.ipn.ui.view.TaildropDirView
+import com.tailscale.ipn.ui.view.TaildropDirectoryPickerPrompt
 import com.tailscale.ipn.ui.view.TailnetLockSetupView
 import com.tailscale.ipn.ui.view.UserSwitcherNav
 import com.tailscale.ipn.ui.view.UserSwitcherView
+import com.tailscale.ipn.ui.viewModel.AppViewModel
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerNav
 import com.tailscale.ipn.ui.viewModel.MainViewModel
 import com.tailscale.ipn.ui.viewModel.MainViewModelFactory
 import com.tailscale.ipn.ui.viewModel.PermissionsViewModel
 import com.tailscale.ipn.ui.viewModel.PingViewModel
 import com.tailscale.ipn.ui.viewModel.SettingsNav
-import com.tailscale.ipn.ui.viewModel.VpnViewModel
+import com.tailscale.ipn.util.ShareFileHelper
 import com.tailscale.ipn.util.TSLog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import libtailscale.Libtailscale
 
 class MainActivity : ComponentActivity() {
   private lateinit var navController: NavHostController
   private lateinit var vpnPermissionLauncher: ActivityResultLauncher<Intent>
-  private val viewModel: MainViewModel by lazy {
-    val app = App.get()
-    vpnViewModel = app.getAppScopedViewModel()
-    ViewModelProvider(this, MainViewModelFactory(vpnViewModel)).get(MainViewModel::class.java)
-  }
-  private lateinit var vpnViewModel: VpnViewModel
+  private lateinit var appViewModel: AppViewModel
+  private lateinit var viewModel: MainViewModel
+
   val permissionsViewModel: PermissionsViewModel by viewModels()
 
   companion object {
@@ -119,7 +126,6 @@ class MainActivity : ComponentActivity() {
     return (resources.configuration.screenLayout and SCREENLAYOUT_SIZE_MASK) >=
         SCREENLAYOUT_SIZE_LARGE
   }
-
   // The loginQRCode is used to track whether or not we should be rendering a QR code
   // to the user.  This is used only on TV platforms with no browser in lieu of
   // simply opening the URL.  This should be consumed once it has been handled.
@@ -132,29 +138,27 @@ class MainActivity : ComponentActivity() {
 
     // grab app to make sure it initializes
     App.get()
-    vpnViewModel = ViewModelProvider(App.get()).get(VpnViewModel::class.java)
+    appViewModel = (application as App).getAppScopedViewModel()
+    viewModel =
+        ViewModelProvider(this, MainViewModelFactory(appViewModel)).get(MainViewModel::class.java)
 
     val rm = getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
     MDMSettings.update(App.get(), rm)
-
     if (MDMSettings.onboardingFlow.flow.value.value == ShowHide.Hide ||
         MDMSettings.authKey.flow.value.value != null) {
       setIntroScreenViewed(true)
     }
-
     // (jonathan) TODO: Force the app to be portrait on small screens until we have
     // proper landscape layout support
     if (!isLandscapeCapable()) {
       requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
     }
-
     installSplashScreen()
-
     vpnPermissionLauncher =
         registerForActivityResult(VpnPermissionContract()) { granted ->
           if (granted) {
             TSLog.d("VpnPermission", "VPN permission granted")
-            vpnViewModel.setVpnPrepared(true)
+            appViewModel.setVpnPrepared(true)
             App.get().startVPN()
           } else {
             if (isAnotherVpnActive(this)) {
@@ -162,7 +166,7 @@ class MainActivity : ComponentActivity() {
               showOtherVPNConflictDialog()
             } else {
               TSLog.d("VpnPermission", "Permission was denied by the user")
-              vpnViewModel.setVpnPrepared(false)
+              appViewModel.setVpnPrepared(false)
 
               AlertDialog.Builder(this)
                   .setTitle(R.string.vpn_permission_needed)
@@ -176,7 +180,6 @@ class MainActivity : ComponentActivity() {
           }
         }
     viewModel.setVpnPermissionLauncher(vpnPermissionLauncher)
-
     val directoryPickerLauncher =
         registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri: Uri? ->
           if (uri != null) {
@@ -188,7 +191,6 @@ class MainActivity : ComponentActivity() {
             } catch (e: SecurityException) {
               TSLog.e("MainActivity", "Failed to persist permissions: $e")
             }
-
             // Check if write permission is actually granted.
             val writePermission =
                 this.checkUriPermission(
@@ -198,9 +200,10 @@ class MainActivity : ComponentActivity() {
 
               lifecycleScope.launch(Dispatchers.IO) {
                 try {
-                  Libtailscale.setDirectFileRoot(uri.toString())
                   TaildropDirectoryStore.saveFileDirectory(uri)
                   permissionsViewModel.refreshCurrentDir()
+                  ShareFileHelper.notifyDirectoryReady()
+                  ShareFileHelper.setUri(uri.toString())
                 } catch (e: Exception) {
                   TSLog.e("MainActivity", "Failed to set Taildrop root: $e")
                 }
@@ -214,14 +217,40 @@ class MainActivity : ComponentActivity() {
           } else {
             TSLog.d(
                 "MainActivity", "Taildrop directory not saved. Will fall back to internal storage.")
-
             // Fall back to internal storage.
           }
         }
 
-    viewModel.setDirectoryPickerLauncher(directoryPickerLauncher)
+    appViewModel.directoryPickerLauncher = directoryPickerLauncher
 
     setContent {
+       var showDialog by remember { mutableStateOf(false) }
+
+      LaunchedEffect(Unit) { appViewModel.triggerDirectoryPicker.collect { showDialog = true } }
+
+      if (showDialog) {
+        AppTheme {
+          AlertDialog(
+              onDismissRequest = {
+                showDialog = false
+                appViewModel.directoryPickerLauncher?.launch(null)
+              },
+              title = {
+                Text(text = stringResource(id = R.string.taildrop_directory_picker_title))
+              },
+              text = { TaildropDirectoryPickerPrompt() },
+              confirmButton = {
+                PrimaryActionButton(
+                    onClick = {
+                      showDialog = false
+                      appViewModel.directoryPickerLauncher?.launch(null)
+                    }) {
+                      Text(text = stringResource(id = R.string.taildrop_directory_picker_button))
+                    }
+              })
+        }
+      }
+
       navController = rememberNavController()
 
       AppTheme {
@@ -257,7 +286,6 @@ class MainActivity : ComponentActivity() {
                   fun backTo(route: String): () -> Unit = {
                     navController.popBackStack(route = route, inclusive = false)
                   }
-
                   val mainViewNav =
                       MainViewNavigation(
                           onNavigateToSettings = { navController.navigate("settings") },
@@ -270,7 +298,6 @@ class MainActivity : ComponentActivity() {
                             viewModel.enableSearchAutoFocus()
                             navController.navigate("search")
                           })
-
                   val settingsNav =
                       SettingsNav(
                           onNavigateToBugReport = { navController.navigate("bugReport") },
@@ -285,7 +312,6 @@ class MainActivity : ComponentActivity() {
                           onNavigateToPermissions = { navController.navigate("permissions") },
                           onBackToSettings = backTo("settings"),
                           onNavigateBackHome = backTo("main"))
-
                   val exitNodePickerNav =
                       ExitNodePickerNav(
                           onNavigateBackHome = {
@@ -297,7 +323,6 @@ class MainActivity : ComponentActivity() {
                           onNavigateBackToMullvad = backTo("mullvad"),
                           onNavigateToMullvadCountry = { navController.navigate("mullvad/$it") },
                           onNavigateToRunAsExitNode = { navController.navigate("runExitNode") })
-
                   val userSwitcherNav =
                       UserSwitcherNav(
                           backToSettings = backTo("settings"),
@@ -308,7 +333,11 @@ class MainActivity : ComponentActivity() {
                           onNavigateToAuthKey = { navController.navigate("loginWithAuthKey") })
 
                   composable("main", enterTransition = { fadeIn(animationSpec = tween(150)) }) {
-                    MainView(loginAtUrl = ::login, navigation = mainViewNav, viewModel = viewModel)
+                    MainView(
+                        loginAtUrl = ::login,
+                        navigation = mainViewNav,
+                        viewModel = viewModel,
+                        appViewModel = appViewModel)
                   }
                   composable("search") {
                     val autoFocus = viewModel.autoFocusSearch
@@ -318,7 +347,9 @@ class MainActivity : ComponentActivity() {
                         onNavigateBack = { navController.popBackStack() },
                         autoFocus = autoFocus)
                   }
-                  composable("settings") { SettingsView(settingsNav) }
+                  composable("settings") {
+                    SettingsView(settingsNav = settingsNav, appViewModel = appViewModel)
+                  }
                   composable("exitNodes") { ExitNodePicker(exitNodePickerNav) }
                   composable("health") { HealthView(backTo("main")) }
                   composable("mullvad") { MullvadExitNodePickerList(exitNodePickerNav) }
@@ -378,7 +409,6 @@ class MainActivity : ComponentActivity() {
             }
           }
         }
-
         // Login actions are app wide.  If we are told about a browse-to-url, we should render it
         // over whatever screen we happen to be on.
         loginQRCode.collectAsState().value?.let {
@@ -401,7 +431,6 @@ class MainActivity : ComponentActivity() {
         }
       }
     }
-
     // Once we see a loginFinished event, clear the QR code which will dismiss the QR dialog.
     lifecycleScope.launch { Notifier.loginFinished.collect { _ -> loginQRCode.set(null) } }
   }
@@ -422,7 +451,6 @@ class MainActivity : ComponentActivity() {
   fun isAnotherVpnActive(context: Context): Boolean {
     val connectivityManager =
         context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-
     val activeNetwork = connectivityManager.activeNetwork
     if (activeNetwork != null) {
       val networkCapabilities = connectivityManager.getNetworkCapabilities(activeNetwork)
@@ -433,7 +461,6 @@ class MainActivity : ComponentActivity() {
     }
     return false
   }
-
   // Returns true if we should render a QR code instead of launching a browser
   // for login requests
   private fun useQRCodeLogin(): Boolean {
@@ -449,7 +476,6 @@ class MainActivity : ComponentActivity() {
         if (this::navController.isInitialized) {
           val previousEntry = navController.previousBackStackEntry
           TSLog.d("MainActivity", "onNewIntent: previousBackStackEntry = $previousEntry")
-
           if (previousEntry != null) {
             navController.popBackStack(route = "main", inclusive = false)
           } else {
@@ -478,7 +504,6 @@ class MainActivity : ComponentActivity() {
                   putExtra(START_AT_ROOT, true)
                 }
             startActivity(intent)
-
             // Cancel coroutine once we've logged in
             this@launch.cancel()
           }
@@ -487,7 +512,6 @@ class MainActivity : ComponentActivity() {
         TSLog.e(TAG, "Login: failed to start MainActivity: $e")
       }
     }
-
     val url = urlString.toUri()
     try {
       val customTabsIntent = CustomTabsIntent.Builder().build()
