@@ -32,10 +32,9 @@ const (
 
 func newApp(dataDir, directFileRoot string, appCtx AppContext) Application {
 	a := &App{
-		directFileRoot:   directFileRoot,
-		dataDir:          dataDir,
-		appCtx:           appCtx,
-		backendRestartCh: make(chan struct{}, 1),
+		directFileRoot: directFileRoot,
+		dataDir:        dataDir,
+		appCtx:         appCtx,
 	}
 	a.ready.Add(2)
 
