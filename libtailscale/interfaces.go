@@ -175,14 +175,36 @@ type OutputStream interface {
 
 // ShareFileHelper corresponds to the Kotlin ShareFileHelper class
 type ShareFileHelper interface {
-	OpenFileWriter(fileName string) OutputStream
+	// OpenFileWriter creates or truncates a file named fileName at a given offset,
+	// returning an OutputStream for writing. Returns an error if the file cannot be opened.
+	OpenFileWriter(fileName string, offset int64) (stream OutputStream, err error)
 
-	// OpenFileURI opens the file and returns its SAF URI.
-	OpenFileURI(filename string) string
+	// GetFileURI returns the SAF URI string for the file named fileName,
+	// or an error if the file cannot be resolved.
+	GetFileURI(fileName string) (uri string, err error)
 
-	// RenamePartialFile takes SAF URIs and a target file name,
-	// and returns the new SAF URI and an error.
-	RenamePartialFile(partialUri string, targetDirUri string, targetName string) string
+	// RenameFile renames the file at oldPath (a SAF URI) into the Taildrop directory,
+	// giving it the new targetName. Returns the SAF URI of the renamed file, or an error.
+	RenameFile(oldPath string, targetName string) (newURI string, err error)
+
+	// ListFilesJSON returns a JSON-encoded list of filenames in the Taildrop directory
+	// that end with the specified suffix. If the suffix is empty, it returns all files.
+	// Returns an error if no matching files are found or the directory cannot be accessed.
+	ListFilesJSON(suffix string) (json string, err error)
+
+	// OpenFileReader opens the file with the given name (typically a .partial file)
+	// and returns an InputStream for reading its contents.
+	// Returns an error if the file cannot be opened.
+	OpenFileReader(name string) (stream InputStream, err error)
+
+	// DeleteFile deletes the file identified by the given SAF URI string.
+	// Returns an error if the file could not be deleted.
+	DeleteFile(uri string) error
+
+	// GetFileInfo returns a JSON-encoded string containing metadata for fileName,
+	// matching the fields of androidFileInfo (name, size, modTime).
+	// Returns an error if the file does not exist or cannot be accessed.
+	GetFileInfo(fileName string) (json string, err error)
 }
 
 // The below are global callbacks that allow the Java application to notify Go
