@@ -181,9 +181,11 @@ build-unstripped-aar: tailscale.version $(GOBIN)/gomobile
 	@echo "Output file: $(ABS_UNSTRIPPED_AAR)"
 	mkdir -p $(dir $(ABS_UNSTRIPPED_AAR))
 	rm -f $(ABS_UNSTRIPPED_AAR)
+	# The -linkmode=external -extldflags=-Wl,-z,max-page-size=16384 is specific to NDK 23
+	# to support 16kb page sizes.  Your mileage may vary with other NDK versions.
 	$(GOBIN)/gomobile bind -target android -androidapi 26 \
 		-tags "$$(./build-tags.sh)" \
-		-ldflags "$$(./version-ldflags.sh)" \
+		-ldflags "-linkmode=external -extldflags=-Wl,-z,max-page-size=16384 $$(./version-ldflags.sh)" \
 		-o $(ABS_UNSTRIPPED_AAR) ./libtailscale || { echo "gomobile bind failed"; exit 1; }
 	@if [ ! -f $(ABS_UNSTRIPPED_AAR) ]; then \
 	    echo "Error: $(ABS_UNSTRIPPED_AAR) was not created"; exit 1; \
