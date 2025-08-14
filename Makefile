@@ -279,10 +279,10 @@ bump_version_code:
 
 .PHONY: update-oss ## Update the tailscale.com go module
 update-oss:
+	curl -f https://raw.githubusercontent.com/tailscale/tailscale/refs/heads/main/go.toolchain.rev > go.toolchain.rev.new
+	mv go.toolchain.rev.new go.toolchain.rev
 	GOPROXY=direct ./tool/go get tailscale.com@main
 	./tool/go mod tidy -compat=1.24
-	./tool/go run tailscale.com/cmd/printdep --go > go.toolchain.rev.new
-	mv go.toolchain.rev.new go.toolchain.rev
 
 # Get the commandline tools package, this provides (among other things) the sdkmanager binary.
 $(ANDROID_HOME)/cmdline-tools/latest/bin/sdkmanager:
