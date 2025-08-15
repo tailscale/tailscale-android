@@ -45,6 +45,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import libtailscale.Libtailscale
@@ -52,6 +53,8 @@ import java.io.IOException
 import java.net.NetworkInterface
 import java.security.GeneralSecurityException
 import java.util.Locale
+import kotlin.time.Duration.Companion.hours
+
 class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
   val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
   companion object {
@@ -177,6 +180,9 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     }
     applicationScope.launch {
       val hideDisconnectAction = MDMSettings.forceEnabled.flow.first()
+    }
+    applicationScope.launch {
+        cleanupOldCacheFiles()
     }
     TSLog.init(this)
     FeatureFlags.initialize(mapOf("enable_new_search" to true))
@@ -334,6 +340,18 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
   }
   fun notifyPolicyChanged() {
     app.notifyPolicyChanged()
+  }
+
+  suspend fun cleanupOldCacheFiles() {
+    val maxAgeMs = 1.hours.inWholeMilliseconds
+    val cutoffTime = System.currentTimeMillis() - maxAgeMs
+    withContext(Dispatchers.IO) {
+      cacheDir.listFiles()?.forEach { file ->
+        if (file.name.startsWith("shared_text_") && file.lastModified() < cutoffTime) {
+          file.delete()
+        }
+      }
+    }
   }
 }
 /**
