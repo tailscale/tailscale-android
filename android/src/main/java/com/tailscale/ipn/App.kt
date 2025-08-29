@@ -35,6 +35,8 @@ import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.viewModel.AppViewModel
 import com.tailscale.ipn.ui.viewModel.AppViewModelFactory
 import com.tailscale.ipn.util.FeatureFlags
+import com.tailscale.ipn.util.HardwareKeyStore
+import com.tailscale.ipn.util.NoSuchKeyException
 import com.tailscale.ipn.util.ShareFileHelper
 import com.tailscale.ipn.util.TSLog
 import kotlinx.coroutines.CoroutineScope
@@ -335,6 +337,40 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
   fun notifyPolicyChanged() {
     app.notifyPolicyChanged()
   }
+
+    override fun hardwareAttestationKeySupported(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            packageManager.hasSystemFeature(PackageManager.FEATURE_STRONGBOX_KEYSTORE)
+        } else {
+            false
+        }
+    }
+
+    private var keyStore = HardwareKeyStore();
+
+    override fun hardwareAttestationKeyCreate(): String {
+        return keyStore.createKey()
+    }
+
+    @Throws(NoSuchKeyException::class)
+    override fun hardwareAttestationKeyRelease(id: String) {
+        return keyStore.releaseKey(id)
+    }
+
+    @Throws(NoSuchKeyException::class)
+    override fun hardwareAttestationKeySign(id: String, data: ByteArray): ByteArray {
+        return keyStore.sign(id, data)
+    }
+
+    @Throws(NoSuchKeyException::class)
+    override fun hardwareAttestationKeyPublic(id: String): ByteArray {
+        return keyStore.public(id)
+    }
+
+    @Throws(NoSuchKeyException::class)
+    override fun hardwareAttestationKeyLoad(id: String) {
+        return keyStore.load(id)
+    }
 }
 /**
  * UninitializedApp contains all of the methods of App that can be used without having to initialize

@@ -65,6 +65,15 @@ type AppContext interface {
 	// GetSyspolicyStringArrayValue returns the current string array value for the given system policy,
 	// expressed as a JSON string.
 	GetSyspolicyStringArrayJSONValue(key string) (string, error)
+
+	// Methods used to implement key.HardwareAttestationKey using the Android
+	// KeyStore.
+	HardwareAttestationKeySupported() bool
+	HardwareAttestationKeyCreate() (id string, err error)
+	HardwareAttestationKeyRelease(id string) error
+	HardwareAttestationKeyPublic(id string) (pub []byte, err error)
+	HardwareAttestationKeySign(id string, data []byte) (sig []byte, err error)
+	HardwareAttestationKeyLoad(id string) error
 }
 
 // IPNService corresponds to our IPNService in Java.
