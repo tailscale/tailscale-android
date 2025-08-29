@@ -36,6 +36,8 @@ import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.viewModel.AppViewModel
 import com.tailscale.ipn.ui.viewModel.AppViewModelFactory
 import com.tailscale.ipn.util.FeatureFlags
+import com.tailscale.ipn.util.HardwareKeyStore
+import com.tailscale.ipn.util.NoSuchKeyException
 import com.tailscale.ipn.util.ShareFileHelper
 import com.tailscale.ipn.util.TSLog
 import java.io.IOException
@@ -53,7 +55,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import libtailscale.Libtailscale
-
+import java.lang.UnsupportedOperationException
 class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
   val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -359,6 +361,48 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
   fun notifyPolicyChanged() {
     app.notifyPolicyChanged()
   }
+
+    override fun hardwareAttestationKeySupported(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            packageManager.hasSystemFeature(PackageManager.FEATURE_STRONGBOX_KEYSTORE)
+        } else {
+            false
+        }
+    }
+
+    private lateinit var keyStore: HardwareKeyStore;
+
+    private fun getKeyStore(): HardwareKeyStore {
+        if (hardwareAttestationKeySupported()) {
+            return HardwareKeyStore()
+        } else {
+            throw UnsupportedOperationException()
+        }
+    }
+
+    override fun hardwareAttestationKeyCreate(): String {
+        return getKeyStore().createKey()
+    }
+
+    @Throws(NoSuchKeyException::class)
+    override fun hardwareAttestationKeyRelease(id: String) {
+        return getKeyStore().releaseKey(id)
+    }
+
+    @Throws(NoSuchKeyException::class)
+    override fun hardwareAttestationKeySign(id: String, data: ByteArray): ByteArray {
+        return getKeyStore().sign(id, data)
+    }
+
+    @Throws(NoSuchKeyException::class)
+    override fun hardwareAttestationKeyPublic(id: String): ByteArray {
+        return getKeyStore().public(id)
+    }
+
+    @Throws(NoSuchKeyException::class)
+    override fun hardwareAttestationKeyLoad(id: String) {
+        return getKeyStore().load(id)
+    }
 }
 /**
  * UninitializedApp contains all of the methods of App that can be used without having to initialize
