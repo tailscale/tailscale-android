@@ -141,7 +141,14 @@ func (a *App) runBackend(ctx context.Context) error {
 	a.backend = b.backend
 	defer b.CloseTUNs()
 
-	h := localapi.NewHandler(ipnauth.Self, b.backend, log.Printf, *a.logIDPublicAtomic.Load())
+	hc := localapi.HandlerConfig{
+		Actor:    ipnauth.Self,
+		Backend:  b.backend,
+		Logf:     log.Printf,
+		LogID:    *a.logIDPublicAtomic.Load(),
+		EventBus: b.bus,
+	}
+	h := localapi.NewHandler(hc)
 	h.PermitRead = true
 	h.PermitWrite = true
 	a.localAPIHandler = h
