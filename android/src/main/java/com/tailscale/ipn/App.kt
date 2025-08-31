@@ -292,6 +292,10 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     return packageManager.hasSystemFeature("android.hardware.type.pc")
   }
 
+  override fun isClientLoggingEnabled(): Boolean {
+    return getIsClientLoggingEnabled()
+  }
+
   override fun getInterfacesAsString(): String {
     val interfaces: ArrayList<NetworkInterface> =
         java.util.Collections.list(NetworkInterface.getNetworkInterfaces())
@@ -375,6 +379,7 @@ open class UninitializedApp : Application() {
     // the VPN (i.e. we're logged in and machine is authorized).
     private const val ABLE_TO_START_VPN_KEY = "ableToStartVPN"
     private const val DISALLOWED_APPS_KEY = "disallowedApps"
+    private const val IS_CLIENT_LOGGING_ENABLED_KEY = "isClientLoggingEnabled"
     // File for shared preferences that are not encrypted.
     private const val UNENCRYPTED_PREFERENCES = "unencrypted"
     private lateinit var appInstance: UninitializedApp
@@ -537,6 +542,14 @@ open class UninitializedApp : Application() {
           NotificationCompat.Action.Builder(0, actionLabel, pendingButtonIntent).build())
     }
     return builder.build()
+  }
+
+  fun getIsClientLoggingEnabled(): Boolean {
+    return getUnencryptedPrefs().getBoolean(IS_CLIENT_LOGGING_ENABLED_KEY, true)
+  }
+
+  fun updateIsClientLoggingEnabled(value: Boolean) {
+    getUnencryptedPrefs().edit().putBoolean(IS_CLIENT_LOGGING_ENABLED_KEY, value).apply()
   }
 
   fun updateUserDisallowedPackageNames(packageNames: List<String>) {
