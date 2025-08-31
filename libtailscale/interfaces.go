@@ -51,6 +51,9 @@ type AppContext interface {
 	// IsChromeOS reports whether we're on a ChromeOS device.
 	IsChromeOS() (bool, error)
 
+	// IsClientLoggingEnabled reports whether the user has enabled remote client logging.
+	IsClientLoggingEnabled() (bool, error)
+
 	// GetInterfacesAsJson gets a JSON representation of all network
 	// interfaces.
 	GetInterfacesAsJson() (string, error)

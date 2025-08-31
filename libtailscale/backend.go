@@ -329,7 +329,7 @@ func (a *App) newBackend(dataDir string, appCtx AppContext, store *stateStore,
 		log.Printf("netmon.New: %v", err)
 	}
 	b.netMon = netMon
-	b.setupLogs(dataDir, logID, logf, sys.HealthTracker.Get())
+	b.setupLogs(dataDir, logID, logf, sys.HealthTracker.Get(), a.isClientLoggingEnabled())
 	dialer := new(tsdial.Dialer)
 	vf := &VPNFacade{
 		SetBoth:           b.setCfg,
