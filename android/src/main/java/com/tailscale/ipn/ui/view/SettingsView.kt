@@ -110,12 +110,10 @@ fun SettingsView(
 
           Lists.ItemDivider()
           Setting.Switch(
-            R.string.client_remote_logging_enabled,
-            subtitle = stringResource(R.string.client_remote_logging_enabled_subtitle),
-            isOn = isClientRemoteLoggingEnabled,
-            onToggle = {
-              viewModel.toggleIsClientRemoteLoggingEnabled()
-            })
+              R.string.client_remote_logging_enabled,
+              subtitle = stringResource(R.string.client_remote_logging_enabled_subtitle),
+              isOn = isClientRemoteLoggingEnabled,
+              onToggle = { viewModel.toggleIsClientRemoteLoggingEnabled() })
 
           if (!AndroidTVUtil.isAndroidTV()) {
             Lists.ItemDivider()
@@ -201,12 +199,12 @@ object Setting {
         },
         supportingContent =
             subtitle?.let {
-                {
-                    Text(
-                        it,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+              {
+                Text(
+                    it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+              }
             },
         trailingContent = {
           TintedSwitch(checked = isOn, onCheckedChange = onToggle, enabled = enabled)
