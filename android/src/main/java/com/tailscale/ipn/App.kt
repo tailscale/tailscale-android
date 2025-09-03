@@ -1,6 +1,7 @@
 // Copyright (c) Tailscale Inc & AUTHORS
 // SPDX-License-Identifier: BSD-3-Clause
 package com.tailscale.ipn
+
 import android.Manifest
 import android.app.Application
 import android.app.Notification
@@ -37,6 +38,10 @@ import com.tailscale.ipn.ui.viewModel.AppViewModelFactory
 import com.tailscale.ipn.util.FeatureFlags
 import com.tailscale.ipn.util.ShareFileHelper
 import com.tailscale.ipn.util.TSLog
+import java.io.IOException
+import java.net.NetworkInterface
+import java.security.GeneralSecurityException
+import java.util.Locale
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -48,12 +53,10 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import libtailscale.Libtailscale
-import java.io.IOException
-import java.net.NetworkInterface
-import java.security.GeneralSecurityException
-import java.util.Locale
+
 class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
   val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
   companion object {
     private const val FILE_CHANNEL_ID = "tailscale-files"
     // Key to store the SAF URI in EncryptedSharedPreferences.
@@ -70,26 +73,34 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
       return appInstance
     }
   }
+
   val dns = DnsConfig()
   private lateinit var connectivityManager: ConnectivityManager
   private lateinit var mdmChangeReceiver: MDMSettingsChangedReceiver
   private lateinit var app: libtailscale.Application
   override val viewModelStore: ViewModelStore
     get() = appViewModelStore
+
   private val appViewModelStore: ViewModelStore by lazy { ViewModelStore() }
   var healthNotifier: HealthNotifier? = null
+
   override fun getPlatformDNSConfig(): String = dns.dnsConfigAsString
+
   override fun getInstallSource(): String = AppSourceChecker.getInstallSource(this)
+
   override fun shouldUseGoogleDNSFallback(): Boolean = BuildConfig.USE_GOOGLE_DNS_FALLBACK
+
   override fun log(s: String, s1: String) {
     Log.d(s, s1)
   }
+
   fun getLibtailscaleApp(): libtailscale.Application {
     if (!isInitialized) {
       initOnce() // Calls the synchronized initialization logic
     }
     return app
   }
+
   override fun onCreate() {
     super.onCreate()
     appInstance = this
@@ -113,6 +124,7 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
         getString(R.string.health_channel_description),
         NotificationManagerCompat.IMPORTANCE_HIGH)
   }
+
   override fun onTerminate() {
     super.onTerminate()
     Notifier.stop()
@@ -121,7 +133,9 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     viewModelStore.clear()
     unregisterReceiver(mdmChangeReceiver)
   }
+
   @Volatile private var isInitialized = false
+
   @Synchronized
   private fun initOnce() {
     if (isInitialized) {
@@ -130,6 +144,7 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     initializeApp()
     isInitialized = true
   }
+
   private fun initializeApp() {
     // Check if a directory URI has already been stored.
     val storedUri = getStoredDirectoryUri()
@@ -244,6 +259,7 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
         EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
         EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM)
   }
+
   fun getStoredDirectoryUri(): Uri? {
     val uriString = getEncryptedPrefs().getString(PREF_KEY_SAF_URI, null)
     return uriString?.let { Uri.parse(it) }
@@ -258,6 +274,7 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     QuickToggleService.updateTile()
     TSLog.d("App", "Set Tile Ready: $ableToStartVPN")
   }
+
   override fun getModelName(): String {
     val manu = Build.MANUFACTURER
     var model = Build.MODEL
@@ -268,10 +285,13 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     }
     return "$manu $model"
   }
+
   override fun getOSVersion(): String = Build.VERSION.RELEASE
+
   override fun isChromeOS(): Boolean {
     return packageManager.hasSystemFeature("android.hardware.type.pc")
   }
+
   override fun getInterfacesAsString(): String {
     val interfaces: ArrayList<NetworkInterface> =
         java.util.Collections.list(NetworkInterface.getNetworkInterfaces())
@@ -303,11 +323,13 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     }
     return sb.toString()
   }
+
   @Throws(
       IOException::class, GeneralSecurityException::class, MDMSettings.NoSuchKeyException::class)
   override fun getSyspolicyBooleanValue(key: String): Boolean {
     return getSyspolicyStringValue(key) == "true"
   }
+
   @Throws(
       IOException::class, GeneralSecurityException::class, MDMSettings.NoSuchKeyException::class)
   override fun getSyspolicyStringValue(key: String): String {
@@ -317,6 +339,7 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     }
     return setting.value?.toString() ?: ""
   }
+
   @Throws(
       IOException::class, GeneralSecurityException::class, MDMSettings.NoSuchKeyException::class)
   override fun getSyspolicyStringArrayJSONValue(key: String): String {
@@ -332,6 +355,7 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
       throw MDMSettings.NoSuchKeyException()
     }
   }
+
   fun notifyPolicyChanged() {
     app.notifyPolicyChanged()
   }
@@ -374,9 +398,11 @@ open class UninitializedApp : Application() {
       }
     }
   }
+
   protected fun setUnprotectedInstance(instance: UninitializedApp) {
     appInstance = instance
   }
+
   protected fun setAbleToStartVPN(rdy: Boolean) {
     getUnencryptedPrefs().edit().putBoolean(ABLE_TO_START_VPN_KEY, rdy).apply()
   }
@@ -384,9 +410,11 @@ open class UninitializedApp : Application() {
   fun isAbleToStartVPN(): Boolean {
     return getUnencryptedPrefs().getBoolean(ABLE_TO_START_VPN_KEY, false)
   }
+
   private fun getUnencryptedPrefs(): SharedPreferences {
     return getSharedPreferences(UNENCRYPTED_PREFERENCES, MODE_PRIVATE)
   }
+
   fun startVPN() {
     val intent = Intent(this, IPNService::class.java).apply { action = IPNService.ACTION_START_VPN }
     // FLAG_UPDATE_CURRENT ensures that if the intent is already pending, the existing intent will
@@ -411,6 +439,7 @@ open class UninitializedApp : Application() {
       TSLog.e(TAG, "startVPN hit exception: $e")
     }
   }
+
   fun stopVPN() {
     val intent = Intent(this, IPNService::class.java).apply { action = IPNService.ACTION_STOP_VPN }
     try {
@@ -421,6 +450,7 @@ open class UninitializedApp : Application() {
       TSLog.e(TAG, "stopVPN hit exception in startService(): $e")
     }
   }
+
   fun restartVPN() {
     val intent =
         Intent(this, IPNService::class.java).apply { action = IPNService.ACTION_RESTART_VPN }
@@ -432,12 +462,14 @@ open class UninitializedApp : Application() {
       TSLog.e(TAG, "restartVPN hit exception in startService(): $e")
     }
   }
+
   fun createNotificationChannel(id: String, name: String, description: String, importance: Int) {
     val channel = NotificationChannel(id, name, importance)
     channel.description = description
     notificationManager = NotificationManagerCompat.from(this)
     notificationManager.createNotificationChannel(channel)
   }
+
   fun notifyStatus(
       vpnRunning: Boolean,
       hideDisconnectAction: Boolean,
@@ -445,6 +477,7 @@ open class UninitializedApp : Application() {
   ) {
     notifyStatus(buildStatusNotification(vpnRunning, hideDisconnectAction, exitNodeName))
   }
+
   fun notifyStatus(notification: Notification) {
     if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
         PackageManager.PERMISSION_GRANTED) {
@@ -459,6 +492,7 @@ open class UninitializedApp : Application() {
     }
     notificationManager.notify(STATUS_NOTIFICATION_ID, notification)
   }
+
   fun buildStatusNotification(
       vpnRunning: Boolean,
       hideDisconnectAction: Boolean,
@@ -504,6 +538,7 @@ open class UninitializedApp : Application() {
     }
     return builder.build()
   }
+
   fun updateUserDisallowedPackageNames(packageNames: List<String>) {
     if (packageNames.any { it.isEmpty() }) {
       TSLog.e(TAG, "updateUserDisallowedPackageNames called with empty packageName(s)")
@@ -512,6 +547,7 @@ open class UninitializedApp : Application() {
     getUnencryptedPrefs().edit().putStringSet(DISALLOWED_APPS_KEY, packageNames.toSet()).apply()
     this.restartVPN()
   }
+
   fun disallowedPackageNames(): List<String> {
     val mdmDisallowed =
         MDMSettings.excludedPackages.flow.value.value?.split(",")?.map { it.trim() } ?: emptyList()

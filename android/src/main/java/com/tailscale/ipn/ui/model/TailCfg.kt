@@ -15,9 +15,9 @@ import com.tailscale.ipn.ui.util.DisplayAddress
 import com.tailscale.ipn.ui.util.TimeUtil
 import com.tailscale.ipn.ui.util.flag
 import com.tailscale.ipn.ui.viewModel.PeerSettingInfo
+import java.util.Date
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
-import java.util.Date
 
 class Tailcfg {
   @Serializable

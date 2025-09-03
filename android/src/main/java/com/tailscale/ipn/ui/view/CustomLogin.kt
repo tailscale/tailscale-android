@@ -145,8 +145,7 @@ fun LoginView(
                   keyboardOptions =
                       KeyboardOptions(
                           capitalization = KeyboardCapitalization.None, imeAction = ImeAction.Go),
-                  keyboardActions =
-                      KeyboardActions(onGo = { onSubmitAction(textVal) }))
+                  keyboardActions = KeyboardActions(onGo = { onSubmitAction(textVal) }))
             })
 
         ListItem(

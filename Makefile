@@ -316,6 +316,14 @@ checkandroidsdk: ## Check that Android SDK is installed
 test: gradle-dependencies ## Run the Android tests
 	(cd android && ./gradlew test)
 
+.PHONY: fmt
+fmt: gradle-dependencies ## Format the Android code
+	(cd android && ./gradlew ktfmtFormat)
+
+.PHONY: fmt-check
+fmt-check: gradle-dependencies ## Check the Android code is formatted
+	(cd android && ./gradlew ktfmtCheck)
+
 .PHONY: emulator
 emulator: ## Start an android emulator instance
 	@echo "Checking installed SDK packages..."

@@ -224,7 +224,7 @@ class MainActivity : ComponentActivity() {
     appViewModel.directoryPickerLauncher = directoryPickerLauncher
 
     setContent {
-       var showDialog by remember { mutableStateOf(false) }
+      var showDialog by remember { mutableStateOf(false) }
 
       LaunchedEffect(Unit) { appViewModel.triggerDirectoryPicker.collect { showDialog = true } }
 

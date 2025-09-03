@@ -1,6 +1,7 @@
 // Copyright (c) Tailscale Inc & AUTHORS
 // SPDX-License-Identifier: BSD-3-Clause
 package com.tailscale.ipn.util
+
 import android.content.Context
 import android.net.Uri
 import android.os.ParcelFileDescriptor
@@ -9,6 +10,11 @@ import androidx.documentfile.provider.DocumentFile
 import com.tailscale.ipn.TaildropDirectoryStore
 import com.tailscale.ipn.ui.util.InputStreamAdapter
 import com.tailscale.ipn.ui.util.OutputStreamAdapter
+import java.io.FileOutputStream
+import java.io.IOException
+import java.io.OutputStream
+import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
@@ -17,11 +23,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import libtailscale.Libtailscale
 import org.json.JSONObject
-import java.io.FileOutputStream
-import java.io.IOException
-import java.io.OutputStream
-import java.util.UUID
-import java.util.concurrent.ConcurrentHashMap
+
 data class SafFile(val fd: Int, val uri: String)
 
 object ShareFileHelper : libtailscale.ShareFileHelper {
@@ -96,6 +98,7 @@ object ShareFileHelper : libtailscale.ShareFileHelper {
     val os = context.contentResolver.openOutputStream(file.uri, "rw")
     return file.uri.toString() to os
   }
+
   @Throws(IOException::class)
   private fun openWriterFD(fileName: String, offset: Long): Pair<String, SeekableOutputStream> {
     val ctx = appContext ?: throw IOException("App context not initialized")
@@ -114,6 +117,7 @@ object ShareFileHelper : libtailscale.ShareFileHelper {
     if (offset != 0L) fos.channel.position(offset) else fos.channel.truncate(0)
     return file.uri.toString() to SeekableOutputStream(fos, pfd)
   }
+
   private val currentUri = ConcurrentHashMap<String, String>()
 
   @Throws(IOException::class)
@@ -143,6 +147,7 @@ object ShareFileHelper : libtailscale.ShareFileHelper {
     currentUri[fileName] = uri
     return uri
   }
+
   @Throws(IOException::class)
   override fun renameFile(oldPath: String, targetName: String): String {
     val ctx = appContext ?: throw IOException("not initialized")
@@ -190,6 +195,7 @@ object ShareFileHelper : libtailscale.ShareFileHelper {
     cleanupPartials(dir, targetName)
     return dest.uri.toString()
   }
+
   private fun lengthOfUri(ctx: Context, uri: Uri): Long =
       ctx.contentResolver.openAssetFileDescriptor(uri, "r").use { it?.length ?: -1 }
   // delete any stray “.partial” files for this base name
@@ -201,6 +207,7 @@ object ShareFileHelper : libtailscale.ShareFileHelper {
       }
     }
   }
+
   @Throws(IOException::class)
   override fun deleteFile(uri: String) {
     runBlocking { waitUntilTaildropDirReady() }
@@ -213,6 +220,7 @@ object ShareFileHelper : libtailscale.ShareFileHelper {
       throw IOException("DeleteFile: delete() returned false for $uri")
     }
   }
+
   @Throws(IOException::class)
   override fun getFileInfo(fileName: String): String {
     val context = appContext ?: throw IOException("app context not initialized")
@@ -227,9 +235,11 @@ object ShareFileHelper : libtailscale.ShareFileHelper {
     val modTime = file.lastModified()
     return """{"name":${JSONObject.quote(name)},"size":$size,"modTime":$modTime}"""
   }
+
   private fun jsonEscape(s: String): String {
     return JSONObject.quote(s)
   }
+
   fun generateNewFilename(filename: String): String {
     val dotIndex = filename.lastIndexOf('.')
     val baseName = if (dotIndex != -1) filename.substring(0, dotIndex) else filename
@@ -237,6 +247,7 @@ object ShareFileHelper : libtailscale.ShareFileHelper {
     val uuid = UUID.randomUUID()
     return "$baseName-$uuid$extension"
   }
+
   fun listPartialFiles(suffix: String): Array<String> {
     val context = appContext ?: return emptyArray()
     val rootUri = savedUri ?: return emptyArray()
@@ -246,6 +257,7 @@ object ShareFileHelper : libtailscale.ShareFileHelper {
         .mapNotNull { it.name }
         .toTypedArray()
   }
+
   @Throws(IOException::class)
   override fun listFilesJSON(suffix: String): String {
     val list = listPartialFiles(suffix)
@@ -254,6 +266,7 @@ object ShareFileHelper : libtailscale.ShareFileHelper {
     }
     return list.joinToString(prefix = "[\"", separator = "\",\"", postfix = "\"]")
   }
+
   @Throws(IOException::class)
   override fun openFileReader(name: String): libtailscale.InputStream {
     val context = appContext ?: throw IOException("app context not initialized")
@@ -282,11 +295,15 @@ object ShareFileHelper : libtailscale.ShareFileHelper {
       private val pfd: ParcelFileDescriptor
   ) : OutputStream() {
     private var closed = false
+
     override fun write(b: Int) = fos.write(b)
+
     override fun write(b: ByteArray) = fos.write(b)
+
     override fun write(b: ByteArray, off: Int, len: Int) {
       fos.write(b, off, len)
     }
+
     override fun close() {
       if (!closed) {
         closed = true
@@ -299,6 +316,7 @@ object ShareFileHelper : libtailscale.ShareFileHelper {
         }
       }
     }
+
     override fun flush() = fos.flush()
   }
 }

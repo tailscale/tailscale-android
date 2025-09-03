@@ -55,6 +55,6 @@ class Netmap {
 
     fun hasCap(capability: String): Boolean {
       return AllCaps.contains(capability)
-    }  
+    }
   }
 }
