@@ -16,6 +16,7 @@ import (
 	"tailscale.com/logtail"
 	"tailscale.com/logtail/filch"
 	"tailscale.com/net/netmon"
+	"tailscale.com/types/key"
 	"tailscale.com/types/logger"
 	"tailscale.com/types/logid"
 	"tailscale.com/util/clientmetric"
@@ -42,6 +43,14 @@ func newApp(dataDir, directFileRoot string, appCtx AppContext) Application {
 	a.policyStore = &syspolicyHandler{a: a}
 	netmon.RegisterInterfaceGetter(a.getInterfaces)
 	syspolicy.RegisterHandler(a.policyStore)
+	if appCtx.HardwareAttestationKeySupported() {
+		key.RegisterHardwareAttestationKeyFns(
+			func() key.HardwareAttestationKey { return emptyHardwareAttestationKey(appCtx) },
+			func() (key.HardwareAttestationKey, error) { return createHardwareAttestationKey(appCtx) },
+		)
+	} else {
+		log.Printf("HardwareAttestationKey is not supported on this device")
+	}
 	go a.watchFileOpsChanges()
 
 	go func() {
