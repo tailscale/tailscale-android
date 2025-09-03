@@ -19,7 +19,8 @@ import (
 	"tailscale.com/types/logger"
 	"tailscale.com/types/logid"
 	"tailscale.com/util/clientmetric"
-	"tailscale.com/util/syspolicy"
+	"tailscale.com/util/syspolicy/rsop"
+	"tailscale.com/util/syspolicy/setting"
 )
 
 const defaultMTU = 1280 // minimalMTU from wgengine/userspace.go
@@ -39,9 +40,9 @@ func newApp(dataDir, directFileRoot string, appCtx AppContext) Application {
 	a.ready.Add(2)
 
 	a.store = newStateStore(a.appCtx)
-	a.policyStore = &syspolicyHandler{a: a}
+	a.policyStore = &syspolicyStore{a: a}
 	netmon.RegisterInterfaceGetter(a.getInterfaces)
-	syspolicy.RegisterHandler(a.policyStore)
+	rsop.RegisterStore("DeviceHandler", setting.DeviceScope, a.policyStore)
 	go a.watchFileOpsChanges()
 
 	go func() {
