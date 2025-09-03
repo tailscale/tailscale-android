@@ -4,9 +4,9 @@
 package com.tailscale.ipn.ui.model
 
 import android.net.Uri
+import java.util.UUID
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
-import java.util.UUID
 
 class Ipn {
 

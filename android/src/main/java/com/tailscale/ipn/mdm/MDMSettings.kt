@@ -61,7 +61,8 @@ object MDMSettings {
 
   // Handled on the backend
   val deviceSerialNumber =
-      StringMDMSetting("DeviceSerialNumber", "Serial number of the device that is running Tailscale")
+      StringMDMSetting(
+          "DeviceSerialNumber", "Serial number of the device that is running Tailscale")
 
   val useTailscaleDNSSettings =
       AlwaysNeverUserDecidesMDMSetting("UseTailscaleDNSSettings", "Use Tailscale DNS Settings")

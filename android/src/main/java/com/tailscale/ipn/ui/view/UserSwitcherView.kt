@@ -65,7 +65,7 @@ fun UserSwitcherView(nav: UserSwitcherNav, viewModel: UserSwitcherViewModel = vi
   val capabilityIsOwner = "https://tailscale.com/cap/is-owner"
   val isOwner = netmapState?.hasCap(capabilityIsOwner) == true
 
-  Scaffold( 
+  Scaffold(
       topBar = {
         Header(
             R.string.accounts,

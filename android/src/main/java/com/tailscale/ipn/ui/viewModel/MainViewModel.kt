@@ -1,6 +1,7 @@
 // Copyright (c) Tailscale Inc & AUTHORS
 // SPDX-License-Identifier: BSD-3-Clause
 package com.tailscale.ipn.ui.viewModel
+
 import android.content.Intent
 import android.net.Uri
 import android.net.VpnService
@@ -10,7 +11,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.text.AnnotatedString
-import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -21,12 +21,12 @@ import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.Ipn.State
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.notifier.Notifier
-import com.tailscale.ipn.ui.util.AndroidTVUtil
 import com.tailscale.ipn.ui.util.PeerCategorizer
 import com.tailscale.ipn.ui.util.PeerSet
 import com.tailscale.ipn.ui.util.TimeUtil
 import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.util.TSLog
+import java.time.Duration
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
@@ -35,7 +35,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
-import java.time.Duration
 
 class MainViewModelFactory(private val appViewModel: AppViewModel) : ViewModelProvider.Factory {
   @Suppress("UNCHECKED_CAST")
@@ -91,18 +90,23 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
 
   // Icon displayed in the button to present the health view
   val healthIcon: StateFlow<Int?> = MutableStateFlow(null)
+
   fun updateSearchTerm(term: String) {
     _searchTerm.value = term
   }
+
   fun hidePeerDropdownMenu() {
     expandedMenuPeer.set(null)
   }
+
   fun copyIpAddress(peer: Tailcfg.Node, clipboardManager: ClipboardManager) {
     clipboardManager.setText(AnnotatedString(peer.primaryIPv4Address ?: ""))
   }
+
   fun startPing(peer: Tailcfg.Node) {
     this.pingViewModel.startPing(peer)
   }
+
   fun onPingDismissal() {
     this.pingViewModel.handleDismissal()
   }
@@ -112,7 +116,9 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
     val v = MDMSettings.authKey.flow.value.value
     return v != null && v != ""
   }
+
   private val peerCategorizer = PeerCategorizer()
+
   init {
     viewModelScope.launch {
       var previousState: State? = null
@@ -173,9 +179,11 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
       App.get().healthNotifier?.currentIcon?.collect { icon -> healthIcon.set(icon) }
     }
   }
+
   fun maybeRequestVpnPermission() {
     _requestVpnPermission.value = true
   }
+
   fun showVPNPermissionLauncherIfUnauthorized() {
     val vpnIntent = VpnService.prepare(App.get())
     TSLog.d("VpnPermissions", "vpnIntent=$vpnIntent")
@@ -215,15 +223,19 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
       }
     }
   }
+
   fun searchPeers(searchTerm: String) {
     this.searchTerm.set(searchTerm)
   }
+
   fun enableSearchAutoFocus() {
     autoFocusSearch = true
   }
+
   fun disableSearchAutoFocus() {
     autoFocusSearch = false
   }
+
   fun setVpnPermissionLauncher(launcher: ActivityResultLauncher<Intent>) {
     // No intent means we're already authorized
     vpnPermissionLauncher = launcher

@@ -38,9 +38,9 @@ import com.tailscale.ipn.ui.util.AndroidTVUtil.isAndroidTV
 import com.tailscale.ipn.ui.util.AppVersion
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.set
+import com.tailscale.ipn.ui.viewModel.AppViewModel
 import com.tailscale.ipn.ui.viewModel.SettingsNav
 import com.tailscale.ipn.ui.viewModel.SettingsViewModel
-import com.tailscale.ipn.ui.viewModel.AppViewModel
 
 @Composable
 fun SettingsView(

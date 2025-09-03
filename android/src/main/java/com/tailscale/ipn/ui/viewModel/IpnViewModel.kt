@@ -147,9 +147,11 @@ open class IpnViewModel : ViewModel() {
 
   /**
    * Order of operations:
-   * 1. editPrefs() with maskedPrefs (to allow ControlURL override), WantRunning=true, LoggedOut=false if AuthKey != null  
+   * 1. editPrefs() with maskedPrefs (to allow ControlURL override), WantRunning=true,
+   *    LoggedOut=false if AuthKey != null
    * 2. start() starts the LocalBackend state machine
-   * 3. startLoginInteractive() is currently required for bother interactive and non-interactive (using auth key) login
+   * 3. startLoginInteractive() is currently required for bother interactive and non-interactive
+   *    (using auth key) login
    *
    * Any failure short‑circuits the chain and invokes completionHandler once.
    */
