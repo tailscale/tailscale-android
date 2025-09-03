@@ -65,7 +65,6 @@ $(info Using ANDROID_HOME: $(ANDROID_HOME))
 $(info Using NDK_ROOT: $(NDK_ROOT))
 $(info Using STRIP_TOOL: $(STRIP_TOOL))
 
-
 # Attempt to find Android Studio for Linux configuration, which does not have a
 # predetermined location.
 ANDROID_STUDIO_ROOT ?= $(shell find ~/android-studio /usr/local/android-studio /opt/android-studio /Applications/Android\ Studio.app $(PROGRAMFILES)/Android/Android\ Studio -type d -maxdepth 1 2>/dev/null | head -n 1)
@@ -290,7 +289,7 @@ $(ANDROID_HOME)/cmdline-tools/latest/bin/sdkmanager:
 	mkdir -p $(ANDROID_HOME)/cmdline-tools
 	(cd $(ANDROID_HOME)/tmp && \
 		curl --silent -O -L $(ANDROID_TOOLS_URL) && \
-		echo $(ANDROID_TOOLS_SUM) | sha256sum -c && \
+		echo $(ANDROID_TOOLS_SUM) | shasum -c - && \
 		unzip $(shell basename $(ANDROID_TOOLS_URL)))
 	mv $(ANDROID_HOME)/tmp/cmdline-tools $(ANDROID_HOME)/cmdline-tools/latest
 	rm -rf $(ANDROID_HOME)/tmp
