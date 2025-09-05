@@ -22,6 +22,11 @@ object MDMSettings {
   // MDM restriction keys
   const val KEY_HARDWARE_ATTESTATION = "HardwareAttestation"
 
+  // We default this to true, so that stricter behavior is used during initialization,
+  // prior to receiving MDM restrictions.
+  var isMDMConfigured = true
+    private set
+
   val forceEnabled = BooleanMDMSetting("ForceEnabled", "Force Enabled Connection Toggle")
 
   // Handled on the backed
@@ -130,6 +135,7 @@ object MDMSettings {
   fun loadFrom(preferences: Lazy<SharedPreferences>, restrictionsManager: RestrictionsManager?) {
     val bundle = restrictionsManager?.applicationRestrictions
     allSettings.forEach { it.setFrom(bundle, preferences) }
+    isMDMConfigured = bundle?.isEmpty == true
   }
 
   fun update(app: App, restrictionsManager: RestrictionsManager?) {
