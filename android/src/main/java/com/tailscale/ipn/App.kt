@@ -146,6 +146,10 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
   }
 
   private fun initializeApp() {
+    // Read MDM settings as early as possible, before starting the go backend.
+    val rm = getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
+    MDMSettings.update(this, rm, true)
+
     // Check if a directory URI has already been stored.
     val storedUri = getStoredDirectoryUri()
     if (storedUri != null && storedUri.toString().startsWith("content://")) {
@@ -158,8 +162,6 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     NetworkChangeCallback.monitorDnsChanges(connectivityManager, dns)
     initViewModels()
     applicationScope.launch {
-      val rm = getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
-      MDMSettings.update(get(), rm)
       Notifier.state.collect { _ ->
         combine(Notifier.state, MDMSettings.forceEnabled.flow, Notifier.prefs, Notifier.netmap) {
                 state,
@@ -545,6 +547,13 @@ open class UninitializedApp : Application() {
   }
 
   fun getIsClientLoggingEnabled(): Boolean {
+
+    // Force client logging to be enabled, when the device is managed by MDM
+    // Later this could become a dedicated MDMSetting / restriction.
+    if (MDMSettings.isMDMConfigured) {
+      return true
+    }
+
     return getUnencryptedPrefs().getBoolean(IS_CLIENT_LOGGING_ENABLED_KEY, true)
   }
 

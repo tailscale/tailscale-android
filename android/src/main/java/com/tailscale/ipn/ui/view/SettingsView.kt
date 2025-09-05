@@ -111,8 +111,13 @@ fun SettingsView(
           Lists.ItemDivider()
           Setting.Switch(
               R.string.client_remote_logging_enabled,
-              subtitle = stringResource(R.string.client_remote_logging_enabled_subtitle),
+              subtitle =
+                  stringResource(
+                      if (MDMSettings.isMDMConfigured)
+                          R.string.client_remote_logging_enabled_subtitle_mdm
+                      else R.string.client_remote_logging_enabled_subtitle),
               isOn = isClientRemoteLoggingEnabled,
+              enabled = !MDMSettings.isMDMConfigured,
               onToggle = { viewModel.toggleIsClientRemoteLoggingEnabled() })
 
           if (!AndroidTVUtil.isAndroidTV()) {
