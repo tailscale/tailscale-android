@@ -346,6 +346,9 @@
     <string name="run_as_subnet_router">Run as subnet router</string>
     <string name="use_tailscale_subnets_subtitle">Route traffic according to your network\'s rules. Some networks require this to access IP addresses that don\'t start with 100.x.y.z.</string>
     <string name="subnet_routing">Subnet routing</string>
+    <string name="client_remote_logging_enabled">Remote client logging</string>
+    <string name="client_remote_logging_enabled_subtitle">Whether debug logs are uploaded to Tailscale support. When disabled no support or network flow logs.\nChanges require restarting the app to take effect.</string>
+    <string name="client_remote_logging_enabled_subtitle_mdm">Client logging is always enabled for devices under remote management.</string>
     <string name="specifies_a_device_name_to_be_used_instead_of_the_automatic_default">Specifies a device name to be used instead of the automatic default.</string>
     <string name="hostname">Hostname</string>
     <string name="failed_to_save">Failed to save</string>

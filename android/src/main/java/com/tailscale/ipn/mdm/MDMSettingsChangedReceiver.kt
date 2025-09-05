@@ -16,7 +16,16 @@ class MDMSettingsChangedReceiver : BroadcastReceiver() {
       TSLog.d("syspolicy", "MDM settings changed")
       val restrictionsManager =
           context?.getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
+
+      val previouslyIsMDMEnabled = MDMSettings.isMDMConfigured
+
       MDMSettings.update(App.get(), restrictionsManager)
+
+      if (MDMSettings.isMDMConfigured && !previouslyIsMDMEnabled) {
+        // async MDM settings updated from disabled -> enabled. restart to ensure
+        // correctly applied (particularly forcing client logs on).
+        // TODO: actually restart
+      }
     }
   }
 }
