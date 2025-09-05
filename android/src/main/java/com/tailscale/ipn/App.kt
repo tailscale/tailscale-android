@@ -706,6 +706,13 @@ open class UninitializedApp : Application() {
   }
 
   fun getIsClientLoggingEnabled(): Boolean {
+
+    // Force client logging to be enabled, when the device is managed by MDM
+    // Later this could become a dedicated MDMSetting / restriction.
+    if (MDMSettings.isMDMConfigured) {
+      return true
+    }
+
     return getUnencryptedPrefs().getBoolean(IS_CLIENT_LOGGING_ENABLED_KEY, true)
   }
 
