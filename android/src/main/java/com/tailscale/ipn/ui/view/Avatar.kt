@@ -29,6 +29,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import coil.annotation.ExperimentalCoilApi
 import coil.compose.AsyncImage
+import coil.compose.AsyncImagePainter
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.util.AndroidTVUtil
@@ -44,6 +45,7 @@ fun Avatar(
 ) {
   val isFocused = remember { mutableStateOf(false) }
   val focusManager = LocalFocusManager.current
+  val isIconLoaded = remember { mutableStateOf(false) }
 
   // Outer Box for the larger focusable and clickable area
   Box(
@@ -73,20 +75,28 @@ fun Avatar(
             contentAlignment = Alignment.Center,
             modifier = Modifier.size(size.dp).clip(CircleShape)) {
               // Always display the default icon as a background layer
-              Icon(
-                  imageVector = Icons.Default.Person,
-                  contentDescription = stringResource(R.string.settings_title),
-                  modifier =
-                      Modifier.conditional(AndroidTVUtil.isAndroidTV(), { size((size * 0.8f).dp) })
-                          .clip(CircleShape) // Icon size slightly smaller than the Box
-                  )
+              if (!isIconLoaded.value) {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = stringResource(R.string.settings_title),
+                    modifier =
+                        Modifier.conditional(
+                                AndroidTVUtil.isAndroidTV(), { size((size * 0.8f).dp) })
+                            .clip(CircleShape) // Icon size slightly smaller than the Box
+                    )
+              }
 
               // Overlay the profile picture if available
               profile?.UserProfile?.ProfilePicURL?.let { url ->
                 AsyncImage(
                     model = url,
                     modifier = Modifier.size(size.dp).clip(CircleShape),
-                    contentDescription = null)
+                    contentDescription = null,
+                    onState = { state ->
+                      if (state is AsyncImagePainter.State.Success) {
+                        isIconLoaded.value = true
+                      }
+                    })
               }
             }
       }
