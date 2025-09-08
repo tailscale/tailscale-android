@@ -63,7 +63,7 @@ fun UserView(
           supportingContent = {
             Column {
               AutoResizingText(
-                  text = profile.NetworkProfile?.DomainName ?: "",
+                  text = profile.NetworkProfile?.tailnetNameForDisplay() ?: "",
                   style = MaterialTheme.typography.bodyMedium.short,
                   minFontSize = MaterialTheme.typography.minTextSize,
                   overflow = TextOverflow.Ellipsis)
