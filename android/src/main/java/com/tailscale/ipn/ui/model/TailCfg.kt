@@ -188,7 +188,15 @@ class Tailcfg {
   data class Service(var Proto: String, var Port: Int, var Description: String? = null)
 
   @Serializable
-  data class NetworkProfile(var MagicDNSName: String? = null, var DomainName: String? = null)
+  data class NetworkProfile(
+      var MagicDNSName: String? = null,
+      var DomainName: String? = null,
+      var DisplayName: String? = null
+  ) {
+      fun tailnetNameForDisplay(): String? {
+          return DisplayName ?: DomainName
+      }
+  }
 
   @Serializable
   data class Location(

@@ -167,7 +167,7 @@ fun MainView(
                   }
                 },
                 headlineContent = {
-                  user?.NetworkProfile?.DomainName?.let { domain ->
+                  user?.NetworkProfile?.tailnetNameForDisplay()?.let { domain ->
                     AutoResizingText(
                         text = domain,
                         style = MaterialTheme.typography.titleMedium.short,
@@ -500,7 +500,7 @@ fun ConnectView(
               fontWeight = FontWeight.SemiBold,
               textAlign = TextAlign.Center,
               fontFamily = MaterialTheme.typography.titleMedium.fontFamily)
-          val tailnetName = user.NetworkProfile?.DomainName ?: ""
+          val tailnetName = user.NetworkProfile?.tailnetNameForDisplay() ?: ""
           Text(
               buildAnnotatedString {
                 append(stringResource(id = R.string.connect_to_tailnet_prefix))
