@@ -321,7 +321,8 @@ fmt: gradle-dependencies ## Format the Android code
 
 .PHONY: fmt-check
 fmt-check: gradle-dependencies ## Check the Android code is formatted
-	(cd android && ./gradlew ktfmtCheck)
+	(cd android && ./gradlew ktfmtCheck) \
+	|| (echo -e "\033[1;31mfmt-check failed. Run 'make fmt' to fix.\033[0m" && exit 1)
 
 .PHONY: emulator
 emulator: ## Start an android emulator instance
