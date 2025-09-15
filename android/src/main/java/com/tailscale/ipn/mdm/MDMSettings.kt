@@ -18,6 +18,11 @@ object MDMSettings {
   // to the backend.
   class NoSuchKeyException : Exception("no such key")
 
+  // We default this to true, so that stricter behavior is used during initialization,
+  // prior to receiving MDM restrictions.
+  var isMDMConfigured = true
+    private set
+
   val forceEnabled = BooleanMDMSetting("ForceEnabled", "Force Enabled Connection Toggle")
 
   // Handled on the backed
@@ -117,10 +122,15 @@ object MDMSettings {
 
   val allSettingsByKey by lazy { allSettings.associateBy { it.key } }
 
-  fun update(app: App, restrictionsManager: RestrictionsManager?) {
+  fun update(app: App, restrictionsManager: RestrictionsManager?, skipNotify: Boolean = false) {
     val bundle = restrictionsManager?.applicationRestrictions
     val preferences = lazy { app.getEncryptedPrefs() }
     allSettings.forEach { it.setFrom(bundle, preferences) }
-    app.notifyPolicyChanged()
+
+    isMDMConfigured = bundle?.isEmpty == true
+
+    if (!skipNotify) {
+      app.notifyPolicyChanged()
+    }
   }
 }
