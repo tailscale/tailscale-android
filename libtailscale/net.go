@@ -101,9 +101,20 @@ func (a *App) getInterfaces() ([]netmon.Interface, error) {
 
 		addrs := strings.Trim(fields[1], " \n")
 		for _, addr := range strings.Split(addrs, " ") {
-			_, ipnet, err := net.ParseCIDR(addr)
+			pfx, err := netip.ParsePrefix(addr)
+			var ip net.IP
+			if pfx.Addr().Is4() {
+				v4 := pfx.Addr().As4()
+				ip = net.IP(v4[:])
+			} else {
+				v6 := pfx.Addr().As16()
+				ip = net.IP(v6[:])
+			}
 			if err == nil {
-				newIf.AltAddrs = append(newIf.AltAddrs, ipnet)
+				newIf.AltAddrs = append(newIf.AltAddrs, &net.IPAddr{
+					IP:   ip,
+					Zone: pfx.Addr().Zone(),
+				})
 			}
 		}
 
