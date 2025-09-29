@@ -59,7 +59,7 @@ class SplitTunnelAppPickerViewModel : ViewModel() {
   }
 
   fun select(packageName: String) {
-    if (excludedPackageNames.value.contains(packageName)) return
+    if (selectedPackageNames.value.contains(packageName)) return
 
     selectedPackageNames.set(selectedPackageNames.value + packageName)
     debounceSave()
