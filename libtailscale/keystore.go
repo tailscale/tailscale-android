@@ -89,3 +89,7 @@ func (k *hardwareAttestationKey) Close() error {
 	}
 	return k.appCtx.HardwareAttestationKeyRelease(k.id)
 }
+
+func (k *hardwareAttestationKey) Clone() key.HardwareAttestationKey {
+	return &hardwareAttestationKey{appCtx: k.appCtx, id: k.id, public: k.public}
+}
