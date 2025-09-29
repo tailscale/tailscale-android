@@ -23,6 +23,9 @@ var (
 
 	// onLog receives Android logs to be sent to the logger
 	onLog = make(chan string, 10)
+
+	// onShareFileHelper receives ShareFileHelper references when the app is initialized so that files can be received via Storage Access Framework
+	onShareFileHelper = make(chan ShareFileHelper, 1)
 )
 
 // ifname is the interface name retrieved from LinkProperties on network change. An empty string is used if there is no network available.

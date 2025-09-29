@@ -67,6 +67,12 @@
         android:title="@string/enable_posture_checking" />
 
     <restriction
+        android:description="@string/device_serial_number_descr"
+        android:key="DeviceSerialNumber"
+        android:restrictionType="string"
+        android:title="@string/device_serial_number" />
+
+    <restriction
         android:entries="@array/always_never_userdecides_labels"
         android:entryValues="@array/always_never_userdecides"
         android:key="UseTailscaleDNSSettings"
@@ -134,4 +140,12 @@
         android:key="Hostname"
         android:restrictionType="string"
         android:title="@string/hostname" />
+
+    <restriction
+        android:description="@string/skips_the_intro_page_shown_to_users_that_open_the_app_for_the_first_time"
+        android:entries="@array/show_hide_labels"
+        android:entryValues="@array/show_hide"
+        android:key="OnboardingFlow"
+        android:restrictionType="choice"
+        android:title="@string/onboarding_flow" />
 </restrictions>

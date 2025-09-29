@@ -13,19 +13,6 @@
 DOCKER_IMAGE := tailscale-android-build-amd64-041425-1
 export TS_USE_TOOLCHAIN=1
 
-# Auto-select an NDK from ANDROID_HOME (choose highest version available)
-NDK_ROOT ?= $(shell ls -1d $(ANDROID_HOME)/ndk/* 2>/dev/null | sort -V | tail -n 1)
-
-HOST_OS := $(shell uname | tr A-Z a-z)
-ifeq ($(HOST_OS),linux)
-    STRIP_TOOL := $(NDK_ROOT)/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-objcopy
-else ifeq ($(HOST_OS),darwin)
-    STRIP_TOOL := $(NDK_ROOT)/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-objcopy
-endif
-
-$(info Using NDK_ROOT: $(NDK_ROOT))
-$(info Using STRIP_TOOL: $(STRIP_TOOL))
-
 DEBUG_APK := tailscale-debug.apk
 RELEASE_AAB := tailscale-release.aab
 RELEASE_TV_AAB := tailscale-tv-release.aab
@@ -63,6 +50,20 @@ ifeq ($(ANDROID_SDK_ROOT),)
     endif
 endif
 export ANDROID_HOME ?= $(ANDROID_SDK_ROOT)
+
+# Auto-select an NDK from ANDROID_HOME (choose highest version available)
+NDK_ROOT ?= $(shell ls -1d $(ANDROID_HOME)/ndk/* 2>/dev/null | sort -V | tail -n 1)
+
+HOST_OS := $(shell uname | tr A-Z a-z)
+ifeq ($(HOST_OS),linux)
+    STRIP_TOOL := $(NDK_ROOT)/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-objcopy
+else ifeq ($(HOST_OS),darwin)
+    STRIP_TOOL := $(NDK_ROOT)/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-objcopy
+endif
+
+$(info Using ANDROID_HOME: $(ANDROID_HOME))
+$(info Using NDK_ROOT: $(NDK_ROOT))
+$(info Using STRIP_TOOL: $(STRIP_TOOL))
 
 # Attempt to find Android Studio for Linux configuration, which does not have a
 # predetermined location.
@@ -179,9 +180,11 @@ build-unstripped-aar: tailscale.version $(GOBIN)/gomobile
 	@echo "Output file: $(ABS_UNSTRIPPED_AAR)"
 	mkdir -p $(dir $(ABS_UNSTRIPPED_AAR))
 	rm -f $(ABS_UNSTRIPPED_AAR)
+	# The -linkmode=external -extldflags=-Wl,-z,max-page-size=16384 is specific to NDK 23
+	# to support 16kb page sizes.  Your mileage may vary with other NDK versions.
 	$(GOBIN)/gomobile bind -target android -androidapi 26 \
 		-tags "$$(./build-tags.sh)" \
-		-ldflags "$$(./version-ldflags.sh)" \
+		-ldflags "-linkmode=external -extldflags=-Wl,-z,max-page-size=16384 $$(./version-ldflags.sh)" \
 		-o $(ABS_UNSTRIPPED_AAR) ./libtailscale || { echo "gomobile bind failed"; exit 1; }
 	@if [ ! -f $(ABS_UNSTRIPPED_AAR) ]; then \
 	    echo "Error: $(ABS_UNSTRIPPED_AAR) was not created"; exit 1; \
@@ -275,10 +278,10 @@ bump_version_code:
 
 .PHONY: update-oss ## Update the tailscale.com go module
 update-oss:
+	curl -f https://raw.githubusercontent.com/tailscale/tailscale/refs/heads/main/go.toolchain.rev > go.toolchain.rev.new
+	mv go.toolchain.rev.new go.toolchain.rev
 	GOPROXY=direct ./tool/go get tailscale.com@main
 	./tool/go mod tidy -compat=1.24
-	./tool/go run tailscale.com/cmd/printdep --go > go.toolchain.rev.new
-	mv go.toolchain.rev.new go.toolchain.rev
 
 # Get the commandline tools package, this provides (among other things) the sdkmanager binary.
 $(ANDROID_HOME)/cmdline-tools/latest/bin/sdkmanager:
@@ -286,7 +289,7 @@ $(ANDROID_HOME)/cmdline-tools/latest/bin/sdkmanager:
 	mkdir -p $(ANDROID_HOME)/cmdline-tools
 	(cd $(ANDROID_HOME)/tmp && \
 		curl --silent -O -L $(ANDROID_TOOLS_URL) && \
-		echo $(ANDROID_TOOLS_SUM) | sha256sum -c && \
+		echo $(ANDROID_TOOLS_SUM) | shasum -c - && \
 		unzip $(shell basename $(ANDROID_TOOLS_URL)))
 	mv $(ANDROID_HOME)/tmp/cmdline-tools $(ANDROID_HOME)/cmdline-tools/latest
 	rm -rf $(ANDROID_HOME)/tmp
@@ -312,7 +315,15 @@ checkandroidsdk: ## Check that Android SDK is installed
 test: gradle-dependencies ## Run the Android tests
 	(cd android && ./gradlew test)
 
-.PHONY: emulator 
+.PHONY: fmt
+fmt: gradle-dependencies ## Format the Android code
+	(cd android && ./gradlew ktfmtFormat)
+
+.PHONY: fmt-check
+fmt-check: gradle-dependencies ## Check the Android code is formatted
+	(cd android && ./gradlew ktfmtCheck)
+
+.PHONY: emulator
 emulator: ## Start an android emulator instance
 	@echo "Checking installed SDK packages..."
 	@if ! $(ANDROID_HOME)/cmdline-tools/latest/bin/sdkmanager --list_installed | grep -q "$(AVD_IMAGE)"; then \
@@ -327,7 +338,7 @@ emulator: ## Start an android emulator instance
 	@echo "Starting emulator..."
 	@$(ANDROID_HOME)/emulator/emulator -avd "$(AVD)" -logcat-output /dev/stdout -netdelay none -netspeed full
 
-.PHONY: install 
+.PHONY: install
 install: $(DEBUG_APK) ## Install the debug APK on a connected device
 	adb install -r $<
 
@@ -335,7 +346,7 @@ install: $(DEBUG_APK) ## Install the debug APK on a connected device
 run: install ## Run the debug APK on a connected device
 	adb shell am start -n com.tailscale.ipn/com.tailscale.ipn.MainActivity
 
-.PHONY: docker-build-image 
+.PHONY: docker-build-image
 docker-build-image: ## Builds the docker image for the android build environment if it does not exist
 	@echo "Checking if docker image $(DOCKER_IMAGE) already exists..."
 	@if ! docker images $(DOCKER_IMAGE) -q | grep -q . ; then \

@@ -13,33 +13,38 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.model.Permissions
-import com.tailscale.ipn.ui.theme.success
+import com.tailscale.ipn.ui.util.friendlyDirName
 import com.tailscale.ipn.ui.util.itemsWithDividers
+import com.tailscale.ipn.ui.viewModel.PermissionsViewModel
 
-@OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun PermissionsView(backToSettings: BackNavigation, openApplicationSettings: () -> Unit) {
+fun PermissionsView(
+    backToSettings: BackNavigation,
+    navToTaildropDirView: () -> Unit,
+    navToNotificationsView: () -> Unit,
+    permissionsViewModel: PermissionsViewModel = viewModel()
+) {
   val permissions = Permissions.withGrantedStatus
+
   Scaffold(topBar = { Header(titleRes = R.string.permissions, onBack = backToSettings) }) {
       innerPadding ->
     LazyColumn(modifier = Modifier.padding(innerPadding)) {
+      // Existing Android runtime permissions
       itemsWithDividers(permissions) { (permission, granted) ->
         ListItem(
-            modifier = Modifier.clickable { openApplicationSettings() },
+            modifier = Modifier.clickable { navToNotificationsView() },
             leadingContent = {
               Icon(
-                  if (granted) painterResource(R.drawable.check_circle)
-                  else painterResource(R.drawable.xmark_circle),
-                  tint =
-                      if (granted) MaterialTheme.colorScheme.success
-                      else MaterialTheme.colorScheme.onSurfaceVariant,
+                  painterResource(R.drawable.baseline_notifications_none_24),
+                  tint = MaterialTheme.colorScheme.onSurfaceVariant,
                   modifier = Modifier.size(24.dp),
                   contentDescription =
                       stringResource(if (granted) R.string.ok else R.string.warning))
@@ -47,8 +52,34 @@ fun PermissionsView(backToSettings: BackNavigation, openApplicationSettings: () 
             headlineContent = {
               Text(stringResource(permission.title), style = MaterialTheme.typography.titleMedium)
             },
-            supportingContent = { Text(stringResource(permission.description)) },
-        )
+            supportingContent = {
+              if (granted) Text(stringResource(R.string.on)) else Text(stringResource(R.string.off))
+            })
+      }
+
+      item {
+        ListItem(
+            modifier = Modifier.clickable { navToTaildropDirView() },
+            leadingContent = {
+              Icon(
+                  painterResource(R.drawable.baseline_drive_folder_upload_24),
+                  tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                  modifier = Modifier.size(24.dp),
+                  contentDescription = stringResource(R.string.taildrop_dir))
+            },
+            headlineContent = {
+              Text(
+                  stringResource(R.string.taildrop_dir_access),
+                  style = MaterialTheme.typography.titleMedium)
+            },
+            supportingContent = {
+              val displayPath =
+                  permissionsViewModel.currentDir.collectAsState().value?.let {
+                    friendlyDirName(it)
+                  } ?: "No access"
+
+              Text(displayPath)
+            })
       }
     }
   }

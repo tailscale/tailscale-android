@@ -10,33 +10,34 @@ import (
 
 	"tailscale.com/util/set"
 	"tailscale.com/util/syspolicy"
+	"tailscale.com/util/syspolicy/pkey"
 )
 
-// syspolicyHandler is a syspolicy handler for the Android version of the Tailscale client,
+// syspolicyStore is a syspolicy Store for the Android version of the Tailscale client,
 // which lets the main networking code read values set via the Android RestrictionsManager.
-type syspolicyHandler struct {
+type syspolicyStore struct {
 	a   *App
 	mu  sync.RWMutex
 	cbs set.HandleSet[func()]
 }
 
-func (h *syspolicyHandler) ReadString(key string) (string, error) {
+func (h *syspolicyStore) ReadString(key pkey.Key) (string, error) {
 	if key == "" {
 		return "", syspolicy.ErrNoSuchKey
 	}
-	retVal, err := h.a.appCtx.GetSyspolicyStringValue(key)
+	retVal, err := h.a.appCtx.GetSyspolicyStringValue(string(key))
 	return retVal, translateHandlerError(err)
 }
 
-func (h *syspolicyHandler) ReadBoolean(key string) (bool, error) {
+func (h *syspolicyStore) ReadBoolean(key pkey.Key) (bool, error) {
 	if key == "" {
 		return false, syspolicy.ErrNoSuchKey
 	}
-	retVal, err := h.a.appCtx.GetSyspolicyBooleanValue(key)
+	retVal, err := h.a.appCtx.GetSyspolicyBooleanValue(string(key))
 	return retVal, translateHandlerError(err)
 }
 
-func (h *syspolicyHandler) ReadUInt64(key string) (uint64, error) {
+func (h *syspolicyStore) ReadUInt64(key pkey.Key) (uint64, error) {
 	if key == "" {
 		return 0, syspolicy.ErrNoSuchKey
 	}
@@ -44,11 +45,11 @@ func (h *syspolicyHandler) ReadUInt64(key string) (uint64, error) {
 	return 0, errors.New("ReadUInt64 is not implemented on Android")
 }
 
-func (h *syspolicyHandler) ReadStringArray(key string) ([]string, error) {
+func (h *syspolicyStore) ReadStringArray(key pkey.Key) ([]string, error) {
 	if key == "" {
 		return nil, syspolicy.ErrNoSuchKey
 	}
-	retVal, err := h.a.appCtx.GetSyspolicyStringArrayJSONValue(key)
+	retVal, err := h.a.appCtx.GetSyspolicyStringArrayJSONValue(string(key))
 	if err := translateHandlerError(err); err != nil {
 		return nil, err
 	}
@@ -63,7 +64,7 @@ func (h *syspolicyHandler) ReadStringArray(key string) ([]string, error) {
 	return arr, err
 }
 
-func (h *syspolicyHandler) RegisterChangeCallback(cb func()) (unregister func(), err error) {
+func (h *syspolicyStore) RegisterChangeCallback(cb func()) (unregister func(), err error) {
 	h.mu.Lock()
 	handle := h.cbs.Add(cb)
 	h.mu.Unlock()
@@ -74,7 +75,7 @@ func (h *syspolicyHandler) RegisterChangeCallback(cb func()) (unregister func(),
 	}, nil
 }
 
-func (h *syspolicyHandler) notifyChanged() {
+func (h *syspolicyStore) notifyChanged() {
 	h.mu.RLock()
 	for _, cb := range h.cbs {
 		go cb()

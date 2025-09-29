@@ -7,15 +7,15 @@ import android.app.Application
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.PendingIntent
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.RestrictionsManager
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
+import android.net.Uri
 import android.os.Build
-import android.os.Environment
 import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
@@ -33,11 +33,13 @@ import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.Netmap
 import com.tailscale.ipn.ui.notifier.HealthNotifier
 import com.tailscale.ipn.ui.notifier.Notifier
-import com.tailscale.ipn.ui.viewModel.VpnViewModel
-import com.tailscale.ipn.ui.viewModel.VpnViewModelFactory
+import com.tailscale.ipn.ui.viewModel.AppViewModel
+import com.tailscale.ipn.ui.viewModel.AppViewModelFactory
 import com.tailscale.ipn.util.FeatureFlags
+import com.tailscale.ipn.util.HardwareKeyStore
+import com.tailscale.ipn.util.NoSuchKeyException
+import com.tailscale.ipn.util.ShareFileHelper
 import com.tailscale.ipn.util.TSLog
-import java.io.File
 import java.io.IOException
 import java.net.NetworkInterface
 import java.security.GeneralSecurityException
@@ -53,15 +55,16 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import libtailscale.Libtailscale
-
+import java.lang.UnsupportedOperationException
 class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
   val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
   companion object {
     private const val FILE_CHANNEL_ID = "tailscale-files"
+    // Key to store the SAF URI in EncryptedSharedPreferences.
+    private val PREF_KEY_SAF_URI = "saf_directory_uri"
     private const val TAG = "App"
     private lateinit var appInstance: App
-
     /**
      * Initializes the app (if necessary) and returns the singleton app instance. Always use this
      * function to obtain an App reference to make sure the app initializes.
@@ -77,12 +80,10 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
   private lateinit var connectivityManager: ConnectivityManager
   private lateinit var mdmChangeReceiver: MDMSettingsChangedReceiver
   private lateinit var app: libtailscale.Application
-
   override val viewModelStore: ViewModelStore
     get() = appViewModelStore
 
   private val appViewModelStore: ViewModelStore by lazy { ViewModelStore() }
-
   var healthNotifier: HealthNotifier? = null
 
   override fun getPlatformDNSConfig(): String = dns.dnsConfigAsString
@@ -106,11 +107,9 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     super.onCreate()
     appInstance = this
     setUnprotectedInstance(this)
-
     mdmChangeReceiver = MDMSettingsChangedReceiver()
     val filter = IntentFilter(Intent.ACTION_APPLICATION_RESTRICTIONS_CHANGED)
     registerReceiver(mdmChangeReceiver, filter)
-
     createNotificationChannel(
         STATUS_CHANNEL_ID,
         getString(R.string.vpn_status),
@@ -144,28 +143,25 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     if (isInitialized) {
       return
     }
-
     initializeApp()
     isInitialized = true
   }
 
   private fun initializeApp() {
-    val dataDir = this.filesDir.absolutePath
-
-    // Set this to enable direct mode for taildrop whereby downloads will be saved directly
-    // to the given folder.  We will preferentially use <shared>/Downloads and fallback to
-    // an app local directory "Taildrop" if we cannot create that.  This mode does not support
-    // user notifications for incoming files.
-    val directFileDir = this.prepareDownloadsFolder()
-    app = Libtailscale.start(dataDir, directFileDir.absolutePath, this)
-    Request.setApp(app)
-    Notifier.setApp(app)
-    Notifier.start(applicationScope)
+    // Check if a directory URI has already been stored.
+    val storedUri = getStoredDirectoryUri()
+    if (storedUri != null && storedUri.toString().startsWith("content://")) {
+      startLibtailscale(storedUri.toString())
+    } else {
+      startLibtailscale(this.filesDir.absolutePath)
+    }
     healthNotifier = HealthNotifier(Notifier.health, Notifier.state, applicationScope)
     connectivityManager = this.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     NetworkChangeCallback.monitorDnsChanges(connectivityManager, dns)
     initViewModels()
     applicationScope.launch {
+      val rm = getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
+      MDMSettings.update(get(), rm)
       Notifier.state.collect { _ ->
         combine(Notifier.state, MDMSettings.forceEnabled.flow, Notifier.prefs, Notifier.netmap) {
                 state,
@@ -183,11 +179,9 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
               if (state == Ipn.State.Stopped) {
                 notifyStatus(vpnRunning = false, hideDisconnectAction = hideDisconnectAction.value)
               }
-
               val vpnRunning = state == Ipn.State.Starting || state == Ipn.State.Running
               updateConnStatus(ableToStartVPN)
               QuickToggleService.setVPNRunning(vpnRunning)
-
               // Update notification status when VPN is running
               if (vpnRunning) {
                 notifyStatus(
@@ -204,9 +198,22 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     TSLog.init(this)
     FeatureFlags.initialize(mapOf("enable_new_search" to true))
   }
+  /**
+   * Called when a SAF directory URI is available (either already stored or chosen). We must restart
+   * Tailscale because directFileRoot must be set before LocalBackend starts being used.
+   */
+  fun startLibtailscale(directFileRoot: String) {
+    app = Libtailscale.start(this.filesDir.absolutePath, directFileRoot, this)
+    ShareFileHelper.init(this, app, directFileRoot, applicationScope)
+    Request.setApp(app)
+    Notifier.setApp(app)
+    Notifier.start(applicationScope)
+  }
 
   private fun initViewModels() {
-    vpnViewModel = ViewModelProvider(this, VpnViewModelFactory(this)).get(VpnViewModel::class.java)
+    appViewModel =
+        ViewModelProvider(this, AppViewModelFactory(this, ShareFileHelper.observeTaildropPrompt()))
+            .get(AppViewModel::class.java)
   }
 
   fun setWantRunning(wantRunning: Boolean, onSuccess: (() -> Unit)? = null) {
@@ -220,14 +227,12 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     Client(applicationScope)
         .editPrefs(Ipn.MaskedPrefs().apply { WantRunning = wantRunning }, callback)
   }
-
   // encryptToPref a byte array of data using the Jetpack Security
   // library and writes it to a global encrypted preference store.
   @Throws(IOException::class, GeneralSecurityException::class)
   override fun encryptToPref(prefKey: String?, plaintext: String?) {
     getEncryptedPrefs().edit().putString(prefKey, plaintext).commit()
   }
-
   // decryptFromPref decrypts a encrypted preference using the Jetpack Security
   // library and returns the plaintext.
   @Throws(IOException::class, GeneralSecurityException::class)
@@ -235,10 +240,20 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     return getEncryptedPrefs().getString(prefKey, null)
   }
 
+  override fun getStateStoreKeysJSON(): String {
+    val prefix = "statestore-"
+    val keys =
+        getEncryptedPrefs()
+            .getAll()
+            .keys
+            .filter { it.startsWith(prefix) }
+            .map { it.removePrefix(prefix) }
+    return org.json.JSONArray(keys).toString()
+  }
+
   @Throws(IOException::class, GeneralSecurityException::class)
   fun getEncryptedPrefs(): SharedPreferences {
     val key = MasterKey.Builder(this).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build()
-
     return EncryptedSharedPreferences.create(
         this,
         "secret_shared_prefs",
@@ -247,6 +262,10 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
         EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM)
   }
 
+  fun getStoredDirectoryUri(): Uri? {
+    val uriString = getEncryptedPrefs().getString(PREF_KEY_SAF_URI, null)
+    return uriString?.let { Uri.parse(it) }
+  }
   /*
    * setAbleToStartVPN remembers whether or not we're able to start the VPN
    * by storing this in a shared preference. This allows us to check this
@@ -278,7 +297,6 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
   override fun getInterfacesAsString(): String {
     val interfaces: ArrayList<NetworkInterface> =
         java.util.Collections.list(NetworkInterface.getNetworkInterfaces())
-
     val sb = StringBuilder()
     for (nif in interfaces) {
       try {
@@ -294,7 +312,6 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
                 nif.isLoopback,
                 nif.isPointToPoint,
                 nif.supportsMulticast()))
-
         for (ia in nif.interfaceAddresses) {
           val parts = ia.toString().split("/", limit = 0)
           if (parts.size > 1) {
@@ -306,31 +323,7 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
       }
       sb.append("\n")
     }
-
     return sb.toString()
-  }
-
-  private fun prepareDownloadsFolder(): File {
-    var downloads = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-
-    try {
-      if (!downloads.exists()) {
-        downloads.mkdirs()
-      }
-    } catch (e: Exception) {
-      TSLog.e(TAG, "Failed to create downloads folder: $e")
-      downloads = File(this.filesDir, "Taildrop")
-      try {
-        if (!downloads.exists()) {
-          downloads.mkdirs()
-        }
-      } catch (e: Exception) {
-        TSLog.e(TAG, "Failed to create Taildrop folder: $e")
-        downloads = File("")
-      }
-    }
-
-    return downloads
   }
 
   @Throws(
@@ -368,8 +361,49 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
   fun notifyPolicyChanged() {
     app.notifyPolicyChanged()
   }
-}
 
+    override fun hardwareAttestationKeySupported(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            packageManager.hasSystemFeature(PackageManager.FEATURE_STRONGBOX_KEYSTORE)
+        } else {
+            false
+        }
+    }
+
+    private lateinit var keyStore: HardwareKeyStore;
+
+    private fun getKeyStore(): HardwareKeyStore {
+        if (hardwareAttestationKeySupported()) {
+            return HardwareKeyStore()
+        } else {
+            throw UnsupportedOperationException()
+        }
+    }
+
+    override fun hardwareAttestationKeyCreate(): String {
+        return getKeyStore().createKey()
+    }
+
+    @Throws(NoSuchKeyException::class)
+    override fun hardwareAttestationKeyRelease(id: String) {
+        return getKeyStore().releaseKey(id)
+    }
+
+    @Throws(NoSuchKeyException::class)
+    override fun hardwareAttestationKeySign(id: String, data: ByteArray): ByteArray {
+        return getKeyStore().sign(id, data)
+    }
+
+    @Throws(NoSuchKeyException::class)
+    override fun hardwareAttestationKeyPublic(id: String): ByteArray {
+        return getKeyStore().public(id)
+    }
+
+    @Throws(NoSuchKeyException::class)
+    override fun hardwareAttestationKeyLoad(id: String) {
+        return getKeyStore().load(id)
+    }
+}
 /**
  * UninitializedApp contains all of the methods of App that can be used without having to initialize
  * the Go backend. This is useful when you want to access functions on the App without creating side
@@ -378,11 +412,9 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
 open class UninitializedApp : Application() {
   companion object {
     const val TAG = "UninitializedApp"
-
     const val STATUS_NOTIFICATION_ID = 1
     const val STATUS_EXIT_NODE_FAILURE_NOTIFICATION_ID = 2
     const val STATUS_CHANNEL_ID = "tailscale-status"
-
     // Key for shared preference that tracks whether or not we're able to start
     // the VPN (i.e. we're logged in and machine is authorized).
     private const val ABLE_TO_START_VPN_KEY = "ableToStartVPN"
@@ -397,17 +429,15 @@ open class UninitializedApp : Application() {
 
     // File for shared preferences that are not encrypted.
     private const val UNENCRYPTED_PREFERENCES = "unencrypted"
-
     private lateinit var appInstance: UninitializedApp
     lateinit var notificationManager: NotificationManagerCompat
 
-    lateinit var vpnViewModel: VpnViewModel
+    lateinit var appViewModel: AppViewModel
 
     @JvmStatic
     fun get(): UninitializedApp {
       return appInstance
     }
-
     /**
      * Return the name of the active (but not the selected/prior one) exit node based on the
      * provided [Ipn.Prefs] and [Netmap.NetworkMap].
@@ -428,7 +458,6 @@ open class UninitializedApp : Application() {
   protected fun setAbleToStartVPN(rdy: Boolean) {
     getUnencryptedPrefs().edit().putBoolean(ABLE_TO_START_VPN_KEY, rdy).apply()
   }
-
   /** This function can be called without initializing the App. */
   fun isAbleToStartVPN(): Boolean {
     return getUnencryptedPrefs().getBoolean(ABLE_TO_START_VPN_KEY, false)
@@ -450,7 +479,6 @@ open class UninitializedApp : Application() {
             PendingIntent.FLAG_UPDATE_CURRENT or
                 PendingIntent.FLAG_IMMUTABLE // FLAG_IMMUTABLE for Android 12+
             )
-
     try {
       pendingIntent.send()
     } catch (foregroundServiceStartException: IllegalStateException) {
@@ -476,25 +504,15 @@ open class UninitializedApp : Application() {
   }
 
   fun restartVPN() {
-    // Register a receiver to listen for the completion of stopVPN
-    val stopReceiver =
-        object : BroadcastReceiver() {
-          override fun onReceive(context: Context?, intent: Intent?) {
-            // Ensure stop intent is complete
-            if (intent?.action == IPNService.ACTION_STOP_VPN) {
-              // Unregister receiver after receiving the broadcast
-              context?.unregisterReceiver(this)
-              // Now start the VPN
-              startVPN()
-            }
-          }
-        }
-
-    // Register the receiver before stopping VPN
-    val intentFilter = IntentFilter(IPNService.ACTION_STOP_VPN)
-    this.registerReceiver(stopReceiver, intentFilter, Context.RECEIVER_NOT_EXPORTED)
-
-    stopVPN()
+    val intent =
+        Intent(this, IPNService::class.java).apply { action = IPNService.ACTION_RESTART_VPN }
+    try {
+      startService(intent)
+    } catch (illegalStateException: IllegalStateException) {
+      TSLog.e(TAG, "restartVPN hit IllegalStateException in startService(): $illegalStateException")
+    } catch (e: Exception) {
+      TSLog.e(TAG, "restartVPN hit exception in startService(): $e")
+    }
   }
 
   fun createNotificationChannel(id: String, name: String, description: String, importance: Int) {
@@ -548,7 +566,6 @@ open class UninitializedApp : Application() {
             0,
             buttonIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-
     val intent =
         Intent(this, MainActivity::class.java).apply {
           flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -556,7 +573,6 @@ open class UninitializedApp : Application() {
     val pendingIntent: PendingIntent =
         PendingIntent.getActivity(
             this, 1, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-
     val builder =
         NotificationCompat.Builder(this, STATUS_CHANNEL_ID)
             .setSmallIcon(icon)
@@ -575,32 +591,13 @@ open class UninitializedApp : Application() {
     return builder.build()
   }
 
-  fun addUserSelectedPackage(packageName: String) {
-    if (packageName.isEmpty()) {
-      TSLog.e(TAG, "addUserSelectedPackage called with empty packageName")
+  fun updateUserSelectedPackages(packageNames: List<String>) {
+    if (packageNames.any { it.isEmpty() }) {
+      TSLog.e(TAG, "updateUserSelectedPackage called with empty packageName(s)")
       return
     }
 
-    getUnencryptedPrefs()
-        .edit()
-        .putStringSet(
-            SELECTED_APPS_KEY, selectedPackageNames().toMutableSet().union(setOf(packageName)))
-        .apply()
-
-    this.restartVPN()
-  }
-
-  fun removeUserSelectedPackage(packageName: String) {
-    if (packageName.isEmpty()) {
-      TSLog.e(TAG, "removeUserSelectedPackage called with empty packageName")
-      return
-    }
-
-    getUnencryptedPrefs()
-        .edit()
-        .putStringSet(
-            SELECTED_APPS_KEY, selectedPackageNames().toMutableSet().subtract(setOf(packageName)))
-        .apply()
+    getUnencryptedPrefs().edit().putStringSet(SELECTED_APPS_KEY, packageNames.toSet()).apply()
 
     this.restartVPN()
   }
@@ -624,8 +621,8 @@ open class UninitializedApp : Application() {
     return getUnencryptedPrefs().getBoolean(ALLOW_SELECTED_APPS_KEY, false)
   }
 
-  fun getAppScopedViewModel(): VpnViewModel {
-    return vpnViewModel
+  fun getAppScopedViewModel(): AppViewModel {
+    return appViewModel
   }
 
   val builtInDisallowedPackageNames: List<String> =

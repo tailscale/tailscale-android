@@ -46,6 +46,13 @@ open class IPNService : VpnService(), libtailscale.IPNService {
           close()
           START_NOT_STICKY
         }
+        ACTION_RESTART_VPN -> {
+          app.setWantRunning(false) {
+            close()
+            app.startVPN()
+          }
+          START_NOT_STICKY
+        }
         ACTION_START_VPN -> {
           scope.launch { showForegroundNotification() }
           app.setWantRunning(true)
@@ -82,7 +89,6 @@ open class IPNService : VpnService(), libtailscale.IPNService {
       }
 
   override fun close() {
-    app.setWantRunning(false) {}
     Notifier.setState(Ipn.State.Stopping)
     disconnectVPN()
     Libtailscale.serviceDisconnect(this)
@@ -214,5 +220,6 @@ open class IPNService : VpnService(), libtailscale.IPNService {
   companion object {
     const val ACTION_START_VPN = "com.tailscale.ipn.START_VPN"
     const val ACTION_STOP_VPN = "com.tailscale.ipn.STOP_VPN"
+    const val ACTION_RESTART_VPN = "com.tailscale.ipn.RESTART_VPN"
   }
 }

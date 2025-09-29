@@ -29,6 +29,10 @@ type AppContext interface {
 	// at the given key, or returns empty string if unset.
 	DecryptFromPref(key string) (string, error)
 
+	// GetStateStoreKeysJson retrieves all keys stored in the encrypted SharedPreferences,
+	// strips off the "statestore-" prefix, and returns them as a JSON array.
+	GetStateStoreKeysJSON() string
+
 	// GetOSVersion gets the Android version.
 	GetOSVersion() (string, error)
 
@@ -61,6 +65,15 @@ type AppContext interface {
 	// GetSyspolicyStringArrayValue returns the current string array value for the given system policy,
 	// expressed as a JSON string.
 	GetSyspolicyStringArrayJSONValue(key string) (string, error)
+
+	// Methods used to implement key.HardwareAttestationKey using the Android
+	// KeyStore.
+	HardwareAttestationKeySupported() bool
+	HardwareAttestationKeyCreate() (id string, err error)
+	HardwareAttestationKeyRelease(id string) error
+	HardwareAttestationKeyPublic(id string) (pub []byte, err error)
+	HardwareAttestationKeySign(id string, data []byte) (sig []byte, err error)
+	HardwareAttestationKeyLoad(id string) error
 }
 
 // IPNService corresponds to our IPNService in Java.
@@ -162,6 +175,47 @@ type InputStream interface {
 	Close() error
 }
 
+// OutputStream provides an adapter between Java's OutputStream and Go's
+// io.WriteCloser.
+type OutputStream interface {
+	Write([]byte) (int, error)
+	Close() error
+}
+
+// ShareFileHelper corresponds to the Kotlin ShareFileHelper class
+type ShareFileHelper interface {
+	// OpenFileWriter creates or truncates a file named fileName at a given offset,
+	// returning an OutputStream for writing. Returns an error if the file cannot be opened.
+	OpenFileWriter(fileName string, offset int64) (stream OutputStream, err error)
+
+	// GetFileURI returns the SAF URI string for the file named fileName,
+	// or an error if the file cannot be resolved.
+	GetFileURI(fileName string) (uri string, err error)
+
+	// RenameFile renames the file at oldPath (a SAF URI) into the Taildrop directory,
+	// giving it the new targetName. Returns the SAF URI of the renamed file, or an error.
+	RenameFile(oldPath string, targetName string) (newURI string, err error)
+
+	// ListFilesJSON returns a JSON-encoded list of filenames in the Taildrop directory
+	// that end with the specified suffix. If the suffix is empty, it returns all files.
+	// Returns an error if no matching files are found or the directory cannot be accessed.
+	ListFilesJSON(suffix string) (json string, err error)
+
+	// OpenFileReader opens the file with the given name (typically a .partial file)
+	// and returns an InputStream for reading its contents.
+	// Returns an error if the file cannot be opened.
+	OpenFileReader(name string) (stream InputStream, err error)
+
+	// DeleteFile deletes the file identified by the given SAF URI string.
+	// Returns an error if the file could not be deleted.
+	DeleteFile(uri string) error
+
+	// GetFileInfo returns a JSON-encoded string containing metadata for fileName,
+	// matching the fields of androidFileInfo (name, size, modTime).
+	// Returns an error if the file does not exist or cannot be accessed.
+	GetFileInfo(fileName string) (json string, err error)
+}
+
 // The below are global callbacks that allow the Java application to notify Go
 // of various state changes.
 
@@ -180,5 +234,21 @@ func SendLog(logstr []byte) {
 	default:
 		// Channel is full, log not sent
 		log.Printf("Log %v not sent", logstr) // missing argument in original code
+	}
+}
+
+func SetShareFileHelper(fileHelper ShareFileHelper) {
+	// Drain the channel if there's an old value.
+	select {
+	case <-onShareFileHelper:
+	default:
+		// Channel was already empty.
+	}
+	select {
+	case onShareFileHelper <- fileHelper:
+	default:
+		// In the unlikely case the channel is still full, drain it and try again.
+		<-onShareFileHelper
+		onShareFileHelper <- fileHelper
 	}
 }

@@ -105,10 +105,15 @@ class Tailcfg {
 
     // isExitNode reproduces the Go logic in local.go peerStatusFromNode
     val isExitNode: Boolean =
-        AllowedIPs?.contains("0.0.0.0/0") ?: false && AllowedIPs?.contains("::/0") ?: false
+        (AllowedIPs?.contains("0.0.0.0/0") ?: false) && (AllowedIPs?.contains("::/0") ?: false)
 
+    // mullvad nodes are exit nodes with a mullvad.ts.net domain *or* Location Info.
+    // These checks are intentionally redundant to avoid false negatives.
     val isMullvadNode: Boolean
-      get() = Name.endsWith(".mullvad.ts.net.")
+      get() =
+          Name.endsWith(".mullvad.ts.net") ||
+              ComputedName?.endsWith(".mullvad.ts.net") == true ||
+              Hostinfo.Location != null
 
     val displayName: String
       get() = ComputedName ?: Name
@@ -183,7 +188,15 @@ class Tailcfg {
   data class Service(var Proto: String, var Port: Int, var Description: String? = null)
 
   @Serializable
-  data class NetworkProfile(var MagicDNSName: String? = null, var DomainName: String? = null)
+  data class NetworkProfile(
+      var MagicDNSName: String? = null,
+      var DomainName: String? = null,
+      var DisplayName: String? = null
+  ) {
+      fun tailnetNameForDisplay(): String? {
+          return DisplayName ?: DomainName
+      }
+  }
 
   @Serializable
   data class Location(

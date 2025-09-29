@@ -59,6 +59,11 @@ object MDMSettings {
   val postureChecking =
       AlwaysNeverUserDecidesMDMSetting("PostureChecking", "Enable Posture Checking")
 
+  // Handled on the backend
+  val deviceSerialNumber =
+      StringMDMSetting(
+          "DeviceSerialNumber", "Serial number of the device that is running Tailscale")
+
   val useTailscaleDNSSettings =
       AlwaysNeverUserDecidesMDMSetting("UseTailscaleDNSSettings", "Use Tailscale DNS Settings")
 
@@ -96,6 +101,9 @@ object MDMSettings {
 
   // Overrides the value provided by os.Hostname() in Go
   val hostname = StringMDMSetting("Hostname", "Device Hostname")
+
+  // Allows admins to skip the get started intro screen
+  val onboardingFlow = ShowHideMDMSetting("OnboardingFlow", "Suppress the intro screen")
 
   val allSettings by lazy {
     MDMSettings::class

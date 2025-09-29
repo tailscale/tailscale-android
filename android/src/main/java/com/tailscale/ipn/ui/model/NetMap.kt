@@ -15,7 +15,8 @@ class Netmap {
       var Domain: String,
       var UserProfiles: Map<String, Tailcfg.UserProfile>,
       var TKAEnabled: Boolean,
-      var DNS: Tailcfg.DNSConfig? = null
+      var DNS: Tailcfg.DNSConfig? = null,
+      var AllCaps: List<String> = emptyList()
   ) {
     // Keys are tailcfg.UserIDs thet get stringified
     // Helpers
@@ -50,6 +51,10 @@ class Netmap {
           Domain == other.Domain &&
           UserProfiles == other.UserProfiles &&
           TKAEnabled == other.TKAEnabled
+    }
+
+    fun hasCap(capability: String): Boolean {
+      return AllCaps.contains(capability)
     }
   }
 }

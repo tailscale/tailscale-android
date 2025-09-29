@@ -95,11 +95,11 @@ class Ipn {
       var ExitNodeIDSet: Boolean? = null,
       var ExitNodeAllowLANAccessSet: Boolean? = null,
       var WantRunningSet: Boolean? = null,
+      var LoggedOutSet: Boolean? = null,
       var ShieldsUpSet: Boolean? = null,
       var AdvertiseRoutesSet: Boolean? = null,
       var ForceDaemonSet: Boolean? = null,
       var HostnameSet: Boolean? = null,
-      var InternalExitNodePriorSet: Boolean? = null,
   ) {
 
     var ControlURL: String? = null
@@ -126,12 +126,6 @@ class Ipn {
         ExitNodeIDSet = true
       }
 
-    var InternalExitNodePrior: String? = null
-      set(value) {
-        field = value
-        InternalExitNodePriorSet = true
-      }
-
     var ExitNodeAllowLANAccess: Boolean? = null
       set(value) {
         field = value
@@ -142,6 +136,12 @@ class Ipn {
       set(value) {
         field = value
         WantRunningSet = true
+      }
+
+    var LoggedOut: Boolean? = null
+      set(value) {
+        field = value
+        LoggedOutSet = true
       }
 
     var ShieldsUp: Boolean? = null
@@ -237,4 +237,21 @@ class Persist {
           "privkey:0000000000000000000000000000000000000000000000000000000000000000",
       var Provider: String = "",
   )
+}
+
+fun Ipn.MaskedPrefs.deepCopy(): Ipn.MaskedPrefs {
+  return Ipn.MaskedPrefs().also {
+    if (this.ControlURLSet == true) it.ControlURL = this.ControlURL
+    if (this.RouteAllSet == true) it.RouteAll = this.RouteAll
+    if (this.CorpDNSSet == true) it.CorpDNS = this.CorpDNS
+    if (this.ExitNodeIDSet == true) it.ExitNodeID = this.ExitNodeID
+    if (this.ExitNodeAllowLANAccessSet == true)
+        it.ExitNodeAllowLANAccess = this.ExitNodeAllowLANAccess
+    if (this.WantRunningSet == true) it.WantRunning = this.WantRunning
+    if (this.LoggedOutSet == true) it.LoggedOut = this.LoggedOut
+    if (this.ShieldsUpSet == true) it.ShieldsUp = this.ShieldsUp
+    if (this.AdvertiseRoutesSet == true) it.AdvertiseRoutes = this.AdvertiseRoutes
+    if (this.ForceDaemonSet == true) it.ForceDaemon = this.ForceDaemon
+    if (this.HostnameSet == true) it.Hostname = this.Hostname
+  }
 }

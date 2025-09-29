@@ -1,6 +1,5 @@
 // Copyright (c) Tailscale Inc & AUTHORS
 // SPDX-License-Identifier: BSD-3-Clause
-
 package com.tailscale.ipn.ui.view
 
 import android.os.Build
@@ -61,20 +60,26 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.tailscale.ipn.App
 import com.tailscale.ipn.R
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.mdm.ShowHide
+import com.tailscale.ipn.ui.Links
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.Netmap
@@ -101,10 +106,11 @@ import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.PeerSet
 import com.tailscale.ipn.ui.util.itemsWithDividers
 import com.tailscale.ipn.ui.util.set
+import com.tailscale.ipn.ui.viewModel.AppViewModel
 import com.tailscale.ipn.ui.viewModel.IpnViewModel.NodeState
 import com.tailscale.ipn.ui.viewModel.MainViewModel
-import com.tailscale.ipn.ui.viewModel.VpnViewModel
 import com.tailscale.ipn.util.FeatureFlags
+import kotlinx.coroutines.flow.emptyFlow
 
 // Navigation actions for the MainView
 data class MainViewNavigation(
@@ -120,7 +126,8 @@ data class MainViewNavigation(
 fun MainView(
     loginAtUrl: (String) -> Unit,
     navigation: MainViewNavigation,
-    viewModel: MainViewModel
+    viewModel: MainViewModel,
+    appViewModel: AppViewModel
 ) {
   val currentPingDevice by viewModel.pingViewModel.peer.collectAsState()
   val healthIcon by viewModel.healthIcon.collectAsState()
@@ -146,7 +153,6 @@ fun MainView(
 
             // Hide the header only on Android TV when the user needs to login
             val hideHeader = (isAndroidTV() && state == Ipn.State.NeedsLogin)
-
             ListItem(
                 colors = MaterialTheme.colorScheme.surfaceContainerListItem,
                 leadingContent = {
@@ -161,7 +167,7 @@ fun MainView(
                   }
                 },
                 headlineContent = {
-                  user?.NetworkProfile?.DomainName?.let { domain ->
+                  user?.NetworkProfile?.tailnetNameForDisplay()?.let { domain ->
                     AutoResizingText(
                         text = domain,
                         style = MaterialTheme.typography.titleMedium.short,
@@ -202,23 +208,19 @@ fun MainView(
                     }
                   }
                 })
-
             when (state) {
               Ipn.State.Running -> {
-
-                PromptPermissionsIfNecessary()
-
-                viewModel.showVPNPermissionLauncherIfUnauthorized()
+                viewModel.maybeRequestVpnPermission()
+                LaunchVpnPermissionIfNeeded(viewModel)
+                PromptForMissingPermissions(viewModel)
 
                 if (showKeyExpiry) {
                   ExpiryNotification(netmap = netmap, action = { viewModel.login() })
                 }
-
                 if (showExitNodePicker.value == ShowHide.Show) {
                   ExitNodeStatus(
                       navAction = navigation.onNavigateToExitNodes, viewModel = viewModel)
                 }
-
                 PeerList(
                     viewModel = viewModel,
                     onNavigateToPeerDetails = navigation.onNavigateToPeerDetails,
@@ -243,7 +245,6 @@ fun MainView(
               }
             }
           }
-
       currentPingDevice?.let { _ ->
         ModalBottomSheet(onDismissRequest = { viewModel.onPingDismissal() }) {
           PingView(model = viewModel.pingViewModel)
@@ -254,23 +255,44 @@ fun MainView(
 }
 
 @Composable
+fun TaildropDirectoryPickerPrompt() {
+  val uriHandler = LocalUriHandler.current
+  Column(verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = Alignment.Start) {
+    Text(text = stringResource(id = R.string.taildrop_directory_picker_body))
+    Text(
+        text = stringResource(id = R.string.taildrop_directory_picker_info),
+        modifier = Modifier.clickable { uriHandler.openUri(Links.TAILDROP_KB_URL) },
+        color = MaterialTheme.colorScheme.primary,
+        textDecoration = TextDecoration.Underline)
+  }
+}
+
+@Composable
+fun LaunchVpnPermissionIfNeeded(viewModel: MainViewModel) {
+  val lifecycleOwner = LocalLifecycleOwner.current
+  val shouldRequest by viewModel.requestVpnPermission.collectAsState()
+  LaunchedEffect(shouldRequest) {
+    if (!shouldRequest) return@LaunchedEffect
+    // Defer showing permission launcher until activity is resumed to avoid silent RESULT_CANCELED
+    lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+      viewModel.showVPNPermissionLauncherIfUnauthorized()
+    }
+  }
+}
+
+@Composable
 fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
   val nodeState by viewModel.nodeState.collectAsState()
   val maybePrefs by viewModel.prefs.collectAsState()
   val netmap by viewModel.netmap.collectAsState()
-
   // There's nothing to render if we haven't loaded the prefs yet
   val prefs = maybePrefs ?: return
-
   // The activeExitNode is the source of truth.  The selectedExitNode is only relevant if we
   // don't have an active node.
   val chosenExitNodeId = prefs.activeExitNodeID ?: prefs.selectedExitNodeID
-
   val exitNodePeer = chosenExitNodeId?.let { id -> netmap?.Peers?.find { it.StableID == id } }
   val name = exitNodePeer?.exitNodeName
-
   val managedByOrganization by viewModel.managedByOrganization.collectAsState()
-
   Box(
       modifier =
           Modifier.fillMaxWidth().background(color = MaterialTheme.colorScheme.surfaceContainer)) {
@@ -295,7 +317,6 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
                     }
               }
         }
-
         Box(
             modifier =
                 Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp)
@@ -415,11 +436,11 @@ fun ConnectView(
     loginAction: () -> Unit,
     loginAtUrlAction: (String) -> Unit,
     selfNode: Tailcfg.Node?,
-    showVPNPermissionLauncherIfUnauthorized: () -> Unit
+    showVPNPermissionLauncher: () -> Unit,
 ) {
   LaunchedEffect(isPrepared) {
     if (!isPrepared && shouldStartAutomatically) {
-      showVPNPermissionLauncherIfUnauthorized()
+      showVPNPermissionLauncher()
     }
   }
   Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
@@ -479,7 +500,7 @@ fun ConnectView(
               fontWeight = FontWeight.SemiBold,
               textAlign = TextAlign.Center,
               fontFamily = MaterialTheme.typography.titleMedium.fontFamily)
-          val tailnetName = user.NetworkProfile?.DomainName ?: ""
+          val tailnetName = user.NetworkProfile?.tailnetNameForDisplay() ?: ""
           Text(
               buildAnnotatedString {
                 append(stringResource(id = R.string.connect_to_tailnet_prefix))
@@ -527,13 +548,12 @@ fun PeerList(
     viewModel: MainViewModel,
     onNavigateToPeerDetails: (Tailcfg.Node) -> Unit,
     onSearchBarClick: () -> Unit,
-    onSearch: (String) -> Unit
+    onSearch: (String) -> Unit,
 ) {
   val peerList by viewModel.peers.collectAsState(initial = emptyList<PeerSet>())
   val searchTermStr by viewModel.searchTerm.collectAsState(initial = "")
   val showNoResults =
       remember { derivedStateOf { searchTermStr.isNotEmpty() && peerList.isEmpty() } }.value
-
   val netmap = viewModel.netmap.collectAsState()
   val focusManager = LocalFocusManager.current
   var isSearchFocussed by remember { mutableStateOf(false) }
@@ -542,7 +562,6 @@ fun PeerList(
   val localClipboardManager = LocalClipboardManager.current
   // Restrict search to devices running API 33+ (see https://github.com/tailscale/corp/issues/27375)
   val enableSearch = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
-
   Column(modifier = Modifier.fillMaxSize()) {
     if (enableSearch && FeatureFlags.isEnabled("enable_new_search")) {
       Search(onSearchBarClick)
@@ -589,7 +608,6 @@ fun PeerList(
             }
       }
     }
-
     // Peers display
     LazyColumn(
         modifier =
@@ -597,7 +615,6 @@ fun PeerList(
                 .weight(1f) // LazyColumn gets the remaining vertical space
                 .onFocusChanged { isListFocussed = it.isFocused }
                 .background(color = MaterialTheme.colorScheme.surface)) {
-
           // Handle case when no results are found
           if (showNoResults) {
             item {
@@ -613,7 +630,6 @@ fun PeerList(
                   fontWeight = FontWeight.Light)
             }
           }
-
           // Iterate over peer sets to display them
           var first = true
           peerList.forEach { peerSet ->
@@ -621,13 +637,11 @@ fun PeerList(
               item(key = "user_divider_${peerSet.user?.ID ?: 0L}") { Lists.ItemDivider() }
             }
             first = false
-
             if (isAndroidTV()) {
               item { NodesSectionHeader(peerSet = peerSet) }
             } else {
               stickyHeader { NodesSectionHeader(peerSet = peerSet) }
             }
-
             itemsWithDividers(peerSet.peers, key = { it.StableID }) { peer ->
               ListItem(
                   modifier =
@@ -694,7 +708,6 @@ fun PeerList(
 @Composable
 fun NodesSectionHeader(peerSet: PeerSet) {
   Spacer(Modifier.height(16.dp).fillMaxSize().background(color = MaterialTheme.colorScheme.surface))
-
   Lists.LargeTitle(
       peerSet.user?.DisplayName ?: stringResource(id = R.string.unknown_user),
       bottomPadding = 8.dp,
@@ -706,7 +719,6 @@ fun NodesSectionHeader(peerSet: PeerSet) {
 @Composable
 fun ExpiryNotification(netmap: Netmap.NetworkMap?, action: () -> Unit = {}) {
   if (netmap == null) return
-
   Box(modifier = Modifier.background(color = MaterialTheme.colorScheme.surfaceContainer)) {
     Box(
         modifier =
@@ -733,7 +745,10 @@ fun ExpiryNotification(netmap: Netmap.NetworkMap?, action: () -> Unit = {}) {
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun PromptPermissionsIfNecessary() {
+fun PromptForMissingPermissions(viewModel: MainViewModel) {
+  if (viewModel.skipPromptsForAuthKeyLogin()) {
+    return
+  }
   Permissions.prompt.forEach { (permission, state) ->
     ErrorDialog(
         title = permission.title,
@@ -748,11 +763,10 @@ fun PromptPermissionsIfNecessary() {
 @Composable
 fun Search(
     onSearchBarClick: () -> Unit, // Callback for navigating to SearchView
-    backgroundColor: Color = MaterialTheme.colorScheme.background // Default background color
+    backgroundColor: Color = MaterialTheme.colorScheme.background, // Default background color
 ) {
   // Prevent multiple taps
   var isNavigating by remember { mutableStateOf(false) }
-
   Box(
       modifier =
           Modifier.fillMaxWidth()
@@ -783,7 +797,6 @@ fun Search(
                             Modifier.padding(start = 0.dp) // Optional start padding for alignment
                         )
                     Spacer(modifier = Modifier.width(4.dp))
-
                     // Placeholder Text
                     Text(
                         text = stringResource(R.string.search_ellipsis),
@@ -801,9 +814,9 @@ fun Search(
 @Preview
 @Composable
 fun MainViewPreview() {
-  val vpnViewModel = VpnViewModel(App.get())
-  val vm = MainViewModel(vpnViewModel)
-
+  val fakePrompt = emptyFlow<Unit>()
+  val appViewModel = AppViewModel(App.get(), fakePrompt)
+  val vm = MainViewModel(appViewModel)
   MainView(
       {},
       MainViewNavigation(
@@ -812,5 +825,6 @@ fun MainViewPreview() {
           onNavigateToExitNodes = {},
           onNavigateToHealth = {},
           onNavigateToSearch = {}),
-      vm)
+      vm,
+      appViewModel)
 }
