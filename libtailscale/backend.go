@@ -288,7 +288,7 @@ func (a *App) newBackend(dataDir string, appCtx AppContext, store *stateStore,
 		log.Printf("netmon.New: %w", err)
 	}
 	b.netMon = netMon
-	b.setupLogs(dataDir, logID, logf, sys.HealthTracker())
+	b.setupLogs(dataDir, logID, logf, sys.HealthTracker.Get())
 	dialer := new(tsdial.Dialer)
 	vf := &VPNFacade{
 		SetBoth:           b.setCfg,
@@ -302,7 +302,7 @@ func (a *App) newBackend(dataDir string, appCtx AppContext, store *stateStore,
 		Dialer:         dialer,
 		SetSubsystem:   sys.Set,
 		NetMon:         b.netMon,
-		HealthTracker:  sys.HealthTracker(),
+		HealthTracker:  sys.HealthTracker.Get(),
 		Metrics:        sys.UserMetricsRegistry(),
 		DriveForLocal:  driveimpl.NewFileSystemForLocal(logf),
 		EventBus:       sys.Bus.Get(),
