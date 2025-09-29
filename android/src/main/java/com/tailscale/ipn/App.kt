@@ -148,6 +148,10 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
   }
 
   private fun initializeApp() {
+    // Read MDM settings as early as possible, before starting the go backend.
+    val rm = getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
+    MDMSettings.update(this, rm, true)
+
     // Check if a directory URI has already been stored.
     val storedUri = getStoredDirectoryUri()
     if (storedUri != null && storedUri.toString().startsWith("content://")) {
@@ -160,8 +164,6 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     NetworkChangeCallback.monitorDnsChanges(connectivityManager, dns)
     initViewModels()
     applicationScope.launch {
-      val rm = getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
-      MDMSettings.update(get(), rm)
       Notifier.state.collect { _ ->
         combine(Notifier.state, MDMSettings.forceEnabled.flow, Notifier.prefs, Notifier.netmap) {
                 state,
@@ -294,6 +296,10 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     return packageManager.hasSystemFeature("android.hardware.type.pc")
   }
 
+  override fun isClientLoggingEnabled(): Boolean {
+    return getIsClientLoggingEnabled()
+  }
+
   override fun getInterfacesAsString(): String {
     val interfaces: ArrayList<NetworkInterface> =
         java.util.Collections.list(NetworkInterface.getNetworkInterfaces())
@@ -419,6 +425,7 @@ open class UninitializedApp : Application() {
     // the VPN (i.e. we're logged in and machine is authorized).
     private const val ABLE_TO_START_VPN_KEY = "ableToStartVPN"
     private const val DISALLOWED_APPS_KEY = "disallowedApps"
+    private const val IS_CLIENT_LOGGING_ENABLED_KEY = "isClientLoggingEnabled"
     // File for shared preferences that are not encrypted.
     private const val UNENCRYPTED_PREFERENCES = "unencrypted"
     private lateinit var appInstance: UninitializedApp
@@ -581,6 +588,21 @@ open class UninitializedApp : Application() {
           NotificationCompat.Action.Builder(0, actionLabel, pendingButtonIntent).build())
     }
     return builder.build()
+  }
+
+  fun getIsClientLoggingEnabled(): Boolean {
+
+    // Force client logging to be enabled, when the device is managed by MDM
+    // Later this could become a dedicated MDMSetting / restriction.
+    if (MDMSettings.isMDMConfigured) {
+      return true
+    }
+
+    return getUnencryptedPrefs().getBoolean(IS_CLIENT_LOGGING_ENABLED_KEY, true)
+  }
+
+  fun updateIsClientLoggingEnabled(value: Boolean) {
+    getUnencryptedPrefs().edit().putBoolean(IS_CLIENT_LOGGING_ENABLED_KEY, value).apply()
   }
 
   fun updateUserDisallowedPackageNames(packageNames: List<String>) {

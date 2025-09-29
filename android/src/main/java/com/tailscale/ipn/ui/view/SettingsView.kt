@@ -58,6 +58,7 @@ fun SettingsView(
   val isVPNPrepared by appViewModel.vpnPrepared.collectAsState()
   val showTailnetLock by MDMSettings.manageTailnetLock.flow.collectAsState()
   val useTailscaleSubnets by MDMSettings.useTailscaleSubnets.flow.collectAsState()
+  val isClientRemoteLoggingEnabled by viewModel.isClientRemoteLoggingEnabled.collectAsState()
 
   Scaffold(
       topBar = {
@@ -106,6 +107,19 @@ fun SettingsView(
             Lists.ItemDivider()
             Setting.Text(R.string.subnet_routing, onClick = settingsNav.onNavigateToSubnetRouting)
           }
+
+          Lists.ItemDivider()
+          Setting.Switch(
+              R.string.client_remote_logging_enabled,
+              subtitle =
+                  stringResource(
+                      if (MDMSettings.isMDMConfigured)
+                          R.string.client_remote_logging_enabled_subtitle_mdm
+                      else R.string.client_remote_logging_enabled_subtitle),
+              isOn = isClientRemoteLoggingEnabled,
+              enabled = !MDMSettings.isMDMConfigured,
+              onToggle = { viewModel.toggleIsClientRemoteLoggingEnabled() })
+
           if (!AndroidTVUtil.isAndroidTV()) {
             Lists.ItemDivider()
             Setting.Text(R.string.permissions, onClick = settingsNav.onNavigateToPermissions)
@@ -175,6 +189,7 @@ object Setting {
   fun Switch(
       titleRes: Int = 0,
       title: String? = null,
+      subtitle: String? = null,
       isOn: Boolean,
       enabled: Boolean = true,
       onToggle: (Boolean) -> Unit = {}
@@ -187,6 +202,15 @@ object Setting {
               style = MaterialTheme.typography.bodyMedium,
           )
         },
+        supportingContent =
+            subtitle?.let {
+              {
+                Text(
+                    it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+              }
+            },
         trailingContent = {
           TintedSwitch(checked = isOn, onCheckedChange = onToggle, enabled = enabled)
         })
