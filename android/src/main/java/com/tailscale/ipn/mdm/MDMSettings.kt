@@ -18,6 +18,9 @@ object MDMSettings {
   // to the backend.
   class NoSuchKeyException : Exception("no such key")
 
+  // MDM restriction keys
+  const val KEY_HARDWARE_ATTESTATION = "HardwareAttestation"
+
   val forceEnabled = BooleanMDMSetting("ForceEnabled", "Force Enabled Connection Toggle")
 
   // Handled on the backed
@@ -114,6 +117,11 @@ object MDMSettings {
         }
         .map { it.call(MDMSettings) as MDMSetting<*> }
   }
+
+  val hardwareAttestation = BooleanMDMSetting(
+      KEY_HARDWARE_ATTESTATION,
+      "Use hardware-backed keys to bind node identity to the device",
+  )
 
   val allSettingsByKey by lazy { allSettings.associateBy { it.key } }
 
