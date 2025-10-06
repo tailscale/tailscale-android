@@ -32,7 +32,7 @@ const (
 	customLoginServerPrefKey = "customloginserver"
 )
 
-func newApp(dataDir, directFileRoot string, appCtx AppContext) Application {
+func newApp(dataDir, directFileRoot string, hardwareAttestationPref bool, appCtx AppContext) Application {
 	a := &App{
 		directFileRoot: directFileRoot,
 		dataDir:        dataDir,
@@ -44,7 +44,9 @@ func newApp(dataDir, directFileRoot string, appCtx AppContext) Application {
 	a.policyStore = &syspolicyStore{a: a}
 	netmon.RegisterInterfaceGetter(a.getInterfaces)
 	rsop.RegisterStore("DeviceHandler", setting.DeviceScope, a.policyStore)
-	if appCtx.HardwareAttestationKeySupported() {
+
+	hwAttestEnabled := appCtx.HardwareAttestationKeySupported() && hardwareAttestationPref
+	if hwAttestEnabled {
 		key.RegisterHardwareAttestationKeyFns(
 			func() key.HardwareAttestationKey { return emptyHardwareAttestationKey(appCtx) },
 			func() (key.HardwareAttestationKey, error) { return createHardwareAttestationKey(appCtx) },
@@ -63,7 +65,7 @@ func newApp(dataDir, directFileRoot string, appCtx AppContext) Application {
 		}()
 
 		ctx := context.Background()
-		if err := a.runBackend(ctx); err != nil {
+		if err := a.runBackend(ctx, hwAttestEnabled); err != nil {
 			fatalErr(err)
 		}
 	}()

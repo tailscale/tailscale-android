@@ -150,10 +150,12 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
   private fun initializeApp() {
     // Check if a directory URI has already been stored.
     val storedUri = getStoredDirectoryUri()
+    val rm = getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
+    val hardwareAttestation = rm.applicationRestrictions.getBoolean(MDMSettings.KEY_HARDWARE_ATTESTATION, false)
     if (storedUri != null && storedUri.toString().startsWith("content://")) {
-      startLibtailscale(storedUri.toString())
+      startLibtailscale(storedUri.toString(), hardwareAttestation)
     } else {
-      startLibtailscale(this.filesDir.absolutePath)
+      startLibtailscale(this.filesDir.absolutePath, hardwareAttestation)
     }
     healthNotifier = HealthNotifier(Notifier.health, Notifier.state, applicationScope)
     connectivityManager = this.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -202,8 +204,8 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
    * Called when a SAF directory URI is available (either already stored or chosen). We must restart
    * Tailscale because directFileRoot must be set before LocalBackend starts being used.
    */
-  fun startLibtailscale(directFileRoot: String) {
-    app = Libtailscale.start(this.filesDir.absolutePath, directFileRoot, this)
+  fun startLibtailscale(directFileRoot: String, hardwareAttestation: Boolean) {
+    app = Libtailscale.start(this.filesDir.absolutePath, directFileRoot, hardwareAttestation, this)
     ShareFileHelper.init(this, app, directFileRoot, applicationScope)
     Request.setApp(app)
     Notifier.setApp(app)
