@@ -11,8 +11,8 @@ import (
 
 // Start starts the application, storing state in the given dataDir and using
 // the given appCtx.
-func Start(dataDir, directFileRoot string, appCtx AppContext) Application {
-	return start(dataDir, directFileRoot, appCtx)
+func Start(dataDir, directFileRoot string, hwAttestationPref bool, appCtx AppContext) Application {
+	return start(dataDir, directFileRoot, hwAttestationPref, appCtx)
 }
 
 // AppContext provides a context within which the Application is running. This
