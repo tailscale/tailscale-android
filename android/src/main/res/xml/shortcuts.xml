@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="enable_vpn"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_enable_vpn_short"
+        android:shortcutLongLabel="@string/shortcut_enable_vpn_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.tailscale.ipn"
+            android:targetClass="com.tailscale.ipn.EnableVpnShortcutActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="disable_vpn"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_disable_vpn_short"
+        android:shortcutLongLabel="@string/shortcut_disable_vpn_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.tailscale.ipn"
+            android:targetClass="com.tailscale.ipn.DisableVpnShortcutActivity" />
+    </shortcut>
+</shortcuts>
