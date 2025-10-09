@@ -99,25 +99,59 @@ func (a *App) getInterfaces() ([]netmon.Interface, error) {
 			newIf.Flags |= net.FlagMulticast
 		}
 
+		// 		getInterfaces: parsing addrs "fe80::4850:a8ff:fe2f:a98c%dummy0/64"
+		// 2025-10-08 16:38:56.615 14958-15001 gojni                   com.tailscale.ipn                    D  getInterfaces: unable to parse addr "fe80::4850:a8ff:fe2f:a98c%dummy0/64": netip.ParsePrefix("fe80::4850:a8ff:fe2f:a98c%dummy0/64"): IPv6 zones cannot be present in a prefix
+		// 2025-10-08 16:38:56.615 14958-15001 gojni                   com.tailscale.ipn                    D  getInterfaces: found interface "dummy0", index 2, addrs []
+		// 2025-10-08 16:38:56.615 14958-15001 gojni                   com.tailscale.ipn                    D  getInterfaces: parsing addrs "fe80::5054:ff:fe12:3456%eth0/64 fec0::5054:ff:fe12:3456/64 10.0.2.15/24"
+		// 2025-10-08 16:38:56.615 14958-15001 gojni                   com.tailscale.ipn                    D  getInterfaces: unable to parse addr "fe80::5054:ff:fe12:3456%eth0/64": netip.ParsePrefix("fe80::5054:ff:fe12:3456%eth0/64"): IPv6 zones cannot be present in a prefix
+		// 2025-10-08 16:38:56.615 14958-15001 gojni                   com.tailscale.ipn                    D  getInterfaces: found interface "eth0", index 15, addrs ["fec0::5054:ff:fe12:3456" "10.0.2.15"]
+		// 2025-10-08 16:38:56.615 14958-15001 gojni                   com.tailscale.ipn                    D  getInterfaces: parsing addrs "fe80::cc26:6f73:69de:6451%wlan0/64 fec0::c517:7ce9:a8be:c692/64 fec0::7b3b:747f:e9c0:c6f4/64 10.0.2.16/24"
+		// 2025-10-08 16:38:56.615 14958-15001 gojni                   com.tailscale.ipn                    D  getInterfaces: unable to parse addr "fe80::cc26:6f73:69de:6451%wlan0/64": netip.ParsePrefix("fe80::cc26:6f73:69de:6451%wlan0/64"): IPv6 zones cannot be present in a prefix
+		// 2025-10-08 16:38:56.615 14958-15001 gojni                   com.tailscale.ipn                    D  getInterfaces: found interface "wlan0", index 16, addrs ["fec0::c517:7ce9:a8be:c692" "fec0::7b3b:747f:e9c0:c6f4" "10.0.2.16"]
+		// 2025-10-08 16:38:56.616 14958-15001 gojni                   com.tailscale.ipn                    D  getInterfaces: parsing addrs "::1/128 127.0.0.1/8"
+		// 2025-10-08 16:38:56.616 14958-15001 gojni                   com.tailscale.ipn                    D  getInterfaces: found interface "lo", index 1, addrs ["::1" "127.0.0.1"]
+		// 2025-10-08 16:38:56.864 14958-15001 gojni                   com.tailscale.ipn                    D  getInterfaces: parsing addrs "fe80::4850:a8ff:fe2f:a98c%dummy0/64"
+		// 2025-10-08 16:38:56.864 14958-15001 gojni                   com.tailscale.ipn                    D  getInterfaces: unable to parse addr "fe80::4850:a8ff:fe2f:a98c%dummy0/64": netip.ParsePrefix("fe80::4850:a8ff:fe2f:a98c%dummy0/64"): IPv6 zones cannot be present in a prefix
+		// 2025-10-08 16:38:56.864 14958-15001 gojni                   com.tailscale.ipn                    D  getInterfaces: found interface "dummy0", index 2, addrs []
+		// 2025-10-08 16:38:56.865 14958-15001 gojni                   com.tailscale.ipn                    D  getInterfaces: parsing addrs "fe80::5054:ff:fe12:3456%eth0/64 fec0::5054:ff:fe12:3456/64 10.0.2.15/24"
+		// 2025-10-08 16:38:56.865 14958-15001 gojni                   com.tailscale.ipn                    D  getInterfaces: unable to parse addr "fe80::5054:ff:fe12:3456%eth0/64": netip.ParsePrefix("fe80::5054:ff:fe12:3456%eth0/64"): IPv6 zones cannot be present in a prefix
+		// 2025-10-08 16:38:56.866 14958-14996 gojni                   com.tailscale.ipn                    D  getInterfaces: found interface "eth0", index 15, addrs ["fec0::5054:ff:fe12:3456" "10.0.2.15"]
+		// 2025-10-08 16:38:56.866 14958-14996 gojni                   com.tailscale.ipn                    D  getInterfaces: parsing addrs "fe80::cc26:6f73:69de:6451%wlan0/64 fec0::c517:7ce9:a8be:c692/64 fec0::7b3b:747f:e9c0:c6f4/64 10.0.2.16/24"
+		// 2025-10-08 16:38:56.866 14958-14996 gojni                   com.tailscale.ipn                    D  getInterfaces: unable to parse addr "fe80::cc26:6f73:69de:6451%wlan0/64": netip.ParsePrefix("fe80::cc26:6f73:69de:6451%wlan0/64"): IPv6 zones cannot be present in a prefix
+		// 2025-10-08 16:38:56.866 14958-14996 gojni                   com.tailscale.ipn                    D  getInterfaces: found interface "wlan0", index 16, addrs ["fec0::c517:7ce9:a8be:c692" "fec0::7b3b:747f:e9c0:c6f4" "10.0.2.16"]
+		// 2025-10-08 16:38:56.866 14958-14996 gojni                   com.tailscale.ipn                    D  getInterfaces: parsing addrs "::1/128 127.0.0.1/8"
+		// 2025-10-08 16:38:56.866 14958-14996 gojni                   com.tailscale.ipn                    D  getInterfaces: found interface "lo", index 1, addrs ["::1" "127.0.0.1"]
+
 		addrs := strings.Trim(fields[1], " \n")
+		log.Printf("getInterfaces: parsing addrs %q", addrs)
 		for _, addr := range strings.Split(addrs, " ") {
-			pfx, err := netip.ParsePrefix(addr)
-			var ip net.IP
-			if pfx.Addr().Is4() {
-				v4 := pfx.Addr().As4()
-				ip = net.IP(v4[:])
+			_, ipnet, err := net.ParseCIDR(addr)
+			if err != nil {
+				log.Printf("getInterfaces: unable to parse addr %q: %v", addr, err)
+				continue
 			} else {
-				v6 := pfx.Addr().As16()
-				ip = net.IP(v6[:])
+				newIf.AltAddrs = append(newIf.AltAddrs, ipnet)
 			}
-			if err == nil {
-				newIf.AltAddrs = append(newIf.AltAddrs, &net.IPAddr{
-					IP:   ip,
-					Zone: pfx.Addr().Zone(),
-				})
-			}
+			// pfx, err := netip.ParsePrefix(addr)
+			// var ip net.IP
+			// if pfx.Addr().Is4() {
+			// 	v4 := pfx.Addr().As4()
+			// 	ip = net.IP(v4[:])
+			// } else {
+			// 	v6 := pfx.Addr().As16()
+			// 	ip = net.IP(v6[:])
+			// }
+			// if err == nil {
+			// 	newIf.AltAddrs = append(newIf.AltAddrs, &net.IPAddr{
+			// 		IP:   ip,
+			// 		Zone: pfx.Addr().Zone(),
+			// 	})
+			// } else {
+			// 	log.Printf("getInterfaces: unable to parse addr %q: %v", addr, err)
+			// }
 		}
 
+		log.Printf("getInterfaces: found interface %q, index %d, addrs %q", newIf.Name, newIf.Index, newIf.AltAddrs)
 		ifaces = append(ifaces, newIf)
 	}
 
