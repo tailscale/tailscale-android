@@ -60,7 +60,7 @@ type App struct {
 	backendMu       sync.Mutex
 }
 
-func start(dataDir, directFileRoot string, appCtx AppContext) Application {
+func start(dataDir, directFileRoot string, hwAttestationPref bool, appCtx AppContext) Application {
 	defer func() {
 		if p := recover(); p != nil {
 			log.Printf("panic in Start %s: %s", p, debug.Stack())
@@ -84,7 +84,7 @@ func start(dataDir, directFileRoot string, appCtx AppContext) Application {
 		os.Setenv("HOME", dataDir)
 	}
 
-	return newApp(dataDir, directFileRoot, appCtx)
+	return newApp(dataDir, directFileRoot, hwAttestationPref, appCtx)
 }
 
 type backend struct {
@@ -111,7 +111,7 @@ type backend struct {
 
 type settingsFunc func(*router.Config, *dns.OSConfig) error
 
-func (a *App) runBackend(ctx context.Context) error {
+func (a *App) runBackend(ctx context.Context, hardwareAttestation bool) error {
 	paths.AppSharedDir.Store(a.dataDir)
 	hostinfo.SetOSVersion(a.osVersion())
 	hostinfo.SetPackage(a.appCtx.GetInstallSource())
@@ -139,6 +139,9 @@ func (a *App) runBackend(ctx context.Context) error {
 	}
 	a.logIDPublicAtomic.Store(&b.logIDPublic)
 	a.backend = b.backend
+	if hardwareAttestation {
+		a.backend.SetHardwareAttested()
+	}
 	defer b.CloseTUNs()
 
 	hc := localapi.HandlerConfig{
