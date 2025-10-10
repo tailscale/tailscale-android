@@ -1,11 +1,11 @@
 module github.com/tailscale/tailscale-android
 
-go 1.25.1
+go 1.25.2
 
 require (
 	github.com/tailscale/wireguard-go v0.0.0-20250716170648-1d0488a3d7da
 	golang.org/x/mobile v0.0.0-20240806205939-81131f6468ab
-	tailscale.com v1.89.0-pre.0.20251007234322-ad6cf2f8f369
+	tailscale.com v1.89.0-pre.0.20251010102755-08eae9affda8
 )
 
 require (
@@ -85,3 +85,5 @@ require (
 	golang.zx2c4.com/wireguard/windows v0.5.3 // indirect
 	gvisor.dev/gvisor v0.0.0-20250205023644-9414b50a5633 // indirect
 )
+
+replace tailscale.com => ../tailscale
