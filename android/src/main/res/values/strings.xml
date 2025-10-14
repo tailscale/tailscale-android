@@ -360,4 +360,8 @@
     <string name="taildrop_directory_picker_info">What is taildrop?</string>
     <string name="taildrop_directory_picker_button">Open Directory Picker</string>
 
+    <!-- Strings for Hardware Attestation MDM setting -->
+    <string name="enable_hardware_attestation">Enable hardware attestation</string>
+    <string name="use_hardware_backed_keys_to_bind_node_identity_to_the_device">Use hardware-backed keys to bind node identity to the device</string>
+
 </resources>

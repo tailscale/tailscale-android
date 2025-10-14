@@ -91,5 +91,15 @@ func (k *hardwareAttestationKey) Close() error {
 }
 
 func (k *hardwareAttestationKey) Clone() key.HardwareAttestationKey {
+	if k == nil {
+		return nil
+	}
 	return &hardwareAttestationKey{appCtx: k.appCtx, id: k.id, public: k.public}
+}
+
+func (k *hardwareAttestationKey) IsZero() bool {
+	if k == nil {
+		return true
+	}
+	return k.id == ""
 }

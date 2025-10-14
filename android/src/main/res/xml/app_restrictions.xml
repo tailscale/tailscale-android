@@ -148,4 +148,11 @@
         android:key="OnboardingFlow"
         android:restrictionType="choice"
         android:title="@string/onboarding_flow" />
+
+    <restriction
+        android:defaultValue="true"
+        android:description="@string/use_hardware_backed_keys_to_bind_node_identity_to_the_device"
+        android:key="HardwareAttestation"
+        android:restrictionType="bool"
+        android:title="@string/enable_hardware_attestation" />
 </restrictions>
