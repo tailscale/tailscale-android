@@ -98,8 +98,5 @@ func (k *hardwareAttestationKey) Clone() key.HardwareAttestationKey {
 }
 
 func (k *hardwareAttestationKey) IsZero() bool {
-	if k == nil {
-		return true
-	}
-	return k.id == ""
+	return k == nil || k.id == "" || k.public == nil
 }
