@@ -116,9 +116,12 @@ class PingViewModel : ViewModel() {
         result.Peer?.let { map ->
           map[peer.value?.Key]?.let { peerStatus ->
             val curAddr = peerStatus.CurAddr.orEmpty()
+            val peerRelay = peerStatus.PeerRelay.orEmpty()
             val relay = peerStatus.Relay.orEmpty()
             if (curAddr.isNotEmpty()) {
               this.connectionMode.set(ConnectionMode.Direct())
+            } else if (peerRelay.isNotEmpty()) {
+              this.connectionMode.set(ConnectionMode.PeerRelay())
             } else if (relay.isNotEmpty()) {
               this.connectionMode.set(ConnectionMode.Derp(relayName = relay.uppercase()))
             }
