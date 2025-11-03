@@ -17,12 +17,15 @@ sealed class ConnectionMode {
 
   class Direct : ConnectionMode()
 
+  class PeerRelay : ConnectionMode()
+
   @Composable
   fun titleString(): String {
     return when (this) {
       is NotConnected -> stringResource(id = R.string.not_connected)
       is Derp -> stringResource(R.string.relayed_connection, relayName)
       is Direct -> stringResource(R.string.direct_connection)
+      is PeerRelay -> stringResource(R.string.peer_relayed_connection)
     }
   }
 
@@ -31,6 +34,7 @@ sealed class ConnectionMode {
       is NotConnected -> "NotConnected"
       is Derp -> "Derp($relayName)"
       is Direct -> "Direct"
+      is PeerRelay -> "PeerRelay"
     }
   }
 
@@ -38,7 +42,8 @@ sealed class ConnectionMode {
     return when (this) {
       is NotConnected -> R.drawable.xmark_circle
       is Derp -> R.drawable.link_off
-      is Direct -> R.drawable.link
+      is Direct -> R.drawable.arrow_right_alt_24px
+      is PeerRelay -> R.drawable.redo_24px
     }
   }
 
@@ -48,6 +53,7 @@ sealed class ConnectionMode {
       is NotConnected -> MaterialTheme.colorScheme.onPrimary
       is Derp -> MaterialTheme.colorScheme.error
       is Direct -> MaterialTheme.colorScheme.on
+      is PeerRelay -> MaterialTheme.colorScheme.on
     }
   }
 }
