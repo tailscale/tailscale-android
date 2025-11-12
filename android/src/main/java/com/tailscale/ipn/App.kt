@@ -151,7 +151,7 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     // Check if a directory URI has already been stored.
     val storedUri = getStoredDirectoryUri()
     val rm = getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
-    val hardwareAttestation = rm.applicationRestrictions.getBoolean(MDMSettings.KEY_HARDWARE_ATTESTATION, false)
+    val hardwareAttestation = rm.applicationRestrictions.getBoolean(MDMSettings.KEY_HARDWARE_ATTESTATION, true)
     if (storedUri != null && storedUri.toString().startsWith("content://")) {
       startLibtailscale(storedUri.toString(), hardwareAttestation)
     } else {
