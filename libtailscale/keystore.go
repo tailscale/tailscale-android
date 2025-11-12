@@ -48,7 +48,7 @@ func (k *hardwareAttestationKey) fetchPublic() error {
 
 	pubRaw, err := k.appCtx.HardwareAttestationKeyPublic(k.id)
 	if err != nil {
-		return fmt.Errorf("loading public key from KeyStore: %w", err)
+		return fmt.Errorf("loading public key for id %q from KeyStore: %w", k.id, err)
 	}
 	pubAny, err := x509.ParsePKIXPublicKey(pubRaw)
 	if err != nil {

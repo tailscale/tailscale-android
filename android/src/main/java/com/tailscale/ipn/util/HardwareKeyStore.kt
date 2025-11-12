@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 package com.tailscale.ipn.util
 
-import android.content.pm.PackageManager
 import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
@@ -18,7 +17,13 @@ class HardwareKeysNotSupported : Exception("hardware-backed keys are not support
 // HardwareKeyStore implements the callbacks necessary to implement key.HardwareAttestationKey on
 // the Go side. It uses KeyStore with a StrongBox processor.
 class HardwareKeyStore() {
-    var keyStoreKeys = HashMap<String, KeyPair>();
+    // keyStoreKeys should be a singleton. Even if multiple HardwareKeyStores are created, we should
+    // not create distinct underlying key maps.
+    companion object {
+        val keyStoreKeys: HashMap<String, KeyPair> by lazy {
+            HashMap<String, KeyPair>()
+        }
+    }
     val keyStore: KeyStore = KeyStore.getInstance("AndroidKeyStore").apply {
         load(null)
     }
