@@ -26,6 +26,7 @@ class IpnState {
       val Addrs: List<String>? = null,
       val CurAddr: String? = null,
       val Relay: String? = null,
+      val PeerRelay: String? = null,
       val Online: Boolean,
       val ExitNode: Boolean,
       val ExitNodeOption: Boolean,
