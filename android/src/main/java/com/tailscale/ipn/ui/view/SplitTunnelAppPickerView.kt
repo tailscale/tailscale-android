@@ -4,12 +4,20 @@
 package com.tailscale.ipn.ui.view
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -27,6 +35,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.App
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.util.Lists
+import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.viewModel.SplitTunnelAppPickerViewModel
 
 @Composable
@@ -35,23 +44,39 @@ fun SplitTunnelAppPickerView(
     model: SplitTunnelAppPickerViewModel = viewModel()
 ) {
   val installedApps by model.installedApps.collectAsState()
-  val excludedPackageNames by model.excludedPackageNames.collectAsState()
+  val selectedPackageNames by model.selectedPackageNames.collectAsState()
+  val allowSelected by model.allowSelected.collectAsState()
   val builtInDisallowedPackageNames: List<String> = App.get().builtInDisallowedPackageNames
   val mdmIncludedPackages by model.mdmIncludedPackages.collectAsState()
   val mdmExcludedPackages by model.mdmExcludedPackages.collectAsState()
+  val showHeaderMenu by model.showHeaderMenu.collectAsState()
+  val showSwitchDialog by model.showSwitchDialog.collectAsState()
 
-  Scaffold(topBar = { Header(titleRes = R.string.split_tunneling, onBack = backToSettings) }) {
-      innerPadding ->
-    LazyColumn(modifier = Modifier.padding(innerPadding)) {
-      item(key = "header") {
-        ListItem(
-            headlineContent = {
-              Text(
-                  stringResource(
-                      R.string
-                          .selected_apps_will_access_the_internet_directly_without_using_tailscale))
+  if (showSwitchDialog) {
+    SwitchAlertDialog(
+        onConfirm = {
+          model.showSwitchDialog.set(false)
+          model.performSelectionSwitch()
+        },
+        onDismiss = { model.showSwitchDialog.set(false) })
+  }
+
+  Scaffold(
+      topBar = {
+        Header(
+            titleRes = R.string.split_tunneling,
+            onBack = backToSettings,
+            actions = {
+              Row {
+                FusMenu(viewModel = model, onSwitchClick = { model.showSwitchDialog.set(true) })
+                IconButton(onClick = { model.showHeaderMenu.set(!showHeaderMenu) }) {
+                  Icon(Icons.Default.MoreVert, "menu")
+                }
+              }
             })
-      }
+      },
+  ) { innerPadding ->
+    LazyColumn(modifier = Modifier.padding(innerPadding)) {
       if (mdmExcludedPackages.value?.isNotEmpty() == true) {
         item("mdmExcludedNotice") {
           ListItem(
@@ -67,9 +92,22 @@ fun SplitTunnelAppPickerView(
               })
         }
       } else {
+        item("header") {
+          ListItem(
+              headlineContent = {
+                Text(
+                    stringResource(
+                        if (allowSelected) R.string.selected_apps_will_access_tailscale
+                        else
+                            R.string
+                                .selected_apps_will_access_the_internet_directly_without_using_tailscale))
+              })
+        }
         item("resolversHeader") {
           Lists.SectionDivider(
-              stringResource(R.string.count_excluded_apps, excludedPackageNames.count()))
+              stringResource(
+                  if (allowSelected) R.string.count_included_apps else R.string.count_excluded_apps,
+                  selectedPackageNames.count()))
         }
         items(installedApps) { app ->
           ListItem(
@@ -93,13 +131,13 @@ fun SplitTunnelAppPickerView(
               },
               trailingContent = {
                 Checkbox(
-                    checked = excludedPackageNames.contains(app.packageName),
+                    checked = selectedPackageNames.contains(app.packageName),
                     enabled = !builtInDisallowedPackageNames.contains(app.packageName),
                     onCheckedChange = { checked ->
                       if (checked) {
-                        model.exclude(packageName = app.packageName)
+                        model.select(packageName = app.packageName)
                       } else {
-                        model.unexclude(packageName = app.packageName)
+                        model.deselect(packageName = app.packageName)
                       }
                     })
               })
@@ -108,4 +146,41 @@ fun SplitTunnelAppPickerView(
       }
     }
   }
+}
+
+@Composable
+fun FusMenu(viewModel: SplitTunnelAppPickerViewModel, onSwitchClick: (() -> Unit)) {
+  val expanded by viewModel.showHeaderMenu.collectAsState()
+  val allowSelected by viewModel.allowSelected.collectAsState()
+
+  DropdownMenu(
+      expanded = expanded,
+      onDismissRequest = { viewModel.showHeaderMenu.set(false) },
+      modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainer)) {
+        MenuItem(
+            onClick = {
+              viewModel.showHeaderMenu.set(false)
+              onSwitchClick()
+            },
+            text =
+                stringResource(
+                    if (allowSelected) R.string.switch_to_select_to_exclude
+                    else R.string.switch_to_select_to_include))
+      }
+}
+
+@Composable
+fun SwitchAlertDialog(onConfirm: (() -> Unit), onDismiss: (() -> Unit)) {
+  AlertDialog(
+      title = { Text(text = stringResource(R.string.switch_warning_dialog_title)) },
+      text = { Text(text = stringResource(R.string.switch_warning_dialog_description)) },
+      onDismissRequest = onDismiss,
+      confirmButton = {
+        WarningActionButton(onClick = onConfirm) {
+          Text(text = stringResource(R.string.confirm_switch))
+        }
+      },
+      dismissButton = {
+        DismissActionButton(onClick = onDismiss) { Text(text = stringResource(R.string.cancel)) }
+      })
 }
