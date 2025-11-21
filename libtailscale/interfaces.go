@@ -36,8 +36,8 @@ type AppContext interface {
 	// GetOSVersion gets the Android version.
 	GetOSVersion() (string, error)
 
-	// GetModelName gets the Android device's model name.
-	GetModelName() (string, error)
+	// GetDeviceName gets the Android device's user-set name, or hardware model name as a fallback.
+	GetDeviceName() (string, error)
 
 	// GetInstallSource gets information about how the app was installed or updated.
 	GetInstallSource() string
