@@ -275,10 +275,10 @@ func (b *backend) NetworkChanged(ifname string) {
 
 	// Set the interface name and alert the monitor.
 	netmon.UpdateLastKnownDefaultRouteInterface(ifname)
-	if b.sys != nil {
-		if nm, ok := b.sys.NetMon.GetOK(); ok {
-			nm.InjectEvent()
-		}
+	if b.netMon != nil {
+		b.netMon.InjectEvent()
+	} else {
+		log.Printf("NetworkChanged: netMon is nil")
 	}
 }
 
