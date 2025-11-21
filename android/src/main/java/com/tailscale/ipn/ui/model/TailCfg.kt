@@ -15,9 +15,9 @@ import com.tailscale.ipn.ui.util.DisplayAddress
 import com.tailscale.ipn.ui.util.TimeUtil
 import com.tailscale.ipn.ui.util.flag
 import com.tailscale.ipn.ui.viewModel.PeerSettingInfo
-import java.util.Date
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
+import java.util.Date
 
 class Tailcfg {
   @Serializable
@@ -74,8 +74,7 @@ class Tailcfg {
       var User: UserID,
       var Sharer: UserID? = null,
       var Key: KeyNodePublic,
-      var KeyExpiry: String,
-      var Machine: MachineKey,
+      var KeyExpiry: String? = null,
       var Addresses: List<Prefix>? = null,
       var AllowedIPs: List<Prefix>? = null,
       var Endpoints: List<String>? = null,
@@ -130,7 +129,7 @@ class Tailcfg {
       }
 
     val keyDoesNotExpire: Boolean
-      get() = KeyExpiry == "0001-01-01T00:00:00Z"
+      get() = KeyExpiry == "0001-01-01T00:00:00Z" || KeyExpiry == null || KeyExpiry == ""
 
     fun isSelfNode(netmap: Netmap.NetworkMap): Boolean = StableID == netmap.SelfNode.StableID
 
@@ -174,13 +173,16 @@ class Tailcfg {
 
     @Composable
     fun expiryLabel(): String {
-      if (KeyExpiry == GoZeroTimeString) {
-        return stringResource(R.string.deviceKeyNeverExpires)
-      }
+      KeyExpiry?.let {
+        if (it == GoZeroTimeString || it == "") {
+          return stringResource(R.string.deviceKeyNeverExpires)
+        }
 
-      val expDate = TimeUtil.dateFromGoString(KeyExpiry)
-      val template = if (expDate > Date()) R.string.deviceKeyExpires else R.string.deviceKeyExpired
-      return stringResource(template, TimeUtil.keyExpiryFromGoTime(KeyExpiry).getString())
+        val expDate = TimeUtil.dateFromGoString(it)
+        val template =
+            if (expDate > Date()) R.string.deviceKeyExpires else R.string.deviceKeyExpired
+        return stringResource(template, TimeUtil.keyExpiryFromGoTime(it).getString())
+      } ?: return stringResource(R.string.deviceKeyNeverExpires)
     }
   }
 
@@ -193,9 +195,9 @@ class Tailcfg {
       var DomainName: String? = null,
       var DisplayName: String? = null
   ) {
-      fun tailnetNameForDisplay(): String? {
-          return DisplayName ?: DomainName
-      }
+    fun tailnetNameForDisplay(): String? {
+      return DisplayName ?: DomainName
+    }
   }
 
   @Serializable
