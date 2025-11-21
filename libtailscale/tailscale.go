@@ -91,7 +91,7 @@ func (a *App) osVersion() string {
 // modelName return the MANUFACTURER + MODEL from
 // android.os.Build.
 func (a *App) modelName() string {
-	model, err := a.appCtx.GetModelName()
+	model, err := a.appCtx.GetDeviceName()
 	if err != nil {
 		panic(err)
 	}

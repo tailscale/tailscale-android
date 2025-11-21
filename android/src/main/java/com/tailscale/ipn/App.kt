@@ -279,7 +279,12 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     TSLog.d("App", "Set Tile Ready: $ableToStartVPN")
   }
 
-  override fun getModelName(): String {
+  override fun getDeviceName(): String {
+    // Try user-defined device name first
+    android.provider.Settings.Global.getString(contentResolver, android.provider.Settings.Global.DEVICE_NAME)
+      ?.let { return it }
+
+    // Otherwise fallback to manufacturer + model
     val manu = Build.MANUFACTURER
     var model = Build.MODEL
     // Strip manufacturer from model.
