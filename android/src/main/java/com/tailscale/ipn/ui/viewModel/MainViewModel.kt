@@ -26,7 +26,6 @@ import com.tailscale.ipn.ui.util.PeerSet
 import com.tailscale.ipn.ui.util.TimeUtil
 import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.util.TSLog
-import java.time.Duration
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
@@ -35,6 +34,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
+import java.time.Duration
 
 class MainViewModelFactory(private val appViewModel: AppViewModel) : ViewModelProvider.Factory {
   @Suppress("UNCHECKED_CAST")
@@ -75,6 +75,7 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
   val searchTerm: StateFlow<String> = _searchTerm
   var autoFocusSearch by mutableStateOf(true)
     private set
+
   // True if we should render the key expiry bannder
   val showExpiry: StateFlow<Boolean> = MutableStateFlow(false)
   // The peer for which the dropdown menu is currently expanded. Null if no menu is expanded
@@ -110,6 +111,7 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
   fun onPingDismissal() {
     this.pingViewModel.handleDismissal()
   }
+
   // Returns true if we should skip all of the user-interactive permissions prompts
   // (with the exception of the VPN permission prompt)
   fun skipPromptsForAuthKeyLogin(): Boolean {
@@ -169,7 +171,7 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
             val window =
                 expiryNotificationWindowMDM?.let { TimeUtil.duration(it) } ?: Duration.ofHours(24)
             val expiresSoon =
-                TimeUtil.isWithinExpiryNotificationWindow(window, it.SelfNode.KeyExpiry)
+                TimeUtil.isWithinExpiryNotificationWindow(window, it.SelfNode.KeyExpiry ?: "")
             showExpiry.set(expiresSoon)
           }
         }
