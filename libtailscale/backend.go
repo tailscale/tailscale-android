@@ -249,6 +249,11 @@ func (a *App) runBackend(ctx context.Context, hardwareAttestation bool) error {
 				vpnService.service = nil
 			}
 		case i := <-onDNSConfigChanged:
+			// TODO (barnstar): Consider using [dns.Manager.RecompileDNSConfig] here.
+			// NetworkChanged injects a netmon event that has the side effect
+			// regenerating the DNS config but have the means to do
+			// that independently of userspace engine network changes which may
+			// eliminate some unnecessary work.
 			go b.NetworkChanged(i)
 		}
 	}
@@ -265,7 +270,7 @@ func (a *App) newBackend(dataDir string, appCtx AppContext, store *stateStore,
 		devices:  newTUNDevices(),
 		settings: settings,
 		appCtx:   appCtx,
-		bus:      eventbus.New(),
+		bus:      sys.Bus.Get(),
 	}
 
 	var logID logid.PrivateID
