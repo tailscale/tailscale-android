@@ -19,8 +19,14 @@ import kotlinx.coroutines.launch
 
 class SplitTunnelAppPickerViewModel : ViewModel() {
   val installedAppsManager = InstalledAppsManager(packageManager = App.get().packageManager)
-  val excludedPackageNames: StateFlow<List<String>> = MutableStateFlow(listOf())
+
   val installedApps: StateFlow<List<InstalledApp>> = MutableStateFlow(listOf())
+  val selectedPackageNames: StateFlow<List<String>> = MutableStateFlow(listOf())
+
+  val allowSelected: StateFlow<Boolean> = MutableStateFlow(false)
+  val showHeaderMenu: StateFlow<Boolean> = MutableStateFlow(false)
+  val showSwitchDialog: StateFlow<Boolean> = MutableStateFlow(false)
+
   val mdmExcludedPackages: StateFlow<SettingState<String?>> = MDMSettings.excludedPackages.flow
   val mdmIncludedPackages: StateFlow<SettingState<String?>> = MDMSettings.includedPackages.flow
 
@@ -28,21 +34,39 @@ class SplitTunnelAppPickerViewModel : ViewModel() {
 
   init {
     installedApps.set(installedAppsManager.fetchInstalledApps())
-    excludedPackageNames.set(
+    initSelectedPackageNames()
+  }
+
+  private fun initSelectedPackageNames() {
+    allowSelected.set(App.get().allowSelectedPackages())
+    selectedPackageNames.set(
         App.get()
-            .disallowedPackageNames()
+            .selectedPackageNames()
+            .let {
+              if (!allowSelected.value) {
+                it.union(App.get().builtInDisallowedPackageNames)
+              } else {
+                it
+              }
+            }
             .intersect(installedApps.value.map { it.packageName }.toSet())
             .toList())
   }
 
-  fun exclude(packageName: String) {
-    if (excludedPackageNames.value.contains(packageName)) return
-    excludedPackageNames.set(excludedPackageNames.value + packageName)
+  fun performSelectionSwitch() {
+    App.get().switchUserSelectedPackages()
+    initSelectedPackageNames()
+  }
+
+  fun select(packageName: String) {
+    if (selectedPackageNames.value.contains(packageName)) return
+
+    selectedPackageNames.set(selectedPackageNames.value + packageName)
     debounceSave()
   }
 
-  fun unexclude(packageName: String) {
-    excludedPackageNames.set(excludedPackageNames.value - packageName)
+  fun deselect(packageName: String) {
+    selectedPackageNames.set(selectedPackageNames.value - packageName)
     debounceSave()
   }
 
@@ -51,7 +75,7 @@ class SplitTunnelAppPickerViewModel : ViewModel() {
     saveJob =
         viewModelScope.launch {
           delay(500) // Wait to batch multiple rapid updates
-          App.get().updateUserDisallowedPackageNames(excludedPackageNames.value)
+          App.get().updateUserSelectedPackages(selectedPackageNames.value)
         }
   }
 }
