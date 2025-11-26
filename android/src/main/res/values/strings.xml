@@ -303,6 +303,7 @@
     <string name="ping">Ping</string>
     <string name="relayed_connection">Relayed connection (%1$s)</string>
     <string name="direct_connection">Direct connection</string>
+    <string name="peer_relayed_connection">Peer relayed connection</string>
     <string name="pinging_node_name">Pinging %1$s</string>
     <string name="pingFailed">Ping failed</string>
     <string name="an_unknown_error_occurred_please_try_again">An unknown error occurred. Please try again.</string>
