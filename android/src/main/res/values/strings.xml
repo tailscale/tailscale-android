@@ -309,9 +309,11 @@
     <string name="an_unknown_error_occurred_please_try_again">An unknown error occurred. Please try again.</string>
     <string name="request_timed_out_make_sure_that_is_online">Request timed out. Make sure that \'%1$s\' is online.</string>
     <string name="split_tunneling">App split tunneling</string>
-    <string name="exclude_certain_apps_from_using_tailscale">Exclude certain apps from using Tailscale</string>
-    <string name="selected_apps_will_access_the_internet_directly_without_using_tailscale">Apps selected here will access the Internet directly, without using Tailscale.</string>
+    <string name="split_tunneling_enabled">Enable split tunneling</string>
+    <string name="include_or_exclude_certain_apps_from_using_tailscale">Include or exclude certain apps from using Tailscale</string>
+    <string name="selected_apps_will_follow_custom_routing">Apps selected here will follow special routing depending on your split-tunnel configuration.</string>
     <string name="count_excluded_apps">Excluded apps (%1$s)</string>
+    <string name="count_included_apps">Included apps (%1$s)</string>
     <string name="certain_apps_are_not_routed_via_tailscale">Certain apps are not routed via Tailscale on this device. This setting is managed by your organization and cannot be changed by you. For more information, contact your network administrator.</string>
     <string name="only_specific_apps_are_routed_via_tailscale">Only specific apps are routed via Tailscale on this device. This setting is managed by your organization and cannot be changed by you. For more information, contact your network administrator.</string>
     <string name="specifies_a_list_of_apps_that_will_be_excluded_from_tailscale_routes_and_dns_even_when_tailscale_is_running_all_other_apps_will_use_tailscale">Specifies a list of apps that will be excluded from Tailscale routes and DNS even when Tailscale is running. All other apps will use Tailscale.</string>

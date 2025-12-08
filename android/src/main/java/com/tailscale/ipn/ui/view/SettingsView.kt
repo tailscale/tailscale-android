@@ -89,7 +89,7 @@ fun SettingsView(
           Lists.ItemDivider()
           Setting.Text(
               R.string.split_tunneling,
-              subtitle = stringResource(R.string.exclude_certain_apps_from_using_tailscale),
+              subtitle = stringResource(R.string.include_or_exclude_certain_apps_from_using_tailscale),
               onClick = settingsNav.onNavigateToSplitTunneling)
 
           if (showTailnetLock.value == ShowHide.Show) {
