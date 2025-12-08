@@ -20,6 +20,7 @@
     <string name="warning">Warning</string>
     <string name="search">Search</string>
     <string name="search_ellipsis">Search...</string>
+    <string name="search_apps_ellipsis">Search apps...</string>
     <string name="dismiss">Dismiss</string>
     <string name="no_results">No results</string>
     <string name="back">Back</string>

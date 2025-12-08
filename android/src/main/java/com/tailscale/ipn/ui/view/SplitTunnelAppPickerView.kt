@@ -4,18 +4,29 @@
 package com.tailscale.ipn.ui.view
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -51,6 +62,15 @@ fun SplitTunnelAppPickerView(
 
     val splitEnabled = remember { mutableStateOf(App.get().isSplitTunnelEnabled())}
     val currentSplitMode = remember { mutableStateOf(App.get().getSplitTunnelMode())}
+    val searchQuery = remember { mutableStateOf("") }
+
+    val filteredApps = installedApps.filter { app ->
+        searchQuery.value.isBlank() ||
+                app.name.contains(searchQuery.value, ignoreCase = true) ||
+                app.packageName.contains(searchQuery.value, ignoreCase = true)
+    }
+
+
 
 
     Scaffold(topBar = { Header(titleRes = R.string.split_tunneling, onBack = backToSettings) }) {
@@ -111,7 +131,16 @@ fun SplitTunnelAppPickerView(
             if (splitEnabled.value) {
 
                 item("resolversHeader") {
-                    Row(modifier = Modifier.padding(16.dp)) {
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+
+                    AppSearchBar(
+                        query = searchQuery.value,
+                        onQueryChange = { searchQuery.value = it }
+                    )
+
+                    Row(modifier = Modifier.padding(horizontal = 8.dp)) {
                         FilterChip(
                             selected = currentSplitMode.value == SplitTunnelMode.EXCLUDE,
                             onClick = {
@@ -122,6 +151,7 @@ fun SplitTunnelAppPickerView(
                         )
 
                         Spacer(modifier = Modifier.width(8.dp))
+
 
                         FilterChip(
                             selected = currentSplitMode.value == SplitTunnelMode.INCLUDE,
@@ -145,7 +175,24 @@ fun SplitTunnelAppPickerView(
                             )
                         )
                     }
-                    items(installedApps) { app ->
+
+                    if (filteredApps.isEmpty()) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(MaterialTheme.colorScheme.surface)
+                                    .padding(vertical = 24.dp, horizontal = 16.dp)
+                            ) {
+                                Text(
+                                    "No apps found",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+
+                    items(filteredApps) { app ->
                         ListItem(
                             headlineContent = { Text(app.name, fontWeight = FontWeight.SemiBold) },
                             leadingContent = {
@@ -191,7 +238,25 @@ fun SplitTunnelAppPickerView(
                             )
                         )
                     }
-                    items(installedApps) { app ->
+
+                    if (filteredApps.isEmpty()) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(MaterialTheme.colorScheme.surface)
+                                    .padding(vertical = 24.dp, horizontal = 16.dp)
+                            ) {
+                                Text(
+                                    "No apps found",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+
+
+                    items(filteredApps) { app ->
                         ListItem(
                             headlineContent = { Text(app.name, fontWeight = FontWeight.SemiBold) },
                             leadingContent = {
@@ -225,6 +290,8 @@ fun SplitTunnelAppPickerView(
                                     })
                             })
                         Lists.ItemDivider()
+
+
                     }
 
 
@@ -235,3 +302,37 @@ fun SplitTunnelAppPickerView(
     }
   }
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AppSearchBar(
+    query: String,
+    onQueryChange: (String) -> Unit
+) {
+    OutlinedTextField(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 8.dp)
+            .background(MaterialTheme.colorScheme.surfaceContainer),
+        value = query,
+        onValueChange = onQueryChange,
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = "Search"
+            )
+        },
+        shape = SearchBarDefaults.dockedShape,
+        placeholder = { Text(stringResource(R.string.search_apps_ellipsis)) },
+        singleLine = true,
+        trailingIcon = {
+            if (query.isNotEmpty()) {
+                IconButton(onClick = { onQueryChange("") }) {
+                    Icon(Icons.Default.Clear, contentDescription = "Clear search")
+                }
+            }
+        }
+    )
+}
+
+
