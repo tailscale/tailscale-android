@@ -426,7 +426,11 @@ open class UninitializedApp : Application() {
     // the VPN (i.e. we're logged in and machine is authorized).
     private const val ABLE_TO_START_VPN_KEY = "ableToStartVPN"
     private const val DISALLOWED_APPS_KEY = "disallowedApps"
-    // File for shared preferences that are not encrypted.
+      private const val ALLOWED_APPS_KEY = "allowedApps"
+      private const val SPLIT_TUNNEL_KEY = "splitTunnelEnabled"
+      private const val SPLIT_TUNNEL_MODE_KEY = "split_tunnel_mode"
+
+      // File for shared preferences that are not encrypted.
     private const val UNENCRYPTED_PREFERENCES = "unencrypted"
     private lateinit var appInstance: UninitializedApp
     lateinit var notificationManager: NotificationManagerCompat
@@ -599,19 +603,73 @@ open class UninitializedApp : Application() {
     this.restartVPN()
   }
 
-  fun disallowedPackageNames(): List<String> {
+    fun updateUserAllowedPackageNames(packageNames: List<String>) {
+        if (packageNames.any { it.isEmpty() }) {
+            TSLog.e(TAG, "updateUserAllowedPackageNames called with empty packageName(s)")
+            return
+        }
+        getUnencryptedPrefs().edit().putStringSet(ALLOWED_APPS_KEY, packageNames.toSet()).apply()
+        this.restartVPN()
+    }
+
+    fun isSplitTunnelEnabled(): Boolean =
+        getUnencryptedPrefs().getBoolean(SPLIT_TUNNEL_KEY, false)
+
+    fun setSplitTunnelEnabled(enabled: Boolean) {
+        getUnencryptedPrefs().edit().putBoolean(SPLIT_TUNNEL_KEY, enabled).apply()
+        restartVPN()
+    }
+
+    fun setSplitTunnelMode(mode: SplitTunnelMode) {
+        getUnencryptedPrefs().edit()
+            .putString(SPLIT_TUNNEL_MODE_KEY, mode.name)
+            .apply()
+        restartVPN()
+    }
+
+    fun getSplitTunnelMode(): SplitTunnelMode {
+        val stored = getUnencryptedPrefs().getString(SPLIT_TUNNEL_MODE_KEY, null)
+        return if (stored != null) {
+            SplitTunnelMode.valueOf(stored)
+        } else {
+            SplitTunnelMode.EXCLUDE
+        }
+    }
+
+
+
+
+    fun disallowedPackageNames(): List<String> {
     val mdmDisallowed =
         MDMSettings.excludedPackages.flow.value.value?.split(",")?.map { it.trim() } ?: emptyList()
-    if (mdmDisallowed.isNotEmpty()) {
+
+        if (mdmDisallowed.isNotEmpty()) {
       TSLog.d(TAG, "Excluded application packages were set via MDM: $mdmDisallowed")
       return builtInDisallowedPackageNames + mdmDisallowed
     }
+
     val userDisallowed =
         getUnencryptedPrefs().getStringSet(DISALLOWED_APPS_KEY, emptySet())?.toList() ?: emptyList()
     return builtInDisallowedPackageNames + userDisallowed
   }
 
-  fun getAppScopedViewModel(): AppViewModel {
+
+    fun allowedPackageNames(): List<String> {
+        val mdmAllowed =
+            MDMSettings.includedPackages.flow.value.value?.split(",")?.map { it.trim() } ?: emptyList()
+
+        if (mdmAllowed.isNotEmpty()) {
+            TSLog.d(TAG, "Included application packages were set via MDM: $mdmAllowed")
+            return mdmAllowed
+        }
+
+        val userAllowed =
+            getUnencryptedPrefs().getStringSet(ALLOWED_APPS_KEY, emptySet())?.toList() ?: emptyList()
+        return userAllowed
+    }
+
+
+    fun getAppScopedViewModel(): AppViewModel {
     return appViewModel
   }
 
@@ -640,4 +698,9 @@ open class UninitializedApp : Application() {
           // Android Connectivity Service https://github.com/tailscale/tailscale/issues/14128
           "com.google.android.apps.scone",
       )
+
+    enum class SplitTunnelMode {
+        INCLUDE,
+        EXCLUDE
+    }
 }
