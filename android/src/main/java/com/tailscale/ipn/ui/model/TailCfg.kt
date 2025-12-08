@@ -79,7 +79,6 @@ class Tailcfg {
       var AllowedIPs: List<Prefix>? = null,
       var Endpoints: List<String>? = null,
       var Hostinfo: Hostinfo,
-      var Created: Time,
       var LastSeen: Time? = null,
       var Online: Boolean? = null,
       var Capabilities: List<String>? = null,
