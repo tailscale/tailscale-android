@@ -82,6 +82,7 @@ fun SplitTunnelAppPickerView(
               (mdmExcludedPackages.value?.isNotEmpty() == true) ||
                       (mdmIncludedPackages.value?.isNotEmpty() == true)
 
+
           if (mdmActive) {
               Setting.Switch(
                   R.string.split_tunneling_enabled,
