@@ -195,7 +195,7 @@ class Tailcfg {
       var DisplayName: String? = null
   ) {
     fun tailnetNameForDisplay(): String? {
-      return DisplayName ?: DomainName
+      return DisplayName?.takeIf { it.isNotEmpty() } ?: DomainName
     }
   }
 
