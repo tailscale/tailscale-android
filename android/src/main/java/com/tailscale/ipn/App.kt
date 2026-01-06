@@ -41,9 +41,11 @@ import com.tailscale.ipn.util.NoSuchKeyException
 import com.tailscale.ipn.util.ShareFileHelper
 import com.tailscale.ipn.util.TSLog
 import java.io.IOException
+import java.lang.UnsupportedOperationException
 import java.net.NetworkInterface
 import java.security.GeneralSecurityException
 import java.util.Locale
+import java.util.Collections
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -54,8 +56,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.Serializable
 import libtailscale.Libtailscale
-import java.lang.UnsupportedOperationException
 class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
   val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -331,6 +334,60 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
       sb.append("\n")
     }
     return sb.toString()
+  }
+
+  @Serializable
+  data class AddrJson(
+    val ip: String,
+    val prefixLen: Int,
+  )
+  
+  @Serializable
+  data class InterfaceJson(
+    val name: String,
+    val index: Int,
+    val mtu: Int,
+    val up: Boolean,
+    val broadcast: Boolean,
+    val loopback: Boolean,
+    val pointToPoint: Boolean,
+    val multicast: Boolean,
+    val addrs: List<AddrJson>,
+  )
+  override fun getInterfacesAsJson(): String {
+    val interfaces = Collections.list(NetworkInterface.getNetworkInterfaces())
+    val out = ArrayList<InterfaceJson>(interfaces.size)
+  
+    for (nif in interfaces) {
+      try {
+        val addrs = ArrayList<AddrJson>()
+        for (ia in nif.interfaceAddresses) {
+          val addr = ia.address ?: continue
+          // hostAddress is stable and avoids InterfaceAddress.toString() formatting risks.
+          val host = addr.hostAddress ?: continue
+          addrs.add(AddrJson(ip = host, prefixLen = ia.networkPrefixLength.toInt()))
+        }
+  
+        out.add(
+          InterfaceJson(
+            name = nif.name,
+            index = nif.index,
+            mtu = nif.mtu,
+            up = nif.isUp,
+            broadcast = nif.supportsMulticast(),
+            loopback = nif.isLoopback,
+            pointToPoint = nif.isPointToPoint,
+            multicast = nif.supportsMulticast(),
+            addrs = addrs,
+          )
+        )
+      } catch (_: Exception) {
+        continue
+      }
+    }
+  
+    // Avoid pretty printing to keep payload small.
+    return Json { encodeDefaults = true }.encodeToString(out)
   }
 
   @Throws(

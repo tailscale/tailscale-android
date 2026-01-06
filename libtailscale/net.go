@@ -7,12 +7,12 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net"
 	"net/netip"
 	"runtime/debug"
 	"strings"
 	"syscall"
 
+	"github.com/tailscale/tailscale-android/libtailscale/ifaceparse"
 	"github.com/tailscale/wireguard-go/tun"
 	"tailscale.com/net/dns"
 	"tailscale.com/net/netmon"
@@ -42,83 +42,24 @@ var vpnService = &VpnService{}
 
 // Report interfaces in the device in net.Interface format.
 func (a *App) getInterfaces() ([]netmon.Interface, error) {
-	var ifaces []netmon.Interface
-
-	ifaceString, err := a.appCtx.GetInterfacesAsString()
+	jsonStr, err := a.appCtx.GetInterfacesAsJson()
 	if err != nil {
-		return ifaces, err
+		return nil, err
+	}
+	jsonStr = strings.TrimSpace(jsonStr)
+	if jsonStr == "" {
+		return nil, nil
 	}
 
-	for _, iface := range strings.Split(ifaceString, "\n") {
-		// Example of the strings we're processing:
-		// wlan0 30 1500 true true false false true | fe80::2f60:2c82:4163:8389%wlan0/64 10.1.10.131/24
-		// r_rmnet_data0 21 1500 true false false false false | fe80::9318:6093:d1ad:ba7f%r_rmnet_data0/64
-		// mnet_data2 12 1500 true false false false false | fe80::3c8c:44dc:46a9:9907%rmnet_data2/64
+	ifaces, st, err := ifaceparse.ParseInterfacesJSONAsNetmon([]byte(jsonStr))
+	if err != nil {
+		return nil, err
+	}
 
-		if strings.TrimSpace(iface) == "" {
-			continue
-		}
+	if st.IfacesSkipped > 0 || st.AddrsSkipped > 0 {
+		log.Printf("getInterfaces(JSON): parsed %d/%d ifaces, %d/%d addrs (skipped %d ifaces, %d addrs)",
+			st.IfacesParsed, st.IfacesTotal, st.AddrsParsed, st.AddrsTotal, st.IfacesSkipped, st.AddrsSkipped)
 
-		fields := strings.Split(iface, "|")
-		if len(fields) != 2 {
-			log.Printf("getInterfaces: unable to split %q", iface)
-			continue
-		}
-
-		var name string
-		var index, mtu int
-		var up, broadcast, loopback, pointToPoint, multicast bool
-		_, err := fmt.Sscanf(fields[0], "%s %d %d %t %t %t %t %t",
-			&name, &index, &mtu, &up, &broadcast, &loopback, &pointToPoint, &multicast)
-		if err != nil {
-			log.Printf("getInterfaces: unable to parse %q: %v", iface, err)
-			continue
-		}
-
-		newIf := netmon.Interface{
-			Interface: &net.Interface{
-				Name:  name,
-				Index: index,
-				MTU:   mtu,
-			},
-			AltAddrs: []net.Addr{}, // non-nil to avoid Go using netlink
-		}
-		if up {
-			newIf.Flags |= net.FlagUp
-		}
-		if broadcast {
-			newIf.Flags |= net.FlagBroadcast
-		}
-		if loopback {
-			newIf.Flags |= net.FlagLoopback
-		}
-		if pointToPoint {
-			newIf.Flags |= net.FlagPointToPoint
-		}
-		if multicast {
-			newIf.Flags |= net.FlagMulticast
-		}
-
-		addrs := strings.Trim(fields[1], " \n")
-		for _, addr := range strings.Split(addrs, " ") {
-			pfx, err := netip.ParsePrefix(addr)
-			var ip net.IP
-			if pfx.Addr().Is4() {
-				v4 := pfx.Addr().As4()
-				ip = net.IP(v4[:])
-			} else {
-				v6 := pfx.Addr().As16()
-				ip = net.IP(v6[:])
-			}
-			if err == nil {
-				newIf.AltAddrs = append(newIf.AltAddrs, &net.IPAddr{
-					IP:   ip,
-					Zone: pfx.Addr().Zone(),
-				})
-			}
-		}
-
-		ifaces = append(ifaces, newIf)
 	}
 
 	return ifaces, nil
