@@ -52,6 +52,10 @@ type AppContext interface {
 	// interfaces.
 	GetInterfacesAsString() (string, error)
 
+	// GetInterfacesAsJson gets a JSON representation of all network
+	// interfaces.
+	GetInterfacesAsJson() (string, error)
+
 	// GetPlatformDNSConfig gets a string representation of the current DNS
 	// configuration.
 	GetPlatformDNSConfig() string
