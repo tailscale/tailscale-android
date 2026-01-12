@@ -48,10 +48,6 @@ type AppContext interface {
 	// IsChromeOS reports whether we're on a ChromeOS device.
 	IsChromeOS() (bool, error)
 
-	// GetInterfacesAsString gets a string representation of all network
-	// interfaces.
-	GetInterfacesAsString() (string, error)
-
 	// GetInterfacesAsJson gets a JSON representation of all network
 	// interfaces.
 	GetInterfacesAsJson() (string, error)
