@@ -304,38 +304,6 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     return packageManager.hasSystemFeature("android.hardware.type.pc")
   }
 
-  override fun getInterfacesAsString(): String {
-    val interfaces: ArrayList<NetworkInterface> =
-        java.util.Collections.list(NetworkInterface.getNetworkInterfaces())
-    val sb = StringBuilder()
-    for (nif in interfaces) {
-      try {
-        sb.append(
-            String.format(
-                Locale.ROOT,
-                "%s %d %d %b %b %b %b %b |",
-                nif.name,
-                nif.index,
-                nif.mtu,
-                nif.isUp,
-                nif.supportsMulticast(),
-                nif.isLoopback,
-                nif.isPointToPoint,
-                nif.supportsMulticast()))
-        for (ia in nif.interfaceAddresses) {
-          val parts = ia.toString().split("/", limit = 0)
-          if (parts.size > 1) {
-            sb.append(String.format(Locale.ROOT, "%s/%d ", parts[1], ia.networkPrefixLength))
-          }
-        }
-      } catch (e: Exception) {
-        continue
-      }
-      sb.append("\n")
-    }
-    return sb.toString()
-  }
-
   @Serializable
   data class AddrJson(
     val ip: String,
