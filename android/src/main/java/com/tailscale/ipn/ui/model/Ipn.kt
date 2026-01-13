@@ -120,6 +120,7 @@ class Ipn {
         CorpDNSSet = true
       }
 
+
     var ExitNodeID: StableNodeID? = null
       set(value) {
         field = value

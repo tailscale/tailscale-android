@@ -149,39 +149,82 @@ open class IPNService : VpnService(), libtailscale.IPNService {
     }
   }
 
-  override fun newBuilder(): VPNServiceBuilder {
-    val b: Builder =
-        Builder()
-            .setConfigureIntent(configIntent())
-            .allowFamily(OsConstants.AF_INET)
-            .allowFamily(OsConstants.AF_INET6)
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-      b.setMetered(false) // Inherit the metered status from the underlying networks.
-    }
-    b.setUnderlyingNetworks(null) // Use all available networks.
-
-    val includedPackages: List<String> =
-        MDMSettings.includedPackages.flow.value.value?.split(",")?.map { it.trim() } ?: emptyList()
-    if (includedPackages.isNotEmpty()) {
-      // If an admin defined a list of packages that are exclusively allowed to be used via
-      // Tailscale,
-      // then only allow those apps.
-      for (packageName in includedPackages) {
-        TSLog.d(TAG, "Including app: $packageName")
-        b.addAllowedApplication(packageName)
-      }
-    } else {
-      // Otherwise, prevent certain apps from getting their traffic + DNS routed via Tailscale:
-      // - any app that the user manually disallowed in the GUI
-      // - any app that we disallowed via hard-coding
-      for (disallowedPackageName in UninitializedApp.get().disallowedPackageNames()) {
-        TSLog.d(TAG, "Disallowing app: $disallowedPackageName")
-        disallowApp(b, disallowedPackageName)
-      }
+    private fun allowApp(b: Builder, name: String) {
+        try {
+            b.addAllowedApplication(name)
+        } catch (e: PackageManager.NameNotFoundException) {
+            TSLog.d(TAG, "Failed to add allowed application: $e")
+        }
     }
 
-    return VPNServiceBuilder(b)
-  }
+    override fun newBuilder(): VPNServiceBuilder {
+        val b: Builder =
+            Builder()
+                .setConfigureIntent(configIntent())
+                .allowFamily(OsConstants.AF_INET)
+                .allowFamily(OsConstants.AF_INET6)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            b.setMetered(false) // Inherit the metered status from the underlying networks.
+        }
+        b.setUnderlyingNetworks(null) // Use all available networks.
+
+        val app = UninitializedApp.get()
+
+        val mdmAllowed = MDMSettings.includedPackages.flow.value.value?.
+        split(",")?.map { it.trim() }?.filter { it.isNotEmpty() } ?: emptyList()
+        val mdmDisallowed = MDMSettings.excludedPackages.flow.value.value?.
+        split(",")?.map { it.trim() }?.filter { it.isNotEmpty() } ?: emptyList()
+
+        val splitEnabled = app.isSplitTunnelEnabled()
+        val mode = app.getSplitTunnelMode()
+
+        when {
+            mdmAllowed.isNotEmpty() -> {
+                TSLog.d(TAG, "MDM include mode, allowed = $mdmAllowed")
+                mdmAllowed.forEach { pkg ->
+                    TSLog.d(TAG, "Including app via MDM: $pkg")
+                    allowApp(b, pkg)
+                }
+            }
+
+            mdmDisallowed.isNotEmpty() -> {
+                val effectiveDisallowed = app.builtInDisallowedPackageNames + mdmDisallowed
+                TSLog.d(TAG, "MDM exclude mode, disallowed = $effectiveDisallowed")
+                effectiveDisallowed.forEach { pkg ->
+                    TSLog.d(TAG, "Disallowing app via MDM: $pkg")
+                    disallowApp(b, pkg)
+                }
+            }
+
+            !splitEnabled -> {
+                TSLog.d(TAG, "Split tunneling disabled; using built-in disallowed only")
+                app.builtInDisallowedPackageNames.forEach { pkg ->
+                    TSLog.d(TAG, "Disallowing built-in app: $pkg")
+                    disallowApp(b, pkg)
+                }
+            }
+
+            mode == UninitializedApp.SplitTunnelMode.INCLUDE -> {
+                val userAllowed = app.allowedPackageNames()
+                TSLog.d(TAG, "User INCLUDE mode; allowed = $userAllowed")
+                userAllowed.forEach { pkg ->
+                    TSLog.d(TAG, "Including app via user INCLUDE: $pkg")
+                    allowApp(b, pkg)
+                }
+            }
+
+            else -> {
+                val effectiveDisallowed = app.disallowedPackageNames()
+                TSLog.d(TAG, "User EXCLUDE mode; disallowed = $effectiveDisallowed")
+                effectiveDisallowed.forEach { pkg ->
+                    TSLog.d(TAG, "Disallowing app via user EXCLUDE/built-in: $pkg")
+                    disallowApp(b, pkg)
+                }
+            }
+        }
+
+        return VPNServiceBuilder(b)
+    }
 
   companion object {
     const val ACTION_START_VPN = "com.tailscale.ipn.START_VPN"
