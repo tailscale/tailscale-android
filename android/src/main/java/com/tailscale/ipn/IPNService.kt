@@ -196,10 +196,6 @@ open class IPNService : VpnService(), libtailscale.IPNService {
     }
 
     if (allowPackages) {
-      // There always needs to be at least one allowed application for the VPN service to filter the
-      // traffic so add our own application by default to fulfill that requirement
-      packagesList += BuildConfig.APPLICATION_ID
-
       for (packageName in packagesList) {
         TSLog.d(TAG, "Including app: $packageName")
         allowApp(b, packageName)
