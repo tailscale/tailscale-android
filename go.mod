@@ -5,27 +5,27 @@ go 1.25.5
 require (
 	github.com/tailscale/wireguard-go v0.0.0-20250716170648-1d0488a3d7da
 	golang.org/x/mobile v0.0.0-20240806205939-81131f6468ab
-	tailscale.com v1.93.0-pre.0.20260109201653-5db95ec376b0
+	tailscale.com v1.95.0-pre.0.20260119143213-767603035538
 )
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/akutz/memconn v0.1.0 // indirect
 	github.com/alexbrainman/sspi v0.0.0-20231016080023-1a75b4708caa // indirect
-	github.com/aws/aws-sdk-go-v2 v1.36.0 // indirect
+	github.com/aws/aws-sdk-go-v2 v1.41.0 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.29.5 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.58 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.27 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.31 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.31 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.16 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.16 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.2 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.12.2 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.12.12 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.4 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.16 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.44.7 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.24.14 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.28.13 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sts v1.33.13 // indirect
-	github.com/aws/smithy-go v1.22.2 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.41.5 // indirect
+	github.com/aws/smithy-go v1.24.0 // indirect
 	github.com/coder/websocket v1.8.12 // indirect
 	github.com/coreos/go-iptables v0.7.1-0.20240112124308-65c67c9f46e6 // indirect
 	github.com/creachadair/msync v0.7.1 // indirect
