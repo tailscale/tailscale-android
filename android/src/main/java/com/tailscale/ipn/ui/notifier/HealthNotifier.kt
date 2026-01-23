@@ -34,7 +34,7 @@ class HealthNotifier(
     const val HEALTH_CHANNEL_ID = "tailscale-health"
   }
 
-  private val TAG = "Health"
+  private val TAG = "health"
   private val ignoredWarnableCodes: Set<String> =
       setOf(
           // Ignored on Android because installing unstable takes quite some effort
@@ -45,26 +45,27 @@ class HealthNotifier(
           "wantrunning-false")
 
   init {
+    // This roughly matches the iOS/macOS implementation in terms of debouncing, and ingoring
+    // health warnings in various states.
     scope.launch {
       healthStateFlow
           .distinctUntilChanged { old, new -> old?.Warnings?.count() == new?.Warnings?.count() }
           .combine(ipnStateFlow, ::Pair)
-          .debounce(5000)
+          .debounce(3000)
           .collect { pair ->
             val health = pair.first
-            val ipnState = pair.second
-            // When the client is Stopped, no warnings should get added, and any warnings added
-            // previously should be removed.
-            if (ipnState == Ipn.State.Stopped) {
-              TSLog.d(
-                  TAG,
-                  "Ignoring and dropping all pre-existing health messages in the Stopped state")
-              dropAllWarnings()
-              return@collect
-            } else {
-              TSLog.d(TAG, "Health updated: ${health?.Warnings?.keys?.sorted()}")
-              health?.Warnings?.let {
-                notifyHealthUpdated(it.values.mapNotNull { it }.toTypedArray())
+            // Only deliver health notifications when the client is Running
+            when (val ipnState = pair.second) {
+              Ipn.State.Running -> {
+                TSLog.d(TAG, "Health updated: ${health?.Warnings?.keys?.sorted()}")
+                health?.Warnings?.let {
+                  notifyHealthUpdated(it.values.mapNotNull { it }.toTypedArray())
+                }
+              }
+              else -> {
+                TSLog.d(TAG, "Ignoring and dropping all health messages in state ${ipnState}")
+                dropAllWarnings()
+                return@collect
               }
             }
           }
