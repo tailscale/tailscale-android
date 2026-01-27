@@ -6,6 +6,7 @@ package com.tailscale.ipn.ui.util
 import android.Manifest
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
+import com.tailscale.ipn.BuildConfig
 
 data class InstalledApp(val name: String, val packageName: String)
 
@@ -26,7 +27,7 @@ class InstalledAppsManager(
   }
 
   private val appIsIncluded: (ApplicationInfo) -> Boolean = { app ->
-    app.packageName != "com.tailscale.ipn" &&
+    app.packageName != BuildConfig.APPLICATION_ID &&
         // Only show apps that can access the Internet
         packageManager.checkPermission(Manifest.permission.INTERNET, app.packageName) ==
             PackageManager.PERMISSION_GRANTED
