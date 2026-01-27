@@ -11,19 +11,34 @@ import com.tailscale.ipn.mdm.SettingState
 import com.tailscale.ipn.ui.util.InstalledApp
 import com.tailscale.ipn.ui.util.InstalledAppsManager
 import com.tailscale.ipn.ui.util.set
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class SplitTunnelAppPickerViewModel : ViewModel() {
   val installedAppsManager = InstalledAppsManager(packageManager = App.get().packageManager)
 
-  val installedApps: StateFlow<List<InstalledApp>> = MutableStateFlow(listOf())
+  val installedApps: StateFlow<List<InstalledApp>> =
+      flow {
+            emit(installedAppsManager.fetchInstalledApps())
+            initSelectedPackageNames()
+          }
+          .flowOn(Dispatchers.IO)
+          .stateIn(
+              scope = viewModelScope,
+              started = SharingStarted.WhileSubscribed(5000),
+              initialValue = listOf(),
+          )
   val selectedPackageNames: StateFlow<List<String>> = MutableStateFlow(listOf())
 
-  val allowSelected: StateFlow<Boolean> = MutableStateFlow(false)
+  val allowSelected: StateFlow<Boolean> = MutableStateFlow(App.get().allowSelectedPackages())
   val showHeaderMenu: StateFlow<Boolean> = MutableStateFlow(false)
   val showSwitchDialog: StateFlow<Boolean> = MutableStateFlow(false)
 
@@ -31,11 +46,6 @@ class SplitTunnelAppPickerViewModel : ViewModel() {
   val mdmIncludedPackages: StateFlow<SettingState<String?>> = MDMSettings.includedPackages.flow
 
   private var saveJob: Job? = null
-
-  init {
-    installedApps.set(installedAppsManager.fetchInstalledApps())
-    initSelectedPackageNames()
-  }
 
   private fun initSelectedPackageNames() {
     allowSelected.set(App.get().allowSelectedPackages())
@@ -50,7 +60,8 @@ class SplitTunnelAppPickerViewModel : ViewModel() {
               }
             }
             .intersect(installedApps.value.map { it.packageName }.toSet())
-            .toList())
+            .toList()
+    )
   }
 
   fun performSelectionSwitch() {
