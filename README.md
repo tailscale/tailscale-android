@@ -53,6 +53,8 @@ If you installed Android Studio the tools may not be in your path. To get the
 correct tool path, run `make androidpath` and export the provided path in your
 shell.
 
+You will also need to run `make llibtailscale` to build the Tailscale AAR which is required to build the Android app.
+
 #### Code Formatting
 
 The ktmft plugin on the default setting should be used to autoformat all Java, Kotlin
