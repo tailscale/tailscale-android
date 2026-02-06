@@ -100,9 +100,7 @@ fun ExitNodePicker(
           }
         }
 
-        // https://developer.android.com/reference/android/net/VpnService.Builder#excludeRoute(android.net.IpPrefix) - excludeRoute is only supported in API 33+, so don't show the option if allow LAN access is not enabled.
-        if (!allowLanAccessMDMDisposition.value.hiddenFromUser &&
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        if (!allowLanAccessMDMDisposition.value.hiddenFromUser) {
           item(key = "allowLANAccess") {
             Lists.SectionDivider()
 
