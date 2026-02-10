@@ -224,6 +224,12 @@ func (a *App) runBackend(ctx context.Context, hardwareAttestation bool) error {
 				}
 				return nil // even on error. see big TODO above.
 			})
+			netns.SetAndroidBindToNetworkFunc(func(fd int) error {
+				if ok := a.appCtx.BindSocketToNetwork(int32(fd)); !ok {
+					log.Printf("[unexpected] IPNService.bindSocketToNetwork(%d) returned false", fd)
+				}
+				return nil
+			})
 			log.Printf("onVPNRequested: rebind required")
 			// TODO(catzkorn): When we start the android application
 			// we bind sockets before we have access to the VpnService.protect()
@@ -249,6 +255,7 @@ func (a *App) runBackend(ctx context.Context, hardwareAttestation bool) error {
 			if vpnService.service != nil && vpnService.service.ID() == s.ID() {
 				b.CloseTUNs()
 				netns.SetAndroidProtectFunc(nil)
+				netns.SetAndroidBindToNetworkFunc(nil)
 				vpnService.service = nil
 			}
 		case i := <-onDNSConfigChanged:
