@@ -435,7 +435,30 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     override fun hardwareAttestationKeyLoad(id: String) {
         return getKeyStore().load(id)
     }
+
+    override fun bindSocketToNetwork(fd: Int): Boolean {
+    val net = NetworkChangeCallback.cachedDefaultNetwork ?: run {
+      TSLog.d(TAG, "bindSocketToActiveNetwork: no cached default network; noop")
+      return false
+    }
+
+    val iface = NetworkChangeCallback.cachedDefaultInterfaceName
+        ?: NetworkChangeCallback.cachedDefaultNetworkInfo?.linkProps?.interfaceName
+
+    TSLog.d(TAG, "bindSocketToActiveNetwork: binding fd=$fd to net=$net iface=$iface")
+
+    return try {
+      android.os.ParcelFileDescriptor.fromFd(fd).use { pfd ->
+        net.bindSocket(pfd.fileDescriptor)
+      }
+      true
+    } catch (e: Exception) {
+      TSLog.w(TAG, "bindSocketToActiveNetwork: bind failed fd=$fd net=$net iface=$iface: $e")
+      false
+    }
+  }
 }
+
 /**
  * UninitializedApp contains all of the methods of App that can be used without having to initialize
  * the Go backend. This is useful when you want to access functions on the App without creating side

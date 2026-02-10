@@ -74,6 +74,8 @@ type AppContext interface {
 	HardwareAttestationKeyPublic(id string) (pub []byte, err error)
 	HardwareAttestationKeySign(id string, data []byte) (sig []byte, err error)
 	HardwareAttestationKeyLoad(id string) error
+
+	BindSocketToNetwork(fd int32) bool
 }
 
 // IPNService corresponds to our IPNService in Java.
