@@ -85,7 +85,6 @@ android {
             buildConfigField "String", "GITHUB_2FA_SECRET", "\"" + getLocalProperty("github2FASecret", "")+"\""
         }
         debug {
-		   applicationIdSuffix ".debug"
             manifestPlaceholders.leanbackRequired = false
         }
         release {
