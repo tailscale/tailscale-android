@@ -117,7 +117,17 @@ func (b *backend) updateTUN(rcfg *router.Config, dcfg *dns.OSConfig) error {
 		b.logger.Logf("updateTUN: set nameservers")
 	}
 
-	for _, route := range rcfg.Routes {
+	// Calculate effective allowed routes (Routes minus LocalRoutes) and add them to the builder.
+	prefixesV4, prefixesV6 := newRangesCalc(rcfg.Routes, rcfg.LocalRoutes).calculate()
+
+	for _, route := range prefixesV4 {
+		// Normalize route address; Builder.addRoute does not accept non-zero masked bits.
+		route = route.Masked()
+		if err := builder.AddRoute(route.Addr().String(), int32(route.Bits())); err != nil {
+			return err
+		}
+	}
+	for _, route := range prefixesV6 {
 		// Normalize route address; Builder.addRoute does not accept non-zero masked bits.
 		route = route.Masked()
 		if err := builder.AddRoute(route.Addr().String(), int32(route.Bits())); err != nil {
@@ -125,17 +135,18 @@ func (b *backend) updateTUN(rcfg *router.Config, dcfg *dns.OSConfig) error {
 		}
 	}
 
-	for _, route := range rcfg.LocalRoutes {
-		addr := route.Addr()
-		if addr.IsLoopback() {
-			continue // Skip the loopback addresses since VpnService throws an exception for those (both IPv4 and IPv6) - see https://android.googlesource.com/platform/frameworks/base/+/c741553/core/java/android/net/VpnService.java#303
-		}
-		route = route.Masked()
-		if err := builder.ExcludeRoute(route.Addr().String(), int32(route.Bits())); err != nil {
-			return err
-		}
-	}
-	b.logger.Logf("updateTUN: added %d routes", len(rcfg.Routes))
+	b.logger.Logf(
+		"updateTUN: added routes: v4=%d v6=%d total=%d (input routes=%d, localRoutes=%d)",
+		len(prefixesV4),
+		len(prefixesV6),
+		len(prefixesV4)+len(prefixesV6),
+		len(rcfg.Routes),
+		len(rcfg.LocalRoutes),
+	)
+	b.logger.Logf("updateTUN: input routes: %v", rcfg.Routes)
+	b.logger.Logf("updateTUN: input local routes: %v", rcfg.LocalRoutes)
+	b.logger.Logf("updateTUN: effective routes v4: %v", prefixesV4)
+	b.logger.Logf("updateTUN: effective routes v6: %v", prefixesV6)
 
 	for _, addr := range rcfg.LocalAddrs {
 		if err := builder.AddAddress(addr.Addr().String(), int32(addr.Bits())); err != nil {
