@@ -54,7 +54,7 @@ open class IPNService : VpnService(), libtailscale.IPNService {
           START_NOT_STICKY
         }
         ACTION_START_VPN -> {
-          scope.launch { showForegroundNotification() }
+          showForegroundNotification()
           app.setWantRunning(true)
           Libtailscale.requestVPN(this)
           START_STICKY
@@ -78,7 +78,7 @@ open class IPNService : VpnService(), libtailscale.IPNService {
           // This means that we were restarted after the service was killed
           // (potentially due to OOM).
           if (UninitializedApp.get().isAbleToStartVPN()) {
-            scope.launch { showForegroundNotification() }
+            showForegroundNotification() 
             App.get()
             Libtailscale.requestVPN(this)
             START_STICKY
