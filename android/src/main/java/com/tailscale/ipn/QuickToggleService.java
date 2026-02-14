@@ -97,6 +97,7 @@ public class QuickToggleService extends TileService {
         if (needsToStop) {
             app.stopVPN();
         } else {
+            app.stopVPN();
             app.startVPN();
         }
     }
