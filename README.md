@@ -58,6 +58,9 @@ shell.
 The ktmft plugin on the default setting should be used to autoformat all Java, Kotlin
 and XML files in Android Studio.  Enable "Format on Save".
 
+This is checked in CI using `make fmt-check`, and you can also run reformat the files locally
+using: `make fmt`
+
 ### Docker
 
 If you wish to avoid installing software on your host system, a Docker based development strategy is available, you can build and start a shell with:
