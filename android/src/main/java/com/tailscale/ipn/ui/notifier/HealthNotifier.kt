@@ -49,7 +49,7 @@ class HealthNotifier(
     // health warnings in various states.
     scope.launch {
       healthStateFlow
-          .distinctUntilChanged { old, new -> old?.Warnings?.count() == new?.Warnings?.count() }
+          .distinctUntilChanged { old, new -> old?.Warnings?.keys?.count() == new?.Warnings?.keys?.count() }
           .combine(ipnStateFlow, ::Pair)
           .debounce(3000)
           .collect { pair ->
