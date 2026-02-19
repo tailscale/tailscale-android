@@ -49,9 +49,11 @@ class HealthNotifier(
     // health warnings in various states.
     scope.launch {
       healthStateFlow
-          .distinctUntilChanged { old, new -> old?.Warnings?.count() == new?.Warnings?.count() }
-          .combine(ipnStateFlow, ::Pair)
+          .distinctUntilChanged { old, new ->
+            old?.Warnings?.keys.orEmpty() == new?.Warnings?.keys.orEmpty()
+          }
           .debounce(3000)
+          .combine(ipnStateFlow, ::Pair)
           .collect { pair ->
             val health = pair.first
             // Only deliver health notifications when the client is Running
