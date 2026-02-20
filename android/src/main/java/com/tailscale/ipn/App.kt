@@ -612,7 +612,7 @@ open class UninitializedApp : Application() {
             .setContentText(message)
             .setAutoCancel(!vpnRunning)
             .setOnlyAlertOnce(!vpnRunning)
-            .setOngoing(vpnRunning)
+            .setOngoing(false)
             .setSilent(true)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setContentIntent(pendingIntent)
