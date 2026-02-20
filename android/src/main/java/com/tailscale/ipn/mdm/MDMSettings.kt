@@ -118,10 +118,11 @@ object MDMSettings {
         .map { it.call(MDMSettings) as MDMSetting<*> }
   }
 
-  val hardwareAttestation = BooleanMDMSetting(
-      KEY_HARDWARE_ATTESTATION,
-      "Use hardware-backed keys to bind node identity to the device",
-  )
+  val hardwareAttestation =
+      BooleanMDMSetting(
+          KEY_HARDWARE_ATTESTATION,
+          "Use hardware-backed keys to bind node identity to the device",
+      )
 
   val allSettingsByKey by lazy { allSettings.associateBy { it.key } }
 
