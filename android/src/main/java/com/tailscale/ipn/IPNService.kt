@@ -78,7 +78,7 @@ open class IPNService : VpnService(), libtailscale.IPNService {
           // This means that we were restarted after the service was killed
           // (potentially due to OOM).
           if (UninitializedApp.get().isAbleToStartVPN()) {
-            showForegroundNotification() 
+            showForegroundNotification()
             App.get()
             Libtailscale.requestVPN(this)
             START_STICKY
