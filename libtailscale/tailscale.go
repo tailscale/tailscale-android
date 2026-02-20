@@ -88,9 +88,9 @@ func (a *App) osVersion() string {
 	return version
 }
 
-// modelName return the MANUFACTURER + MODEL from
+// deviceName returns the user-set name if available, or MANUFACTURER + MODEL from
 // android.os.Build.
-func (a *App) modelName() string {
+func (a *App) deviceName() string {
 	model, err := a.appCtx.GetDeviceName()
 	if err != nil {
 		panic(err)
