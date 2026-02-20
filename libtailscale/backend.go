@@ -115,11 +115,14 @@ func (a *App) runBackend(ctx context.Context, hardwareAttestation bool) error {
 	paths.AppSharedDir.Store(a.dataDir)
 	hostinfo.SetOSVersion(a.osVersion())
 	hostinfo.SetPackage(a.appCtx.GetInstallSource())
-	deviceModel := a.modelName()
+	deviceModel := a.deviceName()
 	if a.isChromeOS() {
 		deviceModel = "ChromeOS: " + deviceModel
 	}
 	hostinfo.SetDeviceModel(deviceModel)
+	hostinfo.SetHostnameFn(func() (string, error) {
+		return a.deviceName(), nil
+	})
 
 	type configPair struct {
 		rcfg *router.Config
