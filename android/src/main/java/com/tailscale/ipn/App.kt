@@ -44,8 +44,8 @@ import java.io.IOException
 import java.lang.UnsupportedOperationException
 import java.net.NetworkInterface
 import java.security.GeneralSecurityException
-import java.util.Locale
 import java.util.Collections
+import java.util.Locale
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -54,11 +54,11 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.Serializable
 import libtailscale.Libtailscale
+
 class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
   val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -154,7 +154,16 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     // Check if a directory URI has already been stored.
     val storedUri = getStoredDirectoryUri()
     val rm = getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
-    val hardwareAttestation = rm.applicationRestrictions.getBoolean(MDMSettings.KEY_HARDWARE_ATTESTATION, true)
+    val hardwareAttestation =
+        rm.applicationRestrictions.getBoolean(MDMSettings.KEY_HARDWARE_ATTESTATION, true)
+
+    // Populate MDM settings before starting Tailscale so that the rsop
+    // policy framework reads correct values during its initial synchronous load
+    // in newPolicy(). If MDM settings are not populated, rsop caches "not configured"
+    // for Hostname and only corrects it after policyReloadMinDelay,
+    // at which point the device may have already registered with the wrong hostname.
+    MDMSettings.loadFrom(lazy { getEncryptedPrefs() }, rm)
+
     if (storedUri != null && storedUri.toString().startsWith("content://")) {
       startLibtailscale(storedUri.toString(), hardwareAttestation)
     } else {
@@ -167,6 +176,8 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     applicationScope.launch {
       val rm = getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
       MDMSettings.update(get(), rm)
+    }
+    applicationScope.launch {
       Notifier.state.collect { _ ->
         combine(Notifier.state, MDMSettings.forceEnabled.flow, Notifier.prefs, Notifier.netmap) {
                 state,
@@ -284,8 +295,11 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
 
   override fun getDeviceName(): String {
     // Try user-defined device name first
-    android.provider.Settings.Global.getString(contentResolver, android.provider.Settings.Global.DEVICE_NAME)
-      ?.let { return it }
+    android.provider.Settings.Global.getString(
+            contentResolver, android.provider.Settings.Global.DEVICE_NAME)
+        ?.let {
+          return it
+        }
 
     // Otherwise fallback to manufacturer + model
     val manu = Build.MANUFACTURER
@@ -306,26 +320,27 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
 
   @Serializable
   data class AddrJson(
-    val ip: String,
-    val prefixLen: Int,
+      val ip: String,
+      val prefixLen: Int,
   )
-  
+
   @Serializable
   data class InterfaceJson(
-    val name: String,
-    val index: Int,
-    val mtu: Int,
-    val up: Boolean,
-    val broadcast: Boolean,
-    val loopback: Boolean,
-    val pointToPoint: Boolean,
-    val multicast: Boolean,
-    val addrs: List<AddrJson>,
+      val name: String,
+      val index: Int,
+      val mtu: Int,
+      val up: Boolean,
+      val broadcast: Boolean,
+      val loopback: Boolean,
+      val pointToPoint: Boolean,
+      val multicast: Boolean,
+      val addrs: List<AddrJson>,
   )
+
   override fun getInterfacesAsJson(): String {
     val interfaces = Collections.list(NetworkInterface.getNetworkInterfaces())
     val out = ArrayList<InterfaceJson>(interfaces.size)
-  
+
     for (nif in interfaces) {
       try {
         val addrs = ArrayList<AddrJson>()
@@ -335,25 +350,24 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
           val host = addr.hostAddress ?: continue
           addrs.add(AddrJson(ip = host, prefixLen = ia.networkPrefixLength.toInt()))
         }
-  
+
         out.add(
-          InterfaceJson(
-            name = nif.name,
-            index = nif.index,
-            mtu = nif.mtu,
-            up = nif.isUp,
-            broadcast = nif.supportsMulticast(),
-            loopback = nif.isLoopback,
-            pointToPoint = nif.isPointToPoint,
-            multicast = nif.supportsMulticast(),
-            addrs = addrs,
-          )
-        )
+            InterfaceJson(
+                name = nif.name,
+                index = nif.index,
+                mtu = nif.mtu,
+                up = nif.isUp,
+                broadcast = nif.supportsMulticast(),
+                loopback = nif.isLoopback,
+                pointToPoint = nif.isPointToPoint,
+                multicast = nif.supportsMulticast(),
+                addrs = addrs,
+            ))
       } catch (_: Exception) {
         continue
       }
     }
-  
+
     // Avoid pretty printing to keep payload small.
     return Json { encodeDefaults = true }.encodeToString(out)
   }
@@ -394,47 +408,47 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     app.notifyPolicyChanged()
   }
 
-    override fun hardwareAttestationKeySupported(): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            packageManager.hasSystemFeature(PackageManager.FEATURE_STRONGBOX_KEYSTORE)
-        } else {
-            false
-        }
+  override fun hardwareAttestationKeySupported(): Boolean {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+      packageManager.hasSystemFeature(PackageManager.FEATURE_STRONGBOX_KEYSTORE)
+    } else {
+      false
     }
+  }
 
-    private lateinit var keyStore: HardwareKeyStore;
+  private lateinit var keyStore: HardwareKeyStore
 
-    private fun getKeyStore(): HardwareKeyStore {
-        if (hardwareAttestationKeySupported()) {
-            return HardwareKeyStore()
-        } else {
-            throw UnsupportedOperationException()
-        }
+  private fun getKeyStore(): HardwareKeyStore {
+    if (hardwareAttestationKeySupported()) {
+      return HardwareKeyStore()
+    } else {
+      throw UnsupportedOperationException()
     }
+  }
 
-    override fun hardwareAttestationKeyCreate(): String {
-        return getKeyStore().createKey()
-    }
+  override fun hardwareAttestationKeyCreate(): String {
+    return getKeyStore().createKey()
+  }
 
-    @Throws(NoSuchKeyException::class)
-    override fun hardwareAttestationKeyRelease(id: String) {
-        return getKeyStore().releaseKey(id)
-    }
+  @Throws(NoSuchKeyException::class)
+  override fun hardwareAttestationKeyRelease(id: String) {
+    return getKeyStore().releaseKey(id)
+  }
 
-    @Throws(NoSuchKeyException::class)
-    override fun hardwareAttestationKeySign(id: String, data: ByteArray): ByteArray {
-        return getKeyStore().sign(id, data)
-    }
+  @Throws(NoSuchKeyException::class)
+  override fun hardwareAttestationKeySign(id: String, data: ByteArray): ByteArray {
+    return getKeyStore().sign(id, data)
+  }
 
-    @Throws(NoSuchKeyException::class)
-    override fun hardwareAttestationKeyPublic(id: String): ByteArray {
-        return getKeyStore().public(id)
-    }
+  @Throws(NoSuchKeyException::class)
+  override fun hardwareAttestationKeyPublic(id: String): ByteArray {
+    return getKeyStore().public(id)
+  }
 
-    @Throws(NoSuchKeyException::class)
-    override fun hardwareAttestationKeyLoad(id: String) {
-        return getKeyStore().load(id)
-    }
+  @Throws(NoSuchKeyException::class)
+  override fun hardwareAttestationKeyLoad(id: String) {
+    return getKeyStore().load(id)
+  }
 }
 /**
  * UninitializedApp contains all of the methods of App that can be used without having to initialize
