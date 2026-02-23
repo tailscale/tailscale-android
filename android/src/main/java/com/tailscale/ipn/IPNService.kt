@@ -105,6 +105,7 @@ open class IPNService : VpnService(), libtailscale.IPNService {
   }
 
   override fun onRevoke() {
+    app.setWantRunning(false)
     close()
     updateVpnStatus(false)
     super.onRevoke()

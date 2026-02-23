@@ -246,8 +246,8 @@ func (a *App) runBackend(ctx context.Context, hardwareAttestation bool) error {
 				}
 			}
 		case s := <-onDisconnect:
-			b.CloseTUNs()
 			if vpnService.service != nil && vpnService.service.ID() == s.ID() {
+				b.CloseTUNs()
 				netns.SetAndroidProtectFunc(nil)
 				vpnService.service = nil
 			}
