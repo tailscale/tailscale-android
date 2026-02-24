@@ -210,6 +210,10 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
         val currentState = Notifier.state.value
 
         if (desiredState) {
+		  if (currentState != Ipn.State.Stopped) {
+              stopVPN()
+          }
+
           // User wants to turn ON the VPN
           when {
             currentState != Ipn.State.Running -> showVPNPermissionLauncherIfUnauthorized()

@@ -1,5 +1,5 @@
 # Tailscale Android Client
-
+ 
 https://tailscale.com
 
 Private WireGuard® networks made easy
@@ -52,6 +52,8 @@ path to the SDK.
 If you installed Android Studio the tools may not be in your path. To get the
 correct tool path, run `make androidpath` and export the provided path in your
 shell.
+
+You will also need to run `make libtailscale` to build the Tailscale AAR which is required to build the Android app.
 
 #### Code Formatting
 
