@@ -30,6 +30,9 @@ jobs:
       - name: Clean
         run: make clean
 
+      - name: Format check (ktfmt)
+        run: make fmt-check
+
       - name: Build APKs
         run: make tailscale-debug.apk
 
