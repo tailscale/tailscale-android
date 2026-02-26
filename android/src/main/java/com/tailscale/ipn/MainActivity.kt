@@ -496,6 +496,9 @@ class MainActivity : ComponentActivity() {
       try {
         Notifier.state.collect { state ->
           if (state > Ipn.State.NeedsMachineAuth) {
+            // Clear URL because if MainActivity is destroyed while backgrounded, the new instance
+            // would hold the old auth URL
+            Notifier.browseToURL.set(null)
             val intent =
                 Intent(applicationContext, MainActivity::class.java).apply {
                   addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
