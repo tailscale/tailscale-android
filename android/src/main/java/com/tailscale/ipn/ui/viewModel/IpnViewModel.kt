@@ -160,6 +160,11 @@ open class IpnViewModel : ViewModel() {
       authKey: String? = null,
       completionHandler: (Result<Unit>) -> Unit = {}
   ) {
+    // Start the IPNService foreground notification so that Android
+    // does not freeze the process or cut network access while the user is in the browser
+    // completing auth. The foreground service transitions to a full VPN service later when
+    // startVPN() is called after the backend reaches Running state.
+    UninitializedApp.get().startForegroundForLogin()
     val client = Client(viewModelScope)
 
     val finalMaskedPrefs = maskedPrefs?.deepCopy() ?: Ipn.MaskedPrefs()
