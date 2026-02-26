@@ -147,10 +147,13 @@ open class IpnViewModel : ViewModel() {
 
   /**
    * Order of operations:
-   * 1. editPrefs() with maskedPrefs (to allow ControlURL override), WantRunning=true,
-   *    LoggedOut=false if AuthKey != null
-   * 2. start() starts the LocalBackend state machine
-   * 3. startLoginInteractive() is currently required for bother interactive and non-interactive
+   * 1. editPrefs() with maskedPrefs (to allow ControlURL override), LoggedOut=false if AuthKey !=
+   *    null
+   * 2. start() starts the LocalBackend state machine with WantRunning=true. to avoid a race: if
+   *    editPrefs() set WantRunning=true, the backend would fire a cc.Login(LoginDefault) on the
+   *    existing control client immediately. start() then tears down this client and creates a new
+   *    one
+   * 3. startLoginInteractive() is currently required for both interactive and non-interactive
    *    (using auth key) login
    *
    * Any failure short‑circuits the chain and invokes completionHandler once.
@@ -163,7 +166,13 @@ open class IpnViewModel : ViewModel() {
     val client = Client(viewModelScope)
 
     val finalMaskedPrefs = maskedPrefs?.deepCopy() ?: Ipn.MaskedPrefs()
-    finalMaskedPrefs.WantRunning = true
+    // Don't set WantRunning=true here. Setting it in editPrefs() triggers cc.Login(LoginDefault)
+    // in the Go backend on the existing control client; when the user taps "Log in," login() calls
+    // start(), which triggers resetControlClientLocked(), cancelling the existing control client
+    // and creating a new one. On a slow connection, the first control client's register is still
+    // in flight when it is canceled. Instead, set WantRunning=true on the Prefs returned by
+    // editPrefs() and pass
+    // it via start()'s UpdatePrefs, which resets the control client first.
     if (authKey != null) {
       finalMaskedPrefs.LoggedOut = false
     }
@@ -175,7 +184,8 @@ open class IpnViewModel : ViewModel() {
             completionHandler(Result.failure(it))
           }
           .onSuccess {
-            val opts = Ipn.Options(UpdatePrefs = editResult.getOrThrow(), AuthKey = authKey)
+            it.WantRunning = true
+            val opts = Ipn.Options(UpdatePrefs = it, AuthKey = authKey)
             client.start(opts) { startResult ->
               startResult
                   .onFailure {
