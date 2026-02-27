@@ -78,7 +78,7 @@ open class IPNService : VpnService(), libtailscale.IPNService {
           // This means that we were restarted after the service was killed
           // (potentially due to OOM).
           if (UninitializedApp.get().isAbleToStartVPN()) {
-            showForegroundNotification() 
+            showForegroundNotification()
             App.get()
             Libtailscale.requestVPN(this)
             START_STICKY
@@ -105,7 +105,10 @@ open class IPNService : VpnService(), libtailscale.IPNService {
   }
 
   override fun onRevoke() {
+    // VPN permission was granted to another app, so tell the Go backend and then set prepared to be
+    // false so that when user attempts to connect again, VpnService.prepare() is called
     app.setWantRunning(false)
+    setVpnPrepared(false)
     close()
     updateVpnStatus(false)
     super.onRevoke()
