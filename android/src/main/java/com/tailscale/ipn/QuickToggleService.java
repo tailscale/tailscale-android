@@ -65,39 +65,47 @@ public class QuickToggleService extends TileService {
         unlockAndRun(this::secureOnClick);
     }
 
-    @SuppressWarnings("deprecation")
+    @SuppressWarnings("deprecation")                                                                                                                    
     private void secureOnClick() {
-        boolean r;
+        boolean ableToStart;
         synchronized (lock) {
-            r = UninitializedApp.get().isAbleToStartVPN();
+            ableToStart = UninitializedApp.get().isAbleToStartVPN();
         }
-        if (r) {
-            // Get the application to make sure it initializes
-            App.get();
-            onTileClick();
-        } else {
-            // Start main activity.
-            Intent i = getPackageManager().getLaunchIntentForPackage(getPackageName());
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                // Request code for opening activity.
-                startActivityAndCollapse(PendingIntent.getActivity(this, 0, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
-            } else {
-                // Deprecated, but still required for older versions.
-                startActivityAndCollapse(i);
-            }
+        if (!ableToStart) {
+            launchMainActivity();
+            return;
         }
+        App.get();
+        onTileClick();
     }
 
-    private void onTileClick() {
-        UninitializedApp app = UninitializedApp.get();
-        boolean needsToStop;
-        synchronized (lock) {
-            needsToStop = app.isAbleToStartVPN() && isRunning;
-        }
-        if (needsToStop) {
-            app.stopVPN();
-        } else {
-            app.startVPN();
-        }
+    private void onTileClick() {                                                                                                                          
+      UninitializedApp app = UninitializedApp.get();                                                                                                    
+      boolean needsToStop;                                                                                                                            
+      synchronized (lock) {
+          needsToStop = isRunning;
+      }
+      if (needsToStop) {
+          app.stopVPN();
+      } else {
+          boolean vpnPrepared = App.get().getAppScopedViewModel().getVpnPrepared().getValue();
+          if (vpnPrepared) {
+              app.startVPN();
+          } else {
+              launchMainActivity();
+          }
+      }
     }
+
+    private void launchMainActivity() {
+      Intent i = getPackageManager().getLaunchIntentForPackage(getPackageName());
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        // Request code for opening activity.
+          startActivityAndCollapse(PendingIntent.getActivity(this, 0, i,
+              PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
+      } else {
+            // Deprecated, but still required for older versions.
+          startActivityAndCollapse(i);
+      }
+  }
 }
