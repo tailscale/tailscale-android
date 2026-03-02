@@ -60,8 +60,7 @@ class SplitTunnelAppPickerViewModel : ViewModel() {
               }
             }
             .intersect(installedApps.value.map { it.packageName }.toSet())
-            .toList()
-    )
+            .toList())
   }
 
   fun performSelectionSwitch() {
