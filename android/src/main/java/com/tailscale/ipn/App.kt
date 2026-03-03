@@ -513,6 +513,23 @@ open class UninitializedApp : Application() {
     return getSharedPreferences(UNENCRYPTED_PREFERENCES, MODE_PRIVATE)
   }
 
+  /**
+   * Starts IPNService as a foreground service without creating a VPN tunnel. This prevents Android
+   * from freezing the process and restricting network access during interactive login while the
+   * user completes auth in the browser.
+   */
+  fun startForegroundForLogin() {
+    val intent =
+        Intent(this, IPNService::class.java).apply {
+          action = IPNService.ACTION_START_FOREGROUND_ONLY
+        }
+    try {
+      startForegroundService(intent)
+    } catch (e: Exception) {
+      TSLog.e(TAG, "startForegroundForLogin hit exception: $e")
+    }
+  }
+
   fun startVPN() {
     val intent = Intent(this, IPNService::class.java).apply { action = IPNService.ACTION_START_VPN }
     // FLAG_UPDATE_CURRENT ensures that if the intent is already pending, the existing intent will
