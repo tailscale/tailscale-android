@@ -104,7 +104,6 @@ type VPNServiceBuilder interface {
 	AddDNSServer(string) error
 	AddSearchDomain(string) error
 	AddRoute(string, int32) error
-	ExcludeRoute(string, int32) error
 	AddAddress(string, int32) error
 	Establish() (ParcelFileDescriptor, error)
 }
