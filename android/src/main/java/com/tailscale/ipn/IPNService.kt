@@ -24,6 +24,7 @@ open class IPNService : VpnService(), libtailscale.IPNService {
   private val randomID: String = UUID.randomUUID().toString()
   private lateinit var app: App
   val scope = CoroutineScope(Dispatchers.IO)
+  private var closed = false
 
   override fun id(): String {
     return randomID
@@ -96,6 +97,8 @@ open class IPNService : VpnService(), libtailscale.IPNService {
       }
 
   override fun close() {
+    if (closed) return
+    closed = true
     Notifier.setState(Ipn.State.Stopping)
     disconnectVPN()
     Libtailscale.serviceDisconnect(this)
