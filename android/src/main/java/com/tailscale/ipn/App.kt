@@ -535,7 +535,7 @@ open class UninitializedApp : Application() {
     // FLAG_UPDATE_CURRENT ensures that if the intent is already pending, the existing intent will
     // be updated rather than creating multiple redundant instances.
     val pendingIntent =
-        PendingIntent.getService(
+        PendingIntent.getForegroundService(
             this,
             0,
             intent,
