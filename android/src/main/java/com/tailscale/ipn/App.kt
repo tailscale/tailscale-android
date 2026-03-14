@@ -408,6 +408,27 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     app.notifyPolicyChanged()
   }
 
+  override fun getUserCACertsPEM(): ByteArray {
+    return try {
+      val ks = java.security.KeyStore.getInstance("AndroidCAStore")
+      ks.load(null)
+      val sb = StringBuilder()
+      for (alias in ks.aliases()) {
+        if (!alias.startsWith("user:")) continue
+        val cert = ks.getCertificate(alias) as? java.security.cert.X509Certificate ?: continue
+        val encoded = android.util.Base64.encodeToString(cert.encoded, android.util.Base64.NO_WRAP)
+        sb.append("-----BEGIN CERTIFICATE-----\n")
+        // Wrap base64 at 64 characters per line
+        encoded.chunked(64).forEach { sb.append(it).append("\n") }
+        sb.append("-----END CERTIFICATE-----\n")
+      }
+      sb.toString().toByteArray(Charsets.UTF_8)
+    } catch (e: Exception) {
+      Log.e(TAG, "Failed to read user CA certificates: ${e.message}")
+      ByteArray(0)
+    }
+  }
+
   override fun hardwareAttestationKeySupported(): Boolean {
     return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
       packageManager.hasSystemFeature(PackageManager.FEATURE_STRONGBOX_KEYSTORE)
