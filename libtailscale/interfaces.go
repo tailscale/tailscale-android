@@ -66,6 +66,12 @@ type AppContext interface {
 	// expressed as a JSON string.
 	GetSyspolicyStringArrayJSONValue(key string) (string, error)
 
+	// GetUserCACertsPEM returns PEM-encoded user-installed CA certificates
+	// from the Android trust store. Returns empty bytes if none are installed.
+	// This is needed because Go's crypto/x509 on Android only reads system CAs
+	// from /system/etc/security/cacerts/ and ignores user-installed CAs.
+	GetUserCACertsPEM() ([]byte, error)
+
 	// Methods used to implement key.HardwareAttestationKey using the Android
 	// KeyStore.
 	HardwareAttestationKeySupported() bool
