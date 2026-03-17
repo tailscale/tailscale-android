@@ -32,6 +32,9 @@ jobs:
 
       - name: Format check (ktfmt)
         run: make fmt-check
+  
+      - name: Run Go tests
+        run: make go-test
 
       - name: Build APKs
         run: make tailscale-debug.apk
