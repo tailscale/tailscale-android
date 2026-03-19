@@ -47,3 +47,6 @@ libtailscale-sources.jar
 .DS_Store
 
 tailscale.version
+.opencode/
+.root/
+.envrc
