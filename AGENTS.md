@@ -42,3 +42,8 @@ The following Chinese documentation is available in the `docs/` directory:
 - Never record project initialization, scaffolding generation, documentation-only updates, formatting-only changes, routine configuration tweaks, or other low-signal work.
 - Each entry must be concise and include: problem, solution, prevention, and commitID.
 - The purpose is to help future AI agents and developers avoid repeating the same mistakes.
+
+## Development Workflow Rules
+
+- **Version Bump**: After modifying any code, the Android version code must be incremented by 1 in `android/build.gradle`.
+- **Build Verification**: Before committing any code changes, `make apk` must be run and complete successfully to ensure the build is not broken.
