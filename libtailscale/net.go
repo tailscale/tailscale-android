@@ -75,7 +75,7 @@ var googleDNSServers = []netip.Addr{
 	netip.MustParseAddr("2001:4860:4860::8844"),
 }
 
-func (b *backend) updateTUN(rcfg *router.Config, dcfg *dns.OSConfig) error {
+func (b *backend) updateTUN(rcfg *router.Config, dcfg *dns.OSConfig) (err error) {
 	b.logger.Logf("updateTUN: changed")
 	defer b.logger.Logf("updateTUN: finished")
 
@@ -88,6 +88,23 @@ func (b *backend) updateTUN(rcfg *router.Config, dcfg *dns.OSConfig) error {
 	b.logger.Logf("updateTUN: closing old TUNs")
 	b.CloseTUNs()
 	b.logger.Logf("updateTUN: closed old TUNs")
+
+	// Since the previous tunnel(s) are closed, the [multiTUN] device is
+	// not operational until a new underlying tunnel is created and added,
+	// which may never happen in case of an error or an empty [router.Config].
+	//
+	// Therefore, to prevent deadlocks where a [multiTUN.Write] would
+	// block waiting for a new tunnel to be added, we bring the multiTUN
+	// device down on exit unless a new [tun.Device] is created and added
+	// successfully. See tailscale/tailscale#18679.
+	//
+	// TODO(nickkhyl): revisit and simplify the [multiTUN] implementation?
+	hasTunnel := false
+	defer func() {
+		if !hasTunnel && b.devices.Down() {
+			b.logger.Logf("updateTUN: tunnel brought down: %v", err)
+		}
+	}()
 
 	if len(rcfg.LocalAddrs) == 0 {
 		return nil
@@ -182,7 +199,12 @@ func (b *backend) updateTUN(rcfg *router.Config, dcfg *dns.OSConfig) error {
 	b.logger.Logf("updateTUN: created TUN device")
 
 	b.devices.add(tunDev)
+	hasTunnel = true
 	b.logger.Logf("updateTUN: added TUN device")
+
+	if b.devices.Up() {
+		b.logger.Logf("tunnel brought up")
+	}
 
 	b.lastCfg = rcfg
 	b.lastDNSCfg = dcfg
