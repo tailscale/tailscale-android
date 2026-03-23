@@ -145,7 +145,10 @@ func (a *App) runBackend(ctx context.Context, hardwareAttestation bool) error {
 	if hardwareAttestation {
 		a.backend.SetHardwareAttested()
 	}
-	defer b.CloseTUNs()
+	defer func() {
+		b.devices.Down()
+		b.CloseTUNs()
+	}()
 
 	hc := localapi.HandlerConfig{
 		Actor:    ipnauth.Self,
@@ -253,6 +256,9 @@ func (a *App) runBackend(ctx context.Context, hardwareAttestation bool) error {
 			}
 		case s := <-onDisconnect:
 			if vpnService.service != nil && vpnService.service.ID() == s.ID() {
+				if b.devices.Down() {
+					log.Printf("tunnel brought down on disconnect")
+				}
 				b.CloseTUNs()
 				netns.SetAndroidProtectFunc(nil)
 				netns.SetAndroidBindToNetworkFunc(nil)
@@ -399,7 +405,9 @@ func (a *App) closeVpnService(err error, b *backend) {
 		log.Printf("localapi edit prefs error %v", localApiErr)
 	}
 
-	b.lastCfg = nil
+	if b.devices.Down() {
+		log.Printf("tunnel brought down on VPN service error: %v", err)
+	}
 	b.CloseTUNs()
 
 	vpnService.service.DisconnectVPN()
