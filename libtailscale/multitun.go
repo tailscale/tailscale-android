@@ -7,8 +7,10 @@ import (
 	"log"
 	"os"
 	"runtime/debug"
+	"sync"
 
 	"github.com/tailscale/wireguard-go/tun"
+	"tailscale.com/syncs"
 )
 
 // multiTUN implements a tun.Device that supports multiple
@@ -30,6 +32,19 @@ type multiTUN struct {
 	names        chan chan nameReply
 	shutdowns    chan struct{}
 	shutdownDone chan struct{}
+
+	downMu sync.Mutex
+	// downCh is closed when the multiTUN is brought down,
+	// such as when Tailscale transitions to the Stopped state.
+	// This indicates that all outgoing packets should be dropped,
+	// and [multiTUN.Write] should return immediately without blocking
+	// until [multiTUN.Up] is called. See [multiTUN.Down]
+	// and tailscale/tailscale#18679 for more details.
+	//
+	// It can be read without holding downMu, but the mutex
+	// must be held when writing.
+	downCh syncs.AtomicValue[chan struct{}]
+	down   bool // whether the downCh is closed
 }
 
 // tunDevice wraps and drives a single run.Device.
@@ -76,7 +91,11 @@ func newTUNDevices() *multiTUN {
 		names:        make(chan chan nameReply),
 		shutdowns:    make(chan struct{}),
 		shutdownDone: make(chan struct{}),
+		down:         true, // The device is initially down.
 	}
+	downCh := make(chan struct{})
+	d.downCh.Store(downCh)
+	close(downCh)
 	go d.run()
 	return d
 }
@@ -256,6 +275,47 @@ func (d *multiTUN) add(dev tun.Device) {
 	d.devices <- dev
 }
 
+// Up brings the multiTUN up, allowing it to write packets
+// to the underlying tunnel device. If there is no underlying
+// device yet, write operations are pended until a new device
+// is added with [multiTUN.add].
+//
+// It reports whether this call brought the device up.
+func (d *multiTUN) Up() bool {
+	d.downMu.Lock()
+	defer d.downMu.Unlock()
+	if !d.down {
+		return false
+	}
+	d.downCh.Store(make(chan struct{}))
+	d.down = false
+	return true
+}
+
+// Down brings the multiTUN down, causing all outgoing packets
+// to be dropped without waiting for the underlying tunnel device,
+// and makes all [multiTUN.Write] calls return immediately
+// until [multiTUN.Up] is called.
+//
+// It mainly exists to distinguish between cases where the underlying
+// device is temporarily unavailable due to VPN reconfiguration,
+// in which case write requests should be pended, and cases where
+// Tailscale is stopped, where any pending and new requests
+// should complete immediately to prevent deadlocks.
+// See tailscale/tailscale#18679.
+//
+// It reports whether this call brought the device down.
+func (d *multiTUN) Down() bool {
+	d.downMu.Lock()
+	defer d.downMu.Unlock()
+	if d.down {
+		return false
+	}
+	close(d.downCh.Load())
+	d.down = true
+	return true
+}
+
 func (d *multiTUN) File() *os.File {
 	// The underlying file descriptor is not constant on Android.
 	// Let's hope no-one uses it.
@@ -264,16 +324,39 @@ func (d *multiTUN) File() *os.File {
 
 func (d *multiTUN) Read(data [][]byte, sizes []int, offset int) (int, error) {
 	r := make(chan ioReply)
-	d.reads <- ioRequest{data, sizes, offset, r}
-	rep := <-r
-	return rep.count, rep.err
+	select {
+	// We don't care about d.downCh here, as it's fine
+	// to continue waiting until the tunnel is up again
+	// or the multiTUN device is permanently closed.
+	// This does not block WireGuard reconfiguration.
+	case d.reads <- ioRequest{data, sizes, offset, r}:
+		rep := <-r
+		return rep.count, rep.err
+	case <-d.close:
+		// Return immediately if the multiTUN device is closed.
+		return 0, os.ErrClosed
+	}
 }
 
 func (d *multiTUN) Write(data [][]byte, offset int) (int, error) {
 	r := make(chan ioReply)
-	d.writes <- ioRequest{data, nil, offset, r}
-	rep := <-r
-	return rep.count, rep.err
+	select {
+	case d.writes <- ioRequest{data, nil, offset, r}:
+		rep := <-r
+		return rep.count, rep.err
+	case <-d.downCh.Load():
+		// Drop the packet silently if the tunnel is down.
+		// Otherwise, a race may occur during wireguard reconfig
+		// and result in a deadlock, since a wireguard-go/device.Peer
+		// cannot be removed until its RoutineSequentialReceiver
+		// returns, and it will not return if it is blocked in
+		// (*multiTUN).Write while sending to d.writes without
+		// a receiver on the other side of the pipe.
+		return 0, nil
+	case <-d.close:
+		// Return immediately if the multiTUN device is closed.
+		return 0, os.ErrClosed
+	}
 }
 
 func (d *multiTUN) MTU() (int, error) {
