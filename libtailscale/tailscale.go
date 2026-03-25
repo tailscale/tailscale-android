@@ -153,7 +153,7 @@ func (b *backend) setupLogs(logDir string, logID logid.PrivateID, logf logger.Lo
 		for {
 			select {
 			case logstr := <-onLog:
-				b.logger.Logf(logstr)
+				b.logger.Logf("%s", logstr)
 			}
 		}
 	}()

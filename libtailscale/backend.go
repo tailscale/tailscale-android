@@ -309,7 +309,7 @@ func (a *App) newBackend(dataDir string, appCtx AppContext, store *stateStore,
 
 	netMon, err := netmon.New(b.bus, logf)
 	if err != nil {
-		log.Printf("netmon.New: %w", err)
+		log.Printf("netmon.New: %v", err)
 	}
 	b.netMon = netMon
 	b.setupLogs(dataDir, logID, logf, sys.HealthTracker.Get())
