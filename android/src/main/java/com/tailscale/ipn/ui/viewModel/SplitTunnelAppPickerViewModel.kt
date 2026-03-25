@@ -39,7 +39,6 @@ class SplitTunnelAppPickerViewModel : ViewModel() {
   val selectedPackageNames: StateFlow<List<String>> = MutableStateFlow(listOf())
 
   val allowSelected: StateFlow<Boolean> = MutableStateFlow(App.get().allowSelectedPackages())
-  val showHeaderMenu: StateFlow<Boolean> = MutableStateFlow(false)
   val showSwitchDialog: StateFlow<Boolean> = MutableStateFlow(false)
 
   val mdmExcludedPackages: StateFlow<SettingState<String?>> = MDMSettings.excludedPackages.flow
@@ -77,6 +76,27 @@ class SplitTunnelAppPickerViewModel : ViewModel() {
 
   fun deselect(packageName: String) {
     selectedPackageNames.set(selectedPackageNames.value - packageName)
+    debounceSave()
+  }
+
+  private fun toggleablePackageNames(): List<String> =
+      installedApps.value
+          .map { it.packageName }
+          .filter { !App.get().builtInDisallowedPackageNames.contains(it) }
+
+  fun selectAll() {
+    val newSet = selectedPackageNames.value.toMutableSet()
+    toggleablePackageNames().forEach { newSet.add(it) }
+    selectedPackageNames.set(
+        installedApps.value.map { it.packageName }.filter { newSet.contains(it) })
+    debounceSave()
+  }
+
+  fun deselectAll() {
+    val builtIn = App.get().builtInDisallowedPackageNames.toSet()
+    val kept = selectedPackageNames.value.filter { builtIn.contains(it) }.toSet()
+    selectedPackageNames.set(
+        installedApps.value.map { it.packageName }.filter { kept.contains(it) })
     debounceSave()
   }
 

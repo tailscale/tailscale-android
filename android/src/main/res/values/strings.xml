@@ -315,6 +315,10 @@
     <string name="selected_apps_will_access_tailscale">Only apps you select will be allowed to access Tailscale.</string>
     <string name="count_excluded_apps">Excluded apps (%1$s)</string>
     <string name="count_included_apps">Included apps (%1$s)</string>
+    <string name="split_tunnel_mode_exclude">Exclude</string>
+    <string name="split_tunnel_mode_include">Include only</string>
+    <string name="select_all_apps">Select all</string>
+    <string name="deselect_all_apps">Deselect all</string>
     <string name="certain_apps_are_not_routed_via_tailscale">Certain apps are not routed via Tailscale on this device. This setting is managed by your organization and cannot be changed by you. For more information, contact your network administrator.</string>
     <string name="only_specific_apps_are_routed_via_tailscale">Only specific apps are routed via Tailscale on this device. This setting is managed by your organization and cannot be changed by you. For more information, contact your network administrator.</string>
     <string name="switch_to_select_to_include">Switch to including</string>

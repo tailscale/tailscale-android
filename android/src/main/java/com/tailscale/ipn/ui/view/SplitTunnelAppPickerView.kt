@@ -4,26 +4,25 @@
 package com.tailscale.ipn.ui.view
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -43,6 +42,7 @@ import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.viewModel.SplitTunnelAppPickerViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SplitTunnelAppPickerView(
     backToSettings: BackNavigation,
@@ -54,7 +54,6 @@ fun SplitTunnelAppPickerView(
   val builtInDisallowedPackageNames: List<String> = App.get().builtInDisallowedPackageNames
   val mdmIncludedPackages by model.mdmIncludedPackages.collectAsState()
   val mdmExcludedPackages by model.mdmExcludedPackages.collectAsState()
-  val showHeaderMenu by model.showHeaderMenu.collectAsState()
   val showSwitchDialog by model.showSwitchDialog.collectAsState()
 
   if (showSwitchDialog) {
@@ -70,18 +69,7 @@ fun SplitTunnelAppPickerView(
 
   Scaffold(
       topBar = {
-        Header(
-            titleRes = R.string.split_tunneling,
-            onBack = backToSettings,
-            actions = {
-              Row {
-                FusMenu(viewModel = model, onSwitchClick = { model.showSwitchDialog.set(true) })
-                IconButton(onClick = { model.showHeaderMenu.set(!showHeaderMenu) }) {
-                  Icon(Icons.Default.MoreVert, "menu")
-                }
-              }
-            },
-        )
+        Header(titleRes = R.string.split_tunneling, onBack = backToSettings)
       },
   ) { innerPadding ->
     LazyColumn(modifier = Modifier.padding(innerPadding)) {
@@ -111,12 +99,56 @@ fun SplitTunnelAppPickerView(
                                 .selected_apps_will_access_the_internet_directly_without_using_tailscale))
               })
         }
+        item("modeSelector") {
+          SingleChoiceSegmentedButtonRow(
+              modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+          ) {
+            SegmentedButton(
+                selected = !allowSelected,
+                onClick = {
+                  if (allowSelected) {
+                    model.showSwitchDialog.set(true)
+                  }
+                },
+                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+            ) {
+              Text(stringResource(R.string.split_tunnel_mode_exclude))
+            }
+            SegmentedButton(
+                selected = allowSelected,
+                onClick = {
+                  if (!allowSelected) {
+                    model.showSwitchDialog.set(true)
+                  }
+                },
+                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+            ) {
+              Text(stringResource(R.string.split_tunnel_mode_include))
+            }
+          }
+        }
         item("resolversHeader") {
           Lists.SectionDivider(
               stringResource(
                   if (allowSelected) R.string.count_included_apps else R.string.count_excluded_apps,
                   selectedPackageNames.count(),
               ))
+        }
+        item("bulkActions") {
+          Row(modifier = Modifier.padding(horizontal = 8.dp)) {
+            TextButton(
+                onClick = { model.selectAll() },
+                enabled = installedApps.isNotEmpty(),
+            ) {
+              Text(stringResource(R.string.select_all_apps))
+            }
+            TextButton(
+                onClick = { model.deselectAll() },
+                enabled = installedApps.isNotEmpty(),
+            ) {
+              Text(stringResource(R.string.deselect_all_apps))
+            }
+          }
         }
         if (installedApps.isEmpty()) {
           item("spinner") {
@@ -177,30 +209,7 @@ fun SplitTunnelAppPickerView(
 }
 
 @Composable
-fun FusMenu(viewModel: SplitTunnelAppPickerViewModel, onSwitchClick: (() -> Unit)) {
-  val expanded by viewModel.showHeaderMenu.collectAsState()
-  val allowSelected by viewModel.allowSelected.collectAsState()
-
-  DropdownMenu(
-      expanded = expanded,
-      onDismissRequest = { viewModel.showHeaderMenu.set(false) },
-      modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainer),
-  ) {
-    MenuItem(
-        onClick = {
-          viewModel.showHeaderMenu.set(false)
-          onSwitchClick()
-        },
-        text =
-            stringResource(
-                if (allowSelected) R.string.switch_to_select_to_exclude
-                else R.string.switch_to_select_to_include),
-    )
-  }
-}
-
-@Composable
-fun SwitchAlertDialog(allowSelected: Boolean, onConfirm: (() -> Unit), onDismiss: (() -> Unit)) {
+fun SwitchAlertDialog(allowSelected: Boolean, onConfirm: () -> Unit, onDismiss: () -> Unit) {
   val switchString =
       stringResource(
           if (allowSelected) R.string.switch_to_select_to_exclude

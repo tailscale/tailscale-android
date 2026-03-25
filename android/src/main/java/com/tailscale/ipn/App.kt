@@ -709,7 +709,7 @@ open class UninitializedApp : Application() {
   }
 
   fun allowSelectedPackages(): Boolean {
-    return getUnencryptedPrefs().getBoolean(ALLOW_SELECTED_APPS_KEY, false)
+    return getUnencryptedPrefs().getBoolean(ALLOW_SELECTED_APPS_KEY, true)
   }
 
   fun getAppScopedViewModel(): AppViewModel {
