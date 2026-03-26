@@ -4,6 +4,7 @@
 package com.tailscale.ipn.mdm
 
 import android.content.RestrictionsManager
+import android.content.SharedPreferences
 import com.tailscale.ipn.App
 import kotlin.reflect.KVisibility
 import kotlin.reflect.full.declaredMemberProperties
@@ -118,17 +119,21 @@ object MDMSettings {
         .map { it.call(MDMSettings) as MDMSetting<*> }
   }
 
-  val hardwareAttestation = BooleanMDMSetting(
-      KEY_HARDWARE_ATTESTATION,
-      "Use hardware-backed keys to bind node identity to the device",
-  )
+  val hardwareAttestation =
+      BooleanMDMSetting(
+          KEY_HARDWARE_ATTESTATION,
+          "Use hardware-backed keys to bind node identity to the device",
+      )
 
   val allSettingsByKey by lazy { allSettings.associateBy { it.key } }
 
-  fun update(app: App, restrictionsManager: RestrictionsManager?) {
+  fun loadFrom(preferences: Lazy<SharedPreferences>, restrictionsManager: RestrictionsManager?) {
     val bundle = restrictionsManager?.applicationRestrictions
-    val preferences = lazy { app.getEncryptedPrefs() }
     allSettings.forEach { it.setFrom(bundle, preferences) }
+  }
+
+  fun update(app: App, restrictionsManager: RestrictionsManager?) {
+    loadFrom(lazy { app.getEncryptedPrefs() }, restrictionsManager)
     app.notifyPolicyChanged()
   }
 }

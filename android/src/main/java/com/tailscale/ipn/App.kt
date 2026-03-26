@@ -44,8 +44,8 @@ import java.io.IOException
 import java.lang.UnsupportedOperationException
 import java.net.NetworkInterface
 import java.security.GeneralSecurityException
-import java.util.Locale
 import java.util.Collections
+import java.util.Locale
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -54,11 +54,11 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.Serializable
 import libtailscale.Libtailscale
+
 class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
   val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -154,7 +154,16 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     // Check if a directory URI has already been stored.
     val storedUri = getStoredDirectoryUri()
     val rm = getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
-    val hardwareAttestation = rm.applicationRestrictions.getBoolean(MDMSettings.KEY_HARDWARE_ATTESTATION, true)
+    val hardwareAttestation =
+        rm.applicationRestrictions.getBoolean(MDMSettings.KEY_HARDWARE_ATTESTATION, true)
+
+    // Populate MDM settings before starting Tailscale so that the rsop
+    // policy framework reads correct values during its initial synchronous load
+    // in newPolicy(). If MDM settings are not populated, rsop caches "not configured"
+    // for Hostname and only corrects it after policyReloadMinDelay,
+    // at which point the device may have already registered with the wrong hostname.
+    MDMSettings.loadFrom(lazy { getEncryptedPrefs() }, rm)
+
     if (storedUri != null && storedUri.toString().startsWith("content://")) {
       startLibtailscale(storedUri.toString(), hardwareAttestation)
     } else {
@@ -167,6 +176,8 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     applicationScope.launch {
       val rm = getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
       MDMSettings.update(get(), rm)
+    }
+    applicationScope.launch {
       Notifier.state.collect { _ ->
         combine(Notifier.state, MDMSettings.forceEnabled.flow, Notifier.prefs, Notifier.netmap) {
                 state,
@@ -284,8 +295,11 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
 
   override fun getDeviceName(): String {
     // Try user-defined device name first
-    android.provider.Settings.Global.getString(contentResolver, android.provider.Settings.Global.DEVICE_NAME)
-      ?.let { return it }
+    android.provider.Settings.Global.getString(
+            contentResolver, android.provider.Settings.Global.DEVICE_NAME)
+        ?.let {
+          return it
+        }
 
     // Otherwise fallback to manufacturer + model
     val manu = Build.MANUFACTURER
@@ -304,60 +318,29 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     return packageManager.hasSystemFeature("android.hardware.type.pc")
   }
 
-  override fun getInterfacesAsString(): String {
-    val interfaces: ArrayList<NetworkInterface> =
-        java.util.Collections.list(NetworkInterface.getNetworkInterfaces())
-    val sb = StringBuilder()
-    for (nif in interfaces) {
-      try {
-        sb.append(
-            String.format(
-                Locale.ROOT,
-                "%s %d %d %b %b %b %b %b |",
-                nif.name,
-                nif.index,
-                nif.mtu,
-                nif.isUp,
-                nif.supportsMulticast(),
-                nif.isLoopback,
-                nif.isPointToPoint,
-                nif.supportsMulticast()))
-        for (ia in nif.interfaceAddresses) {
-          val parts = ia.toString().split("/", limit = 0)
-          if (parts.size > 1) {
-            sb.append(String.format(Locale.ROOT, "%s/%d ", parts[1], ia.networkPrefixLength))
-          }
-        }
-      } catch (e: Exception) {
-        continue
-      }
-      sb.append("\n")
-    }
-    return sb.toString()
-  }
-
   @Serializable
   data class AddrJson(
-    val ip: String,
-    val prefixLen: Int,
+      val ip: String,
+      val prefixLen: Int,
   )
-  
+
   @Serializable
   data class InterfaceJson(
-    val name: String,
-    val index: Int,
-    val mtu: Int,
-    val up: Boolean,
-    val broadcast: Boolean,
-    val loopback: Boolean,
-    val pointToPoint: Boolean,
-    val multicast: Boolean,
-    val addrs: List<AddrJson>,
+      val name: String,
+      val index: Int,
+      val mtu: Int,
+      val up: Boolean,
+      val broadcast: Boolean,
+      val loopback: Boolean,
+      val pointToPoint: Boolean,
+      val multicast: Boolean,
+      val addrs: List<AddrJson>,
   )
+
   override fun getInterfacesAsJson(): String {
     val interfaces = Collections.list(NetworkInterface.getNetworkInterfaces())
     val out = ArrayList<InterfaceJson>(interfaces.size)
-  
+
     for (nif in interfaces) {
       try {
         val addrs = ArrayList<AddrJson>()
@@ -367,25 +350,24 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
           val host = addr.hostAddress ?: continue
           addrs.add(AddrJson(ip = host, prefixLen = ia.networkPrefixLength.toInt()))
         }
-  
+
         out.add(
-          InterfaceJson(
-            name = nif.name,
-            index = nif.index,
-            mtu = nif.mtu,
-            up = nif.isUp,
-            broadcast = nif.supportsMulticast(),
-            loopback = nif.isLoopback,
-            pointToPoint = nif.isPointToPoint,
-            multicast = nif.supportsMulticast(),
-            addrs = addrs,
-          )
-        )
+            InterfaceJson(
+                name = nif.name,
+                index = nif.index,
+                mtu = nif.mtu,
+                up = nif.isUp,
+                broadcast = nif.supportsMulticast(),
+                loopback = nif.isLoopback,
+                pointToPoint = nif.isPointToPoint,
+                multicast = nif.supportsMulticast(),
+                addrs = addrs,
+            ))
       } catch (_: Exception) {
         continue
       }
     }
-  
+
     // Avoid pretty printing to keep payload small.
     return Json { encodeDefaults = true }.encodeToString(out)
   }
@@ -426,48 +408,76 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     app.notifyPolicyChanged()
   }
 
-    override fun hardwareAttestationKeySupported(): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            packageManager.hasSystemFeature(PackageManager.FEATURE_STRONGBOX_KEYSTORE)
-        } else {
-            false
-        }
+  override fun hardwareAttestationKeySupported(): Boolean {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+      packageManager.hasSystemFeature(PackageManager.FEATURE_STRONGBOX_KEYSTORE)
+    } else {
+      false
     }
+  }
 
-    private lateinit var keyStore: HardwareKeyStore;
+  private lateinit var keyStore: HardwareKeyStore
 
-    private fun getKeyStore(): HardwareKeyStore {
-        if (hardwareAttestationKeySupported()) {
-            return HardwareKeyStore()
-        } else {
-            throw UnsupportedOperationException()
-        }
+  private fun getKeyStore(): HardwareKeyStore {
+    if (hardwareAttestationKeySupported()) {
+      return HardwareKeyStore()
+    } else {
+      throw UnsupportedOperationException()
     }
+  }
 
-    override fun hardwareAttestationKeyCreate(): String {
-        return getKeyStore().createKey()
-    }
+  override fun hardwareAttestationKeyCreate(): String {
+    return getKeyStore().createKey()
+  }
 
-    @Throws(NoSuchKeyException::class)
-    override fun hardwareAttestationKeyRelease(id: String) {
-        return getKeyStore().releaseKey(id)
-    }
+  @Throws(NoSuchKeyException::class)
+  override fun hardwareAttestationKeyRelease(id: String) {
+    return getKeyStore().releaseKey(id)
+  }
 
-    @Throws(NoSuchKeyException::class)
-    override fun hardwareAttestationKeySign(id: String, data: ByteArray): ByteArray {
-        return getKeyStore().sign(id, data)
-    }
+  @Throws(NoSuchKeyException::class)
+  override fun hardwareAttestationKeySign(id: String, data: ByteArray): ByteArray {
+    return getKeyStore().sign(id, data)
+  }
 
-    @Throws(NoSuchKeyException::class)
-    override fun hardwareAttestationKeyPublic(id: String): ByteArray {
-        return getKeyStore().public(id)
-    }
+  @Throws(NoSuchKeyException::class)
+  override fun hardwareAttestationKeyPublic(id: String): ByteArray {
+    return getKeyStore().public(id)
+  }
 
-    @Throws(NoSuchKeyException::class)
-    override fun hardwareAttestationKeyLoad(id: String) {
-        return getKeyStore().load(id)
+  @Throws(NoSuchKeyException::class)
+  override fun hardwareAttestationKeyLoad(id: String) {
+    return getKeyStore().load(id)
+  }
+
+  override fun bindSocketToNetwork(fd: Int): Boolean {
+    val net =
+        NetworkChangeCallback.cachedDefaultNetwork
+            ?: run {
+              TSLog.d(TAG, "bindSocketToActiveNetwork: no cached default network; noop")
+              return false
+            }
+
+    val iface = NetworkChangeCallback.cachedDefaultInterfaceName
+
+    TSLog.d(
+        TAG,
+        "bindSocketToActiveNetwork: binding fd=$fd to net=$net iface=$iface",
+    )
+
+    return try {
+      android.os.ParcelFileDescriptor.fromFd(fd).use { pfd -> net.bindSocket(pfd.fileDescriptor) }
+      true
+    } catch (e: Exception) {
+      TSLog.w(
+          TAG,
+          "bindSocketToActiveNetwork: bind failed fd=$fd net=$net iface=$iface: $e",
+      )
+      false
     }
+  }
 }
+
 /**
  * UninitializedApp contains all of the methods of App that can be used without having to initialize
  * the Go backend. This is useful when you want to access functions on the App without creating side
@@ -482,7 +492,15 @@ open class UninitializedApp : Application() {
     // Key for shared preference that tracks whether or not we're able to start
     // the VPN (i.e. we're logged in and machine is authorized).
     private const val ABLE_TO_START_VPN_KEY = "ableToStartVPN"
-    private const val DISALLOWED_APPS_KEY = "disallowedApps"
+
+    // The value is 'disallowedApps' as it used to represent
+    // only disallowed applications. This has been changed
+    // and allowing/disallowing is based on ALLOW_SELECTED_APPS_KEY
+    //
+    // The value is kept the same to not reset everyone's configuration
+    private const val SELECTED_APPS_KEY = "disallowedApps"
+    private const val ALLOW_SELECTED_APPS_KEY = "allowSelectedApps"
+
     // File for shared preferences that are not encrypted.
     private const val UNENCRYPTED_PREFERENCES = "unencrypted"
     private lateinit var appInstance: UninitializedApp
@@ -523,12 +541,29 @@ open class UninitializedApp : Application() {
     return getSharedPreferences(UNENCRYPTED_PREFERENCES, MODE_PRIVATE)
   }
 
+  /**
+   * Starts IPNService as a foreground service without creating a VPN tunnel. This prevents Android
+   * from freezing the process and restricting network access during interactive login while the
+   * user completes auth in the browser.
+   */
+  fun startForegroundForLogin() {
+    val intent =
+        Intent(this, IPNService::class.java).apply {
+          action = IPNService.ACTION_START_FOREGROUND_ONLY
+        }
+    try {
+      startForegroundService(intent)
+    } catch (e: Exception) {
+      TSLog.e(TAG, "startForegroundForLogin hit exception: $e")
+    }
+  }
+
   fun startVPN() {
     val intent = Intent(this, IPNService::class.java).apply { action = IPNService.ACTION_START_VPN }
     // FLAG_UPDATE_CURRENT ensures that if the intent is already pending, the existing intent will
     // be updated rather than creating multiple redundant instances.
     val pendingIntent =
-        PendingIntent.getService(
+        PendingIntent.getForegroundService(
             this,
             0,
             intent,
@@ -636,7 +671,7 @@ open class UninitializedApp : Application() {
             .setContentText(message)
             .setAutoCancel(!vpnRunning)
             .setOnlyAlertOnce(!vpnRunning)
-            .setOngoing(vpnRunning)
+            .setOngoing(false)
             .setSilent(true)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setContentIntent(pendingIntent)
@@ -647,25 +682,34 @@ open class UninitializedApp : Application() {
     return builder.build()
   }
 
-  fun updateUserDisallowedPackageNames(packageNames: List<String>) {
+  fun updateUserSelectedPackages(packageNames: List<String>) {
     if (packageNames.any { it.isEmpty() }) {
-      TSLog.e(TAG, "updateUserDisallowedPackageNames called with empty packageName(s)")
+      TSLog.e(TAG, "updateUserSelectedPackage called with empty packageName(s)")
       return
     }
-    getUnencryptedPrefs().edit().putStringSet(DISALLOWED_APPS_KEY, packageNames.toSet()).apply()
+
+    getUnencryptedPrefs().edit().putStringSet(SELECTED_APPS_KEY, packageNames.toSet()).apply()
+
     this.restartVPN()
   }
 
-  fun disallowedPackageNames(): List<String> {
-    val mdmDisallowed =
-        MDMSettings.excludedPackages.flow.value.value?.split(",")?.map { it.trim() } ?: emptyList()
-    if (mdmDisallowed.isNotEmpty()) {
-      TSLog.d(TAG, "Excluded application packages were set via MDM: $mdmDisallowed")
-      return builtInDisallowedPackageNames + mdmDisallowed
-    }
-    val userDisallowed =
-        getUnencryptedPrefs().getStringSet(DISALLOWED_APPS_KEY, emptySet())?.toList() ?: emptyList()
-    return builtInDisallowedPackageNames + userDisallowed
+  fun switchUserSelectedPackages() {
+    getUnencryptedPrefs()
+        .edit()
+        .putBoolean(ALLOW_SELECTED_APPS_KEY, !allowSelectedPackages())
+        .apply()
+    getUnencryptedPrefs().edit().putStringSet(SELECTED_APPS_KEY, setOf()).apply()
+
+    this.restartVPN()
+  }
+
+  fun selectedPackageNames(): List<String> {
+    return getUnencryptedPrefs().getStringSet(SELECTED_APPS_KEY, emptySet())?.toList()
+        ?: emptyList()
+  }
+
+  fun allowSelectedPackages(): Boolean {
+    return getUnencryptedPrefs().getBoolean(ALLOW_SELECTED_APPS_KEY, false)
   }
 
   fun getAppScopedViewModel(): AppViewModel {

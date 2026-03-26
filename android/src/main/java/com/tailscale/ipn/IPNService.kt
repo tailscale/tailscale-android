@@ -24,6 +24,7 @@ open class IPNService : VpnService(), libtailscale.IPNService {
   private val randomID: String = UUID.randomUUID().toString()
   private lateinit var app: App
   val scope = CoroutineScope(Dispatchers.IO)
+  private var closed = false
 
   override fun id(): String {
     return randomID
@@ -53,8 +54,15 @@ open class IPNService : VpnService(), libtailscale.IPNService {
           }
           START_NOT_STICKY
         }
+        ACTION_START_FOREGROUND_ONLY -> {
+          // Start the foreground service notification without creating a VPN tunnel.
+          // This is used during interactive login so that Android does not freeze the process
+          // or restrict network access while the user completes auth in the browser.
+          showForegroundNotification()
+          START_NOT_STICKY
+        }
         ACTION_START_VPN -> {
-          scope.launch { showForegroundNotification() }
+          showForegroundNotification()
           app.setWantRunning(true)
           Libtailscale.requestVPN(this)
           START_STICKY
@@ -78,7 +86,7 @@ open class IPNService : VpnService(), libtailscale.IPNService {
           // This means that we were restarted after the service was killed
           // (potentially due to OOM).
           if (UninitializedApp.get().isAbleToStartVPN()) {
-            scope.launch { showForegroundNotification() }
+            showForegroundNotification()
             App.get()
             Libtailscale.requestVPN(this)
             START_STICKY
@@ -89,6 +97,8 @@ open class IPNService : VpnService(), libtailscale.IPNService {
       }
 
   override fun close() {
+    if (closed) return
+    closed = true
     Notifier.setState(Ipn.State.Stopping)
     disconnectVPN()
     Libtailscale.serviceDisconnect(this)
@@ -105,6 +115,10 @@ open class IPNService : VpnService(), libtailscale.IPNService {
   }
 
   override fun onRevoke() {
+    // VPN permission was granted to another app, so tell the Go backend and then set prepared to be
+    // false so that when user attempts to connect again, VpnService.prepare() is called
+    app.setWantRunning(false)
+    setVpnPrepared(false)
     close()
     updateVpnStatus(false)
     super.onRevoke()
@@ -141,11 +155,19 @@ open class IPNService : VpnService(), libtailscale.IPNService {
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
   }
 
+  private fun allowApp(b: Builder, name: String) {
+    try {
+      b.addAllowedApplication(name)
+    } catch (e: PackageManager.NameNotFoundException) {
+      TSLog.e(TAG, "Failed to add allowed application: $e")
+    }
+  }
+
   private fun disallowApp(b: Builder, name: String) {
     try {
       b.addDisallowedApplication(name)
     } catch (e: PackageManager.NameNotFoundException) {
-      TSLog.d(TAG, "Failed to add disallowed application: $e")
+      TSLog.e(TAG, "Failed to add disallowed application: $e")
     }
   }
 
@@ -160,23 +182,45 @@ open class IPNService : VpnService(), libtailscale.IPNService {
     }
     b.setUnderlyingNetworks(null) // Use all available networks.
 
-    val includedPackages: List<String> =
+    val mdmAllowed =
         MDMSettings.includedPackages.flow.value.value?.split(",")?.map { it.trim() } ?: emptyList()
-    if (includedPackages.isNotEmpty()) {
-      // If an admin defined a list of packages that are exclusively allowed to be used via
-      // Tailscale,
-      // then only allow those apps.
-      for (packageName in includedPackages) {
+    val mdmDisallowed =
+        MDMSettings.excludedPackages.flow.value.value?.split(",")?.map { it.trim() } ?: emptyList()
+
+    var packagesList: List<String>
+    var allowPackages: Boolean
+    if (mdmAllowed.isNotEmpty()) {
+      // An admin defined a list of packages that are exclusively allowed to be used via
+      // Tailscale, so only allow those.
+      packagesList = mdmAllowed
+      allowPackages = true
+      TSLog.d(TAG, "Included application packages were set via MDM: $mdmAllowed")
+    } else if (mdmDisallowed.isNotEmpty()) {
+      // An admin defined a list of packages that are excluded from accessing Tailscale,
+      // so ignore user definitions and only exclude those
+      packagesList = mdmDisallowed
+      allowPackages = false
+      TSLog.d(TAG, "Excluded application packages were set via MDM: $mdmDisallowed")
+    } else {
+      // Otherwise, prevent user manually disallowed apps from getting their traffic + DNS routed
+      // via Tailscale
+      packagesList = UninitializedApp.get().selectedPackageNames()
+      allowPackages = UninitializedApp.get().allowSelectedPackages()
+      TSLog.d(TAG, "Application packages were set by user: $packagesList")
+    }
+
+    if (allowPackages) {
+      for (packageName in packagesList) {
         TSLog.d(TAG, "Including app: $packageName")
-        b.addAllowedApplication(packageName)
+        allowApp(b, packageName)
       }
     } else {
-      // Otherwise, prevent certain apps from getting their traffic + DNS routed via Tailscale:
-      // - any app that the user manually disallowed in the GUI
-      // - any app that we disallowed via hard-coding
-      for (disallowedPackageName in UninitializedApp.get().disallowedPackageNames()) {
-        TSLog.d(TAG, "Disallowing app: $disallowedPackageName")
-        disallowApp(b, disallowedPackageName)
+      // Make sure to also exclude hard-coded apps that are known to cause issues
+      packagesList += UninitializedApp.get().builtInDisallowedPackageNames
+
+      for (packageName in packagesList) {
+        TSLog.d(TAG, "Disallowing app: $packageName")
+        disallowApp(b, packageName)
       }
     }
 
@@ -187,5 +231,6 @@ open class IPNService : VpnService(), libtailscale.IPNService {
     const val ACTION_START_VPN = "com.tailscale.ipn.START_VPN"
     const val ACTION_STOP_VPN = "com.tailscale.ipn.STOP_VPN"
     const val ACTION_RESTART_VPN = "com.tailscale.ipn.RESTART_VPN"
+    const val ACTION_START_FOREGROUND_ONLY = "com.tailscale.ipn.START_FOREGROUND_ONLY"
   }
 }

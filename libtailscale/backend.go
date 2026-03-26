@@ -115,11 +115,14 @@ func (a *App) runBackend(ctx context.Context, hardwareAttestation bool) error {
 	paths.AppSharedDir.Store(a.dataDir)
 	hostinfo.SetOSVersion(a.osVersion())
 	hostinfo.SetPackage(a.appCtx.GetInstallSource())
-	deviceModel := a.modelName()
+	deviceModel := a.deviceName()
 	if a.isChromeOS() {
 		deviceModel = "ChromeOS: " + deviceModel
 	}
 	hostinfo.SetDeviceModel(deviceModel)
+	hostinfo.SetHostnameFn(func() (string, error) {
+		return a.deviceName(), nil
+	})
 
 	type configPair struct {
 		rcfg *router.Config
@@ -142,7 +145,10 @@ func (a *App) runBackend(ctx context.Context, hardwareAttestation bool) error {
 	if hardwareAttestation {
 		a.backend.SetHardwareAttested()
 	}
-	defer b.CloseTUNs()
+	defer func() {
+		b.devices.Down()
+		b.CloseTUNs()
+	}()
 
 	hc := localapi.HandlerConfig{
 		Actor:    ipnauth.Self,
@@ -221,6 +227,12 @@ func (a *App) runBackend(ctx context.Context, hardwareAttestation bool) error {
 				}
 				return nil // even on error. see big TODO above.
 			})
+			netns.SetAndroidBindToNetworkFunc(func(fd int) error {
+				if ok := a.appCtx.BindSocketToNetwork(int32(fd)); !ok {
+					log.Printf("[unexpected] IPNService.bindSocketToNetwork(%d) returned false", fd)
+				}
+				return nil
+			})
 			log.Printf("onVPNRequested: rebind required")
 			// TODO(catzkorn): When we start the android application
 			// we bind sockets before we have access to the VpnService.protect()
@@ -243,9 +255,13 @@ func (a *App) runBackend(ctx context.Context, hardwareAttestation bool) error {
 				}
 			}
 		case s := <-onDisconnect:
-			b.CloseTUNs()
 			if vpnService.service != nil && vpnService.service.ID() == s.ID() {
+				if b.devices.Down() {
+					log.Printf("tunnel brought down on disconnect")
+				}
+				b.CloseTUNs()
 				netns.SetAndroidProtectFunc(nil)
+				netns.SetAndroidBindToNetworkFunc(nil)
 				vpnService.service = nil
 			}
 		case i := <-onDNSConfigChanged:
@@ -293,7 +309,7 @@ func (a *App) newBackend(dataDir string, appCtx AppContext, store *stateStore,
 
 	netMon, err := netmon.New(b.bus, logf)
 	if err != nil {
-		log.Printf("netmon.New: %w", err)
+		log.Printf("netmon.New: %v", err)
 	}
 	b.netMon = netMon
 	b.setupLogs(dataDir, logID, logf, sys.HealthTracker.Get())
@@ -389,7 +405,9 @@ func (a *App) closeVpnService(err error, b *backend) {
 		log.Printf("localapi edit prefs error %v", localApiErr)
 	}
 
-	b.lastCfg = nil
+	if b.devices.Down() {
+		log.Printf("tunnel brought down on VPN service error: %v", err)
+	}
 	b.CloseTUNs()
 
 	vpnService.service.DisconnectVPN()

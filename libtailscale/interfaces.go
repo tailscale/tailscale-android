@@ -48,10 +48,6 @@ type AppContext interface {
 	// IsChromeOS reports whether we're on a ChromeOS device.
 	IsChromeOS() (bool, error)
 
-	// GetInterfacesAsString gets a string representation of all network
-	// interfaces.
-	GetInterfacesAsString() (string, error)
-
 	// GetInterfacesAsJson gets a JSON representation of all network
 	// interfaces.
 	GetInterfacesAsJson() (string, error)
@@ -78,6 +74,8 @@ type AppContext interface {
 	HardwareAttestationKeyPublic(id string) (pub []byte, err error)
 	HardwareAttestationKeySign(id string, data []byte) (sig []byte, err error)
 	HardwareAttestationKeyLoad(id string) error
+
+	BindSocketToNetwork(fd int32) bool
 }
 
 // IPNService corresponds to our IPNService in Java.
