@@ -9,15 +9,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -50,7 +47,7 @@ fun TaildropView(
     requestedTransfers: StateFlow<List<Ipn.OutgoingFile>>,
     applicationScope: CoroutineScope,
     viewModel: TaildropViewModel =
-        viewModel(factory = TaildropViewModelFactory(requestedTransfers, applicationScope))
+        viewModel(factory = TaildropViewModelFactory(requestedTransfers, applicationScope)),
 ) {
   val TAG = "TaildropView"
   val focusRequester = remember { FocusRequester() }
@@ -64,29 +61,28 @@ fun TaildropView(
     }
   }
 
-  Scaffold(contentWindowInsets = WindowInsets.statusBars, topBar = { Header(R.string.share) }) {
-      paddingInsets ->
-    Column(modifier = Modifier.focusRequester(focusRequester).focusable().padding(paddingInsets)) {
-      val showDialog = viewModel.showDialog.collectAsState().value
+  Column(modifier = Modifier.focusRequester(focusRequester).focusable()) {
+    val showDialog = viewModel.showDialog.collectAsState().value
 
-      showDialog?.let { ErrorDialog(type = it, action = { viewModel.showDialog.set(null) }) }
+    showDialog?.let { ErrorDialog(type = it, action = { viewModel.showDialog.set(null) }) }
 
-      FileShareHeader(
-          fileTransfers = requestedTransfers.collectAsState().value,
-          totalSize = viewModel.totalSize)
+    FileShareHeader(
+        fileTransfers = requestedTransfers.collectAsState().value,
+        totalSize = viewModel.totalSize,
+    )
 
-      when (viewModel.state.collectAsState().value) {
-        Ipn.State.Running -> {
-          val peers by viewModel.myPeers.collectAsState()
-          val context = LocalContext.current
-          FileSharePeerList(
-              peers = peers,
-              stateViewGenerator = { peerId -> viewModel.TrailingContentForPeer(peerId = peerId) },
-              onShare = { viewModel.share(context, it) })
-        }
-        else -> {
-          FileShareConnectView { viewModel.startVPN() }
-        }
+    when (viewModel.state.collectAsState().value) {
+      Ipn.State.Running -> {
+        val peers by viewModel.myPeers.collectAsState()
+        val context = LocalContext.current
+        FileSharePeerList(
+            peers = peers,
+            stateViewGenerator = { peerId -> viewModel.TrailingContentForPeer(peerId = peerId) },
+            onShare = { viewModel.share(context, it) },
+        )
+      }
+      else -> {
+        FileShareConnectView { viewModel.startVPN() }
       }
     }
   }
@@ -96,7 +92,7 @@ fun TaildropView(
 fun FileSharePeerList(
     peers: List<Tailcfg.Node>,
     stateViewGenerator: @Composable (String) -> Unit,
-    onShare: (Tailcfg.Node) -> Unit
+    onShare: (Tailcfg.Node) -> Unit,
 ) {
   SectionDivider(stringResource(R.string.my_devices))
 
@@ -105,11 +101,13 @@ fun FileSharePeerList(
       Column(
           modifier = Modifier.padding(horizontal = 8.dp).fillMaxHeight(),
           verticalArrangement = Arrangement.Center,
-          horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                stringResource(R.string.no_devices_to_share_with),
-                style = MaterialTheme.typography.titleMedium)
-          }
+          horizontalAlignment = Alignment.CenterHorizontally,
+      ) {
+        Text(
+            stringResource(R.string.no_devices_to_share_with),
+            style = MaterialTheme.typography.titleMedium,
+        )
+      }
     }
     false -> {
       LazyColumn {
@@ -119,7 +117,8 @@ fun FileSharePeerList(
                 peer = peer,
                 onClick = { onShare(peer) },
                 subtitle = { peer.Hostinfo.OS ?: "" },
-                trailingContent = { stateViewGenerator(peer.StableID) })
+                trailingContent = { stateViewGenerator(peer.StableID) },
+            )
           }
         }
       }
@@ -132,17 +131,20 @@ fun FileShareConnectView(onToggle: () -> Unit) {
   Column(
       modifier = Modifier.padding(horizontal = 16.dp).fillMaxHeight(),
       verticalArrangement = Arrangement.spacedBy(6.dp, alignment = Alignment.CenterVertically),
-      horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            stringResource(R.string.connect_to_your_tailnet_to_share_files),
-            style = MaterialTheme.typography.titleMedium)
-        Spacer(modifier = Modifier.size(1.dp))
-        PrimaryActionButton(onClick = onToggle) {
-          Text(
-              text = stringResource(id = R.string.connect),
-              fontSize = MaterialTheme.typography.titleMedium.fontSize)
-        }
-      }
+      horizontalAlignment = Alignment.CenterHorizontally,
+  ) {
+    Text(
+        stringResource(R.string.connect_to_your_tailnet_to_share_files),
+        style = MaterialTheme.typography.titleMedium,
+    )
+    Spacer(modifier = Modifier.size(1.dp))
+    PrimaryActionButton(onClick = onToggle) {
+      Text(
+          text = stringResource(id = R.string.connect),
+          fontSize = MaterialTheme.typography.titleMedium.fontSize,
+      )
+    }
+  }
 }
 
 @Composable
@@ -155,7 +157,8 @@ fun FileShareHeader(fileTransfers: List<Ipn.OutgoingFile>, totalSize: Long) {
           true ->
               Text(
                   stringResource(R.string.no_files_to_share),
-                  style = MaterialTheme.typography.titleMedium)
+                  style = MaterialTheme.typography.titleMedium,
+              )
           false -> {
 
             when (fileTransfers.size) {
@@ -163,7 +166,8 @@ fun FileShareHeader(fileTransfers: List<Ipn.OutgoingFile>, totalSize: Long) {
               else ->
                   Text(
                       stringResource(R.string.file_count, fileTransfers.size),
-                      style = MaterialTheme.typography.titleMedium)
+                      style = MaterialTheme.typography.titleMedium,
+                  )
             }
           }
         }
@@ -171,7 +175,8 @@ fun FileShareHeader(fileTransfers: List<Ipn.OutgoingFile>, totalSize: Long) {
         Text(
             size,
             style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.secondary)
+            color = MaterialTheme.colorScheme.secondary,
+        )
       }
     }
   }
@@ -185,7 +190,8 @@ fun IconForTransfer(transfers: List<Ipn.OutgoingFile>) {
         Icon(
             painter = painterResource(R.drawable.warning),
             contentDescription = "no files",
-            modifier = Modifier.size(32.dp))
+            modifier = Modifier.size(32.dp),
+        )
     1 -> {
       // Show a thumbnail for single image shares.
       val context = LocalContext.current
@@ -194,20 +200,23 @@ fun IconForTransfer(transfers: List<Ipn.OutgoingFile>) {
           AsyncImage(
               model = transfers[0].uri,
               contentDescription = "one file",
-              modifier = Modifier.size(40.dp))
+              modifier = Modifier.size(40.dp),
+          )
           return
         }
 
         Icon(
             painter = painterResource(R.drawable.single_file),
             contentDescription = "files",
-            modifier = Modifier.size(40.dp))
+            modifier = Modifier.size(40.dp),
+        )
       }
     }
     else ->
         Icon(
             painter = painterResource(R.drawable.single_file),
             contentDescription = "files",
-            modifier = Modifier.size(40.dp))
+            modifier = Modifier.size(40.dp),
+        )
   }
 }
