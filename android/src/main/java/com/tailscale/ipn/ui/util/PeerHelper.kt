@@ -33,6 +33,12 @@ class PeerCategorizer {
       val userId = peer.User
       val profile = netmap.userProfile(userId)
 
+      // Sharee peers exist for shared-device return-path connectivity, but they
+      // should stay hidden from the normal device list.
+      if (peer.Hostinfo.ShareeNode == true) {
+        continue
+      }
+
       // Mullvad nodes should not be shown in the peer list
       if (peer.isMullvadNode) {
         continue
