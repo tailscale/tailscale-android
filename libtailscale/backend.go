@@ -84,6 +84,25 @@ func start(dataDir, directFileRoot string, hwAttestationPref bool, appCtx AppCon
 		os.Setenv("HOME", dataDir)
 	}
 
+	// Load user-installed CA certificates from the Android trust store.
+	// Go's crypto/x509 on Android only reads system CAs from
+	// /system/etc/security/cacerts/ and ignores user-installed CAs.
+	// We bridge them from Java via AppContext and add them to SSL_CERT_DIR
+	// so Go's TLS stack trusts them (e.g. for custom Headscale CAs).
+	if userCACerts, err := appCtx.GetUserCACertsPEM(); err != nil {
+		log.Printf("failed to load user CA certs: %v", err)
+	} else if len(userCACerts) > 0 {
+		userCertsDir := filepath.Join(dataDir, "user-cacerts")
+		if err := os.MkdirAll(userCertsDir, 0700); err != nil {
+			log.Printf("failed to create user CA certs dir: %v", err)
+		} else if err := os.WriteFile(filepath.Join(userCertsDir, "user-certs.pem"), userCACerts, 0600); err != nil {
+			log.Printf("failed to write user CA certs: %v", err)
+		} else {
+			os.Setenv("SSL_CERT_DIR", "/system/etc/security/cacerts:"+userCertsDir)
+			log.Printf("loaded user-installed CA certificates into %s", userCertsDir)
+		}
+	}
+
 	return newApp(dataDir, directFileRoot, hwAttestationPref, appCtx)
 }
 
