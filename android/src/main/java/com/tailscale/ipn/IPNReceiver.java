@@ -33,6 +33,10 @@ public class IPNReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         if (intent == null) return;
 
+        if (Objects.equals(intent.getAction(), AdbTcpHttpTestContract.ACTION_RUN_TEST) && !BuildConfig.DEBUG) {
+            return;
+        }
+
         final WorkManager workManager = WorkManager.getInstance(context);
         final String action = intent.getAction();
 
@@ -72,6 +76,36 @@ public class IPNReceiver extends BroadcastReceiver {
                             .build();
 
             workManager.enqueueUniqueWork(WORK_USE_EXIT_NODE, ExistingWorkPolicy.REPLACE, req);
+        } else if (Objects.equals(action, AdbTcpHttpTestContract.ACTION_RUN_TEST)) {
+            String requestId = intent.getStringExtra(AdbTcpHttpTestContract.EXTRA_REQUEST_ID);
+            if (requestId == null || requestId.trim().isEmpty()) {
+                requestId = String.valueOf(System.currentTimeMillis());
+            }
+            Data input =
+                    new Data.Builder()
+                            .putString(AdbTcpHttpTestContract.EXTRA_SCENARIO, intent.getStringExtra(AdbTcpHttpTestContract.EXTRA_SCENARIO))
+                            .putString(AdbTcpHttpTestContract.EXTRA_REQUEST_ID, requestId)
+                            .putString(AdbTcpHttpTestContract.EXTRA_HOST, intent.getStringExtra(AdbTcpHttpTestContract.EXTRA_HOST))
+                            .putInt(AdbTcpHttpTestContract.EXTRA_PORT, intent.getIntExtra(AdbTcpHttpTestContract.EXTRA_PORT, -1))
+                            .putString(AdbTcpHttpTestContract.EXTRA_PROTOCOL, intent.getStringExtra(AdbTcpHttpTestContract.EXTRA_PROTOCOL))
+                            .putString(AdbTcpHttpTestContract.EXTRA_PATH, intent.getStringExtra(AdbTcpHttpTestContract.EXTRA_PATH))
+                            .putString(AdbTcpHttpTestContract.EXTRA_PAYLOAD, intent.getStringExtra(AdbTcpHttpTestContract.EXTRA_PAYLOAD))
+                            .putLong(AdbTcpHttpTestContract.EXTRA_TIMEOUT_MS, intent.getLongExtra(AdbTcpHttpTestContract.EXTRA_TIMEOUT_MS, AdbTcpHttpTestContract.DEFAULT_TIMEOUT_MS))
+                            .putBoolean(AdbTcpHttpTestContract.EXTRA_SOCKS_ENABLED, intent.getBooleanExtra(AdbTcpHttpTestContract.EXTRA_SOCKS_ENABLED, AdbTcpHttpTestContract.DEFAULT_SOCKS_ENABLED))
+                            .build();
+
+            OneTimeWorkRequest req =
+                    new OneTimeWorkRequest.Builder(AdbTcpHttpTestWorker.class)
+                            .setInputData(input)
+                            .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+                            .addTag(AdbTcpHttpTestContract.WORK_RUN_TEST)
+                            .addTag(requestId)
+                            .build();
+
+            workManager.enqueueUniqueWork(
+                    AdbTcpHttpTestContract.WORK_RUN_TEST + "-" + requestId,
+                    ExistingWorkPolicy.REPLACE,
+                    req);
         }
     }
 }
