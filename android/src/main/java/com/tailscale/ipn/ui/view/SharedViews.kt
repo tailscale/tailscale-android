@@ -128,13 +128,12 @@ fun SimpleActivityIndicator(size: Int = 32) {
 fun ActivityIndicator(progress: Double, size: Int = 32) {
   // LinearProgressIndicator defaults to a 4.dp height in Material3.
   val height = 4.dp
-  
+
   LinearProgressIndicator(
-      progress = {progress.toFloat()},
+      progress = { progress.toFloat() },
       modifier = Modifier.width(size.dp),
       color = ts_color_light_blue,
       trackColor = MaterialTheme.colorScheme.secondary,
       gapSize = -height,
-      drawStopIndicator = {}
-  )
+      drawStopIndicator = {})
 }

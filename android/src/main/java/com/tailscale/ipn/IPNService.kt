@@ -24,6 +24,7 @@ open class IPNService : VpnService(), libtailscale.IPNService {
   private val randomID: String = UUID.randomUUID().toString()
   private lateinit var app: App
   val scope = CoroutineScope(Dispatchers.IO)
+  private var closed = false
 
   override fun id(): String {
     return randomID
@@ -53,8 +54,15 @@ open class IPNService : VpnService(), libtailscale.IPNService {
           }
           START_NOT_STICKY
         }
+        ACTION_START_FOREGROUND_ONLY -> {
+          // Start the foreground service notification without creating a VPN tunnel.
+          // This is used during interactive login so that Android does not freeze the process
+          // or restrict network access while the user completes auth in the browser.
+          showForegroundNotification()
+          START_NOT_STICKY
+        }
         ACTION_START_VPN -> {
-          scope.launch { showForegroundNotification() }
+          showForegroundNotification()
           app.setWantRunning(true)
           Libtailscale.requestVPN(this)
           START_STICKY
@@ -78,7 +86,7 @@ open class IPNService : VpnService(), libtailscale.IPNService {
           // This means that we were restarted after the service was killed
           // (potentially due to OOM).
           if (UninitializedApp.get().isAbleToStartVPN()) {
-            scope.launch { showForegroundNotification() }
+            showForegroundNotification()
             App.get()
             Libtailscale.requestVPN(this)
             START_STICKY
@@ -89,6 +97,8 @@ open class IPNService : VpnService(), libtailscale.IPNService {
       }
 
   override fun close() {
+    if (closed) return
+    closed = true
     Notifier.setState(Ipn.State.Stopping)
     disconnectVPN()
     Libtailscale.serviceDisconnect(this)
@@ -105,6 +115,10 @@ open class IPNService : VpnService(), libtailscale.IPNService {
   }
 
   override fun onRevoke() {
+    // VPN permission was granted to another app, so tell the Go backend and then set prepared to be
+    // false so that when user attempts to connect again, VpnService.prepare() is called
+    app.setWantRunning(false)
+    setVpnPrepared(false)
     close()
     updateVpnStatus(false)
     super.onRevoke()
@@ -217,5 +231,6 @@ open class IPNService : VpnService(), libtailscale.IPNService {
     const val ACTION_START_VPN = "com.tailscale.ipn.START_VPN"
     const val ACTION_STOP_VPN = "com.tailscale.ipn.STOP_VPN"
     const val ACTION_RESTART_VPN = "com.tailscale.ipn.RESTART_VPN"
+    const val ACTION_START_FOREGROUND_ONLY = "com.tailscale.ipn.START_FOREGROUND_ONLY"
   }
 }

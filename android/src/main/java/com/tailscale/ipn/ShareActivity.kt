@@ -11,9 +11,19 @@ import android.provider.OpenableColumns
 import android.webkit.MimeTypeMap
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.lifecycleScope
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.theme.AppTheme
@@ -34,13 +44,31 @@ class ShareActivity : ComponentActivity() {
 
   private val requestedTransfers: StateFlow<List<Ipn.OutgoingFile>> = MutableStateFlow(emptyList())
 
+  @OptIn(ExperimentalMaterial3Api::class)
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     setContent {
       AppTheme {
         Surface(color = MaterialTheme.colorScheme.inverseSurface) { // Background for the letterbox
           Surface(modifier = Modifier.universalFit()) {
-            TaildropView(requestedTransfers, (application as App).applicationScope)
+            Scaffold(
+                topBar = {
+                  TopAppBar(
+                      title = { Text(stringResource(R.string.share)) },
+                      navigationIcon = {
+                        IconButton(onClick = { finish() }) {
+                          Icon(
+                              imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                              contentDescription = stringResource(R.string.back),
+                          )
+                        }
+                      },
+                  )
+                }) { innerPadding ->
+                  Surface(modifier = Modifier.padding(innerPadding)) {
+                    TaildropView(requestedTransfers, (application as App).applicationScope)
+                  }
+                }
           }
         }
       }
