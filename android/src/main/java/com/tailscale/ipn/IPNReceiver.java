@@ -90,8 +90,10 @@ public class IPNReceiver extends BroadcastReceiver {
                             .putString(AdbTcpHttpTestContract.EXTRA_PROTOCOL, intent.getStringExtra(AdbTcpHttpTestContract.EXTRA_PROTOCOL))
                             .putString(AdbTcpHttpTestContract.EXTRA_PATH, intent.getStringExtra(AdbTcpHttpTestContract.EXTRA_PATH))
                             .putString(AdbTcpHttpTestContract.EXTRA_PAYLOAD, intent.getStringExtra(AdbTcpHttpTestContract.EXTRA_PAYLOAD))
+                            .putString(AdbTcpHttpTestContract.EXTRA_HOST_HEADER, intent.getStringExtra(AdbTcpHttpTestContract.EXTRA_HOST_HEADER))
                             .putLong(AdbTcpHttpTestContract.EXTRA_TIMEOUT_MS, intent.getLongExtra(AdbTcpHttpTestContract.EXTRA_TIMEOUT_MS, AdbTcpHttpTestContract.DEFAULT_TIMEOUT_MS))
                             .putBoolean(AdbTcpHttpTestContract.EXTRA_SOCKS_ENABLED, intent.getBooleanExtra(AdbTcpHttpTestContract.EXTRA_SOCKS_ENABLED, AdbTcpHttpTestContract.DEFAULT_SOCKS_ENABLED))
+                            .putBoolean(AdbTcpHttpTestContract.EXTRA_PREVIEW_ONLY, intent.getBooleanExtra(AdbTcpHttpTestContract.EXTRA_PREVIEW_ONLY, false))
                             .build();
 
             OneTimeWorkRequest req =

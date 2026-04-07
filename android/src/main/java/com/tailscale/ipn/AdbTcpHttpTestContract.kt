@@ -13,12 +13,16 @@ object AdbTcpHttpTestContract {
   const val EXTRA_PROTOCOL = "protocol"
   const val EXTRA_PATH = "path"
   const val EXTRA_PAYLOAD = "payload"
+  const val EXTRA_HOST_HEADER = "hostHeader"
   const val EXTRA_TIMEOUT_MS = "timeoutMs"
   const val EXTRA_SOCKS_ENABLED = "socksEnabled"
+  const val EXTRA_PREVIEW_ONLY = "previewOnly"
+  const val EXTRA_URL = "url"
 
   const val TAG_TEST = "TSOCKS_TEST"
   const val TAG_ROUTE = "TSOCKS_ROUTE"
   const val TAG_SOCKS = "TSOCKS_SOCKS"
+  const val TAG_DATAPATH = "TSOCKS_DATAPATH"
 
   const val DEFAULT_PROTOCOL = "tcp"
   const val DEFAULT_PATH = "/"
