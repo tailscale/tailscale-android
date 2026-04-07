@@ -18,3 +18,9 @@
 - **解决**: 新增 `AdbTcpHttpTestContract` 与 `AdbTcpHttpTestWorker`，通过 `IPNReceiver` 提供 debug-only 的 `RUN_NETWORK_TEST` 入口，按 `requestId` 隔离 unique work，限制 `timeoutMs <= 10_000`，补齐 `tsocks-test-build/install/trigger/logs/pass-fail/run-all.sh` 脚本链路，追加中文开发说明，并完成 `DIRECT`、`TAILSCALE_NORMAL`、`TAILNET_SOCKS` 三类路径的真机 adb 验证。
 - **避免**: 后续新增 adb/debug harness 时，应同步设计入口收口、并发隔离、稳定日志字段与非 0 退出码，先把“可自动判定”和“不会误暴露到 release”作为基础约束，而不是事后补救。
 - **commitID**: `fe770e031305534946c1ebc1f7516db66b5dadbc`
+
+## [2026-04-07] phase-3.1a 最小规则化 TUN 内 TCP 分流原型
+- **问题**: phase-3 的真实数据面虽然已经能接管单个 `104.18.26.120:80` 出站 TCP flow，但规则匹配、`/32` route 注入和 gVisor proof-stack 拦截分别散落在 `tsocks.go`、`net.go`、`step0_tun.go`，导致“逻辑 allowlist”与“真实接管目标”割裂，无法稳定扩到多公网目标，也容易把 baseline 环境未就绪误判成回归。
+- **解决**: 新增集中式 `tsocks_rules.go`，用最小 `IP:port` / `IP:*` 规则表统一驱动 route 选择、`TAILNET_SOCKS` 的 `/32` 注入和 step0 多目标拦截；补充 `hostHeader` 与 `previewOnly` 调试字段，扩展 `phase3-public-http-a/b`、`phase3-public-no-match`、`phase3-wrong-port-entered-tun`、`phase3-recursion-guard` 场景，并让日志稳定输出 `matchedRule`、`selectedRoute`、`injectedRoute`、`offloadDecision`、`recursionGuard` 等机判字段；同时在 `run-all` 中为 phase-1 baseline 增加就绪探测，避免把联调服务未准备好误报成代码失败。
+- **避免**: 后续继续演进 tun 边界实验时，必须始终保持“规则源唯一、route 注入派生、数据面日志可机判”这三件事同步推进；同时要把 `/32` 注入只能精确到 IP 的语义边界写清楚，不要把 phase-3.1a 描述成真正的系统级 `IP:port` 透明分流。
+- **commitID**: `待填写：实际 commit hash`
