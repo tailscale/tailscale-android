@@ -98,7 +98,11 @@ func start(dataDir, directFileRoot string, hwAttestationPref bool, appCtx AppCon
 		} else if err := os.WriteFile(filepath.Join(userCertsDir, "user-certs.pem"), userCACerts, 0600); err != nil {
 			log.Printf("failed to write user CA certs: %v", err)
 		} else {
-			os.Setenv("SSL_CERT_DIR", "/system/etc/security/cacerts:"+userCertsDir)
+			certDir := os.Getenv("SSL_CERT_DIR")
+			if certDir == "" {
+				certDir = "/system/etc/security/cacerts"
+			}
+			os.Setenv("SSL_CERT_DIR", certDir+":"+userCertsDir)
 			log.Printf("loaded user-installed CA certificates into %s", userCertsDir)
 		}
 	}
