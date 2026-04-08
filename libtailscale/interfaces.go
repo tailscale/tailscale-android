@@ -76,6 +76,10 @@ type AppContext interface {
 	HardwareAttestationKeyLoad(id string) error
 
 	BindSocketToNetwork(fd int32) bool
+
+	// GetUserCACertsPEM returns PEM-encoded user-installed CA certificates
+	// from the Android KeyStore, or empty bytes if none are installed.
+	GetUserCACertsPEM() ([]byte, error)
 }
 
 // IPNService corresponds to our IPNService in Java.
