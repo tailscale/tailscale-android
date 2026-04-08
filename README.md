@@ -10,6 +10,16 @@ This repository contains the open source Tailscale Android client.
 
 ## Using
 
+#### Tailscale Packages
+
+The latest stable release APK can be obtained from the [Tailscale Packages Stable Track](https://pkgs.tailscale.com/stable/#android).
+
+Unstable releases can be obtained from the [Tailscale Packages Unstable Track](https://pkgs.tailscale.com/unstable/#android).
+
+These APKs include all supported platforms and architectures.  For installing compact APKs, Android TV, or if you want automatic updates, visit the [Google Playstore](https://play.google.com/store/apps/details?id=com.tailscale.ipn).
+
+#### Google Playstore
+
 [<img src="https://play.google.com/intl/en_us/badges/images/generic/en-play-badge.png"
      alt="Get it on Google Play"
      height="80">](https://play.google.com/store/apps/details?id=com.tailscale.ipn)
