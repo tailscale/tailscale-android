@@ -159,6 +159,8 @@ github.com/studio-b12/gowebdav v0.9.0 h1:1j1sc9gQnNxbXXM4M/CebPOX4aXYtr7MojAVcN4
 github.com/studio-b12/gowebdav v0.9.0/go.mod h1:bHA7t77X/QFExdeAnDzK6vKM34kEZAcE1OX4MfiwjkE=
 github.com/tailscale/certstore v0.1.1-0.20231202035212-d3fa0460f47e h1:PtWT87weP5LWHEY//SWsYkSO3RWRZo4OSWagh3YD2vQ=
 github.com/tailscale/certstore v0.1.1-0.20231202035212-d3fa0460f47e/go.mod h1:XrBNfAFN+pwoWuksbFS9Ccxnopa15zJGgXRFN90l3K4=
+github.com/tailscale/gliderssh v0.3.4-0.20260330083525-c1389c70ff89 h1:glgVc1ZYMjwN1Q/ITWeuSQyl029uayagaR2sjsifehc=
+github.com/tailscale/gliderssh v0.3.4-0.20260330083525-c1389c70ff89/go.mod h1:wn16Km1EZOX4UEAyaZa3dBwfFGOJ7neck40NcwosJUw=
 github.com/tailscale/go-winio v0.0.0-20231025203758-c4f33415bf55 h1:Gzfnfk2TWrk8Jj4P4c1a3CtQyMaTVCznlkLZI++hok4=
 github.com/tailscale/go-winio v0.0.0-20231025203758-c4f33415bf55/go.mod h1:4k4QO+dQ3R5FofL+SanAUZe+/QfeK0+OIuwDIRu2vSg=
 github.com/tailscale/golang-x-crypto v0.0.0-20250404221719-a5573b049869 h1:SRL6irQkKGQKKLzvQP/ke/2ZuB7Py5+XuqtOgSj+iMM=
@@ -245,5 +247,5 @@ howett.net/plist v1.0.0 h1:7CrbWYbPPO/PyNy38b2EB/+gYbjCe2DXBxgtOOZbSQM=
 howett.net/plist v1.0.0/go.mod h1:lqaXoTrLY4hg8tnEzNru53gicrbv7rrk+2xJA/7hw9g=
 software.sslmate.com/src/go-pkcs12 v0.4.0 h1:H2g08FrTvSFKUj+D309j1DPfk5APnIdAQAB8aEykJ5k=
 software.sslmate.com/src/go-pkcs12 v0.4.0/go.mod h1:Qiz0EyvDRJjjxGyUQa2cCNZn/wMyzrRJ/qcDXOQazLI=
-tailscale.com v1.97.0-pre.0.20260401194235-5b62f9889451 h1:8vwLyeDR0eVjLvl9n54SSOwmJKOsHtwDjp3itkHTMYI=
-tailscale.com v1.97.0-pre.0.20260401194235-5b62f9889451/go.mod h1:uWl7oasAISX6cMzTGBNT7TmjKui8W3IU3qrDN/A2PFo=
+tailscale.com v1.97.0-pre.0.20260408011054-a182b864ace4 h1:EbBRCAjxEWU/61I/DDqMg4aMKw0uqYCtt8diNQ3DQjI=
+tailscale.com v1.97.0-pre.0.20260408011054-a182b864ace4/go.mod h1:J3yUifgjBmMBIylCvle8qVui/MDlsjP6aRPsZ9pjfUY=

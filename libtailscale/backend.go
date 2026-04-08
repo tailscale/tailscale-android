@@ -5,6 +5,7 @@ package libtailscale
 
 import (
 	"context"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"log"
@@ -280,6 +281,22 @@ func (a *App) newBackend(dataDir string, appCtx AppContext, store *stateStore,
 
 	sys := tsd.NewSystem()
 	sys.Set(store)
+
+	if pemData, err := appCtx.GetUserCACertsPEM(); err != nil {
+		log.Printf("GetUserCACertsPEM: %v", err)
+	} else if len(pemData) > 0 {
+		pool, err := x509.SystemCertPool()
+		if err != nil {
+			log.Printf("x509.SystemCertPool: %v; using empty pool", err)
+			pool = x509.NewCertPool()
+		}
+		if pool.AppendCertsFromPEM(pemData) {
+			sys.ExtraRootCAs = pool
+			log.Printf("loaded user CA certificates into ExtraRootCAs")
+		} else {
+			log.Printf("failed to parse any user CA certificates from PEM data")
+		}
+	}
 
 	logf := logger.RusagePrefixLog(log.Printf)
 	b := &backend{

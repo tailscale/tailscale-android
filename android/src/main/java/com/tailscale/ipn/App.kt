@@ -476,6 +476,22 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
       false
     }
   }
+
+  override fun getUserCACertsPEM(): ByteArray {
+    val ks = java.security.KeyStore.getInstance("AndroidCAStore")
+    ks.load(null)
+    val sb = StringBuilder()
+    val encoder = android.util.Base64.NO_WRAP
+    for (alias in ks.aliases()) {
+      if (!alias.startsWith("user:")) continue
+      val cert = ks.getCertificate(alias) ?: continue
+      val pem = android.util.Base64.encodeToString(cert.encoded, encoder)
+      sb.append("-----BEGIN CERTIFICATE-----\n")
+      pem.chunked(64).forEach { sb.append(it).append('\n') }
+      sb.append("-----END CERTIFICATE-----\n")
+    }
+    return sb.toString().toByteArray(Charsets.UTF_8)
+  }
 }
 
 /**
