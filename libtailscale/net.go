@@ -141,6 +141,12 @@ func (b *backend) updateTUN(rcfg *router.Config, dcfg *dns.OSConfig) (err error)
 			return err
 		}
 	}
+	for _, routeTarget := range tsocksInjectedRouteTargets() {
+		if err := builder.AddRoute(routeTarget.String(), 32); err != nil {
+			return err
+		}
+		b.logger.Logf("updateTUN: added tsocks injected route %s/32", routeTarget)
+	}
 
 	for _, route := range rcfg.LocalRoutes {
 		addr := route.Addr()
@@ -197,6 +203,11 @@ func (b *backend) updateTUN(rcfg *router.Config, dcfg *dns.OSConfig) (err error)
 		return err
 	}
 	b.logger.Logf("updateTUN: created TUN device")
+	if tunDev, err = newStep0Tun(tunDev, b.appCtx, b.tsocks); err != nil {
+		closeFileDescriptor()
+		return err
+	}
+	b.logger.Logf("updateTUN: wrapped TUN device for step0")
 
 	b.devices.add(tunDev)
 	hasTunnel = true

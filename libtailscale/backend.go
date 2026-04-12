@@ -57,6 +57,7 @@ type App struct {
 
 	localAPIHandler http.Handler
 	backend         *ipnlocal.LocalBackend
+	tsocks          *tsocksController
 	ready           sync.WaitGroup
 	backendMu       sync.Mutex
 }
@@ -100,6 +101,7 @@ type backend struct {
 
 	logIDPublic logid.PublicID
 	logger      *logtail.Logger
+	tsocks      *tsocksController
 
 	bus *eventbus.Bus
 
@@ -143,6 +145,7 @@ func (a *App) runBackend(ctx context.Context, hardwareAttestation bool) error {
 	}
 	a.logIDPublicAtomic.Store(&b.logIDPublic)
 	a.backend = b.backend
+	a.tsocks = b.tsocks
 	if hardwareAttestation {
 		a.backend.SetHardwareAttested()
 	}
@@ -331,6 +334,7 @@ func (a *App) newBackend(dataDir string, appCtx AppContext, store *stateStore,
 	b.netMon = netMon
 	b.setupLogs(dataDir, logID, logf, sys.HealthTracker.Get())
 	dialer := new(tsdial.Dialer)
+	b.tsocks = newTSocksController(appCtx, dialer)
 	vf := &VPNFacade{
 		SetBoth:           b.setCfg,
 		GetBaseConfigFunc: b.getDNSBaseConfig,
@@ -357,6 +361,7 @@ func (a *App) newBackend(dataDir string, appCtx AppContext, store *stateStore,
 	if err != nil {
 		return nil, fmt.Errorf("netstack.Create: %w", err)
 	}
+	ns.GetTCPHandlerForFlow = b.tsocks.datapathHandler
 	sys.Set(ns)
 	ns.ProcessLocalIPs = false // let Android kernel handle it; VpnBuilder sets this up
 	ns.ProcessSubnets = true   // for Android-being-an-exit-node support

@@ -140,6 +140,10 @@ type Application interface {
 	// on every new ipn.Notify message. The returned NotificationManager
 	// allows the watcher to stop watching notifications.
 	WatchNotifications(mask int, cb NotificationCallback) NotificationManager
+
+	// RunTsocksProbe executes the shared tsocks probe path and returns a JSON
+	// result payload for Android-side adb automation.
+	RunTsocksProbe(requestJSON string) (string, error)
 }
 
 // FileParts is an array of multiple FileParts.
