@@ -57,3 +57,35 @@ func TestTSocksInjectedRouteTargets(t *testing.T) {
 		}
 	}
 }
+
+func TestTSocksDecisionOffloadState(t *testing.T) {
+	tests := []struct {
+		name         string
+		target       string
+		wantDecision string
+		wantReason   string
+	}{
+		{name: "allowlist_offloaded", target: "104.18.26.120:80", wantDecision: "offloaded", wantReason: "RULE_MATCHED_AND_SOCKS_OFFLOADED"},
+		{name: "wrong_port_bypass", target: "104.18.26.120:81", wantDecision: "bypass", wantReason: "RULE_NOT_MATCHED_BUT_ENTERED_TUN_DUE_TO_/32"},
+		{name: "recursion_guard_bypass", target: "100.78.63.77:1080", wantDecision: "bypass", wantReason: "RECURSION_GUARD_BYPASS"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			target := netip.MustParseAddrPort(tt.target)
+			got := tsocksDecisionOffloadState(matchTSocksRule(target), target)
+			if got.Decision != tt.wantDecision || got.Reason != tt.wantReason {
+				t.Fatalf("offload = %+v, want decision=%s reason=%s", got, tt.wantDecision, tt.wantReason)
+			}
+		})
+	}
+}
+
+func TestTSocksFlowIDCanonicalAcrossDirections(t *testing.T) {
+	client := netip.MustParseAddrPort("100.113.1.35:34567")
+	server := netip.MustParseAddrPort("104.18.26.120:80")
+	forward := tsocksFlowID(client, server)
+	reverse := tsocksFlowID(server, client)
+	if forward != reverse {
+		t.Fatalf("flow IDs differ: forward=%s reverse=%s", forward, reverse)
+	}
+}

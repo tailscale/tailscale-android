@@ -4,7 +4,9 @@
 package libtailscale
 
 import (
+	"encoding/binary"
 	"fmt"
+	"hash/fnv"
 	"net/netip"
 	"sort"
 	"strings"
@@ -92,21 +94,44 @@ func tsocksInterceptTargets() []netip.AddrPort {
 	return out
 }
 
-func tsocksFlowID(src, dst netip.AddrPort) string {
-	return sanitizeForLog(fmt.Sprintf("%s_to_%s", src, dst))
+type tsocksOffloadState struct {
+	Decision string
+	Reason   string
 }
 
-func tsocksDecisionOffloadDecision(decision tsocksRouteDecision, dst netip.AddrPort) string {
+func tsocksCanonicalFlowEndpoints(src, dst netip.AddrPort) (netip.AddrPort, netip.AddrPort) {
+	src = netip.AddrPortFrom(src.Addr().Unmap(), src.Port())
+	dst = netip.AddrPortFrom(dst.Addr().Unmap(), dst.Port())
+	if tsocksHasInjectedRoute(src.Addr()) && !tsocksHasInjectedRoute(dst.Addr()) {
+		return dst, src
+	}
+	return src, dst
+}
+
+func tsocksFlowID(src, dst netip.AddrPort) string {
+	client, server := tsocksCanonicalFlowEndpoints(src, dst)
+	h := fnv.New64a()
+	_, _ = h.Write([]byte(client.Addr().String()))
+	var ports [4]byte
+	binary.BigEndian.PutUint16(ports[0:2], client.Port())
+	binary.BigEndian.PutUint16(ports[2:4], server.Port())
+	_, _ = h.Write(ports[:])
+	_, _ = h.Write([]byte(server.Addr().String()))
+	_, _ = h.Write([]byte("tcp"))
+	return fmt.Sprintf("%016x", h.Sum64())
+}
+
+func tsocksDecisionOffloadState(decision tsocksRouteDecision, dst netip.AddrPort) tsocksOffloadState {
 	if tsocksDecisionRecursionGuard(decision) {
-		return "RECURSION_GUARD_BYPASS"
+		return tsocksOffloadState{Decision: "bypass", Reason: "RECURSION_GUARD_BYPASS"}
 	}
 	if decision.Route == tsocksRouteTailnetSocks && tsocksShouldOffloadTarget(dst) {
-		return "RULE_MATCHED_AND_SOCKS_OFFLOADED"
+		return tsocksOffloadState{Decision: "offloaded", Reason: "RULE_MATCHED_AND_SOCKS_OFFLOADED"}
 	}
 	if decision.InjectedRouteApplied {
-		return "RULE_NOT_MATCHED_BUT_ENTERED_TUN_DUE_TO_/32"
+		return tsocksOffloadState{Decision: "bypass", Reason: "RULE_NOT_MATCHED_BUT_ENTERED_TUN_DUE_TO_/32"}
 	}
-	return "BASELINE_NATIVE_PATH_OK"
+	return tsocksOffloadState{Decision: "bypass", Reason: "BASELINE_NATIVE_PATH_OK"}
 }
 
 func tsocksDecisionRecursionGuard(decision tsocksRouteDecision) bool {

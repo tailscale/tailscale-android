@@ -6,11 +6,13 @@
 set -eu
 
 repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+. "$repo_root/scripts/tsocks-test-env.sh"
 adb_bin=${ADB:-adb}
 sleep_seconds=${SLEEP_SECONDS:-2}
 build_first=${BUILD_FIRST:-true}
 install_first=${INSTALL_FIRST:-true}
 connect_vpn_first=${CONNECT_VPN_FIRST:-true}
+start_services_first=${START_TEST_SERVICES_FIRST:-true}
 
 run_adb() {
 	if [ -n "${SERIAL:-}" ]; then
@@ -57,6 +59,10 @@ wait_for_tcp() {
 
 cd "$repo_root"
 
+if [ "$start_services_first" = "true" ]; then
+	sh scripts/tsocks-test-services-start.sh
+fi
+
 if [ "$build_first" = "true" ]; then
 	sh scripts/tsocks-test-build.sh
 fi
@@ -72,10 +78,10 @@ if [ "$connect_vpn_first" = "true" ]; then
 	sleep "$sleep_seconds"
 fi
 
-wait_for_http lan-http http://192.168.31.101:18080/healthz
-wait_for_http tailnet-http http://100.109.193.113:18081/healthz
-wait_for_tcp lan-tcp 192.168.31.101 19080
-wait_for_tcp tailnet-tcp 100.109.193.113 19081
+wait_for_http lan-http "http://$TSOCKS_TEST_LAN_HOST:$TSOCKS_TEST_LAN_HTTP_PORT/healthz"
+wait_for_http tailnet-http "http://$TSOCKS_TEST_TAILNET_HOST:$TSOCKS_TEST_TAILNET_HTTP_PORT/healthz"
+wait_for_tcp lan-tcp "$TSOCKS_TEST_LAN_HOST" "$TSOCKS_TEST_LAN_TCP_PORT"
+wait_for_tcp tailnet-tcp "$TSOCKS_TEST_TAILNET_HOST" "$TSOCKS_TEST_TAILNET_TCP_PORT"
 
 run_adb logcat -c
 

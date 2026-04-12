@@ -74,8 +74,9 @@ type tsocksProbeResult struct {
 }
 
 type tsocksController struct {
-	appCtx AppContext
-	dialer *tsdial.Dialer
+	appCtx       AppContext
+	dialer       *tsdial.Dialer
+	activeRelays int64
 }
 
 func newTSocksController(appCtx AppContext, dialer *tsdial.Dialer) *tsocksController {
@@ -122,11 +123,11 @@ func (c *tsocksController) runProbe(requestJSON string) (*tsocksProbeResult, err
 	c.log(tsocksTestTag, fmt.Sprintf("event=request_start requestId=%s scenario=%s protocol=%s host=%s port=%d timeoutMs=%d socksEnabled=%t", req.RequestID, req.Scenario, req.Protocol, req.Host, req.Port, req.TimeoutMs, req.SocksEnabled))
 	decision := c.routeForProbe(req)
 	probeTarget := net.JoinHostPort(req.Host, strconv.Itoa(req.Port))
-	offloadDecision := "BASELINE_NATIVE_PATH_OK"
+	offloadState := tsocksOffloadState{Decision: "bypass", Reason: "BASELINE_NATIVE_PATH_OK"}
 	if addr, err := netip.ParseAddr(req.Host); err == nil && addr.Is4() {
-		offloadDecision = tsocksDecisionOffloadDecision(decision, netip.AddrPortFrom(addr.Unmap(), uint16(req.Port)))
+		offloadState = tsocksDecisionOffloadState(decision, netip.AddrPortFrom(addr.Unmap(), uint16(req.Port)))
 	}
-	c.log(tsocksRouteTag, fmt.Sprintf("event=route_decision requestId=%s target=%s matchedRule=%s selectedRoute=%s injectedRoute=%t offloadDecision=%s recursionGuard=%t", req.RequestID, probeTarget, decision.MatchedRule, decision.Route, decision.InjectedRouteApplied, offloadDecision, tsocksDecisionRecursionGuard(decision)))
+	c.log(tsocksRouteTag, fmt.Sprintf("event=route_decision requestId=%s target=%s matchedRule=%s selectedRoute=%s injectedRoute=%t entered_tun_due_to_/32=%t offloadDecision=%s offloadReason=%s recursionGuard=%t", req.RequestID, probeTarget, decision.MatchedRule, decision.Route, decision.InjectedRouteApplied, decision.InjectedRouteApplied, offloadState.Decision, offloadState.Reason, tsocksDecisionRecursionGuard(decision)))
 	if req.PreviewOnly {
 		result := &tsocksProbeResult{
 			Route:         string(decision.Route),
@@ -160,8 +161,8 @@ func (c *tsocksController) runProbe(requestJSON string) (*tsocksProbeResult, err
 func (c *tsocksController) datapathHandler(src, dst netip.AddrPort) (func(net.Conn), bool) {
 	decision := c.routeForDatapath(dst)
 	flowID := tsocksFlowID(src, dst)
-	offloadDecision := tsocksDecisionOffloadDecision(decision, dst)
-	c.log(tsocksDatapathTag, fmt.Sprintf("event=route_decision flow=datapath flowId=%s src=%s dst=%s matchedRule=%s selectedRoute=%s injectedRoute=%t offloadDecision=%s recursionGuard=%t", flowID, src, dst, decision.MatchedRule, decision.Route, decision.InjectedRouteApplied, offloadDecision, tsocksDecisionRecursionGuard(decision)))
+	offloadState := tsocksDecisionOffloadState(decision, dst)
+	c.log(tsocksDatapathTag, fmt.Sprintf("event=route_decision flow=datapath flow_id=%s src=%s dst=%s matchedRule=%s selectedRoute=%s injectedRoute=%t entered_tun_due_to_/32=%t offloadDecision=%s offloadReason=%s recursionGuard=%t", flowID, src, dst, decision.MatchedRule, decision.Route, decision.InjectedRouteApplied, decision.InjectedRouteApplied, offloadState.Decision, offloadState.Reason, tsocksDecisionRecursionGuard(decision)))
 	if decision.Route != tsocksRouteTailnetSocks {
 		return nil, false
 	}
@@ -175,15 +176,18 @@ func (c *tsocksController) handleDatapathConn(src, dst netip.AddrPort, client ne
 	ctx, cancel := context.WithTimeout(context.Background(), tsocksMaxTimeoutMs*time.Millisecond)
 	defer cancel()
 	flowID := tsocksFlowID(src, dst)
+	c.logTerminatorAttach(flowID, src, dst, decision, "netstack_handler")
 	backend, err := c.dialViaSocks(ctx, flowID, dst.Addr().String(), int(dst.Port()), "datapath", dst.String())
 	if err != nil {
-		c.log(tsocksDatapathTag, fmt.Sprintf("event=target_connect_fail flow=datapath flowId=%s src=%s dst=%s matchedRule=%s selectedRoute=%s injectedRoute=%t reason=%s", flowID, src, dst, decision.MatchedRule, decision.Route, decision.InjectedRouteApplied, sanitizeForLog(err.Error())))
+		c.log(tsocksDatapathTag, fmt.Sprintf("event=target_connect_fail flow=datapath flow_id=%s src=%s dst=%s matchedRule=%s selectedRoute=%s injectedRoute=%t reason=%s", flowID, src, dst, decision.MatchedRule, decision.Route, decision.InjectedRouteApplied, sanitizeForLog(err.Error())))
 		return
 	}
 	defer backend.Close()
-	c.log(tsocksDatapathTag, fmt.Sprintf("event=target_connect_success flow=datapath flowId=%s src=%s dst=%s matchedRule=%s selectedRoute=%s injectedRoute=%t", flowID, src, dst, decision.MatchedRule, decision.Route, decision.InjectedRouteApplied))
+	c.log(tsocksDatapathTag, fmt.Sprintf("event=target_connect_success flow=datapath flow_id=%s src=%s dst=%s matchedRule=%s selectedRoute=%s injectedRoute=%t", flowID, src, dst, decision.MatchedRule, decision.Route, decision.InjectedRouteApplied))
+	c.relayStart(flowID, src, dst, decision)
 	bytesUp, bytesDown, reason := relayTCP(client, backend)
-	c.log(tsocksDatapathTag, fmt.Sprintf("event=conn_close flow=datapath flowId=%s src=%s dst=%s matchedRule=%s selectedRoute=%s injectedRoute=%t bytes_up=%d bytes_down=%d closeReason=%s", flowID, src, dst, decision.MatchedRule, decision.Route, decision.InjectedRouteApplied, bytesUp, bytesDown, sanitizeForLog(reason)))
+	c.relayEnd(flowID, src, dst, decision, bytesUp, bytesDown, reason)
+	c.log(tsocksDatapathTag, fmt.Sprintf("event=conn_close flow=datapath flow_id=%s src=%s dst=%s matchedRule=%s selectedRoute=%s injectedRoute=%t bytes_up=%d bytes_down=%d closeReason=%s", flowID, src, dst, decision.MatchedRule, decision.Route, decision.InjectedRouteApplied, bytesUp, bytesDown, sanitizeForLog(reason)))
 }
 
 func (c *tsocksController) validateProbeRequest(req tsocksProbeRequest) error {
@@ -206,6 +210,12 @@ func (c *tsocksController) validateProbeRequest(req tsocksProbeRequest) error {
 }
 
 func (c *tsocksController) routeForProbe(req tsocksProbeRequest) tsocksRouteDecision {
+	switch req.Scenario {
+	case "lan-http", "lan-tcp", "lan-tcp-close", "lan-tcp-rst":
+		return tsocksRouteDecision{Route: tsocksRouteDirect, MatchedRule: "lan_baseline", InjectedRouteApplied: false}
+	case "tailnet-http", "tailnet-tcp", "tailnet-tcp-close", "tailnet-tcp-rst":
+		return tsocksRouteDecision{Route: tsocksRouteTailscaleNormal, MatchedRule: "tailnet_lab_baseline", InjectedRouteApplied: false}
+	}
 	host := strings.ToLower(strings.TrimSpace(req.Host))
 	if addr, err := netip.ParseAddr(host); err == nil && addr.Is4() {
 		decision := matchTSocksRule(netip.AddrPortFrom(addr.Unmap(), uint16(req.Port)))
@@ -330,9 +340,12 @@ func (c *tsocksController) probeTCP(conn net.Conn, req tsocksProbeRequest, decis
 	if payload == "" {
 		payload = fmt.Sprintf("tailscale-tsocks-test requestId=%s scenario=%s\n", req.RequestID, req.Scenario)
 	}
-	expectsPong := strings.EqualFold(strings.TrimSpace(payload), "PING")
+	trimmedPayload := strings.TrimSpace(payload)
+	expectsPong := strings.EqualFold(trimmedPayload, "PING")
 	if expectsPong {
 		payload = "PING\n"
+	} else if strings.EqualFold(trimmedPayload, "CLOSE") || strings.EqualFold(trimmedPayload, "RST") || strings.HasPrefix(strings.ToUpper(trimmedPayload), "STREAM") {
+		payload = trimmedPayload + "\n"
 	}
 	if _, err := io.WriteString(conn, payload); err != nil {
 		return nil, err
@@ -361,19 +374,23 @@ func (c *tsocksController) probeTCP(conn net.Conn, req tsocksProbeRequest, decis
 func (c *tsocksController) dialViaSocks(ctx context.Context, requestID, targetHost string, targetPort int, flowType, target string) (net.Conn, error) {
 	conn, err := c.dialer.UserDial(ctx, "tcp", net.JoinHostPort(tsocksServerHost, strconv.Itoa(tsocksServerPort)))
 	if err != nil {
+		c.logSocksConnectEvent(requestID, target, "server_connect_fail", targetHost, targetPort, err)
 		c.log(tsocksSocksTag, fmt.Sprintf("event=socks_connect_fail flow=%s requestId=%s target=%s targetHost=%s targetPort=%d reason=%s", flowType, requestID, target, targetHost, targetPort, sanitizeForLog(err.Error())))
 		return nil, err
 	}
 	if deadline, ok := ctx.Deadline(); ok {
 		_ = conn.SetDeadline(deadline)
 	}
+	c.logSocksConnectEvent(requestID, target, "server_connect_success", targetHost, targetPort, nil)
 	c.log(tsocksSocksTag, fmt.Sprintf("event=socks_server_connect_success flow=%s requestId=%s target=%s socksHost=%s socksPort=%d", flowType, requestID, target, tsocksServerHost, tsocksServerPort))
 	if err := socksConnect(conn, targetHost, targetPort); err != nil {
 		_ = conn.Close()
+		c.logSocksConnectEvent(requestID, target, "connect_fail", targetHost, targetPort, err)
 		c.log(tsocksSocksTag, fmt.Sprintf("event=socks_connect_fail flow=%s requestId=%s target=%s targetHost=%s targetPort=%d reason=%s", flowType, requestID, target, targetHost, targetPort, sanitizeForLog(err.Error())))
 		return nil, err
 	}
 	_ = conn.SetDeadline(time.Time{})
+	c.logSocksConnectEvent(requestID, target, "connect_success", targetHost, targetPort, nil)
 	c.log(tsocksSocksTag, fmt.Sprintf("event=socks_connect_success flow=%s requestId=%s target=%s targetHost=%s targetPort=%d", flowType, requestID, target, targetHost, targetPort))
 	return conn, nil
 }
@@ -456,12 +473,24 @@ type tsocksTCPHalfCloser interface {
 	CloseWrite() error
 }
 
+type relayCloseKind string
+
+const (
+	relayCloseFIN     relayCloseKind = "fin"
+	relayCloseRST     relayCloseKind = "rst"
+	relayCloseTimeout relayCloseKind = "timeout"
+	relayCloseOther   relayCloseKind = "other"
+)
+
+type relayResult struct {
+	direction   string
+	n           int64
+	err         error
+	kind        relayCloseKind
+	completedAt time.Time
+}
+
 func relayTCP(client, backend net.Conn) (int64, int64, string) {
-	type relayResult struct {
-		direction string
-		n         int64
-		err       error
-	}
 	results := make(chan relayResult, 2)
 	var clientHalf tsocksTCPHalfCloser
 	if hc, ok := client.(tsocksTCPHalfCloser); ok {
@@ -473,7 +502,7 @@ func relayTCP(client, backend net.Conn) (int64, int64, string) {
 	}
 	go func() {
 		n, err := io.Copy(backend, client)
-		results <- relayResult{direction: "up", n: n, err: normalizeRelayErr(err)}
+		results <- relayResult{direction: "client", n: n, err: normalizeRelayErr(err), kind: classifyRelayErr(err), completedAt: time.Now()}
 		if backendHalf != nil {
 			_ = backendHalf.CloseWrite()
 		}
@@ -483,7 +512,7 @@ func relayTCP(client, backend net.Conn) (int64, int64, string) {
 	}()
 	go func() {
 		n, err := io.Copy(client, backend)
-		results <- relayResult{direction: "down", n: n, err: normalizeRelayErr(err)}
+		results <- relayResult{direction: "server", n: n, err: normalizeRelayErr(err), kind: classifyRelayErr(err), completedAt: time.Now()}
 		if clientHalf != nil {
 			_ = clientHalf.CloseWrite()
 		}
@@ -492,22 +521,17 @@ func relayTCP(client, backend net.Conn) (int64, int64, string) {
 		}
 	}()
 	var bytesUp, bytesDown int64
-	var reasons []string
+	collected := make([]relayResult, 0, 2)
 	for i := 0; i < 2; i++ {
 		result := <-results
-		if result.direction == "up" {
+		if result.direction == "client" {
 			bytesUp = result.n
 		} else {
 			bytesDown = result.n
 		}
-		if result.err != nil {
-			reasons = append(reasons, result.err.Error())
-		}
+		collected = append(collected, result)
 	}
-	if len(reasons) == 0 {
-		return bytesUp, bytesDown, "eof"
-	}
-	return bytesUp, bytesDown, strings.Join(reasons, ";")
+	return bytesUp, bytesDown, tsocksCloseReason(collected)
 }
 
 func normalizeRelayErr(err error) error {
@@ -518,6 +542,20 @@ func normalizeRelayErr(err error) error {
 		return nil
 	}
 	return err
+}
+
+func classifyRelayErr(err error) relayCloseKind {
+	if err == nil || errors.Is(err, io.EOF) {
+		return relayCloseFIN
+	}
+	if ne, ok := err.(net.Error); ok && ne.Timeout() {
+		return relayCloseTimeout
+	}
+	errText := strings.ToLower(err.Error())
+	if strings.Contains(errText, "reset by peer") || strings.Contains(errText, "connection reset") || strings.Contains(errText, "broken pipe") {
+		return relayCloseRST
+	}
+	return relayCloseOther
 }
 
 func readUntil(r io.Reader, marker string) ([]byte, error) {

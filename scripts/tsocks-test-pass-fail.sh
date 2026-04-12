@@ -6,6 +6,7 @@
 set -eu
 
 repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+. "$repo_root/scripts/tsocks-test-env.sh"
 adb_bin=${ADB:-adb}
 
 run_adb() {
@@ -50,7 +51,7 @@ for target in 104.18.26.120:80 104.18.27.120:80; do
 	check_line "phase3-bytes-$target" "TSOCKS_DATAPATH: event=conn_close .*dst=$target .*selectedRoute=TAILNET_SOCKS .*bytes_up=[1-9][0-9]* .*bytes_down=[1-9][0-9]* .*closeReason="
 done
 
-check_line "RULE_MATCHED_AND_SOCKS_OFFLOADED" "TSOCKS_DATAPATH: event=flow_identified .*offloadDecision=RULE_MATCHED_AND_SOCKS_OFFLOADED .*recursionGuard=false"
+check_line "RULE_MATCHED_AND_SOCKS_OFFLOADED" "TSOCKS_DATAPATH: event=flow_identified .*offloadDecision=offloaded .*offloadReason=RULE_MATCHED_AND_SOCKS_OFFLOADED .*recursionGuard=false"
 
 check_line "phase3-public-no-match-route" "TSOCKS_ROUTE: event=route_decision .*target=104.18.4.106:80 .*matchedRule=default_direct .*selectedRoute=DIRECT .*injectedRoute=false"
 check_line "phase3-public-no-match-no-socks" "event=TEST_PASS .*scenario=phase3-public-no-match .*route=DIRECT"
@@ -60,11 +61,16 @@ if grep -Eq 'TSOCKS_SOCKS: event=socks_connect_success .*target=104.18.4.106:80'
 else
 	printf 'PASS phase3-public-no-match-socks-leak\n'
 fi
-check_line "BASELINE_NATIVE_PATH_OK" "TSOCKS_ROUTE: event=route_decision .*target=(192.168.31.101:18080|192.168.31.101:19080|100.109.193.113:18081|100.109.193.113:19081) .*offloadDecision=BASELINE_NATIVE_PATH_OK"
-check_line "RULE_NOT_MATCHED_BUT_ENTERED_TUN_DUE_TO_/32" "TSOCKS_DATAPATH: event=route_decision .*dst=104.18.26.120:81 .*matchedRule=default_direct .*selectedRoute=DIRECT .*injectedRoute=true .*offloadDecision=RULE_NOT_MATCHED_BUT_ENTERED_TUN_DUE_TO_/32 .*recursionGuard=false"
+baseline_pattern=$(printf '%s:%s|%s:%s|%s:%s|%s:%s' \
+	"$TSOCKS_TEST_LAN_HOST" "$TSOCKS_TEST_LAN_HTTP_PORT" \
+	"$TSOCKS_TEST_LAN_HOST" "$TSOCKS_TEST_LAN_TCP_PORT" \
+	"$TSOCKS_TEST_TAILNET_HOST" "$TSOCKS_TEST_TAILNET_HTTP_PORT" \
+	"$TSOCKS_TEST_TAILNET_HOST" "$TSOCKS_TEST_TAILNET_TCP_PORT")
+check_line "BASELINE_NATIVE_PATH_OK" "TSOCKS_ROUTE: event=route_decision .*target=($baseline_pattern) .*offloadDecision=bypass .*offloadReason=BASELINE_NATIVE_PATH_OK"
+check_line "RULE_NOT_MATCHED_BUT_ENTERED_TUN_DUE_TO_/32" "TSOCKS_DATAPATH: event=route_decision .*dst=104.18.26.120:81 .*matchedRule=default_direct .*selectedRoute=DIRECT .*injectedRoute=true .*entered_tun_due_to_/32=true .*offloadDecision=bypass .*offloadReason=RULE_NOT_MATCHED_BUT_ENTERED_TUN_DUE_TO_/32 .*expectedBehavior=true .*recursionGuard=false"
 
-check_line "phase3-recursion-guard-route" "TSOCKS_ROUTE: event=route_decision .*target=100.78.63.77:1080 .*matchedRule=socks_server_self .*selectedRoute=DIRECT .*injectedRoute=false .*offloadDecision=RECURSION_GUARD_BYPASS .*recursionGuard=true"
+check_line "phase3-recursion-guard-route" "TSOCKS_ROUTE: event=route_decision .*target=100.78.63.77:1080 .*matchedRule=socks_server_self .*selectedRoute=DIRECT .*injectedRoute=false .*offloadDecision=bypass .*offloadReason=RECURSION_GUARD_BYPASS .*recursionGuard=true"
 check_line "phase3-recursion-guard-pass" "event=TEST_PASS .*scenario=phase3-recursion-guard .*detail=preview_only"
-check_line "RECURSION_GUARD_BYPASS" "TSOCKS_ROUTE: event=route_decision .*target=100.78.63.77:1080 .*offloadDecision=RECURSION_GUARD_BYPASS .*recursionGuard=true"
+check_line "RECURSION_GUARD_BYPASS" "TSOCKS_ROUTE: event=route_decision .*target=100.78.63.77:1080 .*offloadDecision=bypass .*offloadReason=RECURSION_GUARD_BYPASS .*recursionGuard=true"
 
 exit "$has_fail"

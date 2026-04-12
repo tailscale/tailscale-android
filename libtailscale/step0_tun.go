@@ -10,6 +10,7 @@ import (
 	"net/netip"
 	"os"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -39,6 +40,7 @@ type step0Tun struct {
 	seenFlows    map[string]bool
 	seenPayloads map[string]bool
 	seenRoutes   map[string]bool
+	seenEvents   map[string]bool
 	closed       bool
 }
 
@@ -48,7 +50,7 @@ func newStep0Tun(raw wtun.Device, appCtx AppContext, tsocks *tsocksController) (
 		return nil, err
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	w := &step0Tun{raw: raw, appCtx: appCtx, tsocks: tsocks, ctx: ctx, cancel: cancel, seenFlows: map[string]bool{}, seenPayloads: map[string]bool{}, seenRoutes: map[string]bool{}}
+	w := &step0Tun{raw: raw, appCtx: appCtx, tsocks: tsocks, ctx: ctx, cancel: cancel, seenFlows: map[string]bool{}, seenPayloads: map[string]bool{}, seenRoutes: map[string]bool{}, seenEvents: map[string]bool{}}
 	if err := w.initProofStack(uint32(mtu)); err != nil {
 		cancel()
 		return nil, err
@@ -101,7 +103,12 @@ func (w *step0Tun) serveTargetListener(listener *gonet.TCPListener, target netip
 			}
 			return
 		}
-		w.log(tsocksDatapathTag, fmt.Sprintf("event=forwarder_accept dst=%s", target))
+		src, ok := addrPortFromNetAddr(conn.RemoteAddr())
+		if !ok {
+			src = netip.MustParseAddrPort("0.0.0.0:0")
+		}
+		flowID := tsocksFlowID(src, target)
+		w.log(tsocksDatapathTag, fmt.Sprintf("event=forwarder_accept flow_id=%s src=%s dst=%s", flowID, src, target))
 		go w.serveProofConn(conn, target)
 	}
 }
@@ -114,18 +121,22 @@ func (w *step0Tun) serveProofConn(conn net.Conn, target netip.AddrPort) {
 		src = netip.MustParseAddrPort("0.0.0.0:0")
 	}
 	flowID := tsocksFlowID(src, target)
-	w.log(tsocksDatapathTag, fmt.Sprintf("event=endpoint_created flowId=%s src=%s dst=%s matchedRule=%s selectedRoute=%s injectedRoute=%t", flowID, src, target, decision.MatchedRule, decision.Route, decision.InjectedRouteApplied))
+	w.tsocks.logTerminatorAttach(flowID, src, target, decision, "gvisor_listener_accept")
+	w.log(tsocksDatapathTag, fmt.Sprintf("event=endpoint_created flow_id=%s src=%s dst=%s matchedRule=%s selectedRoute=%s injectedRoute=%t", flowID, src, target, decision.MatchedRule, decision.Route, decision.InjectedRouteApplied))
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	backend, err := w.tsocks.dialViaSocks(ctx, flowID, target.Addr().String(), int(target.Port()), "datapath", target.String())
 	if err != nil {
-		w.log(tsocksDatapathTag, fmt.Sprintf("event=target_connect_fail flowId=%s src=%s dst=%s matchedRule=%s selectedRoute=%s injectedRoute=%t reason=%s", flowID, src, target, decision.MatchedRule, decision.Route, decision.InjectedRouteApplied, sanitizeForLog(err.Error())))
+		w.log(tsocksDatapathTag, fmt.Sprintf("event=target_connect_fail flow_id=%s src=%s dst=%s matchedRule=%s selectedRoute=%s injectedRoute=%t reason=%s", flowID, src, target, decision.MatchedRule, decision.Route, decision.InjectedRouteApplied, sanitizeForLog(err.Error())))
 		return
 	}
 	defer backend.Close()
-	w.log(tsocksDatapathTag, fmt.Sprintf("event=target_connect_success flowId=%s src=%s dst=%s matchedRule=%s selectedRoute=%s injectedRoute=%t", flowID, src, target, decision.MatchedRule, decision.Route, decision.InjectedRouteApplied))
+	w.log(tsocksDatapathTag, fmt.Sprintf("event=target_connect_success flow_id=%s src=%s dst=%s matchedRule=%s selectedRoute=%s injectedRoute=%t", flowID, src, target, decision.MatchedRule, decision.Route, decision.InjectedRouteApplied))
+	w.tsocks.relayStart(flowID, src, target, decision)
 	bytesUp, bytesDown, reason := relayTCP(conn, backend)
-	w.log(tsocksDatapathTag, fmt.Sprintf("event=conn_close flowId=%s src=%s dst=%s matchedRule=%s selectedRoute=%s injectedRoute=%t bytes_up=%d bytes_down=%d closeReason=%s", flowID, src, target, decision.MatchedRule, decision.Route, decision.InjectedRouteApplied, bytesUp, bytesDown, sanitizeForLog(reason)))
+	reason = w.adjustCloseReason(flowID, reason)
+	w.tsocks.relayEnd(flowID, src, target, decision, bytesUp, bytesDown, reason)
+	w.log(tsocksDatapathTag, fmt.Sprintf("event=conn_close flow_id=%s src=%s dst=%s matchedRule=%s selectedRoute=%s injectedRoute=%t bytes_up=%d bytes_down=%d closeReason=%s", flowID, src, target, decision.MatchedRule, decision.Route, decision.InjectedRouteApplied, bytesUp, bytesDown, sanitizeForLog(reason)))
 }
 
 func (w *step0Tun) pumpProofPackets() {
@@ -137,7 +148,7 @@ func (w *step0Tun) pumpProofPackets() {
 		view := pkt.ToView()
 		packet := append([]byte(nil), view.AsSlice()...)
 		pkt.DecRef()
-		w.logIfSynAck(packet)
+		w.logOutboundTCP(packet)
 		if _, err := w.raw.Write([][]byte{packet}, 0); err != nil {
 			w.log(tsocksDatapathTag, fmt.Sprintf("event=raw_write_fail reason=%s", sanitizeForLog(err.Error())))
 			return
@@ -145,7 +156,7 @@ func (w *step0Tun) pumpProofPackets() {
 	}
 }
 
-func (w *step0Tun) logIfSynAck(packet []byte) {
+func (w *step0Tun) logOutboundTCP(packet []byte) {
 	if len(packet) < header.IPv4MinimumSize {
 		return
 	}
@@ -155,8 +166,22 @@ func (w *step0Tun) logIfSynAck(packet []byte) {
 	}
 	tcpHdr := header.TCP(ip.Payload())
 	flags := tcpHdr.Flags()
+	src := netip.AddrPortFrom(netip.AddrFrom4(ip.SourceAddress().As4()).Unmap(), tcpHdr.SourcePort())
+	dst := netip.AddrPortFrom(netip.AddrFrom4(ip.DestinationAddress().As4()).Unmap(), tcpHdr.DestinationPort())
+	flowID := tsocksFlowID(src, dst)
 	if flags.Contains(header.TCPFlagSyn) && flags.Contains(header.TCPFlagAck) {
-		w.log(tsocksDatapathTag, fmt.Sprintf("event=synack_sent src=%s:%d dst=%s:%d", netip.AddrFrom4(ip.SourceAddress().As4()).Unmap(), tcpHdr.SourcePort(), netip.AddrFrom4(ip.DestinationAddress().As4()).Unmap(), tcpHdr.DestinationPort()))
+		w.logTCPEventOnce(flowID, "synack_sent", src, dst, "direction=server_to_client")
+	}
+	if flags == header.TCPFlagAck {
+		w.logTCPEventOnce(flowID, "ack_seen", src, dst, "direction=server_to_client")
+	}
+	if flags.Contains(header.TCPFlagFin) && flags.Contains(header.TCPFlagAck) {
+		w.logTCPEventOnce(flowID, "finack_seen", src, dst, "direction=server_to_client")
+	} else if flags.Contains(header.TCPFlagFin) {
+		w.logTCPEventOnce(flowID, "fin_seen", src, dst, "direction=server_to_client")
+	}
+	if flags.Contains(header.TCPFlagRst) {
+		w.logTCPEventOnce(flowID, "rst_seen", src, dst, "direction=server_to_client")
 	}
 }
 
@@ -204,7 +229,7 @@ func (w *step0Tun) shouldIntercept(packet []byte) bool {
 	flowID := tsocksFlowID(netip.AddrPortFrom(src, tcpHdr.SourcePort()), target)
 	flags := tcpHdr.Flags()
 	if flags.Contains(header.TCPFlagSyn) && !flags.Contains(header.TCPFlagAck) {
-		offloadDecision := tsocksDecisionOffloadDecision(decision, target)
+		offloadState := tsocksDecisionOffloadState(decision, target)
 		w.mu.Lock()
 		key := flowID
 		firstRoute := !w.seenRoutes[key]
@@ -217,12 +242,27 @@ func (w *step0Tun) shouldIntercept(packet []byte) bool {
 		}
 		w.mu.Unlock()
 		if firstRoute {
-			w.log(tsocksDatapathTag, fmt.Sprintf("event=route_decision flowId=%s src=%s:%d dst=%s:%d protocol=tcp matchedRule=%s selectedRoute=%s injectedRoute=%t offloadDecision=%s recursionGuard=%t", flowID, src, tcpHdr.SourcePort(), dst, dstPort, decision.MatchedRule, decision.Route, decision.InjectedRouteApplied, offloadDecision, tsocksDecisionRecursionGuard(decision)))
+			line := fmt.Sprintf("event=route_decision flow_id=%s src=%s:%d dst=%s:%d protocol=tcp matchedRule=%s selectedRoute=%s injectedRoute=%t entered_tun_due_to_/32=%t offloadDecision=%s offloadReason=%s recursionGuard=%t", flowID, src, tcpHdr.SourcePort(), dst, dstPort, decision.MatchedRule, decision.Route, decision.InjectedRouteApplied, decision.InjectedRouteApplied, offloadState.Decision, offloadState.Reason, tsocksDecisionRecursionGuard(decision))
+			if decision.InjectedRouteApplied && decision.Route == tsocksRouteDirect {
+				line += " expectedBehavior=true note=entered_tun_due_to_/32_is_expected_not_bug"
+			}
+			w.log(tsocksDatapathTag, line)
 		}
 		if first {
-			w.log(tsocksDatapathTag, fmt.Sprintf("event=flow_identified flowId=%s src=%s:%d dst=%s:%d protocol=tcp matchedRule=%s selectedRoute=%s injectedRoute=%t offloadDecision=%s recursionGuard=%t", flowID, src, tcpHdr.SourcePort(), dst, dstPort, decision.MatchedRule, decision.Route, decision.InjectedRouteApplied, offloadDecision, tsocksDecisionRecursionGuard(decision)))
-			w.log(tsocksDatapathTag, "event=syn_received")
+			w.log(tsocksDatapathTag, fmt.Sprintf("event=flow_identified flow_id=%s src=%s:%d dst=%s:%d protocol=tcp matchedRule=%s selectedRoute=%s injectedRoute=%t offloadDecision=%s offloadReason=%s recursionGuard=%t", flowID, src, tcpHdr.SourcePort(), dst, dstPort, decision.MatchedRule, decision.Route, decision.InjectedRouteApplied, offloadState.Decision, offloadState.Reason, tsocksDecisionRecursionGuard(decision)))
+			w.logTCPEventOnce(flowID, "syn_received", netip.AddrPortFrom(src, tcpHdr.SourcePort()), target, "direction=client_to_server")
 		}
+	}
+	if flags == header.TCPFlagAck {
+		w.logTCPEventOnce(flowID, "ack_seen", netip.AddrPortFrom(src, tcpHdr.SourcePort()), target, "direction=client_to_server")
+	}
+	if flags.Contains(header.TCPFlagFin) && flags.Contains(header.TCPFlagAck) {
+		w.logTCPEventOnce(flowID, "finack_seen", netip.AddrPortFrom(src, tcpHdr.SourcePort()), target, "direction=client_to_server")
+	} else if flags.Contains(header.TCPFlagFin) {
+		w.logTCPEventOnce(flowID, "fin_seen", netip.AddrPortFrom(src, tcpHdr.SourcePort()), target, "direction=client_to_server")
+	}
+	if flags.Contains(header.TCPFlagRst) {
+		w.logTCPEventOnce(flowID, "rst_seen", netip.AddrPortFrom(src, tcpHdr.SourcePort()), target, "direction=client_to_server")
 	}
 	if decision.Route != tsocksRouteTailnetSocks || !slices.Contains(tsocksInterceptTargets(), target) {
 		return false
@@ -235,7 +275,7 @@ func (w *step0Tun) shouldIntercept(packet []byte) bool {
 		}
 		w.mu.Unlock()
 		if firstData {
-			w.log(tsocksDatapathTag, fmt.Sprintf("event=payload_seen flowId=%s src=%s:%d dst=%s:%d bytes=%d", flowID, src, tcpHdr.SourcePort(), dst, dstPort, len(tcpHdr.Payload())))
+			w.log(tsocksDatapathTag, fmt.Sprintf("event=payload_seen flow_id=%s src=%s:%d dst=%s:%d bytes=%d", flowID, src, tcpHdr.SourcePort(), dst, dstPort, len(tcpHdr.Payload())))
 		}
 	}
 	return true
@@ -281,4 +321,39 @@ func (w *step0Tun) log(tag, line string) {
 	if w.appCtx != nil {
 		w.appCtx.Log(tag, line)
 	}
+}
+
+func (w *step0Tun) logTCPEventOnce(flowID, event string, src, dst netip.AddrPort, extra string) {
+	key := flowID + ":" + event + ":" + extra
+	w.mu.Lock()
+	if w.seenEvents[key] {
+		w.mu.Unlock()
+		return
+	}
+	w.seenEvents[key] = true
+	w.mu.Unlock()
+	line := fmt.Sprintf("event=%s flow_id=%s src=%s dst=%s", event, flowID, src, dst)
+	if extra != "" {
+		line += " " + extra
+	}
+	w.log(tsocksDatapathTag, line)
+}
+
+func (w *step0Tun) adjustCloseReason(flowID, reason string) string {
+	if strings.HasSuffix(reason, "_rst") {
+		return reason
+	}
+	if w.hasSeenEvent(flowID + ":rst_seen:direction=client_to_server") {
+		return "client_rst"
+	}
+	if w.hasSeenEvent(flowID + ":rst_seen:direction=server_to_client") {
+		return "server_rst"
+	}
+	return reason
+}
+
+func (w *step0Tun) hasSeenEvent(key string) bool {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.seenEvents[key]
 }

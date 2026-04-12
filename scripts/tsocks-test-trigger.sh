@@ -10,13 +10,16 @@ usage() {
 Usage: scripts/tsocks-test-trigger.sh <scenario>
 
 Scenarios:
-  lan-http      -> 192.168.31.101:18080/healthz
-  tailnet-http  -> 100.109.193.113:18081/healthz
-  lan-tcp       -> 192.168.31.101:19080
-  tailnet-tcp   -> 100.109.193.113:19081
+  lan-http      -> $TSOCKS_TEST_LAN_HOST:$TSOCKS_TEST_LAN_HTTP_PORT/healthz
+  tailnet-http  -> $TSOCKS_TEST_TAILNET_HOST:$TSOCKS_TEST_TAILNET_HTTP_PORT/healthz
+  lan-tcp       -> $TSOCKS_TEST_LAN_HOST:$TSOCKS_TEST_LAN_TCP_PORT
+  tailnet-tcp   -> $TSOCKS_TEST_TAILNET_HOST:$TSOCKS_TEST_TAILNET_TCP_PORT
+  lan-tcp-close -> $TSOCKS_TEST_LAN_HOST:$TSOCKS_TEST_LAN_TCP_PORT payload CLOSE
+  tailnet-tcp-close -> $TSOCKS_TEST_TAILNET_HOST:$TSOCKS_TEST_TAILNET_TCP_PORT payload CLOSE
+  tailnet-tcp-rst -> $TSOCKS_TEST_TAILNET_HOST:$TSOCKS_TEST_TAILNET_TCP_PORT payload RST
   public-http   -> example.com:80/
   datapath-public-http -> Activity GET http://example.com/
-  datapath-direct-http -> Activity GET http://100.109.193.113:18081/healthz
+  datapath-direct-http -> Activity GET http://$TSOCKS_TEST_TAILNET_HOST:$TSOCKS_TEST_TAILNET_HTTP_PORT/healthz
   phase3-public-http-a -> shell curl http://104.18.26.120/ with Host: example.com
   phase3-public-http-b -> shell curl http://104.18.27.120/ with Host: example.com
   phase3-public-no-match -> direct probe http://104.18.4.106/ with Host: example.net
@@ -38,6 +41,7 @@ if [ -z "$scenario" ]; then
 fi
 
 repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+. "$repo_root/scripts/tsocks-test-env.sh"
 adb_bin=${ADB:-adb}
 timeout_ms=${TIMEOUT_MS:-5000}
 request_id=${REQUEST_ID:-$(date +%Y%m%d%H%M%S)-$scenario}
@@ -60,28 +64,46 @@ url=
 
 case "$scenario" in
 	lan-http)
-		host=192.168.31.101
-		port=18080
+		host=$TSOCKS_TEST_LAN_HOST
+		port=$TSOCKS_TEST_LAN_HTTP_PORT
 		protocol=http
 		path=/healthz
 		;;
 	tailnet-http)
-		host=100.109.193.113
-		port=18081
+		host=$TSOCKS_TEST_TAILNET_HOST
+		port=$TSOCKS_TEST_TAILNET_HTTP_PORT
 		protocol=http
 		path=/healthz
 		;;
 	lan-tcp)
-		host=192.168.31.101
-		port=19080
+		host=$TSOCKS_TEST_LAN_HOST
+		port=$TSOCKS_TEST_LAN_TCP_PORT
 		protocol=tcp
 		payload="PING"
 		;;
+	lan-tcp-close)
+		host=$TSOCKS_TEST_LAN_HOST
+		port=$TSOCKS_TEST_LAN_TCP_PORT
+		protocol=tcp
+		payload="CLOSE"
+		;;
 	tailnet-tcp)
-		host=100.109.193.113
-		port=19081
+		host=$TSOCKS_TEST_TAILNET_HOST
+		port=$TSOCKS_TEST_TAILNET_TCP_PORT
 		protocol=tcp
 		payload="PING"
+		;;
+	tailnet-tcp-close)
+		host=$TSOCKS_TEST_TAILNET_HOST
+		port=$TSOCKS_TEST_TAILNET_TCP_PORT
+		protocol=tcp
+		payload="CLOSE"
+		;;
+	tailnet-tcp-rst)
+		host=$TSOCKS_TEST_TAILNET_HOST
+		port=$TSOCKS_TEST_TAILNET_TCP_PORT
+		protocol=tcp
+		payload="RST"
 		;;
 	public-http)
 		host=example.com
@@ -90,11 +112,11 @@ case "$scenario" in
 		path=/
 		;;
 	phase3-public-http-a)
-		run_adb shell "curl --max-time ${timeout_ms} -H 'Host: example.com' http://104.18.26.120/ >/dev/null 2>&1; rc=\$?; if [ \$rc -eq 0 ]; then log -t TSOCKS_TEST 'event=TEST_PASS scenario=phase3-public-http-a route=TAILNET_SOCKS detail=curl_exit_0'; else log -t TSOCKS_TEST 'event=TEST_FAIL scenario=phase3-public-http-a route=TAILNET_SOCKS reason=curl_exit_'\$rc; fi; exit \$rc"
+		run_adb shell "curl --max-time ${timeout_ms} -H 'Host: example.com' http://104.18.26.120/ >/dev/null 2>&1; rc=\$?; if [ \$rc -eq 0 ]; then log -t TSOCKS_TEST 'event=TEST_PASS requestId=${request_id} scenario=phase3-public-http-a route=TAILNET_SOCKS detail=curl_exit_0'; else log -t TSOCKS_TEST 'event=TEST_FAIL requestId=${request_id} scenario=phase3-public-http-a route=TAILNET_SOCKS reason=curl_exit_'\$rc; fi; exit \$rc"
 		exit 0
 		;;
 	phase3-public-http-b)
-		run_adb shell "curl --max-time ${timeout_ms} -H 'Host: example.com' http://104.18.27.120/ >/dev/null 2>&1; rc=\$?; if [ \$rc -eq 0 ]; then log -t TSOCKS_TEST 'event=TEST_PASS scenario=phase3-public-http-b route=TAILNET_SOCKS detail=curl_exit_0'; else log -t TSOCKS_TEST 'event=TEST_FAIL scenario=phase3-public-http-b route=TAILNET_SOCKS reason=curl_exit_'\$rc; fi; exit \$rc"
+		run_adb shell "curl --max-time ${timeout_ms} -H 'Host: example.com' http://104.18.27.120/ >/dev/null 2>&1; rc=\$?; if [ \$rc -eq 0 ]; then log -t TSOCKS_TEST 'event=TEST_PASS requestId=${request_id} scenario=phase3-public-http-b route=TAILNET_SOCKS detail=curl_exit_0'; else log -t TSOCKS_TEST 'event=TEST_FAIL requestId=${request_id} scenario=phase3-public-http-b route=TAILNET_SOCKS reason=curl_exit_'\$rc; fi; exit \$rc"
 		exit 0
 		;;
 	phase3-public-no-match)
@@ -106,7 +128,7 @@ case "$scenario" in
 		host_header=example.net
 		;;
 	phase3-wrong-port-entered-tun)
-		run_adb shell "curl --max-time ${timeout_ms} http://104.18.26.120:81/ >/dev/null 2>&1; log -t TSOCKS_TEST 'event=TEST_PASS scenario=phase3-wrong-port-entered-tun route=DIRECT detail=trigger_sent'; exit 0"
+		run_adb shell "curl --max-time ${timeout_ms} http://104.18.26.120:81/ >/dev/null 2>&1; log -t TSOCKS_TEST 'event=TEST_PASS requestId=${request_id} scenario=phase3-wrong-port-entered-tun route=DIRECT detail=trigger_sent'; exit 0"
 		exit 0
 		;;
 	phase3-recursion-guard)
@@ -119,7 +141,7 @@ case "$scenario" in
 		url=http://example.com/
 		;;
 	datapath-direct-http)
-		url=http://100.109.193.113:18081/healthz
+		url=http://$TSOCKS_TEST_TAILNET_HOST:$TSOCKS_TEST_TAILNET_HTTP_PORT/healthz
 		;;
 	*)
 		usage >&2

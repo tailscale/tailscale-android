@@ -46,4 +46,7 @@ The following Chinese documentation is available in the `docs/` directory:
 ## Development Workflow Rules
 
 - **Version Bump**: After modifying any code, the Android version code must be incremented by 1 in `android/build.gradle`.
-- **Build Verification**: Before committing any code changes, `make apk` must be run and complete successfully to ensure the build is not broken.
+- **Build Verification**: After modifying any feature or implementation code, `make apk` must be run and complete successfully before the change can be considered successful.
+- **Device Validation**: After `make apk` succeeds for a code change, the updated APK must be installed onto a real Android device and the full end-to-end device test flow must pass before the change can be considered successful.
+- **Validation Executor**: `make apk`, APK installation, and real-device test execution must be delegated to the `execution_runner` subagent instead of the main agent to keep build and device-log noise out of the main context.
+- **Validation Model**: The `execution_runner` subagent used for build and device validation must use `gpt-5.4-mini` to minimize token usage.
