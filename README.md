@@ -16,7 +16,7 @@ The latest stable release APK can be obtained from the [Tailscale Packages Stabl
 
 Unstable releases can be obtained from the [Tailscale Packages Unstable Track](https://pkgs.tailscale.com/unstable/#android).
 
-These APKs include all supported platforms and architectures.  For installing compact APKs, Android TV, or if you want automatic updates, visit the [Google Playstore](https://play.google.com/store/apps/details?id=com.tailscale.ipn).
+These APKs include all supported platforms and architectures.  For installing compact APKs, Android TV, or if you want automatic updates, visit the [Google Play Store](https://play.google.com/store/apps/details?id=com.tailscale.ipn).
 
 #### Google Playstore
 
