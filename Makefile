@@ -13,6 +13,13 @@
 DOCKER_IMAGE := tailscale-android-build-amd64-041425-1
 export TS_USE_TOOLCHAIN=1
 
+# If set, additional comma-separated build tags passed to the libtailscale Go
+# build to control feature selection.
+#
+# As of 2026-04-15, we disable netmap caching on Android until we have UI
+# affordances for debugging it.
+GOMOBILE_BUILD_TAGS := ts_omit_cachenetmap
+
 DEBUG_APK := tailscale-debug.apk
 RELEASE_AAB := tailscale-release.aab
 RELEASE_TV_AAB := tailscale-tv-release.aab
@@ -183,7 +190,7 @@ build-unstripped-aar: tailscale.version $(GOBIN)/gomobile
 	# The -linkmode=external -extldflags=-Wl,-z,max-page-size=16384 is specific to NDK 23
 	# to support 16kb page sizes.  Your mileage may vary with other NDK versions.
 	$(GOBIN)/gomobile bind -target android -androidapi 26 \
-		-tags "$$(./build-tags.sh)" \
+		-tags "$$(./build-tags.sh) $(GOMOBILE_BUILD_TAGS)" \
 		-ldflags "-linkmode=external -extldflags=-Wl,-z,max-page-size=16384 $$(./version-ldflags.sh)" \
 		-o $(ABS_UNSTRIPPED_AAR) ./libtailscale || { echo "gomobile bind failed"; exit 1; }
 	@if [ ! -f $(ABS_UNSTRIPPED_AAR) ]; then \
