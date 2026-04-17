@@ -337,7 +337,7 @@ class MainActivity : ComponentActivity() {
                         loginAtUrl = ::login,
                         navigation = mainViewNav,
                         viewModel = viewModel,
-                        appViewModel = appViewModel)
+                    )
                   }
                   composable("search") {
                     val autoFocus = viewModel.autoFocusSearch
@@ -473,17 +473,13 @@ class MainActivity : ComponentActivity() {
       if (this::navController.isInitialized) {
         val previousEntry = navController.previousBackStackEntry
         TSLog.d("MainActivity", "onNewIntent: previousBackStackEntry = $previousEntry")
-        if (this::navController.isInitialized) {
-          val previousEntry = navController.previousBackStackEntry
-          TSLog.d("MainActivity", "onNewIntent: previousBackStackEntry = $previousEntry")
-          if (previousEntry != null) {
-            navController.popBackStack(route = "main", inclusive = false)
-          } else {
-            TSLog.e(
-                "MainActivity",
-                "onNewIntent: No previous back stack entry, navigating directly to 'main'")
-            navController.navigate("main") { popUpTo("main") { inclusive = true } }
-          }
+        if (previousEntry != null) {
+          navController.popBackStack(route = "main", inclusive = false)
+        } else {
+          TSLog.e(
+              "MainActivity",
+              "onNewIntent: No previous back stack entry, navigating directly to 'main'")
+          navController.navigate("main") { popUpTo("main") { inclusive = true } }
         }
       }
     }
