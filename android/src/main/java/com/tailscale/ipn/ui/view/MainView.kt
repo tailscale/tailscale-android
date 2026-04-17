@@ -129,7 +129,6 @@ fun MainView(
     loginAtUrl: (String) -> Unit,
     navigation: MainViewNavigation,
     viewModel: MainViewModel,
-    appViewModel: AppViewModel
 ) {
   val currentPingDevice by viewModel.pingViewModel.peer.collectAsState()
   val healthIcon by viewModel.healthIcon.collectAsState()
@@ -829,5 +828,5 @@ fun MainViewPreview() {
           onNavigateToHealth = {},
           onNavigateToSearch = {}),
       vm,
-      appViewModel)
+  )
 }

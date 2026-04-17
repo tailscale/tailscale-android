@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
@@ -34,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
@@ -168,10 +168,7 @@ fun UserSwitcherView(nav: UserSwitcherNav, viewModel: UserSwitcherViewModel = vi
         title = { Text(text = stringResource(R.string.delete_tailnet)) },
         text = {
           if (isOwner) {
-            OwnerDeleteDialogText {
-              val uri = Uri.parse("https://login.tailscale.com/admin/settings/general")
-              context.startActivity(Intent(Intent.ACTION_VIEW, uri))
-            }
+            OwnerDeleteDialogText()
           } else {
             Text(stringResource(R.string.request_deletion_nonowner))
           }
@@ -223,7 +220,7 @@ fun FusMenu(
 }
 
 @Composable
-fun OwnerDeleteDialogText(onSettingsClick: () -> Unit) {
+fun OwnerDeleteDialogText() {
   val part1 = stringResource(R.string.request_deletion_owner_part1)
   val part2a = stringResource(R.string.request_deletion_owner_part2a)
   val part2b = stringResource(R.string.request_deletion_owner_part2b)
@@ -231,8 +228,7 @@ fun OwnerDeleteDialogText(onSettingsClick: () -> Unit) {
   val annotatedText = buildAnnotatedString {
     append(part1 + " ")
 
-    pushStringAnnotation(
-        tag = "settings", annotation = "https://login.tailscale.com/admin/settings/general")
+    pushLink(LinkAnnotation.Url("https://login.tailscale.com/admin/settings/general"))
     withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.primary)) {
       append("Settings > General")
     }
@@ -242,19 +238,9 @@ fun OwnerDeleteDialogText(onSettingsClick: () -> Unit) {
     append(part2b)
   }
 
-  val context = LocalContext.current
-  ClickableText(
+  Text(
       text = annotatedText,
-      style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
-      onClick = { offset ->
-        annotatedText
-            .getStringAnnotations(tag = "settings", start = offset, end = offset)
-            .firstOrNull()
-            ?.let { annotation ->
-              val intent = Intent(Intent.ACTION_VIEW, Uri.parse(annotation.item))
-              context.startActivity(intent)
-            }
-      })
+      style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface))
 }
 
 @Composable

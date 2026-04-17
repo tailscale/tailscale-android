@@ -44,7 +44,7 @@ object TSLog {
       libtailscaleWrapper.sendLog(tag, message)
     } else {
       Log.e(tag, message, throwable)
-      libtailscaleWrapper.sendLog(tag, "$message ${throwable?.localizedMessage}")
+      libtailscaleWrapper.sendLog(tag, "$message ${throwable.localizedMessage}")
     }
   }
 
