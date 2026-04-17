@@ -36,6 +36,9 @@ type AppContext interface {
 	// GetOSVersion gets the Android version.
 	GetOSVersion() (string, error)
 
+	// GetSDKInt returns the Android SDK_INT (android.os.Build.VERSION.SDK_INT).
+	GetSDKInt() (int, error)
+
 	// GetDeviceName gets the Android device's user-set name, or hardware model name as a fallback.
 	GetDeviceName() (string, error)
 
