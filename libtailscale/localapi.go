@@ -111,6 +111,12 @@ func (app *App) NotifyPolicyChanged() {
 	app.policyStore.notifyChanged()
 }
 
+func (app *App) SetClientLoggingEnabled(enabled bool) {
+	if lg := app.logger.Load(); lg != nil {
+		lg.SetEnabled(enabled)
+	}
+}
+
 func (app *App) EditPrefs(prefs ipn.MaskedPrefs) (LocalAPIResponse, error) {
 	r, w := io.Pipe()
 	go func() {
