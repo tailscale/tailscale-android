@@ -135,7 +135,7 @@ object MDMSettings {
   fun loadFrom(preferences: Lazy<SharedPreferences>, restrictionsManager: RestrictionsManager?) {
     val bundle = restrictionsManager?.applicationRestrictions
     allSettings.forEach { it.setFrom(bundle, preferences) }
-    isMDMConfigured = bundle?.isEmpty == true
+    isMDMConfigured = bundle != null && !bundle.isEmpty
   }
 
   fun update(app: App, restrictionsManager: RestrictionsManager?) {

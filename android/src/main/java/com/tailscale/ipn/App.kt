@@ -718,6 +718,7 @@ open class UninitializedApp : Application() {
 
   fun updateIsClientLoggingEnabled(value: Boolean) {
     getUnencryptedPrefs().edit().putBoolean(IS_CLIENT_LOGGING_ENABLED_KEY, value).apply()
+    App.get().getLibtailscaleApp().setClientLoggingEnabled(getIsClientLoggingEnabled())
   }
 
   fun updateUserSelectedPackages(packageNames: List<String>) {

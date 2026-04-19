@@ -355,10 +355,10 @@
     <string name="use_tailscale_subnets_subtitle">Route traffic according to your network\'s rules. Some networks require this to access IP addresses that don\'t start with 100.x.y.z.</string>
     <string name="subnet_routing">Subnet routing</string>
     <string name="client_remote_logging_enabled">Remote client logging</string>
-    <string name="client_remote_logging_enabled_subtitle">Whether debug &amp; opt-in flow logs are uploaded. Changes require restarting the app to take effect.</string>
+    <string name="client_remote_logging_enabled_subtitle">Whether debug &amp; opt-in flow logs are uploaded.</string>
     <string name="client_remote_logging_enabled_subtitle_mdm">Client logging is always enabled for devices under remote management.</string>
     <string name="client_remote_logging_disable_confirm_title">Disable remote client logging?</string>
-    <string name="client_remote_logging_disable_confirm_message">Disabling remote client logging will break Network Flow Logs if enabled and required by your tailnet admin, and will prevent Tailscale Support from being able to help debug problems with this device.\n\nChanges require restarting the app to take effect.</string>
+    <string name="client_remote_logging_disable_confirm_message">Disabling remote client logging will break Network Flow Logs if enabled and required by your tailnet admin, and will prevent Tailscale Support from being able to help debug problems with this device.</string>
     <string name="client_remote_logging_disable_confirm_button">Yes, disable</string>
     <string name="specifies_a_device_name_to_be_used_instead_of_the_automatic_default">Specifies a device name to be used instead of the automatic default.</string>
     <string name="hostname">Hostname</string>

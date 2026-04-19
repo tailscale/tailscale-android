@@ -130,6 +130,10 @@ func (b *backend) setupLogs(logDir string, logID logid.PrivateID, logf logger.Lo
 		IncludeProcSequence: true,
 		HTTPC:               &http.Client{Transport: transport},
 		CompressLogs:        true,
+		// Start the logger disabled if the user opted out, so not even
+		// the internal "logtail started" banner reaches the server. The
+		// SetClientLoggingEnabled path flips this at runtime.
+		Disabled: !enableUpload,
 	}
 	logcfg.FlushDelayFn = func() time.Duration { return 2 * time.Minute }
 
@@ -144,10 +148,8 @@ func (b *backend) setupLogs(logDir string, logID logid.PrivateID, logf logger.Lo
 	}
 
 	b.logger = logtail.NewLogger(logcfg, logf)
-
 	if !enableUpload {
-		log.Printf("disabling remote log upload")
-		logtail.Disable()
+		log.Printf("remote log upload disabled by user preference")
 	}
 
 	log.SetFlags(0)

@@ -59,6 +59,11 @@ type App struct {
 	backend         *ipnlocal.LocalBackend
 	ready           sync.WaitGroup
 	backendMu       sync.Mutex
+
+	// logger is the logtail logger whose uploads follow the user's
+	// IsClientLoggingEnabled preference. Populated once runBackend wires
+	// up the backend; nil before then.
+	logger atomic.Pointer[logtail.Logger]
 }
 
 func start(dataDir, directFileRoot string, hwAttestationPref bool, appCtx AppContext) Application {
@@ -142,6 +147,7 @@ func (a *App) runBackend(ctx context.Context, hardwareAttestation bool) error {
 		return err
 	}
 	a.logIDPublicAtomic.Store(&b.logIDPublic)
+	a.logger.Store(b.logger)
 	a.backend = b.backend
 	if hardwareAttestation {
 		a.backend.SetHardwareAttested()

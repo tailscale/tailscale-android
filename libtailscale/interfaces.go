@@ -141,6 +141,10 @@ type Application interface {
 	// so it can re-read it via the [syspolicyHandler].
 	NotifyPolicyChanged()
 
+	// SetClientLoggingEnabled sets whether diagnostic logs are uploaded to
+	// Tailscale's logging backend. Changes take effect immediately.
+	SetClientLoggingEnabled(enabled bool)
+
 	// WatchNotifications provides a mechanism for subscribing to ipn.Notify
 	// updates. The given NotificationCallback's OnNotify function is invoked
 	// on every new ipn.Notify message. The returned NotificationManager
