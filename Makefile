@@ -365,9 +365,28 @@ docker-build-image: ## Builds the docker image for the android build environment
 		docker build -f docker/DockerFile.amd64-build -t $(DOCKER_IMAGE) .; \
 	fi
 
+# DOCKER_ANDROID_DIR is bind-mounted as /root/.android inside the container
+# so the Gradle-generated debug keystore (and anything else under ~/.android)
+# persists across docker runs. Without this, every docker-based debug build
+# gets a fresh debug.keystore and a different signing cert, so `adb install -r`
+# can't update a prior install. Mount target is /root/.android because the
+# JVM's user.home resolves to /root for the container's root user, regardless
+# of the Dockerfile's HOME=/build env.
+DOCKER_ANDROID_DIR := $(CURDIR)/.android-docker
+
+.PHONY: docker-android-dir
+docker-android-dir:
+	@mkdir -p $(DOCKER_ANDROID_DIR)
+
+DOCKER_RUN_VOLS := -v $(CURDIR):/build/tailscale-android -v $(DOCKER_ANDROID_DIR):/root/.android
+
 .PHONY: docker-run-build
-docker-run-build: clean jarsign-env docker-build-image ## Runs the docker image for the android build environment and builds release
-	@docker run --rm -v $(CURDIR):/build/tailscale-android --env JKS_PASSWORD=$(JKS_PASSWORD) --env JKS_PATH=$(JKS_PATH) $(DOCKER_IMAGE)
+docker-run-build: clean jarsign-env docker-build-image docker-android-dir ## Runs the docker image for the android build environment and builds release
+	@docker run --rm $(DOCKER_RUN_VOLS) --env JKS_PASSWORD=$(JKS_PASSWORD) --env JKS_PATH=$(JKS_PATH) $(DOCKER_IMAGE)
+
+.PHONY: docker-tailscale-debug
+docker-tailscale-debug: docker-build-image docker-android-dir ## Build tailscale-debug.apk inside the docker env (stable signer across runs)
+	@docker run --rm $(DOCKER_RUN_VOLS) $(DOCKER_IMAGE) make tailscale-debug
 
 .PHONY: docker-remove-build-image
 docker-remove-build-image: ## Removes the current docker build image
@@ -377,8 +396,8 @@ docker-remove-build-image: ## Removes the current docker build image
 docker-all: docker-build-image docker-run-build $(DOCKER_IMAGE)
 
 .PHONY: docker-shell
-docker-shell: docker-build-image ## Builds a docker image with the android build env and opens a shell
-	docker run --rm -v $(CURDIR):/build/tailscale-android -it $(DOCKER_IMAGE) /bin/bash
+docker-shell: docker-build-image docker-android-dir ## Builds a docker image with the android build env and opens a shell
+	docker run --rm $(DOCKER_RUN_VOLS) -it $(DOCKER_IMAGE) /bin/bash
 
 .PHONY: docker-remove-shell-image
 docker-remove-shell-image: ## Removes all docker shell image
