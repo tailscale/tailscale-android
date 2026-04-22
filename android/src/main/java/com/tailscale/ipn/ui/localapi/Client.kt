@@ -100,14 +100,6 @@ class Client(private val scope: CoroutineScope) {
   }
 
   fun editPrefs(prefs: Ipn.MaskedPrefs, responseHandler: (Result<Ipn.Prefs>) -> Unit) {
-    // Log the stack trace for debugging purposes for
-    // https://github.com/tailscale/tailscale/issues/14125
-    val stackTrace =
-        Thread.currentThread().stackTrace.joinToString("\n") { element ->
-          "at ${element.className}.${element.methodName}(${element.fileName}:${element.lineNumber})"
-        }
-    TSLog.v("editPrefs", "Called editPrefs with prefs: $prefs\nStack trace:\n$stackTrace")
-
     val body = Json.encodeToString(prefs).toByteArray()
     return patch(Endpoint.PREFS, body, responseHandler = responseHandler)
   }
