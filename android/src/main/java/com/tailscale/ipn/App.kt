@@ -25,6 +25,7 @@ import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import com.tailscale.ipn.autoconnect.NetworkWatcher
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.mdm.MDMSettingsChangedReceiver
 import com.tailscale.ipn.ui.localapi.Client
@@ -88,6 +89,8 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
 
   private val appViewModelStore: ViewModelStore by lazy { ViewModelStore() }
   var healthNotifier: HealthNotifier? = null
+  lateinit var networkWatcher: NetworkWatcher
+    private set
 
   override fun getPlatformDNSConfig(): String = dns.dnsConfigAsString
 
@@ -128,10 +131,14 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
         getString(R.string.health_channel_name),
         getString(R.string.health_channel_description),
         NotificationManagerCompat.IMPORTANCE_HIGH)
+
+    networkWatcher = NetworkWatcher(this)
+    networkWatcher.register()
   }
 
   override fun onTerminate() {
     super.onTerminate()
+    networkWatcher.unregister()
     Notifier.stop()
     notificationManager.cancelAll()
     applicationScope.cancel()
