@@ -52,7 +52,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -174,8 +173,9 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     NetworkChangeCallback.monitorDnsChanges(connectivityManager, dns)
     initViewModels()
     applicationScope.launch {
-      val rm = getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
-      MDMSettings.update(get(), rm)
+      val restrictionsManager =
+          getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
+      MDMSettings.update(get(), restrictionsManager)
     }
     applicationScope.launch {
       Notifier.state.collect { _ ->
@@ -207,9 +207,6 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
               }
             }
       }
-    }
-    applicationScope.launch {
-      val hideDisconnectAction = MDMSettings.forceEnabled.flow.first()
     }
     TSLog.init(this)
     FeatureFlags.initialize(mapOf("enable_new_search" to true))
