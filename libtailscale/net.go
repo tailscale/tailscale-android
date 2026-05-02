@@ -141,6 +141,12 @@ func (b *backend) updateTUN(rcfg *router.Config, dcfg *dns.OSConfig) (err error)
 	if sdk, err := b.appCtx.GetSDKInt(); err == nil && sdk >= 33 {
 		useExclude = true
 	}
+	for _, routeTarget := range tsocksInjectedRouteTargets() {
+		if err := builder.AddRoute(routeTarget.String(), 32); err != nil {
+			return err
+		}
+		b.logger.Logf("updateTUN: added tsocks injected route %s/32", routeTarget)
+	}
 
 	if useExclude {
 		// For API 33+, use ExcludeRoute for LocalRoutes and AddRoute for Routes.
@@ -242,6 +248,11 @@ func (b *backend) updateTUN(rcfg *router.Config, dcfg *dns.OSConfig) (err error)
 		return err
 	}
 	b.logger.Logf("updateTUN: created TUN device")
+	if tunDev, err = newStep0Tun(tunDev, b.appCtx, b.tsocks); err != nil {
+		closeFileDescriptor()
+		return err
+	}
+	b.logger.Logf("updateTUN: wrapped TUN device for step0")
 
 	b.devices.add(tunDev)
 	hasTunnel = true
