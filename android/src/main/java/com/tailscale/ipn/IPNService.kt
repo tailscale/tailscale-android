@@ -210,9 +210,36 @@ open class IPNService : VpnService(), libtailscale.IPNService {
     }
 
     if (allowPackages) {
-      for (packageName in packagesList) {
-        TSLog.d(TAG, "Including app: $packageName")
-        allowApp(b, packageName)
+      TSLog.d(TAG, "Include mode enabled -- using inverted-exclude strategy")
+
+      // Build the set of packages to DISALLOW (everything except user-selected ones)
+      val packagesToExclude = mutableSetOf<String>()
+
+      // 1. Get all installed apps
+      val allInstalled = packageManager.getInstalledApplications(0)
+          .mapNotNull { applicationInfo ->
+              try { applicationInfo.packageName } catch (_: Exception) { null }
+          }
+          .toSet()
+      TSLog.d(TAG, "Total installed packages: ${allInstalled.size}")
+
+      // 2. Remove user-selected packages (these should go through the tunnel)
+      val userSelected = packagesList.toSet()
+      packagesToExclude.addAll(allInstalled - userSelected)
+
+      // 3. Also exclude built-in disallowed packages (voicemail, etc.)
+      val builtinExcluded = UninitializedApp.get().builtInDisallowedPackageNames.toSet()
+      packagesToExclude.addAll(builtinExcluded)
+
+      TSLog.d(TAG, "Inverted exclude: selected=${userSelected.size}, " +
+                   "excluded=${packagesToExclude.size - builtinExcluded.size}, " +
+                   "builtin=${builtinExcluded.size}")
+
+      // 4. Disallow all apps not in the user's include list
+      //    This avoids addAllowedApplication() which breaks DNS for non-VPN apps
+      for (packageName in packagesToExclude) {
+        TSLog.d(TAG, "Disallowing app (inverted include): $packageName")
+        disallowApp(b, packageName)
       }
     } else {
       // Make sure to also exclude hard-coded apps that are known to cause issues
