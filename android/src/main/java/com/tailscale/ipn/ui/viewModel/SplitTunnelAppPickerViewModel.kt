@@ -17,6 +17,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
@@ -37,6 +38,28 @@ class SplitTunnelAppPickerViewModel : ViewModel() {
               initialValue = listOf(),
           )
   val selectedPackageNames: StateFlow<List<String>> = MutableStateFlow(listOf())
+
+  private val _searchQuery = MutableStateFlow("")
+  val searchQuery: StateFlow<String> = _searchQuery
+
+  val filteredApps: StateFlow<List<InstalledApp>> =
+      combine(installedApps, _searchQuery) { apps, query ->
+            if (query.isBlank()) apps
+            else
+                apps.filter { app ->
+                  app.name.contains(query, ignoreCase = true) ||
+                      app.packageName.contains(query, ignoreCase = true)
+                }
+          }
+          .stateIn(
+              scope = viewModelScope,
+              started = SharingStarted.WhileSubscribed(5000),
+              initialValue = listOf(),
+          )
+
+  fun updateSearchQuery(query: String) {
+    _searchQuery.value = query
+  }
 
   val allowSelected: StateFlow<Boolean> = MutableStateFlow(App.get().allowSelectedPackages())
   val showHeaderMenu: StateFlow<Boolean> = MutableStateFlow(false)
