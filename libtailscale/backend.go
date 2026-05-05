@@ -101,7 +101,12 @@ type backend struct {
 	settings   settingsFunc
 	lastCfg    *router.Config
 	lastDNSCfg *dns.OSConfig
-	netMon     *netmon.Monitor
+	// lastEffective is the snapshot of the VpnService.Builder-relevant
+	// subset of the last-applied config. updateTUN uses it to skip a
+	// rebuild when only fields outside that subset (e.g. peer /32 churn
+	// that we coalesce) have changed. See tailscale/tailscale#19591.
+	lastEffective vpnEffectiveCfg
+	netMon        *netmon.Monitor
 
 	logIDPublic logid.PublicID
 	logger      *logtail.Logger

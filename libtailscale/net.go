@@ -9,11 +9,13 @@ import (
 	"log"
 	"net/netip"
 	"runtime/debug"
+	"slices"
 	"strings"
 	"syscall"
 
 	"github.com/tailscale/tailscale-android/libtailscale/ifaceparse"
 	rangescalc "github.com/tailscale/tailscale-android/libtailscale/ranges_calc"
+	routesutil "github.com/tailscale/tailscale-android/libtailscale/routesutil"
 	"github.com/tailscale/wireguard-go/tun"
 	"tailscale.com/net/dns"
 	"tailscale.com/net/netmon"
@@ -77,6 +79,20 @@ var googleDNSServers = []netip.Addr{
 }
 
 func (b *backend) updateTUN(rcfg *router.Config, dcfg *dns.OSConfig) (err error) {
+	// On large tailnets, wgengine fires a router.Config update on every peer
+	// up/down — but the change is just a per-peer /32 inside the tailnet's
+	// CGNAT range, which the Android VPN layer doesn't need (peer-level
+	// routing is handled inside wgengine). Coalescing those /32s into a
+	// single parent prefix lets us no-op when only peer membership changed
+	// and skip the VpnService.Builder.establish() rebuild that was tearing
+	// down every TCP socket on tun0. See tailscale/tailscale#19591.
+	eff := computeEffective(rcfg, dcfg)
+	if rcfg != nil && len(rcfg.LocalAddrs) > 0 && b.lastEffective.Equal(eff) {
+		b.logger.Logf("updateTUN: VPN-effective cfg unchanged; skipping rebuild (routes %d, coalesced %d)",
+			len(rcfg.Routes), len(eff.routes))
+		return nil
+	}
+
 	b.logger.Logf("updateTUN: changed")
 	defer b.logger.Logf("updateTUN: finished")
 
@@ -144,7 +160,8 @@ func (b *backend) updateTUN(rcfg *router.Config, dcfg *dns.OSConfig) (err error)
 
 	if useExclude {
 		// For API 33+, use ExcludeRoute for LocalRoutes and AddRoute for Routes.
-		for _, route := range rcfg.Routes {
+		// eff.routes is the coalesced set — see computeEffective.
+		for _, route := range eff.routes {
 			// Normalize route address; Builder.addRoute does not accept non-zero masked bits.
 			route = route.Masked()
 			if err := builder.AddRoute(route.Addr().String(), int32(route.Bits())); err != nil {
@@ -163,10 +180,10 @@ func (b *backend) updateTUN(rcfg *router.Config, dcfg *dns.OSConfig) (err error)
 			}
 		}
 
-		b.logger.Logf("updateTUN: added %d routes (exclude-mode), localRoutes=%d", len(rcfg.Routes), len(rcfg.LocalRoutes))
+		b.logger.Logf("updateTUN: added %d routes (exclude-mode), localRoutes=%d", len(eff.routes), len(rcfg.LocalRoutes))
 	} else {
 		// Older APIs: compute allowed-minus-disallowed prefixes and AddRoute them.
-		prefixesV4, prefixesV6, err := rangescalc.Calculate(rcfg.Routes, rcfg.LocalRoutes)
+		prefixesV4, prefixesV6, err := rangescalc.Calculate(eff.routes, rcfg.LocalRoutes)
 		if err != nil {
 			b.logger.Logf("updateTUN: route calculation error: %v", err)
 			return err
@@ -253,6 +270,7 @@ func (b *backend) updateTUN(rcfg *router.Config, dcfg *dns.OSConfig) (err error)
 
 	b.lastCfg = rcfg
 	b.lastDNSCfg = dcfg
+	b.lastEffective = eff
 	return nil
 }
 
@@ -269,6 +287,7 @@ func closeFileDescriptor() error {
 // CloseVPN closes any active TUN devices.
 func (b *backend) CloseTUNs() {
 	b.lastCfg = nil
+	b.lastEffective = vpnEffectiveCfg{}
 	b.devices.Shutdown()
 }
 
@@ -338,4 +357,48 @@ func (b *backend) getPlatformDNSConfig() string {
 
 func (b *backend) setCfg(rcfg *router.Config, dcfg *dns.OSConfig) error {
 	return b.settings(rcfg, dcfg)
+}
+
+// vpnEffectiveCfg captures the subset of router.Config + dns.OSConfig
+// that VpnService.Builder actually consumes. updateTUN compares this
+// against the last-applied snapshot to decide whether a tun rebuild is
+// needed.
+type vpnEffectiveCfg struct {
+	localAddrs    []netip.Prefix
+	routes        []netip.Prefix // peer routes coalesced via routesutil.CoalescePeerRoutes
+	localRoutes   []netip.Prefix
+	mtu           int
+	nameservers   []netip.Addr
+	searchDomains []dnsname.FQDN
+}
+
+func computeEffective(rcfg *router.Config, dcfg *dns.OSConfig) vpnEffectiveCfg {
+	if rcfg == nil {
+		return vpnEffectiveCfg{}
+	}
+	eff := vpnEffectiveCfg{
+		localAddrs:  slices.Clone(rcfg.LocalAddrs),
+		routes:      routesutil.CoalescePeerRoutes(rcfg.Routes),
+		localRoutes: slices.Clone(rcfg.LocalRoutes),
+		mtu:         rcfg.NewMTU,
+	}
+	if dcfg != nil {
+		eff.nameservers = slices.Clone(dcfg.Nameservers)
+		eff.searchDomains = slices.Clone(dcfg.SearchDomains)
+	}
+	return eff
+}
+
+// Equal reports whether two effective configs are identical. The routes
+// slice is sorted by routesutil.CoalescePeerRoutes; the other slices
+// preserve wgengine's emission order, which is deterministic for a given
+// netmap. A spurious mismatch would only cause an extra rebuild, never a
+// missed one.
+func (e vpnEffectiveCfg) Equal(o vpnEffectiveCfg) bool {
+	return e.mtu == o.mtu &&
+		slices.Equal(e.localAddrs, o.localAddrs) &&
+		slices.Equal(e.routes, o.routes) &&
+		slices.Equal(e.localRoutes, o.localRoutes) &&
+		slices.Equal(e.nameservers, o.nameservers) &&
+		slices.Equal(e.searchDomains, o.searchDomains)
 }
