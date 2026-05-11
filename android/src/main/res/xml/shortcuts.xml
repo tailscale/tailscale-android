@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <shortcut
+        android:shortcutId="connect_vpn"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_connect"
+        android:shortcutShortLabel="@string/connect"
+        android:shortcutLongLabel="@string/shortcut_connect_long"
+        android:shortcutDisabledMessage="@string/shortcut_disabled">
+        <intent
+            android:action="com.tailscale.ipn.SHORTCUT_CONNECT"
+            android:targetPackage="com.tailscale.ipn"
+            android:targetClass="com.tailscale.ipn.MainActivity" />
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="disconnect_vpn"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_disconnect"
+        android:shortcutShortLabel="@string/disconnect"
+        android:shortcutLongLabel="@string/shortcut_disconnect_long"
+        android:shortcutDisabledMessage="@string/shortcut_disabled">
+        <intent
+            android:action="com.tailscale.ipn.SHORTCUT_DISCONNECT"
+            android:targetPackage="com.tailscale.ipn"
+            android:targetClass="com.tailscale.ipn.MainActivity" />
+    </shortcut>
+
+</shortcuts>
