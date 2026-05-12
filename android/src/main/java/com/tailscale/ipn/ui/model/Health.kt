@@ -36,12 +36,19 @@ class Health {
 
     override fun compareTo(other: UnhealthyState): Int {
       // Compare by severity first
-      val severityComparison = Severity.compareTo(other.Severity)
+      val severityComparison = other.Severity.compareTo(other.Severity)
       if (severityComparison != 0) {
         return severityComparison
       }
 
-      // If severities are equal, compare by warnableCode
+      // If severities are equal, connectivity impacting issues first
+      val connectivityComparison =
+          (other.ImpactsConnectivity ?: false).compareTo(ImpactsConnectivity ?: false)
+      if (connectivityComparison != 0) {
+        return connectivityComparison
+      }
+
+      // Otherwise, alphabetical by WarnableCode
       return WarnableCode.compareTo(other.WarnableCode)
     }
   }
