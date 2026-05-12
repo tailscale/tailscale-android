@@ -80,16 +80,7 @@ func (b *backend) updateTUN(rcfg *router.Config, dcfg *dns.OSConfig) (err error)
 	b.logger.Logf("updateTUN: changed")
 	defer b.logger.Logf("updateTUN: finished")
 
-	hasTunnel := false
-	disableTUN := len(rcfg.LocalAddrs) == 0
-	isChromeOS, _ := b.appCtx.IsChromeOS()
-	if disableTUN || isChromeOS {
-		// Close previous tunnel(s).
-		// This is necessary for ChromeOS, native Android devices
-		// seem to handle seamless handover between tunnels correctly.
-		//
-		// TODO(eliasnaur): If seamless handover becomes a desirable feature, skip
-		// the closing on ChromeOS.
+	if disableTUN := len(rcfg.LocalAddrs) == 0; disableTUN {
 		b.logger.Logf("updateTUN: closing old TUNs")
 		b.CloseTUNs()
 		b.logger.Logf("updateTUN: closed old TUNs")
@@ -104,14 +95,9 @@ func (b *backend) updateTUN(rcfg *router.Config, dcfg *dns.OSConfig) (err error)
 		// successfully. See tailscale/tailscale#18679.
 		//
 		// TODO(nickkhyl): revisit and simplify the [multiTUN] implementation?
-		defer func() {
-			if !hasTunnel && b.devices.Down() {
-				b.logger.Logf("updateTUN: tunnel brought down: %v", err)
-			}
-		}()
-	}
-
-	if disableTUN {
+		if b.devices.Down() {
+			b.logger.Logf("updateTUN: tunnel brought down: %v", err)
+		}
 		return nil
 	}
 
@@ -249,7 +235,6 @@ func (b *backend) updateTUN(rcfg *router.Config, dcfg *dns.OSConfig) (err error)
 	b.logger.Logf("updateTUN: created TUN device")
 
 	b.devices.add(tunDev)
-	hasTunnel = true
 	b.logger.Logf("updateTUN: added TUN device")
 
 	if b.devices.Up() {
