@@ -80,36 +80,41 @@ func (b *backend) updateTUN(rcfg *router.Config, dcfg *dns.OSConfig) (err error)
 	b.logger.Logf("updateTUN: changed")
 	defer b.logger.Logf("updateTUN: finished")
 
-	// Close previous tunnel(s).
-	// This is necessary for ChromeOS, native Android devices
-	// seem to handle seamless handover between tunnels correctly.
-	//
-	// TODO(eliasnaur): If seamless handover becomes a desirable feature, skip
-	// the closing on ChromeOS.
-	b.logger.Logf("updateTUN: closing old TUNs")
-	b.CloseTUNs()
-	b.logger.Logf("updateTUN: closed old TUNs")
-
-	// Since the previous tunnel(s) are closed, the [multiTUN] device is
-	// not operational until a new underlying tunnel is created and added,
-	// which may never happen in case of an error or an empty [router.Config].
-	//
-	// Therefore, to prevent deadlocks where a [multiTUN.Write] would
-	// block waiting for a new tunnel to be added, we bring the multiTUN
-	// device down on exit unless a new [tun.Device] is created and added
-	// successfully. See tailscale/tailscale#18679.
-	//
-	// TODO(nickkhyl): revisit and simplify the [multiTUN] implementation?
 	hasTunnel := false
-	defer func() {
-		if !hasTunnel && b.devices.Down() {
-			b.logger.Logf("updateTUN: tunnel brought down: %v", err)
-		}
-	}()
+	disableTUN := len(rcfg.LocalAddrs) == 0
+	isChromeOS, _ := b.appCtx.IsChromeOS()
+	if disableTUN || isChromeOS {
+		// Close previous tunnel(s).
+		// This is necessary for ChromeOS, native Android devices
+		// seem to handle seamless handover between tunnels correctly.
+		//
+		// TODO(eliasnaur): If seamless handover becomes a desirable feature, skip
+		// the closing on ChromeOS.
+		b.logger.Logf("updateTUN: closing old TUNs")
+		b.CloseTUNs()
+		b.logger.Logf("updateTUN: closed old TUNs")
 
-	if len(rcfg.LocalAddrs) == 0 {
+		// Since the previous tunnel(s) are closed, the [multiTUN] device is
+		// not operational until a new underlying tunnel is created and added,
+		// which may never happen in case of an error or an empty [router.Config].
+		//
+		// Therefore, to prevent deadlocks where a [multiTUN.Write] would
+		// block waiting for a new tunnel to be added, we bring the multiTUN
+		// device down on exit unless a new [tun.Device] is created and added
+		// successfully. See tailscale/tailscale#18679.
+		//
+		// TODO(nickkhyl): revisit and simplify the [multiTUN] implementation?
+		defer func() {
+			if !hasTunnel && b.devices.Down() {
+				b.logger.Logf("updateTUN: tunnel brought down: %v", err)
+			}
+		}()
+	}
+
+	if disableTUN {
 		return nil
 	}
+
 	builder := vpnService.service.NewBuilder()
 	b.logger.Logf("updateTUN: got new builder")
 
