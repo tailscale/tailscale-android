@@ -36,7 +36,7 @@ class Health {
 
     override fun compareTo(other: UnhealthyState): Int {
       // Compare by severity first
-      val severityComparison = other.Severity.compareTo(other.Severity)
+      val severityComparison = other.Severity.compareTo(Severity)
       if (severityComparison != 0) {
         return severityComparison
       }
