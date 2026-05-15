@@ -1,11 +1,11 @@
 module github.com/tailscale/tailscale-android
 
-go 1.26.2
+go 1.26.3
 
 require (
 	github.com/tailscale/wireguard-go v0.0.0-20260427181203-e3ac4a0afb4e
 	golang.org/x/mobile v0.0.0-20240806205939-81131f6468ab
-	tailscale.com v1.97.0-pre.0.20260504193312-0cf899610c2a
+	tailscale.com v1.99.0-pre.0.20260515163722-894ff5d8eee9
 )
 
 require (
@@ -59,7 +59,6 @@ require (
 	github.com/mitchellh/go-ps v1.0.0 // indirect
 	github.com/pierrec/lz4/v4 v4.1.25 // indirect
 	github.com/pires/go-proxyproto v0.8.1 // indirect
-	github.com/prometheus-community/pro-bing v0.4.0 // indirect
 	github.com/safchain/ethtool v0.3.0 // indirect
 	github.com/tailscale/certstore v0.1.1-0.20260409135935-3638fb84b77d // indirect
 	github.com/tailscale/go-winio v0.0.0-20231025203758-c4f33415bf55 // indirect
