@@ -8,8 +8,10 @@ import android.content.Intent
 import androidx.core.app.NotificationCompat
 import androidx.work.CoroutineWorker
 import androidx.work.Data
+import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import com.tailscale.ipn.UninitializedApp.Companion.STATUS_CHANNEL_ID
+import com.tailscale.ipn.UninitializedApp.Companion.STATUS_NOTIFICATION_ID
 import com.tailscale.ipn.ui.localapi.Client
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.notifier.Notifier
@@ -104,6 +106,19 @@ class UseExitNodeWorker(appContext: Context, workerParams: WorkerParameters) :
     }
   }
 
+    override suspend fun getForegroundInfo(): ForegroundInfo {
+        // notification just so that there is no exception on android 11 and older (api 30 and older)
+        // it will be only briefly visible in the real world because the intent finishes almost instantly
+        // https://developer.android.com/develop/background-work/background-tasks/persistent/getting-started/define-work#backwards-compat
+        val app = UninitializedApp.get()
+        val notification =
+            NotificationCompat.Builder(app, STATUS_CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_notification)
+                .setContentTitle(app.getString(R.string.changing_exit_node_notification))
+                .setPriority(NotificationCompat.PRIORITY_MIN)
+                .build()
+        return ForegroundInfo(STATUS_NOTIFICATION_ID, notification)
+    }
   companion object {
     const val EXIT_NODE_NAME = "EXIT_NODE_NAME"
     const val ALLOW_LAN_ACCESS = "ALLOW_LAN_ACCESS"

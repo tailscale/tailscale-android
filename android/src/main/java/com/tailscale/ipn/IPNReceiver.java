@@ -13,6 +13,10 @@ import androidx.work.OneTimeWorkRequest;
 import androidx.work.OutOfQuotaPolicy;
 import androidx.work.WorkManager;
 
+import com.tailscale.ipn.ui.model.Ipn;
+import com.tailscale.ipn.ui.model.Netmap;
+import com.tailscale.ipn.ui.notifier.Notifier;
+
 import java.util.Objects;
 
 /**
@@ -46,6 +50,13 @@ public class IPNReceiver extends BroadcastReceiver {
             workManager.enqueueUniqueWork(WORK_CONNECT, ExistingWorkPolicy.REPLACE, req);
 
         } else if (Objects.equals(action, INTENT_DISCONNECT_VPN)) {
+            // If we're already disconnected, skip triggering the worker to avoid overwriting the status notification
+            // with the "Stopping Tailscale VPN…" one.
+            boolean running = UninitializedApp.get().getAppScopedViewModel().getVpnActive().getValue();
+            if (!running) {
+                return;
+            }
+
             OneTimeWorkRequest req =
                     new OneTimeWorkRequest.Builder(StopVPNWorker.class)
                             .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
@@ -56,7 +67,22 @@ public class IPNReceiver extends BroadcastReceiver {
 
         } else if (Objects.equals(action, INTENT_USE_EXIT_NODE)) {
             String exitNode = intent.getStringExtra("exitNode");
+            if (exitNode != null && exitNode.isEmpty()) exitNode = null;
             boolean allowLanAccess = intent.getBooleanExtra("allowLanAccess", false);
+
+
+            Ipn.Prefs currentPrefs = Notifier.INSTANCE.getPrefs().getValue();
+            Netmap.NetworkMap currentNetmap = Notifier.INSTANCE.getNetmap().getValue();
+            String currentExitNodeName = UninitializedApp.Companion.getExitNodeName(currentPrefs, currentNetmap);
+            boolean currentAllowLan = false;
+            if (currentPrefs != null) {
+                currentAllowLan = currentPrefs.getExitNodeAllowLANAccess();
+            }
+            // If the exit node configuration is the same as requested, skip triggering the worker
+            // to avoid overwriting the status notification with the "Changing exit node…" one.
+            if (Objects.equals(exitNode, currentExitNodeName) && allowLanAccess == currentAllowLan) {
+                return;
+            }
 
             Data input =
                     new Data.Builder()
