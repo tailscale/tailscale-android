@@ -5,6 +5,8 @@ package libtailscale
 
 import (
 	"sync"
+
+	"tailscale.com/net/netmon"
 )
 
 var (
@@ -34,6 +36,11 @@ func OnDNSConfigChanged(ifname string) {
 	case onDNSConfigChanged <- ifname:
 	default:
 	}
+}
+
+// OnGatewayChanged is called when LinkProperties provides an updated default gateway IP.
+func OnGatewayChanged(gatewayIP string) {
+	netmon.UpdateLastKnownDefaultGateway(gatewayIP)
 }
 
 var android struct {
