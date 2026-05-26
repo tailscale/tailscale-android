@@ -34,7 +34,6 @@ import (
 	"tailscale.com/tsd"
 	"tailscale.com/types/logger"
 	"tailscale.com/types/logid"
-	"tailscale.com/types/netmap"
 	"tailscale.com/util/eventbus"
 	"tailscale.com/wgengine"
 	"tailscale.com/wgengine/netstack"
@@ -177,19 +176,14 @@ func (a *App) runBackend(ctx context.Context, hardwareAttestation bool) error {
 	b.avoidEmptyDNS = a.isChromeOS()
 
 	var (
-		cfg        configPair
-		state      ipn.State
-		networkMap *netmap.NetworkMap
+		cfg   configPair
+		state ipn.State
 	)
 
 	stateCh := make(chan ipn.State)
-	netmapCh := make(chan *netmap.NetworkMap)
-	go b.backend.WatchNotifications(ctx, ipn.NotifyInitialNetMap|ipn.NotifyInitialPrefs|ipn.NotifyInitialState, func() {}, func(notify *ipn.Notify) bool {
+	go b.backend.WatchNotifications(ctx, ipn.NotifyInitialPrefs|ipn.NotifyInitialState|ipn.NotifyNoNetMap, func() {}, func(notify *ipn.Notify) bool {
 		if notify.State != nil {
 			stateCh <- *notify.State
-		}
-		if notify.NetMap != nil {
-			netmapCh <- notify.NetMap
 		}
 		return true
 	})
@@ -206,8 +200,6 @@ func (a *App) runBackend(ctx context.Context, hardwareAttestation bool) error {
 					a.closeVpnService(err, b)
 				}
 			}
-		case n := <-netmapCh:
-			networkMap = n
 		case c := <-configs:
 			cfg = c
 			if vpnService.service == nil || !b.isConfigNonNilAndDifferent(cfg.rcfg, cfg.dcfg) {
@@ -253,9 +245,6 @@ func (a *App) runBackend(ctx context.Context, hardwareAttestation bool) error {
 
 			vpnService.service = s
 
-			if networkMap != nil {
-				// TODO
-			}
 			if state >= ipn.Starting && b.isConfigNonNilAndDifferent(cfg.rcfg, cfg.dcfg) {
 				if err := b.updateTUN(cfg.rcfg, cfg.dcfg); err != nil {
 					a.closeVpnService(err, b)
@@ -304,7 +293,7 @@ func (a *App) newBackend(dataDir string, appCtx AppContext, store *stateStore,
 		}
 	}
 
-	logf := logger.RusagePrefixLog(log.Printf)
+	logf := logger.Logf(log.Printf)
 	b := &backend{
 		devices:  newTUNDevices(),
 		settings: settings,

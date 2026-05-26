@@ -9,7 +9,11 @@ import com.tailscale.ipn.ui.model.Netmap
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.model.UserID
 
-data class PeerSet(val user: Tailcfg.UserProfile?, val peers: List<Tailcfg.Node>)
+data class PeerSet(
+    val userID: UserID,
+    val user: Tailcfg.UserProfile?,
+    val peers: List<Tailcfg.Node>
+)
 
 class PeerCategorizer {
   var peerSets: List<PeerSet> = emptyList()
@@ -62,6 +66,7 @@ class PeerCategorizer {
             .map { (userId, peers) ->
               val profile = netmap.userProfile(userId)
               PeerSet(
+                  userId,
                   profile,
                   peers.sortedWith { a, b ->
                     when {
@@ -117,7 +122,7 @@ class PeerCategorizer {
                         (it.Addresses ?: emptyList()).fastAny { addr -> addr.contains(searchTerm) }
                   }
               if (matchingPeers.isNotEmpty()) {
-                PeerSet(user, matchingPeers)
+                PeerSet(peerSet.userID, user, matchingPeers)
               } else {
                 null
               }
