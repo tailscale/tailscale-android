@@ -637,7 +637,7 @@ fun PeerList(
           var first = true
           peerList.forEach { peerSet ->
             if (!first) {
-              item(key = "user_divider_${peerSet.user?.ID ?: 0L}") { Lists.ItemDivider() }
+              item(key = "user_divider_${peerSet.userID}") { Lists.ItemDivider() }
             }
             first = false
             if (isAndroidTV()) {
