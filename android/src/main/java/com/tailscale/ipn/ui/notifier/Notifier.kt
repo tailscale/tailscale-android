@@ -181,18 +181,22 @@ object Notifier {
 
     val self = notify.SelfChange
     if (initial == null && self != null && !next.isSameSelf(self)) {
-      next = self.toEmptyNetworkMap(userProfiles.toMap())
+      // A self node change is a profile boundary. It resets the implicit bus
+      // state, so the publisher must resend any UserProfiles referenced by the
+      // new profile. Clear before applying this Notify's UserProfiles below so
+      // profiles included in the same update are retained.
+      userProfiles.clear()
+      next = self.toEmptyNetworkMap()
       if (BuildConfig.DEBUG) {
         TSLog.d(
-            TAG, "received self change for a different node; cleared peers before applying deltas")
+            TAG,
+            "received self change for a different node; cleared peers and users before applying deltas")
       }
     }
 
     notify.UserProfiles?.let { userProfiles.putAll(it) }
 
-    if (userProfiles.isNotEmpty() || next.UserProfiles.isNotEmpty()) {
-      next = next.copy(UserProfiles = userProfiles.toMap())
-    }
+    next = next.copy(UserProfiles = userProfiles.toMap())
     if (self != null) {
       next =
           next.copy(
@@ -247,16 +251,14 @@ object Notifier {
 
   private fun Tailcfg.Node.capabilities() = CapMap?.keys?.toList() ?: Capabilities.orEmpty()
 
-  private fun Tailcfg.Node.toEmptyNetworkMap(
-      profiles: Map<String, Tailcfg.UserProfile>
-  ): Netmap.NetworkMap {
+  private fun Tailcfg.Node.toEmptyNetworkMap(): Netmap.NetworkMap {
     val suffix = magicDNSSuffix()
     val self = withDisplayNames(suffix)
     return Netmap.NetworkMap(
         SelfNode = self,
         Peers = emptyList(),
         Domain = suffix,
-        UserProfiles = profiles,
+        UserProfiles = emptyMap(),
         TKAEnabled = false,
         DNS = null,
         AllCaps = self.capabilities())
