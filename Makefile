@@ -158,7 +158,7 @@ tailscale-test.apk: version gradle-dependencies
 	(cd android && ./gradlew assembleApplicationTestAndroidTest)
 	install -C ./android/build/outputs/apk/androidTest/applicationTest/android-applicationTest-androidTest.apk $@
 
-tailscale.version: go.mod go.sum $(wildcard .git/HEAD)
+tailscale.version: go.mod go.sum go.toolchain.rev $(wildcard .git/HEAD)
 	@bash -c "./tool/go run tailscale.com/cmd/mkversion > tailscale.version"
 
 .PHONY: version
@@ -175,10 +175,10 @@ android/libs:
 $(GOBIN):
 	mkdir -p $(GOBIN)
 
-$(GOBIN)/gomobile: $(GOBIN)/gobind go.mod go.sum | $(GOBIN)
+$(GOBIN)/gomobile: $(GOBIN)/gobind go.mod go.sum go.toolchain.rev | $(GOBIN)
 	./tool/go install golang.org/x/mobile/cmd/gomobile
 
-$(GOBIN)/gobind: go.mod go.sum
+$(GOBIN)/gobind: go.mod go.sum go.toolchain.rev
 	./tool/go install golang.org/x/mobile/cmd/gobind
 
 .PHONY: build-unstripped-aar
