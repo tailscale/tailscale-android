@@ -22,6 +22,7 @@ public class IPNReceiver extends BroadcastReceiver {
 
     public static final String INTENT_CONNECT_VPN = "com.tailscale.ipn.CONNECT_VPN";
     public static final String INTENT_DISCONNECT_VPN = "com.tailscale.ipn.DISCONNECT_VPN";
+    public static final String INTENT_INTEGRATION_LOGIN = "com.tailscale.ipn.integration.LOGIN";
     private static final String INTENT_USE_EXIT_NODE = "com.tailscale.ipn.USE_EXIT_NODE";
 
     // Unique work names prevent connect/disconnect flapping from enqueuing a long backlog.
@@ -72,6 +73,27 @@ public class IPNReceiver extends BroadcastReceiver {
                             .build();
 
             workManager.enqueueUniqueWork(WORK_USE_EXIT_NODE, ExistingWorkPolicy.REPLACE, req);
+        } else if (BuildConfig.DEBUG && Objects.equals(action, INTENT_INTEGRATION_LOGIN)) {
+            Data input =
+                    new Data.Builder()
+                            .putString(
+                                    IntegrationLoginWorker.EXTRA_CONTROL_URL,
+                                    intent.getStringExtra(
+                                            IntegrationLoginWorker.EXTRA_CONTROL_URL))
+                            .putString(
+                                    IntegrationLoginWorker.EXTRA_AUTH_KEY,
+                                    intent.getStringExtra(IntegrationLoginWorker.EXTRA_AUTH_KEY))
+                            .build();
+
+            OneTimeWorkRequest req =
+                    new OneTimeWorkRequest.Builder(IntegrationLoginWorker.class)
+                            .setInputData(input)
+                            .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+                            .addTag(IntegrationLoginWorker.WORK_NAME)
+                            .build();
+
+            workManager.enqueueUniqueWork(
+                    IntegrationLoginWorker.WORK_NAME, ExistingWorkPolicy.REPLACE, req);
         }
     }
 }

@@ -11,6 +11,13 @@
 #
 # The convention here is tailscale-android-build-amd64-<date>
 DOCKER_IMAGE := tailscale-android-build-amd64-041425-1
+
+# The integration test image contains the Android emulator, system image, SDK,
+# build-tools, NDK, adb, and helper tools needed to run the emulator-backed Go
+# integration tests. Bump this tag when docker/Dockerfile.android-integration
+# or the required tool versions change, using:
+# tailscale-android-integration-amd64-YYYYMMDD-N
+ANDROID_INTEGRATION_DOCKER_IMAGE := tailscale-android-integration-amd64-20260609-1
 export TS_USE_TOOLCHAIN=1
 
 # If set, additional comma-separated build tags passed to the libtailscale Go
@@ -365,6 +372,14 @@ docker-build-image: ## Builds the docker image for the android build environment
 		docker build -f docker/DockerFile.amd64-build -t $(DOCKER_IMAGE) .; \
 	fi
 
+.PHONY: docker-build-android-integration-image
+docker-build-android-integration-image: ## Build the Docker image used to run Android integration tests
+	@echo "Checking if docker image $(ANDROID_INTEGRATION_DOCKER_IMAGE) already exists..."
+	@if ! docker images $(ANDROID_INTEGRATION_DOCKER_IMAGE) -q | grep -q . ; then \
+		echo "Image does not exist. Building..."; \
+		docker build -f docker/Dockerfile.android-integration -t $(ANDROID_INTEGRATION_DOCKER_IMAGE) .; \
+	fi
+
 # DOCKER_ANDROID_DIR is bind-mounted as /root/.android inside the container
 # so the Gradle-generated debug keystore (and anything else under ~/.android)
 # persists across docker runs. Without this, every docker-based debug build
@@ -373,12 +388,19 @@ docker-build-image: ## Builds the docker image for the android build environment
 # JVM's user.home resolves to /root for the container's root user, regardless
 # of the Dockerfile's HOME=/build env.
 DOCKER_ANDROID_DIR := $(CURDIR)/.android-docker
+DOCKER_ANDROID_INTEGRATION_DIR := $(CURDIR)/.android-integration-docker
+DOCKER_GRADLE_DIR := $(CURDIR)/.gradle-docker
+DOCKER_GO_CACHE_DIR := $(CURDIR)/.cache-docker
 
 .PHONY: docker-android-dir
 docker-android-dir:
-	@mkdir -p $(DOCKER_ANDROID_DIR)
+	@mkdir -p $(DOCKER_ANDROID_DIR) $(DOCKER_GRADLE_DIR) $(DOCKER_GO_CACHE_DIR)
 
-DOCKER_RUN_VOLS := -v $(CURDIR):/build/tailscale-android -v $(DOCKER_ANDROID_DIR):/root/.android
+.PHONY: docker-android-integration-dir
+docker-android-integration-dir:
+	@mkdir -p $(DOCKER_ANDROID_INTEGRATION_DIR) $(DOCKER_GO_CACHE_DIR)
+
+DOCKER_RUN_VOLS := -v $(CURDIR):/build/tailscale-android -v $(DOCKER_ANDROID_DIR):/root/.android -v $(DOCKER_GRADLE_DIR):/build/.gradle -v $(DOCKER_GO_CACHE_DIR):/build/.cache --env GOPATH=/build/.cache/go --env GOMODCACHE=/build/.cache/go/pkg/mod
 
 .PHONY: docker-run-build
 docker-run-build: clean jarsign-env docker-build-image docker-android-dir ## Runs the docker image for the android build environment and builds release
@@ -387,6 +409,21 @@ docker-run-build: clean jarsign-env docker-build-image docker-android-dir ## Run
 .PHONY: docker-tailscale-debug
 docker-tailscale-debug: docker-build-image docker-android-dir ## Build tailscale-debug.apk inside the docker env (stable signer across runs)
 	@docker run --rm $(DOCKER_RUN_VOLS) $(DOCKER_IMAGE) make tailscale-debug
+
+.PHONY: android-integration-test
+android-integration-test: docker-tailscale-debug android-integration-test-run ## Build APK and run adb-backed Android integration tests in Docker
+
+.PHONY: android-integration-test-run
+android-integration-test-run: docker-build-android-integration-image docker-android-integration-dir ## Run adb-backed Android integration tests in Docker using existing APK
+	@docker run --rm --device /dev/kvm \
+		-v $(CURDIR):/workspace \
+		-v $(DOCKER_ANDROID_INTEGRATION_DIR):/root/.android \
+		-v $(DOCKER_GO_CACHE_DIR):/root/.cache \
+		--env GOPATH=/root/.cache/go \
+		--env GOMODCACHE=/root/.cache/go/pkg/mod \
+		-w /workspace \
+		$(ANDROID_INTEGRATION_DOCKER_IMAGE) \
+		/usr/local/bin/run-android-integration-test /workspace/$(DEBUG_APK)
 
 .PHONY: docker-remove-build-image
 docker-remove-build-image: ## Removes the current docker build image
