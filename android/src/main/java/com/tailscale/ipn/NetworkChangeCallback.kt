@@ -197,6 +197,14 @@ object NetworkChangeCallback {
 
     if (dns.updateDNSFromNetwork(sb.toString())) {
       TSLog.d(TAG, "$why: updated DNS config for iface=${info.linkProps.interfaceName}")
+
+      val gatewayIP =
+          info.linkProps.routes
+              .filter { it.isDefaultRoute && it.gateway != null }
+              .sortedBy { if (it.gateway is java.net.Inet4Address) 0 else 1 }
+              .firstNotNullOfOrNull { it.gateway?.hostAddress } ?: ""
+
+      Libtailscale.onGatewayChanged(gatewayIP)
       Libtailscale.onDNSConfigChanged(info.linkProps.interfaceName)
     }
   }
