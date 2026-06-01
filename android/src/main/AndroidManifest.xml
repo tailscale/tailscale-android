@@ -92,6 +92,13 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".DatapathTestActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar" />
+
         <receiver
             android:name="IPNReceiver"
             android:exported="true">
