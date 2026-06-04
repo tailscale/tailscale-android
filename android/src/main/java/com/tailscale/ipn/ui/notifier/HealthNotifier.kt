@@ -16,15 +16,14 @@ import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.util.TSLog
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
 
-@OptIn(FlowPreview::class)
 class HealthNotifier(
     healthStateFlow: StateFlow<Health.State?>,
     ipnStateFlow: StateFlow<Ipn.State>,
@@ -45,31 +44,26 @@ class HealthNotifier(
           "wantrunning-false")
 
   init {
-    // This roughly matches the iOS/macOS implementation in terms of debouncing, and ingoring
+    // This roughly matches the iOS/macOS implementation in terms of debouncing, and ignoring
     // health warnings in various states.
     scope.launch {
-      healthStateFlow
-          .distinctUntilChanged { old, new ->
-            old?.Warnings?.keys.orEmpty() == new?.Warnings?.keys.orEmpty()
-          }
-          .debounce(3000)
-          .combine(ipnStateFlow, ::Pair)
-          .collect { pair ->
-            val health = pair.first
-            // Only deliver health notifications when the client is Running
-            when (val ipnState = pair.second) {
-              Ipn.State.Running -> {
-                TSLog.d(TAG, "Health updated: ${health?.Warnings?.keys?.sorted()}")
-                health?.Warnings?.let {
-                  notifyHealthUpdated(it.values.mapNotNull { it }.toTypedArray())
-                }
-              }
-              else -> {
-                TSLog.d(TAG, "Ignoring and dropping all health messages in state ${ipnState}")
-                dropAllWarnings()
-                return@collect
-              }
+      ipnStateFlow
+          .flatMapLatest { ipnState ->
+            if (ipnState == Ipn.State.Running) {
+              healthStateFlow
+                  .distinctUntilChanged { old, new ->
+                    old?.Warnings.orEmpty() == new?.Warnings.orEmpty()
+                  }
+                  .debounce(3000)
+            } else {
+              TSLog.d(TAG, "Ignoring and dropping all health messages in state $ipnState")
+              dropAllWarnings()
+              emptyFlow()
             }
+          }
+          .collect { health ->
+            TSLog.d(TAG, "Health updated: ${health?.Warnings?.keys?.sorted()}")
+            health?.Warnings?.values?.filterNotNull()?.toTypedArray()?.let(::notifyHealthUpdated)
           }
     }
   }
