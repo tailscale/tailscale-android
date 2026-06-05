@@ -151,7 +151,7 @@ $(RELEASE_AAB): version gradle-dependencies
 
 $(RELEASE_TV_AAB): version gradle-dependencies
 	@echo "Building TV release AAB"
-	(cd android && ./gradlew test bundleRelease_tv)
+	(cd android && ./gradlew test bundleTvRelease -PPLATFORM=1) 
 	install -C ./android/build/outputs/bundle/release_tv/android-release_tv.aab $@
 
 tailscale-test.apk: version gradle-dependencies
@@ -278,10 +278,6 @@ tag_release: debug-symbols tailscale.version ## Tag the current commit with the 
 bumposs: update-oss tailscale.version
 	source tailscale.version && git commit -sm "android: bump OSS" -m "OSS and Version updated to $${VERSION_LONG}" go.toolchain.rev android/build.gradle go.mod go.sum
 	source tailscale.version && git tag -a "$${VERSION_LONG}" -m "OSS and Version updated to $${VERSION_LONG}"
-
-.PHONY: bump_version_code ## Bump the version code in build.gradle
-bump_version_code:
-	sed -i'.bak' "s/versionCode .*/versionCode $$(expr $$(awk '/versionCode ([0-9]+)/{print $$2}' android/build.gradle) + 1)/" android/build.gradle && rm android/build.gradle.bak
 
 .PHONY: update-oss ## Update the tailscale.com go module
 update-oss:
