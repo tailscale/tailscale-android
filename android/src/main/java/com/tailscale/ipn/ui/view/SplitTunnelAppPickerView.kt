@@ -6,15 +6,21 @@ package com.tailscale.ipn.ui.view
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
@@ -23,19 +29,22 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.App
 import com.tailscale.ipn.R
@@ -49,13 +58,20 @@ fun SplitTunnelAppPickerView(
     model: SplitTunnelAppPickerViewModel = viewModel(),
 ) {
   val installedApps by model.installedApps.collectAsState()
+  val displayedApps by model.displayedApps.collectAsState()
   val selectedPackageNames by model.selectedPackageNames.collectAsState()
+  val searchQuery by model.searchQuery.collectAsState()
+  val appIcons by model.appIcons.collectAsState()
   val allowSelected by model.allowSelected.collectAsState()
   val builtInDisallowedPackageNames: List<String> = App.get().builtInDisallowedPackageNames
   val mdmIncludedPackages by model.mdmIncludedPackages.collectAsState()
   val mdmExcludedPackages by model.mdmExcludedPackages.collectAsState()
   val showHeaderMenu by model.showHeaderMenu.collectAsState()
   val showSwitchDialog by model.showSwitchDialog.collectAsState()
+  val appIconSize = 40.dp
+  val appIconSizePx = with(LocalDensity.current) { appIconSize.roundToPx() }
+
+  LaunchedEffect(installedApps, appIconSizePx) { model.preloadIcons(installedApps, appIconSizePx) }
 
   if (showSwitchDialog) {
     SwitchAlertDialog(
@@ -118,6 +134,26 @@ fun SplitTunnelAppPickerView(
                   selectedPackageNames.count(),
               ))
         }
+        item("search") {
+          OutlinedTextField(
+              value = searchQuery,
+              onValueChange = model::updateSearchQuery,
+              modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+              singleLine = true,
+              leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+              trailingIcon = {
+                if (searchQuery.isNotEmpty()) {
+                  IconButton(onClick = { model.updateSearchQuery("") }) {
+                    Icon(
+                        Icons.Outlined.Close,
+                        contentDescription = stringResource(R.string.clear_search),
+                    )
+                  }
+                }
+              },
+              placeholder = { Text(stringResource(R.string.search_ellipsis)) },
+          )
+        }
         if (installedApps.isEmpty()) {
           item("spinner") {
             Box(
@@ -132,43 +168,70 @@ fun SplitTunnelAppPickerView(
             }
           }
         } else {
-          items(installedApps, key = { it.packageName }) { app ->
-            ListItem(
-                headlineContent = { Text(app.name, fontWeight = FontWeight.SemiBold) },
-                leadingContent = {
-                  Image(
-                      bitmap =
-                          model.installedAppsManager.packageManager
-                              .getApplicationIcon(app.packageName)
-                              .toBitmap()
-                              .asImageBitmap(),
-                      contentDescription = null,
-                      modifier = Modifier.width(40.dp).height(40.dp),
-                  )
-                },
-                supportingContent = {
-                  Text(
-                      app.packageName,
-                      color = MaterialTheme.colorScheme.secondary,
-                      fontSize = MaterialTheme.typography.bodySmall.fontSize,
-                      letterSpacing = MaterialTheme.typography.bodySmall.letterSpacing,
-                  )
-                },
-                trailingContent = {
-                  Checkbox(
-                      checked = selectedPackageNames.contains(app.packageName),
-                      enabled = !builtInDisallowedPackageNames.contains(app.packageName),
-                      onCheckedChange = { checked ->
-                        if (checked) {
-                          model.select(packageName = app.packageName)
-                        } else {
-                          model.deselect(packageName = app.packageName)
-                        }
-                      },
-                  )
-                },
-            )
+          items(displayedApps, key = { it.packageName }, contentType = { "app" }) { app ->
+            val selected = selectedPackageNames.contains(app.packageName)
+            val enabled = !builtInDisallowedPackageNames.contains(app.packageName)
+
+            Row(
+                modifier = Modifier.fillMaxWidth().height(72.dp).padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+              val appIcon = appIcons[app.packageName]
+              if (appIcon != null) {
+                Image(
+                    bitmap = appIcon.asImageBitmap(),
+                    contentDescription = null,
+                    modifier = Modifier.size(appIconSize),
+                )
+              } else {
+                Box(
+                    modifier =
+                        Modifier.size(appIconSize)
+                            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                )
+              }
+              Spacer(modifier = Modifier.width(16.dp))
+              Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    app.name,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    app.packageName,
+                    color = MaterialTheme.colorScheme.secondary,
+                    fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                    letterSpacing = MaterialTheme.typography.bodySmall.letterSpacing,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+              }
+              Checkbox(
+                  checked = selected,
+                  enabled = enabled,
+                  onCheckedChange = { checked ->
+                    if (checked) {
+                      model.select(packageName = app.packageName)
+                    } else {
+                      model.deselect(packageName = app.packageName)
+                    }
+                  },
+              )
+            }
             Lists.ItemDivider()
+          }
+          if (displayedApps.isEmpty()) {
+            item("noResults") {
+              ListItem(
+                  headlineContent = {
+                    Text(
+                        stringResource(R.string.no_results),
+                        color = MaterialTheme.colorScheme.secondary,
+                    )
+                  })
+            }
           }
         }
       }
