@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="hidden_network_devices_labels" translatable="true">
+        <item>Dispositivos del usuario actual</item>
+        <item>Dispositivos de otros usuarios</item>
+        <item>Dispositivos etiquetados</item>
+    </string-array>
+    <string-array name="always_never_userdecides_labels" translatable="true">
+        <item>Siempre</item>
+        <item>Nunca</item>
+        <item>Decide el usuario</item>
+    </string-array>
+    <string-array name="show_hide_labels" translatable="true">
+        <item>Mostrar</item>
+        <item>Ocultar</item>
+    </string-array>
+</resources>
