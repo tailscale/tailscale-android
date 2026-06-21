@@ -15,6 +15,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.tailscale.ipn.App
+import com.tailscale.ipn.NetworkChangeCallback
 import com.tailscale.ipn.R
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.model.Ipn
@@ -211,12 +212,14 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
 
         if (desiredState) {
           // User wants to turn ON the VPN
+          NetworkChangeCallback.userStartedVpn()
           when {
             currentState != Ipn.State.Running -> showVPNPermissionLauncherIfUnauthorized()
           }
         } else {
           // User wants to turn OFF the VPN
           if (currentState == Ipn.State.Running) {
+            NetworkChangeCallback.userStoppedVpn()
             stopVPN()
           }
         }

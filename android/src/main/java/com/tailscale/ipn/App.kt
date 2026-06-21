@@ -171,6 +171,7 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     healthNotifier = HealthNotifier(Notifier.health, Notifier.state, applicationScope)
     connectivityManager = this.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     NetworkChangeCallback.monitorDnsChanges(connectivityManager, dns)
+    NetworkChangeCallback.monitorWifiAutoConnect(connectivityManager, this)
     initViewModels()
     applicationScope.launch {
       val restrictionsManager =
@@ -521,6 +522,9 @@ open class UninitializedApp : Application() {
     private const val ALLOW_SELECTED_APPS_KEY = "allowSelectedApps"
 
     private const val IS_CLIENT_LOGGING_ENABLED_KEY = "isClientLoggingEnabled"
+    private const val WIFI_WHITELIST_SSIDS_KEY = "wifiAutoConnectSsids"
+    private const val WIFI_BLACKLIST_SSIDS_KEY = "wifiBlacklistSsids"
+    private const val WIFI_AUTO_CONNECT_DEFAULT_ON_KEY = "wifiAutoConnectDefaultOn"
     // File for shared preferences that are not encrypted.
     private const val UNENCRYPTED_PREFERENCES = "unencrypted"
     private lateinit var appInstance: UninitializedApp
@@ -750,6 +754,32 @@ open class UninitializedApp : Application() {
 
   fun getAppScopedViewModel(): AppViewModel {
     return appViewModel
+  }
+
+  // Whitelist = safe networks where VPN is stopped automatically.
+  fun getWhitelistSsids(): Set<String> {
+    return getUnencryptedPrefs().getStringSet(WIFI_WHITELIST_SSIDS_KEY, emptySet()) ?: emptySet()
+  }
+
+  fun setWhitelistSsids(ssids: Set<String>) {
+    getUnencryptedPrefs().edit().putStringSet(WIFI_WHITELIST_SSIDS_KEY, ssids).apply()
+  }
+
+  // Blacklist = unsafe networks where VPN is always started automatically.
+  fun getBlacklistSsids(): Set<String> {
+    return getUnencryptedPrefs().getStringSet(WIFI_BLACKLIST_SSIDS_KEY, emptySet()) ?: emptySet()
+  }
+
+  fun setBlacklistSsids(ssids: Set<String>) {
+    getUnencryptedPrefs().edit().putStringSet(WIFI_BLACKLIST_SSIDS_KEY, ssids).apply()
+  }
+
+  fun getWifiAutoConnectDefaultOn(): Boolean {
+    return getUnencryptedPrefs().getBoolean(WIFI_AUTO_CONNECT_DEFAULT_ON_KEY, false)
+  }
+
+  fun setWifiAutoConnectDefaultOn(enabled: Boolean) {
+    getUnencryptedPrefs().edit().putBoolean(WIFI_AUTO_CONNECT_DEFAULT_ON_KEY, enabled).apply()
   }
 
   val builtInDisallowedPackageNames: List<String> =
