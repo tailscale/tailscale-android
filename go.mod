@@ -5,7 +5,7 @@ go 1.26.3
 require (
 	github.com/tailscale/wireguard-go v0.0.0-20260622165914-65d8d42c9a5a
 	golang.org/x/mobile v0.0.0-20240806205939-81131f6468ab
-	tailscale.com v1.98.7
+	tailscale.com v1.98.8
 )
 
 require (
