@@ -306,11 +306,24 @@ class Request<T>(
     fun setApp(newApp: libtailscale.Application) {
       app = newApp
     }
+
+    // Returns the libtailscale app, initializing the backend on demand. A localAPI request can be
+    // issued from a cold-started process (e.g. UseExitNodeWorker, kicked off by IPNReceiver) that
+    // never went through App.get(), so setApp() may not have run yet. Resolving lazily here mirrors
+    // Client's own lazy `app` and avoids crashing the process with an
+    // UninitializedPropertyAccessException.
+    private fun resolveApp(): libtailscale.Application {
+      if (!::app.isInitialized) {
+        app = App.get().getLibtailscaleApp()
+      }
+      return app
+    }
   }
 
   @OptIn(ExperimentalSerializationApi::class)
   fun execute() {
     scope.launch(Dispatchers.IO) {
+      val app = resolveApp()
       TSLog.d(TAG, "Executing request:${method}:${fullPath} on app $app")
       try {
         val resp =
