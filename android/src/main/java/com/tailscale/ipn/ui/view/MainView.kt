@@ -222,6 +222,10 @@ fun MainView(
                   ExitNodeStatus(
                       navAction = navigation.onNavigateToExitNodes, viewModel = viewModel)
                 }
+                val pending by viewModel.pendingItems.collectAsState()
+                if (pending.isNotEmpty()) {
+                  TaildropBannerView(viewModel = viewModel)
+                }
                 PeerList(
                     viewModel = viewModel,
                     onNavigateToPeerDetails = navigation.onNavigateToPeerDetails,
@@ -249,6 +253,12 @@ fun MainView(
       currentPingDevice?.let { _ ->
         ModalBottomSheet(onDismissRequest = { viewModel.onPingDismissal() }) {
           PingView(model = viewModel.pingViewModel)
+        }
+      }
+      val showPendingSheet by viewModel.isPresentingPendingItemsList.collectAsState()
+      if (showPendingSheet) {
+        ModalBottomSheet(onDismissRequest = { viewModel.isPresentingPendingItemsList.value = false }) {
+          TdPayloadListSheet(viewModel = viewModel)
         }
       }
     }

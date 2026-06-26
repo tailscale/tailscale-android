@@ -4,6 +4,7 @@
 package com.tailscale.ipn.ui.model
 
 import android.net.Uri
+import com.tailscale.ipn.util.TdPayload
 import java.util.UUID
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -212,10 +213,12 @@ class Ipn {
       val Succeeded: Boolean = false,
   ) {
     @Transient lateinit var uri: Uri // only used on client
+    @Transient var tdPayload: TdPayload? = null // set for `.tdpl` shares
 
     fun prepare(peerId: StableNodeID): OutgoingFile {
       val f = copy(ID = UUID.randomUUID().toString(), PeerID = peerId)
       f.uri = uri
+      f.tdPayload = tdPayload
       return f
     }
   }

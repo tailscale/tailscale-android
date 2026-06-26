@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.OpenableColumns
+import android.util.Patterns
 import android.webkit.MimeTypeMap
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -31,6 +32,7 @@ import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.util.universalFit
 import com.tailscale.ipn.ui.view.TaildropView
 import com.tailscale.ipn.util.TSLog
+import com.tailscale.ipn.util.TdPayload
 import kotlin.random.Random
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -120,7 +122,7 @@ class ShareActivity : ComponentActivity() {
           }
         }
 
-    val pendingFiles: List<Ipn.OutgoingFile> =
+    val pendingFiles: MutableList<Ipn.OutgoingFile> =
         uris?.filterNotNull()?.mapNotNull { uri ->
           contentResolver?.query(uri, null, null, null, null)?.use { cursor ->
             val nameCol = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
@@ -135,13 +137,58 @@ class ShareActivity : ComponentActivity() {
               null
             }
           }
-        } ?: emptyList()
+        }?.toMutableList() ?: mutableListOf()
+
+    if (pendingFiles.isEmpty() && act == Intent.ACTION_SEND) {
+      tdPayloadFromIntent(intent)?.let { pendingFiles.add(it) }
+    }
 
     if (pendingFiles.isEmpty()) {
       TSLog.e(TAG, "Share failure - no files extracted from intent")
     }
 
     requestedTransfers.set(pendingFiles)
+  }
+
+  // Wraps text/URL EXTRA_TEXT in a `.tdpl` envelope so it rides the regular
+  // Taildrop file pipeline.
+  private fun tdPayloadFromIntent(intent: Intent): Ipn.OutgoingFile? {
+    val raw = intent.getCharSequenceExtra(Intent.EXTRA_TEXT)?.toString()?.trim().orEmpty()
+    if (raw.isEmpty()) return null
+
+    val text = stripChromeHighlightedTextShare(raw)
+
+    val title =
+        intent.getCharSequenceExtra(Intent.EXTRA_SUBJECT)?.toString()?.takeIf { it.isNotBlank() }
+
+    val kind =
+        if (Patterns.WEB_URL.matcher(text).matches()) {
+          val parsed = runCatching { Uri.parse(text) }.getOrNull()
+          if (parsed != null && parsed.scheme != "file") TdPayload.Kind.URL else TdPayload.Kind.TEXT
+        } else {
+          TdPayload.Kind.TEXT
+        }
+
+    return try {
+      val file = TdPayload.writeToCache(applicationContext, kind, text, title)
+      Ipn.OutgoingFile(Name = file.name, DeclaredSize = file.length()).apply {
+        this.uri = Uri.fromFile(file)
+        this.tdPayload = TdPayload(kind = kind, content = text, title = title)
+      }
+    } catch (e: Exception) {
+      TSLog.e(TAG, "Failed to write tdpayload: $e")
+      null
+    }
+  }
+
+  // Chromium highlighted-text shares come through as `"<snippet>"\n <url>#:~:text=…`.
+  // Receivers paste the blob verbatim; drop the URL tail and outer quotes.
+  private fun stripChromeHighlightedTextShare(text: String): String {
+    val urlLine =
+        Regex("""(?m)^[ \t]*https?://\S*#:~:text=\S*[ \t]*$""").find(text) ?: return text
+    val before = text.substring(0, urlLine.range.first).trimEnd()
+    val unquoted = before.removeSurrounding("\"")
+    return if (unquoted.isNotEmpty()) unquoted else text
   }
 
   private fun generateFallbackName(uri: Uri): String {
