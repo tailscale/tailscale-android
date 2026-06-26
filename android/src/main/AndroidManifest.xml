@@ -103,6 +103,10 @@
         </receiver>
 
         <receiver
+            android:name=".InlineShareActionReceiver"
+            android:exported="false" />
+
+        <receiver
             android:name=".MDMSettingsChangedReceiver"
             android:exported="false">
             <intent-filter>

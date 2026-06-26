@@ -15,10 +15,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.tailscale.ipn.App
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.localapi.Client
 import com.tailscale.ipn.ui.model.Ipn
-import com.tailscale.ipn.ui.model.StableNodeID
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.util.set
@@ -26,7 +26,10 @@ import com.tailscale.ipn.ui.view.ActivityIndicator
 import com.tailscale.ipn.ui.view.CheckedIndicator
 import com.tailscale.ipn.ui.view.ErrorDialogType
 import com.tailscale.ipn.util.TSLog
+import com.tailscale.ipn.util.TaildropUsageTracker
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -57,9 +60,6 @@ class TaildropViewModel(
   // The overall VPN state
   val state = Notifier.state
 
-  // Set of all nodes for which we've requested a file transfer. This is used to prevent us from
-  // request a transfer to the same peer twice.
-  private val selectedPeers: StateFlow<Set<StableNodeID>> = MutableStateFlow(emptySet())
   // Set of OutgoingFile.IDs that we're currently transferring.
   private val currentTransferIDs: StateFlow<Set<String>> = MutableStateFlow(emptySet())
   // Flow of Ipn.OutgoingFiles with updated statuses for every entry in transferWithStatuses.
@@ -69,19 +69,24 @@ class TaildropViewModel(
   val totalSize: Long
     get() = requestedTransfers.value.sumOf { it.DeclaredSize }
 
-  // The list of peers that we can share with.  This includes only the nodes belonging to the user
-  // and excludes the current node.  Sorted by online devices first, and offline second,
-  // alphabetically.
-  val myPeers: StateFlow<List<Tailcfg.Node>> = MutableStateFlow(emptyList())
+  // Recently shared-to devices (capped at 3) and everything else.
+  val recentPeers: StateFlow<List<Tailcfg.Node>> = MutableStateFlow(emptyList())
+  val otherPeers: StateFlow<List<Tailcfg.Node>> = MutableStateFlow(emptyList())
 
   // Non null if there's an error to be rendered.
   val showDialog: StateFlow<ErrorDialogType?> = MutableStateFlow(null)
+
+  private var refreshJob: Job? = null
+  private val refreshIntervalMs = 5_000L
 
   init {
     viewModelScope.launch {
       Notifier.state.collect {
         if (it == Ipn.State.Running) {
-          loadTargets()
+          startPeriodicTargetRefresh()
+        } else {
+          refreshJob?.cancel()
+          refreshJob = null
         }
       }
     }
@@ -102,8 +107,7 @@ class TaildropViewModel(
 
     viewModelScope.launch {
       requestedTransfers.collect {
-        // This means that we're processing a new share intent, clear current state
-        selectedPeers.set(emptySet())
+        // New share intent — drop tracking of any prior transfer IDs.
         currentTransferIDs.set(emptySet())
       }
     }
@@ -133,16 +137,33 @@ class TaildropViewModel(
     }
   }
 
-  // Loads all of the valid fileTargets from localAPI
+  // Re-polls fileTargets so the device list updates as peers come online.
+  private fun startPeriodicTargetRefresh() {
+    refreshJob?.cancel()
+    refreshJob =
+        viewModelScope.launch {
+          while (true) {
+            loadTargets()
+            delay(refreshIntervalMs)
+          }
+        }
+  }
+
+  // Loads valid fileTargets from localAPI and splits into recent vs other.
   private fun loadTargets() {
     Client(viewModelScope).fileTargets { result ->
       result
-          .onSuccess { it ->
-            val allSharablePeers = it.map { it.Node }
-            val onlinePeers = allSharablePeers.filter { it.Online ?: false }.sortedBy { it.Name }
-            val offlinePeers =
-                allSharablePeers.filter { !(it.Online ?: false) }.sortedBy { it.Name }
-            myPeers.set(onlinePeers + offlinePeers)
+          .onSuccess { targets ->
+            val ctx = App.get()
+            val userID = Notifier.netmap.value?.SelfNode?.User ?: 0L
+            val all = targets.map { it.Node }
+            val (recent, other) = TaildropUsageTracker.partitionByRecency(ctx, userID, all)
+            val onlineFirst =
+                other.sortedWith(
+                    compareByDescending<Tailcfg.Node> { it.Online ?: false }
+                        .thenBy { (it.ComputedName ?: it.Name).lowercase() })
+            recentPeers.set(recent)
+            otherPeers.set(onlineFirst)
           }
           .onFailure { TSLog.e(TAG, "Error loading targets: ${it.message}") }
     }
@@ -180,21 +201,20 @@ class TaildropViewModel(
       return
     }
 
-    if (selectedPeers.value.contains(node.StableID)) {
-      // We've already selected this peer, ignore
-      return
-    }
-    selectedPeers.set(selectedPeers.value + node.StableID)
+    // Gate on an actually-in-flight transfer rather than a one-shot selection
+    // set, since requestedTransfers may not re-emit on a new intent when the
+    // share content hashes identically.
+    if (transfers.value.any { it.PeerID == node.StableID && !it.Finished }) return
 
     val preparedTransfers = requestedTransfers.value.map { it.prepare(node.StableID) }
     currentTransferIDs.set(currentTransferIDs.value + preparedTransfers.map { it.ID })
 
     Client(applicationScope).putTaildropFiles(context, node.StableID, preparedTransfers) {
-      // This is an early API failure and will not get communicated back up to us via
-      // outgoing files - things never made it that far.
       if (it.isFailure) {
-        selectedPeers.set(selectedPeers.value - node.StableID)
         showDialog.set(ErrorDialogType.SHARE_FAILED)
+      } else {
+        val userID = Notifier.netmap.value?.SelfNode?.User ?: 0L
+        TaildropUsageTracker.updateLastUsed(context, userID, node.StableID)
       }
     }
   }

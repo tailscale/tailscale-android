@@ -8,8 +8,11 @@ import android.os.ParcelFileDescriptor
 import android.provider.DocumentsContract
 import androidx.documentfile.provider.DocumentFile
 import com.tailscale.ipn.TaildropDirectoryStore
+import com.tailscale.ipn.ui.notifier.Notifier
+import com.tailscale.ipn.ui.notifier.TaildropNotifier
 import com.tailscale.ipn.ui.util.InputStreamAdapter
 import com.tailscale.ipn.ui.util.OutputStreamAdapter
+import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import java.io.OutputStream
@@ -27,6 +30,9 @@ import org.json.JSONObject
 data class SafFile(val fd: Int, val uri: String)
 
 object ShareFileHelper : libtailscale.ShareFileHelper {
+  // Cap on reading a received file back to decode it for the notification preview.
+  private const val MAX_INLINE_SHARE_BYTES = 64 * 1024
+
   private var appContext: Context? = null
   private var app: libtailscale.Application? = null
   private var savedUri: String? = null
@@ -167,6 +173,7 @@ object ShareFileHelper : libtailscale.ShareFileHelper {
       DocumentsContract.renameDocument(ctx.contentResolver, srcUri, finalName)?.also { newUri ->
         runCatching { ctx.contentResolver.delete(srcUri, null, null) }
         cleanupPartials(dir, targetName)
+        maybeNotifyInlineShare(ctx, newUri.toString(), targetName)
         return newUri.toString()
       }
     } catch (e: Exception) {
@@ -190,7 +197,33 @@ object ShareFileHelper : libtailscale.ShareFileHelper {
 
     ctx.contentResolver.delete(srcUri, null, null)
     cleanupPartials(dir, targetName)
+    maybeNotifyInlineShare(ctx, dest.uri.toString(), targetName)
     return dest.uri.toString()
+  }
+
+  // Inline shares are saved like any other Taildrop file; this only adds the notification
+  // and inbox entry on top. Anything unreadable or undecodable just stays a plain file.
+  private fun maybeNotifyInlineShare(ctx: Context, uri: String, targetName: String) {
+    if (!InlineShare.matches(targetName)) return
+    val parsed = runCatching { Uri.parse(uri) }.getOrNull() ?: return
+    val size = runCatching { lengthOfUri(ctx, parsed) }.getOrDefault(-1L)
+    if (size > MAX_INLINE_SHARE_BYTES) {
+      TSLog.w("ShareFileHelper", "inline share $targetName too large to decode ($size bytes)")
+      return
+    }
+    val bytes =
+        runCatching { ctx.contentResolver.openInputStream(parsed)?.use { it.readBytes() } }
+            .onFailure { TSLog.w("ShareFileHelper", "inline share read failed: $it") }
+            .getOrNull() ?: return
+    val share =
+        InlineShare.decode(targetName, bytes)
+            ?: run {
+              TSLog.w("ShareFileHelper", "inline share decode failed: $targetName, ${bytes.size}B")
+              return
+            }
+    val pending = PendingInlineShare(kind = share.kind, content = share.content, uri = uri)
+    Notifier.appendInlineShare(pending)
+    TaildropNotifier.notify(ctx, pending)
   }
 
   private fun lengthOfUri(ctx: Context, uri: Uri): Long =
@@ -207,14 +240,19 @@ object ShareFileHelper : libtailscale.ShareFileHelper {
 
   @Throws(IOException::class)
   override fun deleteFile(uri: String) {
+    val parsed = Uri.parse(uri)
+    // Cache-dir plain files; SAF can't resolve them.
+    if (parsed.scheme == "file") {
+      parsed.path?.let { File(it).delete() }
+      return
+    }
     runBlocking { waitUntilTaildropDirReady() }
     val ctx = appContext ?: throw IOException("DeleteFile: not initialized")
-    val parsedUri = Uri.parse(uri)
     val doc =
-        DocumentFile.fromSingleUri(ctx, parsedUri)
-            ?: throw IOException("DeleteFile: cannot resolve URI $parsedUri")
+        DocumentFile.fromSingleUri(ctx, parsed)
+            ?: throw IOException("DeleteFile: cannot resolve URI $parsed")
     if (!doc.delete()) {
-      throw IOException("DeleteFile: delete() returned false for $parsedUri")
+      throw IOException("DeleteFile: delete() returned false for $parsed")
     }
   }
 
