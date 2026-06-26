@@ -271,7 +271,7 @@ androidpath:
 	@echo 'export PATH=$(ANDROID_HOME)/cmdline-tools/latest/bin:$(ANDROID_HOME)/platform-tools:$$PATH'
 
 .PHONY: tag_release
-tag_release: debug-symbols tailscale.version ## Tag the current commit with the current version
+tag_release: tailscale.version ## Tag the current commit with the current version
 	source tailscale.version && git tag -a "$${VERSION_LONG}" -m "OSS and Version updated to $${VERSION_LONG}"
 
 .PHONY: bumposs ## Bump to the latest oss and update the versions.
