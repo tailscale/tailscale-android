@@ -257,6 +257,8 @@
     <string name="file_count">%1$s files</string>
     <string name="connect_to_your_tailnet_to_share_files">Connect to your tailnet to share files.</string>
     <string name="my_devices">My devices</string>
+    <string name="taildrop_recently_used">Recently used</string>
+    <string name="taildrop_all_devices">All devices</string>
     <string name="no_devices_to_share_with">There are no devices on your tailnet to share to</string>
     <string name="taildrop_share_failed">Taildrop failed. Some files were not shared. Please try again.</string>
     <string name="taildrop_sending">Sending</string>
@@ -373,6 +375,20 @@
     <string name="taildrop_directory_picker_body">You have not selected a directory for incoming taildrop transfers. Please select or create a target directory.</string>
     <string name="taildrop_directory_picker_info">What is taildrop?</string>
     <string name="taildrop_directory_picker_button">Open Directory Picker</string>
+
+    <!-- Strings for Taildrop receive notifications and in-app banner/sheet -->
+    <string name="taildrop_link_received">Taildrop link received</string>
+    <string name="taildrop_text_received">Taildrop text received</string>
+    <string name="taildrop_file_received">Taildrop file received</string>
+    <string name="taildrop_tap_to_open">Tap to open</string>
+    <string name="taildrop_tap_to_copy">Tap to copy</string>
+    <string name="taildrop_saved_in_directory">Saved in Taildrop directory</string>
+    <string name="taildrop_received_sheet_title">Received via Taildrop</string>
+    <string name="taildrop_pending_count">Received %1$d Taildrop items</string>
+    <string name="taildrop_copied_to_clipboard">Copied to clipboard</string>
+    <string name="taildrop_done">Done</string>
+    <string name="taildrop_dismiss">Dismiss</string>
+    <string name="taildrop_open_folder">Open Taildrop folder</string>
 
     <!-- Strings for Hardware Attestation MDM setting -->
     <string name="enable_hardware_attestation">Enable hardware attestation</string>

@@ -83,6 +83,9 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
 
   var pingViewModel: PingViewModel = PingViewModel()
 
+  // Self-contained controller for the Taildrop in-app banner/list sheet.
+  val pendingTaildrop: PendingTaildropViewModel = PendingTaildropViewModel()
+
   val isVpnPrepared: StateFlow<Boolean> = appViewModel.vpnPrepared
 
   val isVpnActive: StateFlow<Boolean> = appViewModel.vpnActive
