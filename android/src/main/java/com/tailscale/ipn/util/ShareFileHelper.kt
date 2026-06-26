@@ -8,8 +8,11 @@ import android.os.ParcelFileDescriptor
 import android.provider.DocumentsContract
 import androidx.documentfile.provider.DocumentFile
 import com.tailscale.ipn.TaildropDirectoryStore
+import com.tailscale.ipn.ui.notifier.Notifier
+import com.tailscale.ipn.ui.notifier.TaildropNotifier
 import com.tailscale.ipn.ui.util.InputStreamAdapter
 import com.tailscale.ipn.ui.util.OutputStreamAdapter
+import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import java.io.OutputStream
@@ -120,8 +123,31 @@ object ShareFileHelper : libtailscale.ShareFileHelper {
 
   private val currentUri = ConcurrentHashMap<String, String>()
 
+  private val tdPayloadCacheFiles = ConcurrentHashMap<String, File>()
+
+  // Matches `<base>.tdpl`, `<base>.tdpl[.<clientID>].partial`, and SAF-mutated
+  // `.tdpl…partial.bin` variants.
+  private fun isTdPayloadName(name: String): Boolean {
+    val marker = ".${TdPayload.fileExtension}"
+    return name.endsWith(marker) || name.contains("$marker.")
+  }
+
+  private fun tdPayloadCacheRoot(ctx: Context): File {
+    val dir = File(ctx.cacheDir, "tdpayload-in")
+    if (!dir.exists()) dir.mkdirs()
+    return dir
+  }
+
   @Throws(IOException::class)
   override fun openFileWriter(fileName: String, offset: Long): libtailscale.OutputStream {
+    if (isTdPayloadName(fileName)) {
+      val ctx = appContext ?: throw IOException("App context not initialized")
+      val cached =
+          tdPayloadCacheFiles.computeIfAbsent(fileName) { File(tdPayloadCacheRoot(ctx), fileName) }
+      val fos = FileOutputStream(cached, offset != 0L)
+      if (offset == 0L) fos.channel.truncate(0)
+      return OutputStreamAdapter(fos)
+    }
     runBlocking { waitUntilTaildropDirReady() }
     val (uri, stream) = openWriterFD(fileName, offset)
     currentUri[fileName] = uri
@@ -130,6 +156,13 @@ object ShareFileHelper : libtailscale.ShareFileHelper {
 
   @Throws(IOException::class)
   override fun getFileURI(fileName: String): String {
+    if (isTdPayloadName(fileName)) {
+      val ctx = appContext ?: throw IOException("App context not initialized")
+      val cached =
+          tdPayloadCacheFiles[fileName]
+              ?: File(tdPayloadCacheRoot(ctx), fileName).also { tdPayloadCacheFiles[fileName] = it }
+      return Uri.fromFile(cached).toString()
+    }
     runBlocking { waitUntilTaildropDirReady() }
     currentUri[fileName]?.let {
       return it
@@ -147,6 +180,9 @@ object ShareFileHelper : libtailscale.ShareFileHelper {
 
   @Throws(IOException::class)
   override fun renameFile(oldPath: String, targetName: String): String {
+    if (isTdPayloadName(targetName)) {
+      return consumeTdPayload(oldPath, targetName)
+    }
     val ctx = appContext ?: throw IOException("not initialized")
     val dirUri = savedUri ?: throw IOException("directory not set")
     val srcUri = Uri.parse(oldPath)
@@ -207,14 +243,89 @@ object ShareFileHelper : libtailscale.ShareFileHelper {
 
   @Throws(IOException::class)
   override fun deleteFile(uri: String) {
+    val parsed = Uri.parse(uri)
+    // tdpayload cache files are plain files; SAF can't resolve them.
+    if (parsed.scheme == "file" || parsed.lastPathSegment?.let { isTdPayloadName(it) } == true) {
+      parsed.path?.let { File(it).delete() }
+      return
+    }
     runBlocking { waitUntilTaildropDirReady() }
     val ctx = appContext ?: throw IOException("DeleteFile: not initialized")
-    val parsedUri = Uri.parse(uri)
     val doc =
-        DocumentFile.fromSingleUri(ctx, parsedUri)
-            ?: throw IOException("DeleteFile: cannot resolve URI $parsedUri")
+        DocumentFile.fromSingleUri(ctx, parsed)
+            ?: throw IOException("DeleteFile: cannot resolve URI $parsed")
     if (!doc.delete()) {
-      throw IOException("DeleteFile: delete() returned false for $parsedUri")
+      throw IOException("DeleteFile: delete() returned false for $parsed")
+    }
+  }
+
+  private fun consumeTdPayload(oldPath: String, targetName: String): String {
+    val ctx = appContext ?: throw IOException("tdpayload: not initialized")
+    val root = tdPayloadCacheRoot(ctx)
+    val parsedOld = runCatching { Uri.parse(oldPath) }.getOrNull()
+    val partialFromUri = parsedOld?.lastPathSegment?.takeIf { it.isNotEmpty() }
+
+    val partialName =
+        partialFromUri
+            ?: root
+                .listFiles { _, n -> n.startsWith("$targetName.") && n.endsWith(".partial") }
+                ?.firstOrNull()
+                ?.name
+            ?: "$targetName.partial"
+    val cachedPartial = tdPayloadCacheFiles[partialName] ?: File(root, partialName)
+    var bytes: ByteArray =
+        if (cachedPartial.exists()) {
+          runCatching { cachedPartial.readBytes() }
+              .onFailure { TSLog.w("ShareFileHelper", "consumeTdPayload: cache read failed: $it") }
+              .getOrDefault(ByteArray(0))
+        } else ByteArray(0)
+
+    // Fallback if openFileWriter missed and the partial landed in SAF instead.
+    if (bytes.isEmpty() && parsedOld != null && parsedOld.scheme == "content") {
+      bytes =
+          runCatching {
+                ctx.contentResolver.openInputStream(parsedOld)?.use { it.readBytes() }
+              }
+              .onFailure { TSLog.w("ShareFileHelper", "consumeTdPayload: SAF read failed: $it") }
+              .getOrNull()
+              ?: ByteArray(0)
+      runCatching { ctx.contentResolver.delete(parsedOld, null, null) }
+    }
+
+    if (bytes.isNotEmpty()) {
+      val payload =
+          runCatching { TdPayload.decode(bytes) }
+              .onFailure {
+                TSLog.w("ShareFileHelper", "consumeTdPayload: decode failed for $targetName: $it")
+              }
+              .getOrNull()
+      if (payload != null) {
+        val pending =
+            PendingTdPayload(kind = payload.kind, content = payload.content, title = payload.title)
+        Notifier.appendTdPayload(pending)
+        TaildropNotifier.notify(ctx, pending)
+      }
+    } else {
+      TSLog.w("ShareFileHelper", "consumeTdPayload: no bytes for $targetName")
+    }
+
+    cachedPartial.delete()
+    tdPayloadCacheFiles.remove(partialName)
+    // Sweep any SAF residue still carrying the tdpl marker.
+    sweepSafTdPayloadArtifacts(ctx)
+
+    return Uri.fromFile(File(root, targetName)).toString()
+  }
+
+  private fun sweepSafTdPayloadArtifacts(ctx: Context) {
+    val dirUri = savedUri ?: return
+    val dir =
+        runCatching { DocumentFile.fromTreeUri(ctx, Uri.parse(dirUri)) }.getOrNull() ?: return
+    for (child in runCatching { dir.listFiles() }.getOrNull().orEmpty()) {
+      val n = child.name ?: continue
+      if (isTdPayloadName(n)) {
+        runCatching { child.delete() }
+      }
     }
   }
 

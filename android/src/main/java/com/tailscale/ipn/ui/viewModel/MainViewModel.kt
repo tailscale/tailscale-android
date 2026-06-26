@@ -2,9 +2,14 @@
 // SPDX-License-Identifier: BSD-3-Clause
 package com.tailscale.ipn.ui.viewModel
 
+import android.content.ClipData
+import android.content.ClipboardManager as AndroidClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.net.VpnService
+import android.provider.DocumentsContract
+import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -16,24 +21,32 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.tailscale.ipn.App
 import com.tailscale.ipn.R
+import com.tailscale.ipn.TaildropDirectoryStore
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.Ipn.State
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.notifier.Notifier
+import com.tailscale.ipn.ui.notifier.TaildropNotifier
 import com.tailscale.ipn.ui.util.PeerCategorizer
 import com.tailscale.ipn.ui.util.PeerSet
 import com.tailscale.ipn.ui.util.TimeUtil
 import com.tailscale.ipn.ui.util.set
+import com.tailscale.ipn.util.BrowserOpener
+import com.tailscale.ipn.util.PendingTdPayload
 import com.tailscale.ipn.util.TSLog
+import com.tailscale.ipn.util.TdPayload
 import java.time.Duration
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class MainViewModelFactory(private val appViewModel: AppViewModel) : ViewModelProvider.Factory {
@@ -91,6 +104,42 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
 
   // Icon displayed in the button to present the health view
   val healthIcon: StateFlow<Int?> = MutableStateFlow(null)
+
+  sealed class PendingTaildropItem {
+    abstract val id: String
+
+    data class File(val partial: Ipn.PartialFile) : PendingTaildropItem() {
+      override val id: String =
+          partial.FinalPath ?: partial.PartialPath ?: "${partial.Name}-${partial.Started}"
+    }
+
+    data class Payload(val payload: PendingTdPayload) : PendingTaildropItem() {
+      override val id: String = payload.id
+    }
+  }
+
+  private val consumedFileIds = MutableStateFlow<Set<String>>(emptySet())
+
+  // Go drops files from incomingFiles soon after they finish, so we accumulate
+  // Done=true entries here once and let the user act on them.
+  private val _pendingFiles = MutableStateFlow<List<Ipn.PartialFile>>(emptyList())
+
+  val pendingFiles: StateFlow<List<Ipn.PartialFile>> =
+      _pendingFiles
+          .combine(consumedFileIds) { files, consumed ->
+            files.filter { PendingTaildropItem.File(it).id !in consumed }
+          }
+          .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+  val pendingItems: StateFlow<List<PendingTaildropItem>> =
+      Notifier.tdPayloadInbox
+          .combine(pendingFiles) { payloads, files ->
+            files.map { PendingTaildropItem.File(it) } +
+                payloads.map { PendingTaildropItem.Payload(it) }
+          }
+          .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+  val isPresentingPendingItemsList = MutableStateFlow(false)
 
   fun updateSearchTerm(term: String) {
     _searchTerm.value = term
@@ -180,6 +229,21 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
     viewModelScope.launch {
       App.get().healthNotifier?.currentIcon?.collect { icon -> healthIcon.set(icon) }
     }
+    viewModelScope.launch {
+      Notifier.incomingFiles.collect { list ->
+        val arrivals =
+            list.orEmpty().filter { f ->
+              f.Done == true &&
+                  !f.Name.endsWith(".${TdPayload.fileExtension}") &&
+                  !f.Name.endsWith(".partial")
+            }
+        if (arrivals.isEmpty()) return@collect
+        _pendingFiles.update { current ->
+          val knownIds = current.map { PendingTaildropItem.File(it).id }.toSet()
+          current + arrivals.filter { PendingTaildropItem.File(it).id !in knownIds }
+        }
+      }
+    }
   }
 
   fun maybeRequestVpnPermission() {
@@ -241,6 +305,110 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
   fun setVpnPermissionLauncher(launcher: ActivityResultLauncher<Intent>) {
     // No intent means we're already authorized
     vpnPermissionLauncher = launcher
+  }
+
+  fun handlePendingItemsBannerTap(context: Context) {
+    val items = pendingItems.value
+    if (items.size >= 2) {
+      isPresentingPendingItemsList.value = true
+      return
+    }
+    items.firstOrNull()?.let { consume(context, it) }
+  }
+
+  fun consume(context: Context, item: PendingTaildropItem) {
+    when (item) {
+      is PendingTaildropItem.File -> {
+        openFile(context, item.partial)
+        consumedFileIds.update { it + item.id }
+      }
+      is PendingTaildropItem.Payload -> {
+        when (item.payload.kind) {
+          TdPayload.Kind.URL -> openUrl(context, item.payload.content)
+          TdPayload.Kind.TEXT -> copyToClipboard(context, item.payload.content)
+        }
+        Notifier.removeTdPayload(item.payload.id)
+        TaildropNotifier.cancel(context, item.payload.id)
+      }
+    }
+    if (pendingItems.value.isEmpty()) isPresentingPendingItemsList.value = false
+  }
+
+  fun dismiss(context: Context, item: PendingTaildropItem) {
+    when (item) {
+      is PendingTaildropItem.File -> consumedFileIds.update { it + item.id }
+      is PendingTaildropItem.Payload -> {
+        Notifier.removeTdPayload(item.payload.id)
+        TaildropNotifier.cancel(context, item.payload.id)
+      }
+    }
+    if (pendingItems.value.isEmpty()) isPresentingPendingItemsList.value = false
+  }
+
+  private fun openUrl(context: Context, content: String) {
+    val uri =
+        runCatching { Uri.parse(content) }
+            .getOrNull()
+            ?.takeIf { !it.scheme.isNullOrEmpty() }
+    if (uri == null) {
+      copyToClipboard(context, content)
+      return
+    }
+    if (!BrowserOpener.openInDefaultBrowser(context, uri)) {
+      TSLog.w("MainViewModel", "openUrl failed for $content")
+      copyToClipboard(context, content)
+    }
+  }
+
+  private fun copyToClipboard(context: Context, content: String) {
+    val cm =
+        context.getSystemService(Context.CLIPBOARD_SERVICE) as? AndroidClipboardManager ?: return
+    cm.setPrimaryClip(ClipData.newPlainText("Tailscale", content))
+    Toast.makeText(context, R.string.taildrop_copied_to_clipboard, Toast.LENGTH_SHORT).show()
+  }
+
+  private fun openFile(context: Context, partial: Ipn.PartialFile) {
+    val uri =
+        partial.FinalPath?.let { runCatching { Uri.parse(it) }.getOrNull() }
+            ?: return openTaildropFolder(context)
+    val mime = runCatching { context.contentResolver.getType(uri) }.getOrNull() ?: "*/*"
+    val intent =
+        Intent(Intent.ACTION_VIEW).apply {
+          setDataAndType(uri, mime)
+          addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+    try {
+      context.startActivity(intent)
+    } catch (e: Exception) {
+      TSLog.w("MainViewModel", "openFile fallback to folder: $e")
+      openTaildropFolder(context)
+    }
+  }
+
+  fun openTaildropFolder(context: Context) {
+    val treeUri =
+        runCatching { TaildropDirectoryStore.loadSavedDir() }.getOrNull()
+            ?: run {
+              TSLog.w("MainViewModel", "openTaildropFolder: no saved Taildrop dir")
+              return
+            }
+    val docUri =
+        runCatching {
+              DocumentsContract.buildDocumentUriUsingTree(
+                  treeUri, DocumentsContract.getTreeDocumentId(treeUri))
+            }
+            .getOrNull()
+            ?: treeUri
+    val intent =
+        Intent(Intent.ACTION_VIEW).apply {
+          setDataAndType(docUri, "vnd.android.document/directory")
+          addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+    try {
+      context.startActivity(intent)
+    } catch (e: Exception) {
+      TSLog.w("MainViewModel", "openTaildropFolder failed: $e")
+    }
   }
 }
 
