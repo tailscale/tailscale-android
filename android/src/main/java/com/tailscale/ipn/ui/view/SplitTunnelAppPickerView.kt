@@ -8,13 +8,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
@@ -23,6 +26,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -49,6 +53,8 @@ fun SplitTunnelAppPickerView(
     model: SplitTunnelAppPickerViewModel = viewModel(),
 ) {
   val installedApps by model.installedApps.collectAsState()
+  val filteredApps by model.filteredApps.collectAsState()
+  val searchQuery by model.searchQuery.collectAsState()
   val selectedPackageNames by model.selectedPackageNames.collectAsState()
   val allowSelected by model.allowSelected.collectAsState()
   val builtInDisallowedPackageNames: List<String> = App.get().builtInDisallowedPackageNames
@@ -118,6 +124,28 @@ fun SplitTunnelAppPickerView(
                   selectedPackageNames.count(),
               ))
         }
+        item("searchBar") {
+          OutlinedTextField(
+              value = searchQuery,
+              onValueChange = { model.updateSearchQuery(it) },
+              placeholder = { Text(stringResource(R.string.search_ellipsis)) },
+              leadingIcon = {
+                Icon(Icons.Default.Search, contentDescription = null)
+              },
+              trailingIcon = {
+                if (searchQuery.isNotEmpty()) {
+                  IconButton(onClick = { model.updateSearchQuery("") }) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = stringResource(R.string.clear_search))
+                  }
+                }
+              },
+              singleLine = true,
+              modifier =
+                  Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+          )
+        }
         if (installedApps.isEmpty()) {
           item("spinner") {
             Box(
@@ -132,7 +160,7 @@ fun SplitTunnelAppPickerView(
             }
           }
         } else {
-          items(installedApps, key = { it.packageName }) { app ->
+          items(filteredApps, key = { it.packageName }) { app ->
             ListItem(
                 headlineContent = { Text(app.name, fontWeight = FontWeight.SemiBold) },
                 leadingContent = {
