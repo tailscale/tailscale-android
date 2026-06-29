@@ -43,4 +43,4 @@ RUN chmod 755 android/gradlew && \
     ./android/gradlew
 
 # Build the android app, bump the playstore version code, and make the tv release
-CMD make clean && make release && make bump_version_code && make release-tv
+CMD make clean && make release && make release-tv

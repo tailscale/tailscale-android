@@ -37,7 +37,7 @@ android {
     defaultConfig {
         minSdkVersion 26
         targetSdkVersion 35
-        versionCode 615
+        versionCode computeVersionCode()
         versionName getVersionProperty("VERSION_LONG")
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
@@ -195,3 +195,15 @@ def getVersionProperty(key) {
     versionProps.load(project.file('../tailscale.version').newDataInputStream())
     return versionProps.getProperty(key).replaceAll('^\"|\"$', '')
 }
+
+def computeVersionCode() {
+    def versionProps = new Properties()
+    versionProps.load(project.file('../tailscale.version').newDataInputStream())
+    
+    def major = versionProps.getProperty('VERSION_MAJOR') as int
+    def minor = versionProps.getProperty('VERSION_MINOR') as int
+    def patch = versionProps.getProperty('VERSION_PATCH') as int
+    def platform = (project.findProperty('PLATFORM') ?: '0') as int
+    
+    return major * 100000000 + minor * 100000 + patch * 10 + platform
+}          
