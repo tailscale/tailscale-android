@@ -31,6 +31,9 @@ tailscale.jks
 # Persistent $HOME/.android for `make docker-*` (keeps debug.keystore so
 # the debug signer is stable across container runs).
 .android-docker
+.android-integration-docker
+.cache-docker
+.gradle-docker
 
 # Java profiling output
 *.hprof
