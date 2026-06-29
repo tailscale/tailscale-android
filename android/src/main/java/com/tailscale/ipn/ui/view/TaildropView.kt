@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -28,6 +29,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
@@ -39,6 +41,7 @@ import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.viewModel.TaildropViewModel
 import com.tailscale.ipn.ui.viewModel.TaildropViewModelFactory
 import com.tailscale.ipn.util.TSLog
+import com.tailscale.ipn.util.TdPayload
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
 
@@ -73,10 +76,12 @@ fun TaildropView(
 
     when (viewModel.state.collectAsState().value) {
       Ipn.State.Running -> {
-        val peers by viewModel.myPeers.collectAsState()
+        val recent by viewModel.recentPeers.collectAsState()
+        val other by viewModel.otherPeers.collectAsState()
         val context = LocalContext.current
         FileSharePeerList(
-            peers = peers,
+            recent = recent,
+            other = other,
             stateViewGenerator = { peerId -> viewModel.TrailingContentForPeer(peerId = peerId) },
             onShare = { viewModel.share(context, it) },
         )
@@ -90,40 +95,50 @@ fun TaildropView(
 
 @Composable
 fun FileSharePeerList(
-    peers: List<Tailcfg.Node>,
+    recent: List<Tailcfg.Node>,
+    other: List<Tailcfg.Node>,
     stateViewGenerator: @Composable (String) -> Unit,
     onShare: (Tailcfg.Node) -> Unit,
 ) {
-  SectionDivider(stringResource(R.string.my_devices))
-
-  when (peers.isEmpty()) {
-    true -> {
-      Column(
-          modifier = Modifier.padding(horizontal = 8.dp).fillMaxHeight(),
-          verticalArrangement = Arrangement.Center,
-          horizontalAlignment = Alignment.CenterHorizontally,
-      ) {
-        Text(
-            stringResource(R.string.no_devices_to_share_with),
-            style = MaterialTheme.typography.titleMedium,
-        )
-      }
+  if (recent.isEmpty() && other.isEmpty()) {
+    SectionDivider(stringResource(R.string.my_devices))
+    Column(
+        modifier = Modifier.padding(horizontal = 8.dp).fillMaxHeight(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+      Text(
+          stringResource(R.string.no_devices_to_share_with),
+          style = MaterialTheme.typography.titleMedium,
+      )
     }
-    false -> {
-      LazyColumn {
-        peers.forEach { peer ->
-          item {
-            PeerView(
-                peer = peer,
-                onClick = { onShare(peer) },
-                subtitle = { peer.Hostinfo.OS ?: "" },
-                trailingContent = { stateViewGenerator(peer.StableID) },
-            )
-          }
-        }
-      }
-    }
+    return
   }
+
+  LazyColumn {
+    if (recent.isNotEmpty()) {
+      item { SectionDivider(stringResource(R.string.taildrop_recently_used)) }
+      items(recent) { PeerRow(it, stateViewGenerator, onShare) }
+      item { SectionDivider(stringResource(R.string.taildrop_all_devices)) }
+    } else {
+      item { SectionDivider(stringResource(R.string.my_devices)) }
+    }
+    items(other) { PeerRow(it, stateViewGenerator, onShare) }
+  }
+}
+
+@Composable
+private fun PeerRow(
+    peer: Tailcfg.Node,
+    stateViewGenerator: @Composable (String) -> Unit,
+    onShare: (Tailcfg.Node) -> Unit,
+) {
+  PeerView(
+      peer = peer,
+      onClick = { onShare(peer) },
+      subtitle = { peer.Hostinfo.OS ?: "" },
+      trailingContent = { stateViewGenerator(peer.StableID) },
+  )
 }
 
 @Composable
@@ -153,33 +168,45 @@ fun FileShareHeader(fileTransfers: List<Ipn.OutgoingFile>, totalSize: Long) {
     Row(verticalAlignment = Alignment.CenterVertically) {
       IconForTransfer(fileTransfers)
       Column(modifier = Modifier.padding(horizontal = 8.dp)) {
-        when (fileTransfers.isEmpty()) {
-          true ->
+        val payload = fileTransfers.singleOrNull()?.tdPayload
+        when {
+          fileTransfers.isEmpty() ->
               Text(
                   stringResource(R.string.no_files_to_share),
                   style = MaterialTheme.typography.titleMedium,
               )
-          false -> {
-
-            when (fileTransfers.size) {
-              1 -> Text(fileTransfers[0].Name, style = MaterialTheme.typography.titleMedium)
-              else ->
-                  Text(
-                      stringResource(R.string.file_count, fileTransfers.size),
-                      style = MaterialTheme.typography.titleMedium,
-                  )
-            }
+          payload != null ->
+              // Show the actual text/URL instead of the opaque envelope filename.
+              Text(
+                  text = payload.content,
+                  style = MaterialTheme.typography.titleMedium,
+                  maxLines = 2,
+                  overflow = TextOverflow.Ellipsis,
+              )
+          fileTransfers.size == 1 -> {
+            Text(fileTransfers[0].Name, style = MaterialTheme.typography.titleMedium)
+            FileSizeText(totalSize)
+          }
+          else -> {
+            Text(
+                stringResource(R.string.file_count, fileTransfers.size),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            FileSizeText(totalSize)
           }
         }
-        val size = Formatter.formatFileSize(LocalContext.current, totalSize.toLong())
-        Text(
-            size,
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.secondary,
-        )
       }
     }
   }
+}
+
+@Composable
+private fun FileSizeText(totalSize: Long) {
+  Text(
+      Formatter.formatFileSize(LocalContext.current, totalSize),
+      style = MaterialTheme.typography.titleSmall,
+      color = MaterialTheme.colorScheme.secondary,
+  )
 }
 
 @Composable
@@ -193,12 +220,24 @@ fun IconForTransfer(transfers: List<Ipn.OutgoingFile>) {
             modifier = Modifier.size(32.dp),
         )
     1 -> {
+      val only = transfers[0]
+      val payload = only.tdPayload
+      if (payload != null) {
+        val resource =
+            if (payload.kind == TdPayload.Kind.URL) R.drawable.link else R.drawable.single_file
+        Icon(
+            painter = painterResource(resource),
+            contentDescription = payload.kind.name.lowercase(),
+            modifier = Modifier.size(40.dp),
+        )
+        return
+      }
       // Show a thumbnail for single image shares.
       val context = LocalContext.current
-      context.contentResolver.getType(transfers[0].uri)?.let {
+      context.contentResolver.getType(only.uri)?.let {
         if (it.startsWith("image/")) {
           AsyncImage(
-              model = transfers[0].uri,
+              model = only.uri,
               contentDescription = "one file",
               modifier = Modifier.size(40.dp),
           )

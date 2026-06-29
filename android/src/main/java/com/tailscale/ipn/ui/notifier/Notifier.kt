@@ -14,11 +14,13 @@ import com.tailscale.ipn.ui.model.Netmap
 import com.tailscale.ipn.ui.model.NodeID
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.util.set
+import com.tailscale.ipn.util.PendingTdPayload
 import com.tailscale.ipn.util.TSLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
@@ -56,6 +58,17 @@ object Notifier {
   val outgoingFiles: StateFlow<List<Ipn.OutgoingFile>?> = MutableStateFlow(null)
   val incomingFiles: StateFlow<List<Ipn.PartialFile>?> = MutableStateFlow(null)
   val filesWaiting: StateFlow<Empty.Message?> = MutableStateFlow(null)
+
+  private val _tdPayloadInbox = MutableStateFlow<List<PendingTdPayload>>(emptyList())
+  val tdPayloadInbox: StateFlow<List<PendingTdPayload>> = _tdPayloadInbox
+
+  fun appendTdPayload(p: PendingTdPayload) {
+    _tdPayloadInbox.update { it + p }
+  }
+
+  fun removeTdPayload(id: String) {
+    _tdPayloadInbox.update { list -> list.filterNot { it.id == id } }
+  }
 
   private val userProfiles = mutableMapOf<String, Tailcfg.UserProfile>()
 
