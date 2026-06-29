@@ -62,6 +62,7 @@ import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.theme.AppTheme
 import com.tailscale.ipn.ui.util.AndroidTVUtil
+import com.tailscale.ipn.ui.util.DeepLinkNavigator
 import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.util.universalFit
 import com.tailscale.ipn.ui.view.AboutView
@@ -114,6 +115,8 @@ class MainActivity : ComponentActivity() {
   private lateinit var vpnPermissionLauncher: ActivityResultLauncher<Intent>
   private lateinit var appViewModel: AppViewModel
   private lateinit var viewModel: MainViewModel
+  private var deepLinkNavigator: DeepLinkNavigator? = null
+  private var pendingDeepLink: Uri? = null
 
   val permissionsViewModel: PermissionsViewModel by viewModels()
 
@@ -135,6 +138,8 @@ class MainActivity : ComponentActivity() {
   @SuppressLint("SourceLockedOrientationActivity")
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
+
+    pendingDeepLink = navigateUri(intent)
 
     // grab app to make sure it initializes
     App.get()
@@ -252,6 +257,15 @@ class MainActivity : ComponentActivity() {
       }
 
       navController = rememberNavController()
+
+      LaunchedEffect(navController) {
+        val nav = DeepLinkNavigator(navController, lifecycleScope)
+        deepLinkNavigator = nav
+        pendingDeepLink?.let {
+          pendingDeepLink = null
+          nav.handle(it)
+        }
+      }
 
       AppTheme {
         Surface(color = MaterialTheme.colorScheme.inverseSurface) { // Background for the letterbox
@@ -483,6 +497,21 @@ class MainActivity : ComponentActivity() {
         }
       }
     }
+    navigateUri(intent)?.let { uri ->
+      val nav = deepLinkNavigator
+      if (nav != null) {
+        nav.handle(uri)
+      } else {
+        pendingDeepLink = uri
+      }
+    }
+  }
+
+  private fun navigateUri(intent: Intent?): Uri? {
+    if (intent?.action != Intent.ACTION_VIEW) return null
+    val uri = intent.data ?: return null
+    if (uri.scheme != "tailscale" || uri.host != "navigate") return null
+    return uri
   }
 
   private fun login(urlString: String) {
