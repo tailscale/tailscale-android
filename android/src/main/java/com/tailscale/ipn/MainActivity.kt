@@ -88,6 +88,7 @@ import com.tailscale.ipn.ui.view.RunExitNodeView
 import com.tailscale.ipn.ui.view.SearchView
 import com.tailscale.ipn.ui.view.SettingsView
 import com.tailscale.ipn.ui.view.SplitTunnelAppPickerView
+import com.tailscale.ipn.ui.view.WifiAutoConnectView
 import com.tailscale.ipn.ui.view.SubnetRoutingView
 import com.tailscale.ipn.ui.view.TaildropDirView
 import com.tailscale.ipn.ui.view.TaildropDirectoryPickerPrompt
@@ -310,6 +311,9 @@ class MainActivity : ComponentActivity() {
                           onNavigateToManagedBy = { navController.navigate("managedBy") },
                           onNavigateToUserSwitcher = { navController.navigate("userSwitcher") },
                           onNavigateToPermissions = { navController.navigate("permissions") },
+                          onNavigateToWifiAutoConnect = {
+                            navController.navigate("wifiAutoConnect")
+                          },
                           onBackToSettings = backTo("settings"),
                           onNavigateBackHome = backTo("main"))
                   val exitNodePickerNav =
@@ -373,6 +377,7 @@ class MainActivity : ComponentActivity() {
                   composable("bugReport") { BugReportView(backTo("settings")) }
                   composable("dnsSettings") { DNSSettingsView(backTo("settings")) }
                   composable("splitTunneling") { SplitTunnelAppPickerView(backTo("settings")) }
+                  composable("wifiAutoConnect") { WifiAutoConnectView(backTo("settings")) }
                   composable("tailnetLock") { TailnetLockSetupView(backTo("settings")) }
                   composable("subnetRouting") { SubnetRoutingView(backTo("settings")) }
                   composable("about") { AboutView(backTo("settings")) }

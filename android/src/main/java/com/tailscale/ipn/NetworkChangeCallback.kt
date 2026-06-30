@@ -2,12 +2,19 @@
 // SPDX-License-Identifier: BSD-3-Clause
 package com.tailscale.ipn
 
+import android.content.Context
 import android.net.ConnectivityManager
 import android.net.LinkProperties
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
+import android.net.wifi.WifiInfo
+import android.net.wifi.WifiManager
+import android.os.Build
 import android.util.Log
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequest
+import androidx.work.WorkManager
 import com.tailscale.ipn.util.TSLog
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
@@ -36,6 +43,22 @@ object NetworkChangeCallback {
   @Volatile
   var cachedDefaultInterfaceName: String? = null
     private set
+
+  // Networks where we auto-started VPN (blacklist or defaultOn). Tracked to auto-stop on leave.
+  private val startedForNetworks = mutableMapOf<Network, String>()
+
+  // Networks where we auto-stopped VPN (whitelist). Tracked to restart VPN on leave if defaultOn.
+  private val stoppedForNetworks = mutableMapOf<Network, String>()
+
+  // User manually stopped VPN on a blacklist/defaultOn network → suppress re-auto-start.
+  private val userStoppedOnNetworks = mutableSetOf<Network>()
+
+  // User manually started VPN on a whitelist network → suppress auto-stop.
+  private val userStartedOnWhitelist = mutableSetOf<Network>()
+
+  // Stored for checkExistingNetworks().
+  private var wifiAutoConnectivity: ConnectivityManager? = null
+  private var wifiAutoConnectApp: UninitializedApp? = null
 
   // monitorDnsChanges sets up a network callback to monitor changes to the
   // system's network state and update the DNS configuration when interfaces
@@ -207,5 +230,155 @@ object NetworkChangeCallback {
       Libtailscale.onGatewayChanged(gatewayIP)
       Libtailscale.onDNSConfigChanged(info.linkProps.interfaceName)
     }
+  }
+
+  // userStoppedVpn: user manually stopped VPN → suppress re-auto-start on current networks.
+  fun userStoppedVpn() {
+    lock.withLock { userStoppedOnNetworks.addAll(startedForNetworks.keys) }
+  }
+
+  // userStartedVpn: user manually started VPN → suppress auto-stop on whitelist networks.
+  fun userStartedVpn() {
+    lock.withLock { userStartedOnWhitelist.addAll(stoppedForNetworks.keys) }
+  }
+
+  // monitorWifiAutoConnect registers a callback to auto-start the VPN on trusted SSIDs and
+  // auto-stop it when leaving those networks.
+  fun monitorWifiAutoConnect(connectivityManager: ConnectivityManager, app: UninitializedApp) {
+    wifiAutoConnectivity = connectivityManager
+    wifiAutoConnectApp = app
+    val request =
+        NetworkRequest.Builder()
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
+            .build()
+
+    connectivityManager.registerNetworkCallback(
+        request,
+        object : ConnectivityManager.NetworkCallback() {
+          override fun onCapabilitiesChanged(
+              network: Network,
+              capabilities: NetworkCapabilities
+          ) {
+            super.onCapabilitiesChanged(network, capabilities)
+            if (!capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) return
+            val ssid = getSsidFromCaps(capabilities, app) ?: return
+            var action: (() -> Unit)? = null
+            lock.withLock {
+              val whitelist = app.getWhitelistSsids()
+              val blacklist = app.getBlacklistSsids()
+              val defaultOn = app.getWifiAutoConnectDefaultOn()
+              val isWhitelisted = whitelist.contains(ssid)
+              val isBlacklisted = blacklist.contains(ssid)
+              TSLog.d(TAG, "wifi: ssid=$ssid whitelist=$whitelist blacklist=$blacklist defaultOn=$defaultOn")
+              when {
+                isWhitelisted -> {
+                  if (network in userStartedOnWhitelist) return@withLock
+                  if (network in stoppedForNetworks) return@withLock
+                  TSLog.d(TAG, "wifi: whitelist → stopping VPN")
+                  stoppedForNetworks[network] = ssid
+                  action = {
+                    WorkManager.getInstance(app).cancelUniqueWork("wifi_auto_connect")
+                    app.stopVPN()
+                  }
+                }
+                isBlacklisted || defaultOn -> {
+                  if (network in userStoppedOnNetworks) return@withLock
+                  if (network in startedForNetworks) return@withLock
+                  startedForNetworks[network] = ssid
+                  if (app.isAbleToStartVPN()) {
+                    TSLog.d(TAG, "wifi: ${if (isBlacklisted) "blacklist" else "defaultOn"} → starting VPN")
+                    action = { enqueueVpnStart(app) }
+                  } else {
+                    TSLog.d(TAG, "wifi: ${if (isBlacklisted) "blacklist" else "defaultOn"} → not yet authenticated, tracking network")
+                  }
+                }
+                else -> TSLog.d(TAG, "wifi: unknown network, defaultOn=false → no action")
+              }
+            }
+            action?.invoke()
+          }
+
+          override fun onLost(network: Network) {
+            super.onLost(network)
+            var action: (() -> Unit)? = null
+            lock.withLock {
+              val startedSsid = startedForNetworks.remove(network)
+              val stoppedSsid = stoppedForNetworks.remove(network)
+              userStoppedOnNetworks.remove(network)
+              userStartedOnWhitelist.remove(network)
+              if (startedSsid != null) {
+                TSLog.d(TAG, "wifi: left blacklist/defaultOn network $startedSsid → stopping VPN")
+                action = {
+                  WorkManager.getInstance(app).cancelUniqueWork("wifi_auto_connect")
+                  app.stopVPN()
+                }
+              } else if (stoppedSsid != null && app.getWifiAutoConnectDefaultOn()) {
+                TSLog.d(TAG, "wifi: left whitelist network $stoppedSsid, defaultOn=true → starting VPN")
+                action = { enqueueVpnStart(app) }
+              }
+            }
+            action?.invoke()
+          }
+        })
+  }
+
+  // checkExistingNetworks re-evaluates all active WiFi networks against current lists.
+  // Call when whitelist, blacklist, or defaultOn setting changes.
+  fun checkExistingNetworks() {
+    wifiAutoConnectivity ?: return
+    val app = wifiAutoConnectApp ?: return
+    val actions = mutableListOf<() -> Unit>()
+    lock.withLock {
+      val whitelist = app.getWhitelistSsids()
+      val blacklist = app.getBlacklistSsids()
+      val defaultOn = app.getWifiAutoConnectDefaultOn()
+      // Clean stale entries for SSIDs removed from their respective lists.
+      if (!defaultOn) startedForNetworks.entries.removeIf { (_, ssid) -> !blacklist.contains(ssid) }
+      stoppedForNetworks.entries.removeIf { (_, ssid) -> !whitelist.contains(ssid) }
+      for ((network, info) in activeNetworks) {
+        if (!info.caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) continue
+        val ssid = getSsidFromCaps(info.caps, app) ?: continue
+        val isWhitelisted = whitelist.contains(ssid)
+        val isBlacklisted = blacklist.contains(ssid)
+        when {
+          isWhitelisted -> {
+            if (network in userStartedOnWhitelist) continue
+            if (network in stoppedForNetworks) continue
+            stoppedForNetworks[network] = ssid
+            actions += {
+              WorkManager.getInstance(app).cancelUniqueWork("wifi_auto_connect")
+              app.stopVPN()
+            }
+          }
+          isBlacklisted || defaultOn -> {
+            if (network in userStoppedOnNetworks) continue
+            if (network in startedForNetworks) continue
+            startedForNetworks[network] = ssid
+            if (app.isAbleToStartVPN()) actions += { enqueueVpnStart(app) }
+          }
+        }
+      }
+    }
+    actions.forEach { it() }
+  }
+
+  private fun String?.cleanSsid(): String? =
+      this?.removePrefix("\"")?.removeSuffix("\"")?.takeIf { it.isNotEmpty() && it != "<unknown ssid>" }
+
+  private fun getSsidFromCaps(capabilities: NetworkCapabilities, app: UninitializedApp): String? {
+    // Try transportInfo first (preferred on API 29+, no location perm needed on API 31+).
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+      val fromTransport = (capabilities.transportInfo as? WifiInfo)?.ssid.cleanSsid()
+      if (fromTransport != null) return fromTransport
+    }
+    // Fallback: WifiManager (works if ACCESS_FINE_LOCATION or NEARBY_WIFI_DEVICES is granted).
+    @Suppress("DEPRECATION")
+    return (app.getSystemService(Context.WIFI_SERVICE) as? WifiManager)?.connectionInfo?.ssid.cleanSsid()
+  }
+
+  private fun enqueueVpnStart(app: UninitializedApp) {
+    val req = OneTimeWorkRequest.Builder(StartVPNWorker::class.java).build()
+    WorkManager.getInstance(app).enqueueUniqueWork("wifi_auto_connect", ExistingWorkPolicy.KEEP, req)
   }
 }
