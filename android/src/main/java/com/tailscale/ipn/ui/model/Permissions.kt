@@ -79,6 +79,11 @@ object Permissions {
               R.string.permission_post_notifications,
               R.string.permission_post_notifications_needed))
     }
+    result.add(
+        Permission(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            R.string.permission_location,
+            R.string.permission_location_needed))
     result
   }
 }

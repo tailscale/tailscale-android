@@ -137,6 +137,12 @@ fun SettingsView(
             Setting.Text(R.string.permissions, onClick = settingsNav.onNavigateToPermissions)
           }
 
+          Lists.ItemDivider()
+          Setting.Text(
+              R.string.auto_vpn,
+              subtitle = "Auto-toggle VPN based on network",
+              onClick = settingsNav.onNavigateToTrustedNetworks)
+
           managedByOrganization.value?.let {
             Lists.ItemDivider()
             Setting.Text(
@@ -278,5 +284,5 @@ fun SettingsPreview() {
   vm.tailNetLockEnabled.set(true)
   vm.isAdmin.set(true)
   vm.managedByOrganization.set("Tails and Scales Inc.")
-  SettingsView(SettingsNav({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}), vm)
+  SettingsView(SettingsNav({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}), vm)
 }

@@ -242,6 +242,8 @@
     <string name="permission_write_external_storage_needed">We use storage in order to receive files with Taildrop.</string>
     <string name="permission_post_notifications">Notifications</string>
     <string name="permission_post_notifications_needed">We use notifications to help you troubleshoot broken connections, or notify you before you need to reauthenticate to your network. Persistent status notifications are off by default and can be enabled in system settings. </string>
+    <string name="permission_location">Location</string>
+    <string name="permission_location_needed">Required by Auto-VPN to detect the current Wi-Fi network name (SSID). Without this permission, VPN will stay enabled on all networks.</string>
     <string name="open_notification_settings">Go to notification settings</string>
     <string name="notification_settings_explanation">Persistent status notifications are off by default and can be enabled in system settings.</string>
     <string name="taildrop_dir">Taildrop directory</string>
@@ -309,6 +311,7 @@
     <string name="an_unknown_error_occurred_please_try_again">An unknown error occurred. Please try again.</string>
     <string name="request_timed_out_make_sure_that_is_online">Request timed out. Make sure that \'%1$s\' is online.</string>
     <string name="split_tunneling">App split tunneling</string>
+    <string name="auto_vpn">Auto-VPN</string>
     <string name="your_current_selection_will_be_cleared">Your current selection will be cleared.</string>
     <string name="filter_apps_allowed_to_access_tailscale">Filter what apps are allowed to access Tailscale.</string>
     <string name="selected_apps_will_access_the_internet_directly_without_using_tailscale">Apps you select will access the internet without using Tailscale.</string>
