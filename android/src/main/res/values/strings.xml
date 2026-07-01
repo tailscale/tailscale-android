@@ -378,4 +378,10 @@
     <string name="enable_hardware_attestation">Enable hardware attestation</string>
     <string name="use_hardware_backed_keys_to_bind_node_identity_to_the_device">Use hardware-backed keys to bind node identity to the device</string>
 
+    <!-- App shortcuts (launcher long-press, Tasker, Samsung Modes &amp; Routines) -->
+    <string name="shortcut_connect_short">Connect</string>
+    <string name="shortcut_connect_long">Connect to Tailscale</string>
+    <string name="shortcut_disconnect_short">Disconnect</string>
+    <string name="shortcut_disconnect_long">Disconnect from Tailscale</string>
+
 </resources>
