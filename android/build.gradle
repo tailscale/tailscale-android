@@ -79,16 +79,16 @@ android {
     buildTypes {
         applicationTest {
             initWith debug
-            manifestPlaceholders.leanbackRequired = false
+            manifestPlaceholders.leanbackRequired = isTV()
             buildConfigField "String", "GITHUB_USERNAME", "\"" + getLocalProperty("githubUsername", "")+"\""
             buildConfigField "String", "GITHUB_PASSWORD", "\"" + getLocalProperty("githubPassword", "")+"\""
             buildConfigField "String", "GITHUB_2FA_SECRET", "\"" + getLocalProperty("github2FASecret", "")+"\""
         }
         debug {
-            manifestPlaceholders.leanbackRequired = false
+            manifestPlaceholders.leanbackRequired = isTV()
         }
         release {
-            manifestPlaceholders.leanbackRequired = false
+            manifestPlaceholders.leanbackRequired = isTV()
 
             minifyEnabled true
 
@@ -97,10 +97,6 @@ android {
             proguardFiles getDefaultProguardFile(
                     'proguard-android-optimize.txt'),
                     'proguard-rules.pro'
-        }
-        release_tv {
-            initWith release
-            manifestPlaceholders.leanbackRequired = true
         }
     }
 
@@ -204,7 +200,12 @@ def computeVersionCode() {
     def major = versionProps.getProperty('VERSION_MAJOR') as int
     def minor = versionProps.getProperty('VERSION_MINOR') as int
     def patch = versionProps.getProperty('VERSION_PATCH') as int
-    def platform = (project.findProperty('PLATFORM') ?: '0') as int
+    // The platform is 0 for Android, 1 for AndroidTV. This is used to distinguish the two in the Play Store.
+    def platform = isTV() ? 1 : 0
     
     return major * 100000000 + minor * 100000 + patch * 10 + platform
-}          
+}   
+
+def isTV() {
+    return project.findProperty('PLATFORM')?.toString() == 'tv'
+}
