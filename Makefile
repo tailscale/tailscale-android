@@ -151,8 +151,8 @@ $(RELEASE_AAB): version gradle-dependencies
 
 $(RELEASE_TV_AAB): version gradle-dependencies
 	@echo "Building TV release AAB"
-	(cd android && ./gradlew test bundleTvRelease -PPLATFORM=1) 
-	install -C ./android/build/outputs/bundle/release_tv/android-release_tv.aab $@
+	(cd android && ./gradlew test bundleRelease -PPLATFORM=1) 
+	install -C ./android/build/outputs/bundle/release/android-release.aab $@
 
 tailscale-test.apk: version gradle-dependencies
 	(cd android && ./gradlew assembleApplicationTestAndroidTest)
