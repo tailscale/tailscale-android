@@ -87,7 +87,7 @@ fun PeerDetails(
                   IconButton(onClick = { model.startPing() }) {
                     Icon(
                         painter = painterResource(R.drawable.timer),
-                        contentDescription = "Ping device")
+                        contentDescription = stringResource(R.string.ping_device))
                   }
                 },
                 onBack = onNavigateBack)
