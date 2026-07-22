@@ -10,7 +10,7 @@
 # with this name, it will be used.
 #
 # The convention here is tailscale-android-build-amd64-<date>
-DOCKER_IMAGE := tailscale-android-build-amd64-072226-2
+DOCKER_IMAGE := tailscale-android-build-amd64-072226-3
 
 # The integration test image contains the Android emulator, system image, SDK,
 # build-tools, NDK, adb, and helper tools needed to run the emulator-backed Go
