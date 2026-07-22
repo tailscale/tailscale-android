@@ -33,10 +33,10 @@ apply plugin: 'com.ncorti.ktfmt.gradle'
 
 android {
     ndkVersion "23.1.7779620"
-    compileSdkVersion 34
+    compileSdkVersion 36
     defaultConfig {
         minSdkVersion 26
-        targetSdkVersion 35
+        targetSdkVersion 36
         // versionCode is written here by `make bumposs` / `make tag_release`
         // (base = major*100000000 + minor*100000 + patch*10). AndroidTV builds
         // increment this by 1 in the Makefile's release-tv target so the two
