@@ -32,11 +32,13 @@ apply plugin: 'org.jetbrains.kotlin.plugin.serialization'
 apply plugin: 'com.ncorti.ktfmt.gradle'
 
 android {
+    def androidApiLevel = providers.gradleProperty("androidApiLevel").get().toInteger()
+
     ndkVersion "23.1.7779620"
-    compileSdkVersion 36
+    compileSdkVersion androidApiLevel
     defaultConfig {
         minSdkVersion 26
-        targetSdkVersion 36
+        targetSdkVersion androidApiLevel
         // versionCode is written here by `make bumposs` / `make tag_release`
         // (base = major*100000000 + minor*100000 + patch*10). AndroidTV builds
         // increment this by 1 in the Makefile's release-tv target so the two

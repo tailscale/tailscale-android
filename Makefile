@@ -10,7 +10,7 @@
 # with this name, it will be used.
 #
 # The convention here is tailscale-android-build-amd64-<date>
-DOCKER_IMAGE := tailscale-android-build-amd64-070325-1
+DOCKER_IMAGE := tailscale-android-build-amd64-072226-2
 
 # The integration test image contains the Android emulator, system image, SDK,
 # build-tools, NDK, adb, and helper tools needed to run the emulator-backed Go
@@ -26,6 +26,15 @@ export TS_USE_TOOLCHAIN=1
 # As of 2026-04-15, we disable netmap caching on Android until we have UI
 # affordances for debugging it.
 GOMOBILE_BUILD_TAGS := ts_omit_cachenetmap
+
+# Pull androidApiLevel from gradle.properties.
+ANDROID_API_LEVEL := $(shell grep '^androidApiLevel=' android/gradle.properties | cut -d'=' -f2)
+
+ifeq ($(ANDROID_API_LEVEL),)
+$(error androidApiLevel missing from android/gradle.properties)
+endif
+
+ANDROID_BUILD_TOOLS_VERSION := $(shell grep '^androidBuildToolsVersion=' android/gradle.properties | cut -d'=' -f2)
 
 DEBUG_APK := tailscale-debug.apk
 RELEASE_AAB := tailscale-release.aab
@@ -47,7 +56,7 @@ else
     ANDROID_TOOLS_URL := "https://dl.google.com/android/repository/commandlinetools-mac-9477386_latest.zip"
     ANDROID_TOOLS_SUM := "2072ffce4f54cdc0e6d2074d2f381e7e579b7d63e915c220b96a7db95b2900ee  commandlinetools-mac-9477386_latest.zip"
 endif
-ANDROID_SDK_PACKAGES := 'platforms;android-34' 'extras;android;m2repository' 'ndk;23.1.7779620' 'platform-tools' 'build-tools;34.0.0'
+ANDROID_SDK_PACKAGES := 'platforms;android-$(ANDROID_API_LEVEL)' 'extras;android;m2repository' 'ndk;23.1.7779620' 'platform-tools' 'build-tools;$(ANDROID_BUILD_TOOLS_VERSION)'
 
 # Attempt to find an ANDROID_SDK_ROOT / ANDROID_HOME based either from
 # preexisting environment or common locations.
@@ -91,7 +100,7 @@ else
     export PATH := $(JAVA_HOME)/bin:$(PATH)
 endif
 
-AVD_BASE_IMAGE := "system-images;android-33;google_apis;"
+AVD_BASE_IMAGE := 'system-images;android-$(ANDROID_API_LEVEL);google_apis;'
 export HOST_ARCH := $(shell uname -m)
 ifeq ($(HOST_ARCH),aarch64)
     AVD_IMAGE := "$(AVD_BASE_IMAGE)arm64-v8a"

@@ -1,7 +1,7 @@
 # This is a Dockerfile for creating a build environment for
 # tailscale-android.
 
-FROM --platform=linux/amd64 eclipse-temurin:21
+FROM --platform=linux/amd64 eclipse-temurin:21-jdk-jammy
 
 ENV HOME /build
 ENV ANDROID_HOME $HOME/android-sdk
@@ -24,13 +24,14 @@ RUN chmod 755 /tmp/docker-build-apt-get.sh && \
 # to run "go run tailscale.com/cmd/printdep" to figure out which Tailscale Go
 # version we need later, but otherwise this toolchain isn't used:
 RUN \
-    curl -L https://go.dev/dl/go1.24.1.linux-amd64.tar.gz | tar -C /usr/local -zxv && \
+    curl -L https://go.dev/dl/go1.26.5.linux-amd64.tar.gz | tar -C /usr/local -zxv && \
     ln -s /usr/local/go/bin/go /usr/bin
 
 RUN git config --global --add safe.directory $HOME/tailscale-android
 WORKDIR $HOME/tailscale-android
 
 COPY Makefile Makefile
+COPY android/gradle.properties android/gradle.properties
 
 # Get android sdk, ndk, and rest of the stuff needed to build the android app.
 RUN make androidsdk
