@@ -158,7 +158,7 @@ release-tv: jarsign-env $(RELEASE_TV_AAB)
 
 # gradle-dependencies groups together the android sources and libtailscale needed to assemble tests/debug/release builds.
 .PHONY: gradle-dependencies
-gradle-dependencies: $(shell find android -type f -not -path "android/build/*" -not -path '*/.*') $(LIBTAILSCALE_AAR) tailscale.version
+gradle-dependencies: $(shell find android -type f -not -path "android/build/*" -not -path "android/libs/*" -not -path '*/.*') $(LIBTAILSCALE_AAR) tailscale.version
 
 $(RELEASE_AAB): version gradle-dependencies
 	@echo "Building release AAB"

@@ -178,6 +178,8 @@
     <string name="this_node_is_trusted">This node is trusted to change the Tailnet lock configuration.</string>
     <string name="this_node_is_not_trusted">This node is not trusted to change the Tailnet lock configuration.</string>
     <string name="copy_to_clipboard">Copy to clipboard</string>
+    <string name="copy">Copy</string>
+    <string name="copied">Copied</string>
     <string name="node_key">Node key</string>
     <string name="tailnet_lock_key">Tailnet lock key</string>
     <string name="node_key_explainer">Used to sign this node from another signing device in your tailnet.</string>
