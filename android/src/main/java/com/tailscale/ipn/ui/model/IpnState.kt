@@ -17,25 +17,34 @@ class IpnState {
 
   @Serializable
   data class PeerStatus(
-      val ID: StableNodeID,
-      val HostName: String,
-      val DNSName: String,
+      val ID: StableNodeID = "",
+      val NodeID: NodeID = 0,
+      val PublicKey: KeyNodePublic = "",
+      val HostName: String = "",
+      val DNSName: String = "",
+      val OS: String = "",
+      val UserID: UserID = 0,
+      val AltSharerUserID: UserID = 0,
       val TailscaleIPs: List<Addr>? = null,
+      val AllowedIPs: List<Prefix>? = null,
       val Tags: List<String>? = null,
       val PrimaryRoutes: List<String>? = null,
       val Addrs: List<String>? = null,
       val CurAddr: String? = null,
       val Relay: String? = null,
       val PeerRelay: String? = null,
-      val Online: Boolean,
-      val ExitNode: Boolean,
-      val ExitNodeOption: Boolean,
-      val Active: Boolean,
+      val LastSeen: String? = null,
+      val Online: Boolean = false,
+      val ExitNode: Boolean = false,
+      val ExitNodeOption: Boolean = false,
+      val Active: Boolean = false,
       val PeerAPIURL: List<String>? = null,
       val Capabilities: List<String>? = null,
+      val CapMap: Map<String, kotlinx.serialization.json.JsonElement?>? = null,
       val SSH_HostKeys: List<String>? = null,
       val ShareeNode: Boolean? = null,
       val Expired: Boolean? = null,
+      val KeyExpiry: String? = null,
       val Location: Tailcfg.Location? = null,
   ) {
     fun computedName(status: Status): String {
@@ -54,24 +63,24 @@ class IpnState {
 
   @Serializable
   data class ExitNodeStatus(
-      val ID: StableNodeID,
-      val Online: Boolean,
+      val ID: StableNodeID = "",
+      val Online: Boolean = false,
       val TailscaleIPs: List<Prefix>? = null,
   )
 
   @Serializable
   data class TailnetStatus(
-      val Name: String,
-      val MagicDNSSuffix: String,
-      val MagicDNSEnabled: Boolean,
+      val Name: String = "",
+      val MagicDNSSuffix: String = "",
+      val MagicDNSEnabled: Boolean = false,
   )
 
   @Serializable
   data class Status(
-      val Version: String,
-      val TUN: Boolean,
-      val BackendState: String,
-      val AuthURL: String,
+      val Version: String = "",
+      val TUN: Boolean = false,
+      val BackendState: String = "",
+      val AuthURL: String = "",
       val TailscaleIPs: List<Addr>? = null,
       val Self: PeerStatus? = null,
       val ExitNodeStatus: ExitNodeStatus? = null,

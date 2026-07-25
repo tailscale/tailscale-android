@@ -4,6 +4,7 @@
 package com.tailscale.ipn.ui.util
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
@@ -95,7 +95,10 @@ object Lists {
         headlineContent = {
           Box(modifier = Modifier.padding(vertical = 4.dp)) {
             onClick?.let {
-              ClickableText(text = text as AnnotatedString, style = style, onClick = { onClick() })
+              Text(
+                  text = text as AnnotatedString,
+                  style = style,
+                  modifier = Modifier.clickable { onClick() })
             } ?: run { Text(text as String, style = style) }
           }
         })

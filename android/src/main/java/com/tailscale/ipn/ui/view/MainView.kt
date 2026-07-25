@@ -129,7 +129,6 @@ fun MainView(
     loginAtUrl: (String) -> Unit,
     navigation: MainViewNavigation,
     viewModel: MainViewModel,
-    appViewModel: AppViewModel
 ) {
   val currentPingDevice by viewModel.pingViewModel.peer.collectAsState()
   val healthIcon by viewModel.healthIcon.collectAsState()
@@ -637,7 +636,7 @@ fun PeerList(
           var first = true
           peerList.forEach { peerSet ->
             if (!first) {
-              item(key = "user_divider_${peerSet.user?.ID ?: 0L}") { Lists.ItemDivider() }
+              item(key = "user_divider_${peerSet.userID}") { Lists.ItemDivider() }
             }
             first = false
             if (isAndroidTV()) {
@@ -829,5 +828,5 @@ fun MainViewPreview() {
           onNavigateToHealth = {},
           onNavigateToSearch = {}),
       vm,
-      appViewModel)
+  )
 }

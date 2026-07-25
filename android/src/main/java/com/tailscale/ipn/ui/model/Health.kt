@@ -34,6 +34,10 @@ class Health {
       } == true
     }
 
+    /** Hydrated value copied to the clipboard for debugging. */
+    val clipboardText: String
+      get() = "$WarnableCode: $Title" + if (Text.isNotEmpty()) "\n$Text" else ""
+
     override fun compareTo(other: UnhealthyState): Int {
       // Compare by severity first
       val severityComparison = other.Severity.compareTo(Severity)

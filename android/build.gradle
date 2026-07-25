@@ -11,7 +11,7 @@ buildscript {
         }
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.6.1'
+        classpath 'com.android.tools.build:gradle:8.13.0'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         classpath "org.jetbrains.kotlin:kotlin-serialization:$kotlin_version"
         classpath("com.ncorti.ktfmt.gradle:plugin:0.17.0")
@@ -32,12 +32,18 @@ apply plugin: 'org.jetbrains.kotlin.plugin.serialization'
 apply plugin: 'com.ncorti.ktfmt.gradle'
 
 android {
+    def androidApiLevel = providers.gradleProperty("androidApiLevel").get().toInteger()
+
     ndkVersion "23.1.7779620"
-    compileSdkVersion 34
+    compileSdkVersion androidApiLevel
     defaultConfig {
         minSdkVersion 26
-        targetSdkVersion 35
-        versionCode 468
+        targetSdkVersion androidApiLevel
+        // versionCode is written here by `make bumposs` / `make tag_release`
+        // (base = major*100000000 + minor*100000 + patch*10). AndroidTV builds
+        // increment this by 1 in the Makefile's release-tv target so the two
+        // variants are distinguishable in the Play Store.
+        versionCode 110102910
         versionName getVersionProperty("VERSION_LONG")
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
@@ -79,16 +85,16 @@ android {
     buildTypes {
         applicationTest {
             initWith debug
-            manifestPlaceholders.leanbackRequired = false
+            manifestPlaceholders.leanbackRequired = isTV()
             buildConfigField "String", "GITHUB_USERNAME", "\"" + getLocalProperty("githubUsername", "")+"\""
             buildConfigField "String", "GITHUB_PASSWORD", "\"" + getLocalProperty("githubPassword", "")+"\""
             buildConfigField "String", "GITHUB_2FA_SECRET", "\"" + getLocalProperty("github2FASecret", "")+"\""
         }
         debug {
-            manifestPlaceholders.leanbackRequired = false
+            manifestPlaceholders.leanbackRequired = isTV()
         }
         release {
-            manifestPlaceholders.leanbackRequired = false
+            manifestPlaceholders.leanbackRequired = isTV()
 
             minifyEnabled true
 
@@ -97,10 +103,6 @@ android {
             proguardFiles getDefaultProguardFile(
                     'proguard-android-optimize.txt'),
                     'proguard-rules.pro'
-        }
-        release_tv {
-            initWith release
-            manifestPlaceholders.leanbackRequired = true
         }
     }
 
@@ -114,6 +116,7 @@ dependencies {
     implementation "androidx.browser:browser:1.8.0"
     implementation "androidx.security:security-crypto:1.1.0-alpha06"
     implementation "androidx.work:work-runtime:2.9.1"
+    implementation "androidx.work:work-runtime-ktx:2.9.1"
 
     // Kotlin dependencies.
     implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3"
@@ -170,6 +173,7 @@ dependencies {
     testImplementation 'org.mockito:mockito-core:5.12.0'
     testImplementation 'org.mockito:mockito-inline:5.2.0'
     testImplementation 'org.mockito.kotlin:mockito-kotlin:5.4.0'
+    testImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1'
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     implementation("androidx.compose.ui:ui-tooling-preview")
@@ -193,4 +197,8 @@ def getVersionProperty(key) {
     def versionProps = new Properties()
     versionProps.load(project.file('../tailscale.version').newDataInputStream())
     return versionProps.getProperty(key).replaceAll('^\"|\"$', '')
+}
+
+def isTV() {
+    return project.findProperty('PLATFORM')?.toString() == 'tv'
 }

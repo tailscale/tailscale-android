@@ -23,7 +23,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -31,6 +31,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SearchBar
+import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -99,8 +100,8 @@ fun SearchView(
 
   DisposableEffect(Unit) {
     val dispatcher = context.onBackInvokedDispatcher
-    dispatcher?.registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT, callback)
-    onDispose { dispatcher?.unregisterOnBackInvokedCallback(callback) }
+    dispatcher.registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT, callback)
+    onDispose { dispatcher.unregisterOnBackInvokedCallback(callback) }
   }
 
   LaunchedEffect(searchTerm, filteredPeers) {
@@ -123,113 +124,121 @@ fun SearchView(
     Column(modifier = Modifier.fillMaxWidth().focusRequester(focusRequester)) {
       SearchBar(
           modifier = Modifier.fillMaxWidth(),
-          query = searchTerm,
-          onQueryChange = { newQuery ->
-            // Create a new TextFieldValue with updated text and set cursor to the end.
-            searchFieldValue = TextFieldValue(newQuery, selection = TextRange(newQuery.length))
-            viewModel.updateSearchTerm(newQuery)
-            expanded = true
-          },
-          onSearch = { newQuery ->
-            searchFieldValue = TextFieldValue(newQuery, selection = TextRange(newQuery.length))
-            viewModel.updateSearchTerm(newQuery)
-            focusManager.clearFocus()
-            keyboardController?.hide()
-          },
-          placeholder = { Text(text = stringResource(R.string.search)) },
-          leadingIcon = {
-            IconButton(
-                onClick = {
+          inputField = {
+            SearchBarDefaults.InputField(
+                query = searchTerm,
+                onQueryChange = { newQuery ->
+                  // Create a new TextFieldValue with updated text and set cursor to the end.
+                  searchFieldValue =
+                      TextFieldValue(newQuery, selection = TextRange(newQuery.length))
+                  viewModel.updateSearchTerm(newQuery)
+                  expanded = true
+                },
+                onSearch = { newQuery ->
+                  searchFieldValue =
+                      TextFieldValue(newQuery, selection = TextRange(newQuery.length))
+                  viewModel.updateSearchTerm(newQuery)
                   focusManager.clearFocus()
-                  onNavigateBack()
-                  viewModel.updateSearchTerm("")
-                }) {
-                  Icon(
-                      imageVector = Icons.Default.ArrowBack,
-                      contentDescription = stringResource(R.string.search),
-                      tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-          },
-          trailingIcon = {
-            if (searchTerm.isNotEmpty()) {
-              IconButton(
-                  onClick = {
-                    searchFieldValue = TextFieldValue("", selection = TextRange(0))
-                    viewModel.updateSearchTerm("")
-                    focusManager.clearFocus()
-                    keyboardController?.hide()
-                  }) {
-                    Icon(
-                        Icons.Default.Clear,
-                        contentDescription = stringResource(R.string.clear_search))
+                  keyboardController?.hide()
+                },
+                expanded = expanded,
+                onExpandedChange = { expanded = it },
+                placeholder = { Text(text = stringResource(R.string.search)) },
+                leadingIcon = {
+                  IconButton(
+                      onClick = {
+                        focusManager.clearFocus()
+                        onNavigateBack()
+                        viewModel.updateSearchTerm("")
+                      }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.search),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                      }
+                },
+                trailingIcon = {
+                  if (searchTerm.isNotEmpty()) {
+                    IconButton(
+                        onClick = {
+                          searchFieldValue = TextFieldValue("", selection = TextRange(0))
+                          viewModel.updateSearchTerm("")
+                          focusManager.clearFocus()
+                          keyboardController?.hide()
+                        }) {
+                          Icon(
+                              Icons.Default.Clear,
+                              contentDescription = stringResource(R.string.clear_search))
+                        }
                   }
+                },
+            )
+          },
+          expanded = expanded,
+          onExpandedChange = { expanded = it },
+      ) {
+        LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+          if (filteredPeers.isEmpty()) {
+            // When there are no filtered peers, show a "No results" message.
+            item {
+              Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                Lists.LargeTitle(
+                    stringResource(id = R.string.no_results),
+                    bottomPadding = 8.dp,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Light,
+                    backgroundColor = noResultsBackground,
+                    fontColor = MaterialTheme.colorScheme.onSurfaceVariant)
+              }
             }
-          },
-          active = expanded,
-          onActiveChange = { expanded = it },
-          content = {
-            LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
-              if (filteredPeers.isEmpty()) {
-                // When there are no filtered peers, show a "No results" message.
-                item {
-                  Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                    Lists.LargeTitle(
-                        stringResource(id = R.string.no_results),
-                        bottomPadding = 8.dp,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Light,
-                        backgroundColor = noResultsBackground,
-                        fontColor = MaterialTheme.colorScheme.onSurfaceVariant)
-                  }
-                }
-              } else {
-                var firstGroup = true
-                filteredPeers.forEach { peerSet ->
-                  if (!firstGroup) {
-                    item { Lists.ItemDivider() }
-                  }
-                  firstGroup = false
+          } else {
+            var firstGroup = true
+            filteredPeers.forEach { peerSet ->
+              if (!firstGroup) {
+                item { Lists.ItemDivider() }
+              }
+              firstGroup = false
 
-                  val userName = peerSet.user?.DisplayName ?: "Unknown User"
-                  peerSet.peers.forEachIndexed { index, peer ->
-                    if (index > 0) {
-                      item(key = "divider_${peer.StableID}") { Lists.ItemDivider() }
-                    }
-                    item(key = "peer_${peer.StableID}") {
-                      ListItem(
-                          colors = MaterialTheme.colorScheme.listItem,
-                          headlineContent = {
-                            Column {
-                              Row(verticalAlignment = Alignment.CenterVertically) {
-                                val onlineColor = peer.connectedColor(netmap)
-                                Box(
-                                    modifier =
-                                        Modifier.size(10.dp)
-                                            .background(onlineColor, RoundedCornerShape(50)))
-                                Spacer(modifier = Modifier.size(8.dp))
-                                Text(peer.displayName ?: "Unknown Device")
-                              }
-                            }
-                          },
-                          supportingContent = {
-                            Column {
-                              Text(userName)
-                              Text(peer.Addresses?.firstOrNull()?.split("/")?.first() ?: "No IP")
-                            }
-                          },
-                          modifier =
-                              Modifier.fillMaxWidth()
-                                  .padding(horizontal = 4.dp, vertical = 0.dp)
-                                  .clickable {
-                                    viewModel.disableSearchAutoFocus()
-                                    navController.navigate("peerDetails/${peer.StableID}")
-                                  })
-                    }
-                  }
+              val userName = peerSet.user?.DisplayName ?: "Unknown User"
+              peerSet.peers.forEachIndexed { index, peer ->
+                if (index > 0) {
+                  item(key = "divider_${peer.StableID}") { Lists.ItemDivider() }
+                }
+                item(key = "peer_${peer.StableID}") {
+                  ListItem(
+                      colors = MaterialTheme.colorScheme.listItem,
+                      headlineContent = {
+                        Column {
+                          Row(verticalAlignment = Alignment.CenterVertically) {
+                            val onlineColor = peer.connectedColor(netmap)
+                            Box(
+                                modifier =
+                                    Modifier.size(10.dp)
+                                        .background(onlineColor, RoundedCornerShape(50)))
+                            Spacer(modifier = Modifier.size(8.dp))
+                            Text(peer.displayName)
+                          }
+                        }
+                      },
+                      supportingContent = {
+                        Column {
+                          Text(userName)
+                          Text(peer.Addresses?.firstOrNull()?.split("/")?.first() ?: "No IP")
+                        }
+                      },
+                      modifier =
+                          Modifier.fillMaxWidth()
+                              .padding(horizontal = 4.dp, vertical = 0.dp)
+                              .clickable {
+                                viewModel.disableSearchAutoFocus()
+                                navController.navigate("peerDetails/${peer.StableID}")
+                              })
                 }
               }
             }
-          })
+          }
+        }
+      }
     }
   }
 }
