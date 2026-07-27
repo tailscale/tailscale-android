@@ -26,11 +26,14 @@ android/local.properties
 tailscale.jks
 
 # android sdk dir
-./android-sdk
+/android-sdk/
 
 # Persistent $HOME/.android for `make docker-*` (keeps debug.keystore so
 # the debug signer is stable across container runs).
 .android-docker
+.android-integration-docker
+.cache-docker
+.gradle-docker
 
 # Java profiling output
 *.hprof
@@ -51,3 +54,6 @@ libtailscale-sources.jar
 .DS_Store
 
 tailscale.version
+
+# local tmp folder
+.tmp/

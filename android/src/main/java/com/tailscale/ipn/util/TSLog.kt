@@ -44,7 +44,7 @@ object TSLog {
       libtailscaleWrapper.sendLog(tag, message)
     } else {
       Log.e(tag, message, throwable)
-      libtailscaleWrapper.sendLog(tag, "$message ${throwable?.localizedMessage}")
+      libtailscaleWrapper.sendLog(tag, "$message ${throwable.localizedMessage}")
     }
   }
 
@@ -53,7 +53,7 @@ object TSLog {
         appContext.packageManager.getPackageInfo(appContext.packageName, 0).versionName
 
     // Extract the middle number and check if it's odd
-    val middleNumber = versionName.split(".").getOrNull(1)?.toIntOrNull()
+    val middleNumber = versionName?.split(".")?.getOrNull(1)?.toIntOrNull()
     return middleNumber?.let { it % 2 == 1 } ?: false
   }
 

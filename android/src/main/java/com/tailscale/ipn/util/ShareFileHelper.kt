@@ -124,9 +124,6 @@ object ShareFileHelper : libtailscale.ShareFileHelper {
   override fun openFileWriter(fileName: String, offset: Long): libtailscale.OutputStream {
     runBlocking { waitUntilTaildropDirReady() }
     val (uri, stream) = openWriterFD(fileName, offset)
-    if (stream == null) {
-      throw IOException("Failed to open file writer for $fileName")
-    }
     currentUri[fileName] = uri
     return OutputStreamAdapter(stream)
   }
@@ -212,12 +209,12 @@ object ShareFileHelper : libtailscale.ShareFileHelper {
   override fun deleteFile(uri: String) {
     runBlocking { waitUntilTaildropDirReady() }
     val ctx = appContext ?: throw IOException("DeleteFile: not initialized")
-    val uri = Uri.parse(uri)
+    val parsedUri = Uri.parse(uri)
     val doc =
-        DocumentFile.fromSingleUri(ctx, uri)
-            ?: throw IOException("DeleteFile: cannot resolve URI $uri")
+        DocumentFile.fromSingleUri(ctx, parsedUri)
+            ?: throw IOException("DeleteFile: cannot resolve URI $parsedUri")
     if (!doc.delete()) {
-      throw IOException("DeleteFile: delete() returned false for $uri")
+      throw IOException("DeleteFile: delete() returned false for $parsedUri")
     }
   }
 

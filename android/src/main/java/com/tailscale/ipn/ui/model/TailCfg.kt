@@ -32,9 +32,9 @@ class Tailcfg {
 
   @Serializable
   data class UserProfile(
-      val ID: Long,
-      val DisplayName: String,
-      val LoginName: String,
+      val ID: Long = 0,
+      val DisplayName: String = "",
+      val LoginName: String = "",
       val ProfilePicURL: String? = null,
   ) {
     fun isTaggedDevice(): Boolean {
@@ -68,23 +68,23 @@ class Tailcfg {
 
   @Serializable
   data class Node(
-      var ID: NodeID,
-      var StableID: StableNodeID,
-      var Name: String,
-      var User: UserID,
+      var ID: NodeID = 0,
+      var StableID: StableNodeID = "",
+      var Name: String = "",
+      var User: UserID = 0,
       var Sharer: UserID? = null,
-      var Key: KeyNodePublic,
+      var Key: KeyNodePublic = "",
       var KeyExpiry: String? = null,
       var Addresses: List<Prefix>? = null,
       var AllowedIPs: List<Prefix>? = null,
       var Endpoints: List<String>? = null,
-      var Hostinfo: Hostinfo,
+      var Hostinfo: Hostinfo = Hostinfo(),
       var LastSeen: Time? = null,
       var Online: Boolean? = null,
       var Capabilities: List<String>? = null,
       var CapMap: Map<String, JsonElement?>? = null,
-      var ComputedName: String?,
-      var ComputedNameWithHost: String?
+      var ComputedName: String? = null,
+      var ComputedNameWithHost: String? = null
   ) {
     val isAdmin: Boolean
       get() =
