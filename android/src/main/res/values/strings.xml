@@ -298,6 +298,10 @@
     <!-- Strings describing notification channels -->
     <string name="taildrop_file_transfers">Taildrop file transfers</string>
     <string name="vpn_status">VPN status</string>
+    <string name="intent_failure_channel_name">Intents failures</string>
+    <string name="intent_failure_channel_description">Notifications about failures when managing VPN from Intents (3rd party integration)</string>
+    <string name="intent_status_channel_name">Intents status</string>
+    <string name="intent_status_channel_description">Notifications about a status when managing VPN from Intents (3rd party integration) on Android 11 and older (You can disable this channel)</string>
     <string name="vpn_start">VPN start</string>
     <string name="notifications_delivered_when_user_interaction_is_required_to_establish_the_vpn_tunnel">Notifications delivered when user interaction is required to establish the VPN tunnel.</string>
     <string name="optional_notifications_which_display_the_status_of_the_vpn_tunnel">Optional notifications which display the status of the VPN tunnel.</string>

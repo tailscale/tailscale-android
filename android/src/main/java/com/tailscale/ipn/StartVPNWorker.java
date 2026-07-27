@@ -75,12 +75,12 @@ public final class StartVPNWorker extends Worker {
         // it will be only briefly visible in the real world because the intent finishes almost instantly
         // https://developer.android.com/develop/background-work/background-tasks/persistent/getting-started/define-work#backwards-compat
         Application app = UninitializedApp.get();
-        Notification notification = new NotificationCompat.Builder(app, UninitializedApp.STATUS_CHANNEL_ID)
+        Notification notification = new NotificationCompat.Builder(app, UninitializedApp.WORKER_LEGACY_CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_notification)
                 .setContentTitle(app.getString(R.string.starting_notification))
                 .setPriority(NotificationCompat.PRIORITY_MIN)
                 .build();
 
-        return new ForegroundInfo(STATUS_NOTIFICATION_ID, notification);
+        return new ForegroundInfo(UninitializedApp.STATUS_WORKER_LEGACY_NOTIFICATION_ID, notification);
     }
 }
