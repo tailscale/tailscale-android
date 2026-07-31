@@ -132,8 +132,11 @@ make install
 
 ## Building a release
 
-Use `make tag_release` to bump the Android version code, update the version
-name, and tag the current commit.
+Use `make tag_release` to stamp the Play Store version code, update the version
+name, and tag the current commit. The version code is derived from wall-clock
+time (minutes since the Unix epoch) at release time and committed into
+`android/build.gradle`, so it increases monotonically across all builds and
+branches while staying fixed for any given commit.
 
 We only guarantee to support the latest Go release and any Go beta or
 release candidate builds (currently Go 1.14) in module mode. It might
