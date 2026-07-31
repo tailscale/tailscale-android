@@ -39,11 +39,23 @@ android {
     defaultConfig {
         minSdkVersion 26
         targetSdkVersion androidApiLevel
-        // versionCode is written here by `make bumposs` / `make tag_release`
-        // (base = major*100000000 + minor*100000 + patch*10). AndroidTV builds
-        // increment this by 1 in the Makefile's release-tv target so the two
-        // variants are distinguishable in the Play Store.
-        versionCode 110200010
+        // versionCode is stamped here by `make bump-version-code` (run via
+        // `make bumposs` / `make tag_release`) from wall-clock time: minutes
+        // since the Unix epoch, times 10. Time is a global, monotonically
+        // increasing authority, so releases cut from different branches never
+        // collide or go backwards -- unlike a counter stored in this file, which
+        // each branch would bump independently. (The Play Store requires
+        // versionCode to strictly increase across uploads, and stable point
+        // releases ship after higher-numbered unstable builds, so anything
+        // version-derived or per-branch eventually regresses.)
+        //
+        // This MUST stay a bare `versionCode <integer>` literal with no
+        // surrounding logic: external build tooling greps this line and parses
+        // the number directly. The last digit is reserved for the build variant;
+        // the Makefile's release-tv target rewrites this integer to end in 1 for
+        // AndroidTV builds so phone (...0) and TV (...1) uploads stay
+        // distinguishable in the Play Store.
+        versionCode 297588040
         versionName getVersionProperty("VERSION_LONG")
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 

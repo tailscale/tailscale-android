@@ -165,10 +165,12 @@ $(RELEASE_AAB): version gradle-dependencies
 	(cd android && ./gradlew test bundleRelease)
 	install -C ./android/build/outputs/bundle/release/android-release.aab $@
 
-# PLATFORM=tv signals to gradle that we should build for AndroidTV. To
-# distinguish the TV variant from the phone/tablet build in the Play Store,
-# we temporarily increment the versionCode in android/build.gradle by 1 for
-# the duration of the build, then restore the original value via a shell trap
+# PLATFORM=tv signals to gradle that we should build for AndroidTV. The stamped
+# versionCode reserves its last digit for the variant: phone/tablet builds end
+# in 0 and TV builds end in 1, so the two are distinguishable in the Play Store.
+# build.gradle keeps a bare integer literal (external tooling greps it), so we
+# add the +1 here: temporarily increment the versionCode in android/build.gradle
+# for the duration of the build, then restore the original value via a shell trap
 # so the working tree is left clean even if the gradle build fails.
 $(RELEASE_TV_AAB): version gradle-dependencies
 	@echo "Building TV release AAB"
@@ -310,14 +312,25 @@ bumposs: update-oss tailscale.version bump-version-code
 	source tailscale.version && git commit -sm "android: bump OSS" -m "OSS and Version updated to $${VERSION_LONG}" go.toolchain.rev android/build.gradle go.mod go.sum
 	source tailscale.version && git tag -a "$${VERSION_LONG}" -m "OSS and Version updated to $${VERSION_LONG}"
 
-# Recomputes the base versionCode from tailscale.version and rewrites the
-# `versionCode <n>` line in android/build.gradled
+# Stamps android/build.gradle's versionCode from wall-clock time: minutes since
+# the Unix epoch, times 10. Time is a global, monotonically increasing authority,
+# so releases cut from different branches never collide or regress (see the
+# versionCode comment in android/build.gradle). The last digit is reserved for
+# the build variant; the AndroidTV build adds 1 at build time. If the machine
+# clock would produce a value not strictly greater than the current one (clock
+# skew, or two bumps within the same minute), fall back to bumping the current
+# value by 10 so the code always advances.
 .PHONY: bump-version-code
-bump-version-code: tailscale.version
-	@source tailscale.version && \
-		BASE_VERSION_CODE=$$((VERSION_MAJOR * 100000000 + VERSION_MINOR * 100000 + VERSION_PATCH * 10)) && \
-		echo "Setting android/build.gradle versionCode to $$BASE_VERSION_CODE" && \
-		sed -i.bak -E "s/versionCode [0-9]+/versionCode $$BASE_VERSION_CODE/" android/build.gradle && \
+bump-version-code:
+	@CUR_VERSION_CODE=$$(grep -oE 'versionCode [0-9]+' android/build.gradle | awk '{print $$2}') && \
+		TIME_VERSION_CODE=$$(( $$(date +%s) / 60 * 10 )) && \
+		if [ "$$TIME_VERSION_CODE" -gt "$$CUR_VERSION_CODE" ]; then \
+			NEXT_VERSION_CODE=$$TIME_VERSION_CODE; \
+		else \
+			NEXT_VERSION_CODE=$$((CUR_VERSION_CODE + 10)); \
+		fi && \
+		echo "Setting android/build.gradle versionCode $$CUR_VERSION_CODE -> $$NEXT_VERSION_CODE" && \
+		sed -i.bak -E "s/versionCode [0-9]+/versionCode $$NEXT_VERSION_CODE/" android/build.gradle && \
 		rm android/build.gradle.bak
 
 .PHONY: update-oss ## Update the tailscale.com go module
