@@ -644,7 +644,9 @@ fun PeerList(
             } else {
               stickyHeader { NodesSectionHeader(peerSet = peerSet) }
             }
-            itemsWithDividers(peerSet.peers, key = { it.StableID }) { peer ->
+            // Namespace the key by userID so that a duplicate StableID across different
+            // peer groups cannot collide in the same LazyColumn.
+            itemsWithDividers(peerSet.peers, key = { "${peerSet.userID}_${it.StableID}" }) { peer ->
               ListItem(
                   modifier =
                       Modifier.combinedClickable(
