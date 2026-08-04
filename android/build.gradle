@@ -55,7 +55,7 @@ android {
         // the Makefile's release-tv target rewrites this integer to end in 1 for
         // AndroidTV builds so phone (...0) and TV (...1) uploads stay
         // distinguishable in the Play Store.
-        versionCode 297589700
+        versionCode 297646690
         versionName getVersionProperty("VERSION_LONG")
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
