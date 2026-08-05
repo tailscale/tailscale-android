@@ -43,6 +43,13 @@ class HealthNotifier(
           // notification
           "wantrunning-false")
 
+  // These must be initialized before the init block below, which launches a coroutine that can
+  // immediately call dropAllWarnings() (reading currentWarnings) on a background dispatcher. If
+  // the collector observes the initial non-Running ipn state before these property initializers
+  // run, it would read a null StateFlow and crash with an NPE (see startup init-order race).
+  val currentWarnings: StateFlow<Set<UnhealthyState>> = MutableStateFlow(setOf())
+  val currentIcon: StateFlow<Int?> = MutableStateFlow(null)
+
   init {
     // This roughly matches the iOS/macOS implementation in terms of debouncing, and ignoring
     // health warnings in various states.
@@ -67,9 +74,6 @@ class HealthNotifier(
           }
     }
   }
-
-  val currentWarnings: StateFlow<Set<UnhealthyState>> = MutableStateFlow(setOf())
-  val currentIcon: StateFlow<Int?> = MutableStateFlow(null)
 
   private fun notifyHealthUpdated(warnings: Array<UnhealthyState>) {
     val warningsBeforeAdd = currentWarnings.value
