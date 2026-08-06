@@ -188,8 +188,14 @@ tailscale-test.apk: version gradle-dependencies
 	(cd android && ./gradlew assembleApplicationTestAndroidTest)
 	install -C ./android/build/outputs/apk/androidTest/applicationTest/android-applicationTest-androidTest.apk $@
 
+# Command that (re)generates tailscale.version from the current git HEAD and
+# go.mod state. VERSION_LONG's trailing -g<hash> is this repo's HEAD, so this
+# must be re-run after any commit that should be reflected in the version (see
+# tag_release / bumposs).
+MKVERSION := ./tool/go run tailscale.com/cmd/mkversion
+
 tailscale.version: go.mod go.sum go.toolchain.rev $(wildcard .git/HEAD)
-	@bash -c "./tool/go run tailscale.com/cmd/mkversion > tailscale.version"
+	@bash -c "$(MKVERSION) > tailscale.version"
 
 .PHONY: version
 version: tailscale.version
@@ -305,11 +311,17 @@ tag_release: tailscale.version bump-version-code ## Tag the current commit with 
 	@if ! git diff --quiet -- android/build.gradle; then \
 		source tailscale.version && git commit -sm "android: bump versionCode for $${VERSION_LONG}" android/build.gradle; \
 	fi
+	@# Regenerate tailscale.version so VERSION_LONG's -g<hash> points at the
+	@# commit we're about to tag, not its parent.
+	$(MKVERSION) > tailscale.version
 	source tailscale.version && git tag -a "$${VERSION_LONG}" -m "Version updated to $${VERSION_LONG}"
 
 .PHONY: bumposs ## Bump to the latest oss and update the versions.
 bumposs: update-oss tailscale.version bump-version-code
 	source tailscale.version && git commit -sm "android: bump OSS" -m "OSS and Version updated to $${VERSION_LONG}" go.toolchain.rev android/build.gradle go.mod go.sum
+	@# Regenerate tailscale.version so VERSION_LONG's -g<hash> points at the
+	@# bump commit we just created, not its parent.
+	$(MKVERSION) > tailscale.version
 	source tailscale.version && git tag -a "$${VERSION_LONG}" -m "OSS and Version updated to $${VERSION_LONG}"
 
 # Stamps android/build.gradle's versionCode from wall-clock time: minutes since
