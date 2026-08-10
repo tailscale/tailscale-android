@@ -1,0 +1,95 @@
+# Manual-dispatch "bump OSS + versionCode" action. 
+# `make update-oss` (pull tailscale.com@main) followed by
+# `make bump-version-code` (stamp android/build.gradle's versionCode from the
+# wall clock), then opens a PR.
+#
+# Uses the built-in GITHUB_TOKEN (no GitHub App required). Two consequences:
+#   1. Requires repo Settings -> Actions -> General ->
+#      "Allow GitHub Actions to create and approve pull requests" = enabled,
+#      or the create-pull-request step 403s.
+#   2. Events raised by GITHUB_TOKEN don't trigger further workflows (loop
+#      prevention), with a caveat for pull_request: the runs ARE created but
+#      sit in an "approval-required" state until someone with write access
+#      approves them. So android.yml / go_mod_tidy.yml won't auto-run on the
+#      bump PR without a manual click. We don't verify the bump in this job:
+#      only write-access folks ever see or merge this PR, and android.yml
+#      (a strict superset of `make go-test`) runs once they approve the checks.
+
+name: Bump OSS
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  bump-oss:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check for existing bump-oss PR
+        run: |
+          # Refuse to run if there's already an open bump PR; a second bump would
+          # stamp a newer versionCode and the two PRs would fight over the file.
+          RESPONSE=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/pulls?head=${{ github.repository_owner }}:actions/android-bumposs&state=open")
+
+          PR_URL=$(echo "$RESPONSE" | jq -r '.[0].html_url // empty')
+
+          if [ -n "$PR_URL" ]; then
+            echo "There is already a bump-oss PR at $PR_URL. Close or merge that PR first." >&2
+            exit 1
+          fi
+
+      - name: Check out code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Version before
+        id: before
+        # Current tailscale.com module version
+        run: |
+          ver=$(./tool/go list -m tailscale.com | cut -d" " -f2)
+          echo "ver=${ver##*-}" | tee -a "$GITHUB_OUTPUT"
+
+      - name: Seed Go module cache
+        run: ./tool/go mod download
+
+      - name: Update OSS
+        # go get tailscale.com@main + mod tidy + refresh go.toolchain.rev.
+        run: make update-oss
+
+      - name: Bump versionCode
+        # Stamp android/build.gradle's versionCode from the wall clock.
+        run: make bump-version-code
+
+      - name: Version after
+        id: after
+        run: |
+          ver=$(./tool/go list -m tailscale.com | cut -d" " -f2)
+          echo "ver=${ver##*-}" | tee -a "$GITHUB_OUTPUT"
+
+      - name: Send pull request
+        id: pull-request
+        uses: peter-evans/create-pull-request@c0f553fe549906ede9cf27b5156039d195d2ece0 # v8.1.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          author: OSS Updater <noreply+oss-updater@tailscale.com>
+          committer: OSS Updater <noreply+oss-updater@tailscale.com>
+          branch: actions/android-bumposs
+          commit-message: "android: bump OSS and versionCode"
+          title: "android: bump OSS and versionCode"
+          body: "Changes in tailscale/tailscale repo: https://github.com/tailscale/tailscale/compare/${{ steps.before.outputs.ver }}...${{ steps.after.outputs.ver }}"
+          delete-branch: true
+          # Assign the PR to whoever triggered the workflow.
+          reviewers: ${{ github.triggering_actor }}
+
+      - name: Summary
+        if: ${{ steps.pull-request.outputs.pull-request-number }}
+        run: echo "${{ steps.pull-request.outputs.pull-request-operation }} ${{ steps.pull-request.outputs.pull-request-url }}" >> "$GITHUB_STEP_SUMMARY"
