@@ -39,23 +39,14 @@ android {
     defaultConfig {
         minSdkVersion 26
         targetSdkVersion androidApiLevel
-        // versionCode is stamped here by `make bump-version-code` (run via
-        // `make bumposs` / `make tag_release`) from wall-clock time: minutes
-        // since the Unix epoch, times 10. Time is a global, monotonically
-        // increasing authority, so releases cut from different branches never
-        // collide or go backwards -- unlike a counter stored in this file, which
-        // each branch would bump independently. (The Play Store requires
-        // versionCode to strictly increase across uploads, and stable point
-        // releases ship after higher-numbered unstable builds, so anything
-        // version-derived or per-branch eventually regresses.)
-        //
-        // This MUST stay a bare `versionCode <integer>` literal with no
-        // surrounding logic: external build tooling greps this line and parses
-        // the number directly. The last digit is reserved for the build variant;
-        // the Makefile's release-tv target rewrites this integer to end in 1 for
-        // AndroidTV builds so phone (...0) and TV (...1) uploads stay
-        // distinguishable in the Play Store.
-        versionCode 297730490
+
+        // VERSION_CODE_BASE is minutes since the Unix epoch, times 10. The
+        // final digit is reserved for the platform: 0 for phone/tablet and 1
+        // for Android TV. Release builds pass VERSION_CODE_BASE from the
+        // Makefile so both variants share the same base. Other builds fall
+        // back to the current time so local/debug Gradle invocations continue
+        // to work without extra arguments.
+        versionCode computeVersionCode()
         versionName getVersionProperty("VERSION_LONG")
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
@@ -175,7 +166,6 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
     implementation 'androidx.test.uiautomator:uiautomator:2.3.0'
 
-
     // Authentication only for tests
     androidTestImplementation 'dev.turingcomplete:kotlin-onetimepassword:2.4.0'
     androidTestImplementation 'commons-codec:commons-codec:1.16.1'
@@ -208,7 +198,23 @@ def getVersionProperty(key) {
     //      make tailscale.version
     def versionProps = new Properties()
     versionProps.load(project.file('../tailscale.version').newDataInputStream())
-    return versionProps.getProperty(key).replaceAll('^\"|\"$', '')
+    return versionProps.getProperty(key).replaceAll('^"|"$', '')
+}
+
+def computeVersionCode() {
+    def baseProperty = project.findProperty('VERSION_CODE_BASE')
+
+    // Direct/local Gradle invocations may not come through the Makefile. Keep
+    // those builds working by deriving a monotonic base from wall-clock time.
+    def base = baseProperty != null
+            ? baseProperty as long
+            : (System.currentTimeMillis() / 60000L) * 10L
+
+    // 0 for Android, 1 for Android TV. This keeps the two binaries distinguishable
+    // in the Play Store while sharing a release base.
+    def platform = isTV() ? 1 : 0
+
+    return (base + platform) as int
 }
 
 def isTV() {

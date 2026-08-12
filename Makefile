@@ -40,6 +40,15 @@ DEBUG_APK := tailscale-debug.apk
 RELEASE_AAB := tailscale-release.aab
 RELEASE_TV_AAB := tailscale-tv-release.aab
 
+# Base Android versionCode for this make invocation. The value is minutes since
+# the Unix epoch, times 10; the final digit is reserved for the platform
+# (0 = phone/tablet, 1 = Android TV). An explicitly supplied value wins so the
+# outer builder can keep phone and TV on the same base.
+ifndef VERSION_CODE_BASE
+VERSION_CODE_BASE := $(shell echo $$(( $$(date +%s) / 60 * 10 )))
+endif
+export VERSION_CODE_BASE
+
 # Define output filenames.
 LIBTAILSCALE_AAR := android/libs/libtailscale.aar
 UNSTRIPPED_AAR := android/libs/libtailscale_unstripped.aar
@@ -162,26 +171,15 @@ gradle-dependencies: $(shell find android -type f -not -path "android/build/*" -
 
 $(RELEASE_AAB): version gradle-dependencies
 	@echo "Building release AAB"
-	(cd android && ./gradlew test bundleRelease)
+	(cd android && ./gradlew test bundleRelease -PVERSION_CODE_BASE=$(VERSION_CODE_BASE))
 	install -C ./android/build/outputs/bundle/release/android-release.aab $@
 
-# PLATFORM=tv signals to gradle that we should build for AndroidTV. The stamped
-# versionCode reserves its last digit for the variant: phone/tablet builds end
-# in 0 and TV builds end in 1, so the two are distinguishable in the Play Store.
-# build.gradle keeps a bare integer literal (external tooling greps it), so we
-# add the +1 here: temporarily increment the versionCode in android/build.gradle
-# for the duration of the build, then restore the original value via a shell trap
-# so the working tree is left clean even if the gradle build fails.
+# PLATFORM=tv signals to Gradle that we should build for AndroidTV. Gradle
+# reserves the last digit of VERSION_CODE_BASE for the platform, so phone/tablet
+# builds use ...0 and TV builds use ...1.
 $(RELEASE_TV_AAB): version gradle-dependencies
 	@echo "Building TV release AAB"
-	@set -e; \
-		ORIG_VC=$$(grep -oE 'versionCode [0-9]+' android/build.gradle | awk '{print $$2}'); \
-		TV_VC=$$((ORIG_VC + 1)); \
-		echo "TV versionCode: $$ORIG_VC -> $$TV_VC"; \
-		trap "sed -i.bak -E 's/versionCode [0-9]+/versionCode $$ORIG_VC/' android/build.gradle && rm -f android/build.gradle.bak" EXIT INT TERM HUP; \
-		sed -i.bak -E "s/versionCode [0-9]+/versionCode $$TV_VC/" android/build.gradle; \
-		rm -f android/build.gradle.bak; \
-		(cd android && ./gradlew test bundleRelease -PPLATFORM=tv)
+	(cd android && ./gradlew test bundleRelease -PVERSION_CODE_BASE=$(VERSION_CODE_BASE) -PPLATFORM=tv)
 	install -C ./android/build/outputs/bundle/release/android-release.aab $@
 
 tailscale-test.apk: version gradle-dependencies
@@ -307,43 +305,16 @@ androidpath:
 	@echo 'export PATH=$(ANDROID_HOME)/cmdline-tools/latest/bin:$(ANDROID_HOME)/platform-tools:$$PATH'
 
 .PHONY: tag_release
-tag_release: tailscale.version bump-version-code ## Tag the current commit with the current version
-	@if ! git diff --quiet -- android/build.gradle; then \
-		source tailscale.version && git commit -sm "android: bump versionCode for $${VERSION_LONG}" android/build.gradle; \
-	fi
-	@# Regenerate tailscale.version so VERSION_LONG's -g<hash> points at the
-	@# commit we're about to tag, not its parent.
-	$(MKVERSION) > tailscale.version
-	source tailscale.version && git tag -a "$${VERSION_LONG}" -m "Version updated to $${VERSION_LONG}"
+tag_release: tailscale.version ## Tag the current commit with the current version
+	source tailscale.version && git tag -a "$${VERSION_LONG}" -m "OSS and Version updated to $${VERSION_LONG}"
 
 .PHONY: bumposs ## Bump to the latest oss and update the versions.
-bumposs: update-oss tailscale.version bump-version-code
-	source tailscale.version && git commit -sm "android: bump OSS" -m "OSS and Version updated to $${VERSION_LONG}" go.toolchain.rev android/build.gradle go.mod go.sum
+bumposs: update-oss tailscale.version
+	source tailscale.version && git commit -sm "android: bump OSS" -m "OSS and Version updated to $${VERSION_LONG}" go.toolchain.rev go.mod go.sum
 	@# Regenerate tailscale.version so VERSION_LONG's -g<hash> points at the
 	@# bump commit we just created, not its parent.
 	$(MKVERSION) > tailscale.version
 	source tailscale.version && git tag -a "$${VERSION_LONG}" -m "OSS and Version updated to $${VERSION_LONG}"
-
-# Stamps android/build.gradle's versionCode from wall-clock time: minutes since
-# the Unix epoch, times 10. Time is a global, monotonically increasing authority,
-# so releases cut from different branches never collide or regress (see the
-# versionCode comment in android/build.gradle). The last digit is reserved for
-# the build variant; the AndroidTV build adds 1 at build time. If the machine
-# clock would produce a value not strictly greater than the current one (clock
-# skew, or two bumps within the same minute), fall back to bumping the current
-# value by 10 so the code always advances.
-.PHONY: bump-version-code
-bump-version-code:
-	@CUR_VERSION_CODE=$$(grep -oE 'versionCode [0-9]+' android/build.gradle | awk '{print $$2}') && \
-		TIME_VERSION_CODE=$$(( $$(date +%s) / 60 * 10 )) && \
-		if [ "$$TIME_VERSION_CODE" -gt "$$CUR_VERSION_CODE" ]; then \
-			NEXT_VERSION_CODE=$$TIME_VERSION_CODE; \
-		else \
-			NEXT_VERSION_CODE=$$((CUR_VERSION_CODE + 10)); \
-		fi && \
-		echo "Setting android/build.gradle versionCode $$CUR_VERSION_CODE -> $$NEXT_VERSION_CODE" && \
-		sed -i.bak -E "s/versionCode [0-9]+/versionCode $$NEXT_VERSION_CODE/" android/build.gradle && \
-		rm android/build.gradle.bak
 
 .PHONY: update-oss ## Update the tailscale.com go module
 update-oss:
@@ -459,7 +430,7 @@ DOCKER_RUN_VOLS := -v $(CURDIR):/build/tailscale-android -v $(DOCKER_ANDROID_DIR
 
 .PHONY: docker-run-build
 docker-run-build: clean jarsign-env docker-build-image docker-android-dir ## Runs the docker image for the android build environment and builds release
-	@docker run --rm $(DOCKER_RUN_VOLS) --env JKS_PASSWORD=$(JKS_PASSWORD) --env JKS_PATH=$(JKS_PATH) $(DOCKER_IMAGE)
+	@docker run --rm $(DOCKER_RUN_VOLS) --env JKS_PASSWORD=$(JKS_PASSWORD) --env JKS_PATH=$(JKS_PATH) --env VERSION_CODE_BASE=$(VERSION_CODE_BASE) $(DOCKER_IMAGE)
 
 .PHONY: docker-tailscale-debug
 docker-tailscale-debug: docker-build-image docker-android-dir ## Build tailscale-debug.apk inside the docker env (stable signer across runs)
