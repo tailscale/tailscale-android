@@ -6,6 +6,7 @@ package com.tailscale.ipn.ui.util
 import androidx.compose.ui.util.fastAny
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.model.Netmap
+import com.tailscale.ipn.ui.model.StableNodeID
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.model.UserID
 
@@ -32,7 +33,15 @@ class PeerCategorizer {
 
     val me = netmap.currentUserProfile()
 
-    for (peer in (peers + selfNode)) {
+    val seenStableIDs = mutableSetOf<StableNodeID>()
+    // Process selfNode first so it wins if a peer somehow shares its StableID.
+    for (peer in (listOfNotNull(selfNode) + peers)) {
+
+      // A netmap containing duplicate (or empty) StableIDs would violate the unique-key
+      // invariant required by the LazyColumn, so keep only the first occurrence.
+      if (!seenStableIDs.add(peer.StableID)) {
+        continue
+      }
 
       val userId = peer.User
       val profile = netmap.userProfile(userId)

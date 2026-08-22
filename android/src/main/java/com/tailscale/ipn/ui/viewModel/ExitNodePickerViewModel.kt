@@ -83,7 +83,8 @@ class ExitNodePickerViewModel(private val nav: ExitNodePickerNav) : IpnViewModel
                         )
                       }
 
-              val tailnetNodes = allNodes.filter { !it.mullvad }
+              // Guard against duplicate StableIDs in the netmap; LazyColumn keys must be unique.
+              val tailnetNodes = allNodes.filter { !it.mullvad }.distinctBy { it.id }
               tailnetExitNodes.set(tailnetNodes.sortedWith { a, b -> a.label.compareTo(b.label) })
 
               val allMullvadExitNodes =

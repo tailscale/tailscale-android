@@ -342,6 +342,7 @@ func (a *App) newBackend(dataDir string, appCtx AppContext, store *stateStore,
 		Metrics:        sys.UserMetricsRegistry(),
 		DriveForLocal:  driveimpl.NewFileSystemForLocal(logf),
 		EventBus:       sys.Bus.Get(),
+		ExtraRootCAs:   sys.ExtraRootCAs,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("runBackend: NewUserspaceEngine: %v", err)
