@@ -10,7 +10,10 @@ import com.tailscale.ipn.ui.model.Health.UnhealthyState
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.util.TSLog
 import com.tailscale.ipn.util.TSLog.LibtailscaleWrapper
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
@@ -121,6 +124,27 @@ class HealthNotifierTest {
     healthFlow.value = healthState(derpWarning())
     settle()
     assertTrue(notifier.currentWarnings.value.isEmpty())
+  }
+
+  /**
+   * Regression test for a startup init-order race: the init block launches a collector that
+   * immediately calls dropAllWarnings() (reading currentWarnings) when the initial ipn state is not
+   * Running. If currentWarnings/currentIcon are declared after the init block, that read hits a
+   * null StateFlow and NPEs. Using Dispatchers.Unconfined runs the launched coroutine eagerly
+   * inside the constructor, deterministically reproducing the race on the old ordering.
+   */
+  @Test
+  fun constructionWithNonRunningStateDoesNotCrash() {
+    val scope = CoroutineScope(Dispatchers.Unconfined)
+    try {
+      val healthFlow = MutableStateFlow<Health.State?>(healthState(derpWarning()))
+      val ipnFlow = MutableStateFlow(Ipn.State.Stopped)
+      val notifier = HealthNotifier(healthFlow, ipnFlow, scope)
+      assertTrue(notifier.currentWarnings.value.isEmpty())
+      assertNull(notifier.currentIcon.value)
+    } finally {
+      scope.cancel()
+    }
   }
 
   @Test
