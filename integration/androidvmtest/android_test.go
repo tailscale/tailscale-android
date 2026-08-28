@@ -616,7 +616,7 @@ func runDERPAndSTUN(t testing.TB, advertisedHost string) *tailcfg.DERPMap {
 	})
 
 	return &tailcfg.DERPMap{
-		Regions: map[int]*tailcfg.DERPRegion{
+		Regions: map[tailcfg.DERPRegionID]*tailcfg.DERPRegion{
 			1: {
 				RegionID:   1,
 				RegionCode: "test",
