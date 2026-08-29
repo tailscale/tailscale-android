@@ -30,7 +30,7 @@ public class QuickToggleService extends TileService {
         if (t == null) {
             return;
         }
-        t.setLabel("Tailscale");
+        t.setLabel(app.getString(R.string.tile_name));
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             t.setSubtitle(act ? app.getString(R.string.connected) : app.getString(R.string.not_connected));
         }

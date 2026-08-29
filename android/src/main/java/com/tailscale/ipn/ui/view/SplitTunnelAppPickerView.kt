@@ -212,7 +212,7 @@ fun SwitchAlertDialog(allowSelected: Boolean, onConfirm: (() -> Unit), onDismiss
           else R.string.selected_apps_will_access_tailscale)
 
   AlertDialog(
-      title = { Text(text = "$switchString?") },
+      title = { Text(text = stringResource(R.string.switch_dialog_title, switchString)) },
       text = {
         Text(
             text =

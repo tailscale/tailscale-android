@@ -36,6 +36,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.theme.topAppBar
 import com.tailscale.ipn.ui.theme.ts_color_light_blue
 import com.tailscale.ipn.ui.util.AndroidTVUtil.isAndroidTV
@@ -107,7 +108,7 @@ fun BackArrow(action: () -> Unit, focusRequester: FocusRequester) {
   Box(modifier = boxModifier.padding(start = 8.dp, end = 8.dp)) {
     Icon(
         Icons.AutoMirrored.Filled.ArrowBack,
-        contentDescription = "Go back to the previous screen",
+        contentDescription = stringResource(R.string.go_back),
         modifier = iconModifier)
   }
 }
