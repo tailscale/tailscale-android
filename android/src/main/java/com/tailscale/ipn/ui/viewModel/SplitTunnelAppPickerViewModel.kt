@@ -3,6 +3,7 @@
 
 package com.tailscale.ipn.ui.viewModel
 
+import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tailscale.ipn.App
@@ -10,6 +11,7 @@ import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.mdm.SettingState
 import com.tailscale.ipn.ui.util.InstalledApp
 import com.tailscale.ipn.ui.util.InstalledAppsManager
+import com.tailscale.ipn.ui.util.orderedSplitTunnelApps
 import com.tailscale.ipn.ui.util.set
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -17,6 +19,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
@@ -36,7 +39,18 @@ class SplitTunnelAppPickerViewModel : ViewModel() {
               started = SharingStarted.WhileSubscribed(5000),
               initialValue = listOf(),
           )
-  val selectedPackageNames: StateFlow<List<String>> = MutableStateFlow(listOf())
+  val selectedPackageNames: StateFlow<Set<String>> = MutableStateFlow(emptySet())
+  val searchQuery: StateFlow<String> = MutableStateFlow("")
+  val appIcons: StateFlow<Map<String, Bitmap>> = MutableStateFlow(emptyMap())
+  val displayedApps: StateFlow<List<InstalledApp>> =
+      combine(installedApps, selectedPackageNames, searchQuery) { apps, selectedPackages, query ->
+            orderedSplitTunnelApps(apps, selectedPackages, query)
+          }
+          .stateIn(
+              scope = viewModelScope,
+              started = SharingStarted.WhileSubscribed(5000),
+              initialValue = listOf(),
+          )
 
   val allowSelected: StateFlow<Boolean> = MutableStateFlow(App.get().allowSelectedPackages())
   val showHeaderMenu: StateFlow<Boolean> = MutableStateFlow(false)
@@ -46,6 +60,7 @@ class SplitTunnelAppPickerViewModel : ViewModel() {
   val mdmIncludedPackages: StateFlow<SettingState<String?>> = MDMSettings.includedPackages.flow
 
   private var saveJob: Job? = null
+  private var preloadIconsJob: Job? = null
 
   private fun initSelectedPackageNames() {
     allowSelected.set(App.get().allowSelectedPackages())
@@ -60,7 +75,7 @@ class SplitTunnelAppPickerViewModel : ViewModel() {
               }
             }
             .intersect(installedApps.value.map { it.packageName }.toSet())
-            .toList())
+            .toSet())
   }
 
   fun performSelectionSwitch() {
@@ -80,12 +95,37 @@ class SplitTunnelAppPickerViewModel : ViewModel() {
     debounceSave()
   }
 
+  fun updateSearchQuery(query: String) {
+    searchQuery.set(query)
+  }
+
+  fun preloadIcons(apps: List<InstalledApp>, sizePx: Int) {
+    if (apps.isEmpty() || sizePx <= 0) return
+
+    preloadIconsJob?.cancel()
+    preloadIconsJob =
+        viewModelScope.launch(Dispatchers.IO) {
+          val missingApps = apps.filterNot { appIcons.value.containsKey(it.packageName) }
+          val loadedIcons = mutableMapOf<String, Bitmap>()
+
+          missingApps.forEachIndexed { index, app ->
+            loadedIcons[app.packageName] =
+                installedAppsManager.iconForPackage(app.packageName, sizePx)
+
+            if (loadedIcons.size >= 20 || index == missingApps.lastIndex) {
+              appIcons.set(appIcons.value + loadedIcons)
+              loadedIcons.clear()
+            }
+          }
+        }
+  }
+
   private fun debounceSave() {
     saveJob?.cancel()
     saveJob =
         viewModelScope.launch {
           delay(500) // Wait to batch multiple rapid updates
-          App.get().updateUserSelectedPackages(selectedPackageNames.value)
+          App.get().updateUserSelectedPackages(selectedPackageNames.value.toList())
         }
   }
 }
