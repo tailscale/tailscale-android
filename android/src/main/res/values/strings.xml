@@ -7,6 +7,9 @@
     <string name="none">None</string>
     <string name="connect">Connect</string>
     <string name="disconnect">Disconnect</string>
+    <string name="shortcut_connect_long">Connect to Tailscale</string>
+    <string name="shortcut_disconnect_long">Disconnect from Tailscale</string>
+    <string name="shortcut_disabled">Tailscale shortcut is not available</string>
     <string name="unknown_user">Unknown user</string>
     <string name="connected">Connected</string>
     <string name="using_exit_node">Using exit node (%s)</string>

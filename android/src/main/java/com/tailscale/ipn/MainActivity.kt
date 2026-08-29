@@ -120,6 +120,8 @@ class MainActivity : ComponentActivity() {
   companion object {
     private const val TAG = "Main Activity"
     private const val START_AT_ROOT = "startAtRoot"
+    const val ACTION_SHORTCUT_CONNECT = "com.tailscale.ipn.SHORTCUT_CONNECT"
+    const val ACTION_SHORTCUT_DISCONNECT = "com.tailscale.ipn.SHORTCUT_DISCONNECT"
   }
 
   private fun Context.isLandscapeCapable(): Boolean {
@@ -138,6 +140,10 @@ class MainActivity : ComponentActivity() {
 
     // grab app to make sure it initializes
     App.get()
+
+    // Handle shortcut intents early — if triggered via shortcut, act and finish immediately
+    if (handleShortcutIntent(intent)) return
+
     appViewModel = (application as App).getAppScopedViewModel()
     viewModel =
         ViewModelProvider(this, MainViewModelFactory(appViewModel)).get(MainViewModel::class.java)
@@ -469,6 +475,7 @@ class MainActivity : ComponentActivity() {
 
   override fun onNewIntent(intent: Intent) {
     super.onNewIntent(intent)
+    if (handleShortcutIntent(intent)) return
     if (intent.getBooleanExtra(START_AT_ROOT, false)) {
       if (this::navController.isInitialized) {
         val previousEntry = navController.previousBackStackEntry
@@ -482,6 +489,31 @@ class MainActivity : ComponentActivity() {
           navController.navigate("main") { popUpTo("main") { inclusive = true } }
         }
       }
+    }
+  }
+
+  /**
+   * Handles shortcut intents for connect/disconnect actions.
+   * Returns true if the intent was a shortcut action (caller should return early).
+   */
+  private fun handleShortcutIntent(intent: Intent): Boolean {
+    val action = intent.action
+    val shortcutAction = intent.getStringExtra("shortcut_action")
+
+    return when {
+      action == ACTION_SHORTCUT_CONNECT || shortcutAction == "connect" -> {
+        TSLog.d(TAG, "Shortcut: Connect VPN triggered")
+        App.get().startVPN()
+        finish()
+        true
+      }
+      action == ACTION_SHORTCUT_DISCONNECT || shortcutAction == "disconnect" -> {
+        TSLog.d(TAG, "Shortcut: Disconnect VPN triggered")
+        App.get().stopVPN()
+        finish()
+        true
+      }
+      else -> false
     }
   }
 
