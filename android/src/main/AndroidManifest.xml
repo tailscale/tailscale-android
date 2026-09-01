@@ -57,6 +57,30 @@
             <intent-filter>
                 <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
             </intent-filter>
+            <!-- Static app shortcuts must be attached to the LAUNCHER activity. -->
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+        </activity>
+
+        <!--
+            Transparent, no-UI trampoline that connects or disconnects the VPN. Exported so the
+            actions show up in the launcher long-press shortcut menu, Samsung Modes & Routines, and
+            can be sent from Tasker. Starting an activity (rather than IPNReceiver's broadcast)
+            reliably wakes a stopped app so connect can start the foreground VPN service.
+        -->
+        <activity
+            android:name="AutomationActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.NoDisplay">
+            <intent-filter>
+                <action android:name="com.tailscale.ipn.CONNECT_VPN" />
+                <action android:name="com.tailscale.ipn.DISCONNECT_VPN" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
         </activity>
         <activity
             android:name="ShareActivity"
