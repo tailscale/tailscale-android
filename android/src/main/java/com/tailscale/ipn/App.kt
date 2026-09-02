@@ -62,7 +62,7 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
   val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
   companion object {
-    private const val FILE_CHANNEL_ID = "tailscale-files"
+    const val FILE_CHANNEL_ID = "tailscale-files"
     // Key to store the SAF URI in EncryptedSharedPreferences.
     private val PREF_KEY_SAF_URI = "saf_directory_uri"
     private const val TAG = "App"
