@@ -5,6 +5,7 @@ package com.tailscale.ipn
 import android.app.PendingIntent
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Network
 import android.net.VpnService
 import android.os.Build
 import android.system.OsConstants
@@ -38,6 +39,10 @@ open class IPNService : VpnService(), libtailscale.IPNService {
     super.onCreate()
     // grab app to make sure it initializes
     app = App.get()
+
+    NetworkChangeCallback.setUnderlyingNetworkListener { network ->
+      updateUnderlyingNetwork(network)
+    }
   }
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int =
@@ -109,6 +114,7 @@ open class IPNService : VpnService(), libtailscale.IPNService {
   }
 
   override fun onDestroy() {
+    NetworkChangeCallback.setUnderlyingNetworkListener(null)
     close()
     updateVpnStatus(false)
     super.onDestroy()
@@ -126,6 +132,15 @@ open class IPNService : VpnService(), libtailscale.IPNService {
 
   private fun setVpnPrepared(isPrepared: Boolean) {
     app.getAppScopedViewModel().setVpnPrepared(isPrepared)
+  }
+
+  private fun updateUnderlyingNetwork(network: Network?) {
+    val networks = network?.let { arrayOf(it) } ?: emptyArray()
+    if (!setUnderlyingNetworks(networks)) {
+      TSLog.w(TAG, "Failed to set underlying network: $network")
+    } else {
+      TSLog.d(TAG, "Set underlying network: $network")
+    }
   }
 
   private fun showForegroundNotification(
@@ -180,7 +195,9 @@ open class IPNService : VpnService(), libtailscale.IPNService {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
       b.setMetered(false) // Inherit the metered status from the underlying networks.
     }
-    b.setUnderlyingNetworks(null) // Use all available networks.
+
+    val underlyingNetwork = NetworkChangeCallback.cachedDefaultNetwork
+    b.setUnderlyingNetworks(underlyingNetwork?.let { arrayOf(it) } ?: emptyArray())
 
     val mdmAllowed =
         MDMSettings.includedPackages.flow.value.value?.split(",")?.map { it.trim() } ?: emptyList()
