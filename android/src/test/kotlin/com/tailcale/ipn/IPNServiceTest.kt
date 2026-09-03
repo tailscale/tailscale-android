@@ -30,4 +30,28 @@ class IPNServiceTest {
 
     assertEquals(listOf("com.example.excluded", "com.example.builtin"), packages)
   }
+
+  @Test
+  fun emptyAllowedPackagesDoesNotAddTailscale() {
+    val packages =
+        packagesForVpnBuilder(
+            packagesList = emptyList(),
+            allowPackages = true,
+            tailscalePackageName = "com.tailscale.ipn",
+            builtInDisallowedPackages = emptyList())
+
+    assertEquals(emptyList<String>(), packages)
+  }
+
+  @Test
+  fun allowedPackagesDeduplicatesTailscale() {
+    val packages =
+        packagesForVpnBuilder(
+            packagesList = listOf("com.termux", "com.tailscale.ipn"),
+            allowPackages = true,
+            tailscalePackageName = "com.tailscale.ipn",
+            builtInDisallowedPackages = emptyList())
+
+    assertEquals(listOf("com.termux", "com.tailscale.ipn"), packages)
+  }
 }
