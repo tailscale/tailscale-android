@@ -209,15 +209,19 @@ open class IPNService : VpnService(), libtailscale.IPNService {
       TSLog.d(TAG, "Application packages were set by user: $packagesList")
     }
 
+    packagesList =
+        packagesForVpnBuilder(
+            packagesList = packagesList,
+            allowPackages = allowPackages,
+            tailscalePackageName = UninitializedApp.get().packageName,
+            builtInDisallowedPackages = UninitializedApp.get().builtInDisallowedPackageNames)
+
     if (allowPackages) {
       for (packageName in packagesList) {
         TSLog.d(TAG, "Including app: $packageName")
         allowApp(b, packageName)
       }
     } else {
-      // Make sure to also exclude hard-coded apps that are known to cause issues
-      packagesList += UninitializedApp.get().builtInDisallowedPackageNames
-
       for (packageName in packagesList) {
         TSLog.d(TAG, "Disallowing app: $packageName")
         disallowApp(b, packageName)
@@ -234,3 +238,15 @@ open class IPNService : VpnService(), libtailscale.IPNService {
     const val ACTION_START_FOREGROUND_ONLY = "com.tailscale.ipn.START_FOREGROUND_ONLY"
   }
 }
+
+internal fun packagesForVpnBuilder(
+    packagesList: List<String>,
+    allowPackages: Boolean,
+    tailscalePackageName: String,
+    builtInDisallowedPackages: List<String>,
+): List<String> =
+    if (allowPackages) {
+      packagesList + tailscalePackageName
+    } else {
+      packagesList + builtInDisallowedPackages
+    }
