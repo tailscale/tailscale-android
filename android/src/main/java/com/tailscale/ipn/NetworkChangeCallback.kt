@@ -13,6 +13,34 @@ import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 import libtailscale.Libtailscale
 
+internal data class NetworkCandidate<T>(
+    val value: T,
+    val internet: Boolean,
+    val notVpn: Boolean,
+    val validated: Boolean,
+    val hasDns: Boolean,
+    val nonMetered: Boolean,
+)
+
+internal fun <T> pickPreferredNetwork(candidates: List<NetworkCandidate<T>>): T? {
+  fun pick(requireValidated: Boolean, requireDNS: Boolean): T? {
+    val matching =
+        candidates.filter {
+          it.internet &&
+              it.notVpn &&
+              (!requireValidated || it.validated) &&
+              (!requireDNS || it.hasDns)
+        }
+
+    return matching.firstOrNull { it.nonMetered }?.value ?: matching.firstOrNull()?.value
+  }
+
+  return pick(requireValidated = true, requireDNS = true)
+      ?: pick(requireValidated = true, requireDNS = false)
+      ?: pick(requireValidated = false, requireDNS = true)
+      ?: pick(requireValidated = false, requireDNS = false)
+}
+
 object NetworkChangeCallback {
 
   private const val TAG = "NetworkChangeCallback"
@@ -36,6 +64,12 @@ object NetworkChangeCallback {
   @Volatile
   var cachedDefaultInterfaceName: String? = null
     private set
+
+  @Volatile private var underlyingNetworkListener: ((Network?) -> Unit)? = null
+
+  fun setUnderlyingNetworkListener(listener: ((Network?) -> Unit)?) {
+    underlyingNetworkListener = listener
+  }
 
   // monitorDnsChanges sets up a network callback to monitor changes to the
   // system's network state and update the DNS configuration when interfaces
@@ -104,60 +138,38 @@ object NetworkChangeCallback {
         })
   }
 
-  // pickNonMetered returns the first non-metered network in the list of
-  // networks, or the first network if none are non-metered.
-  private fun pickNonMetered(networks: Map<Network, NetworkInfo>): Network? {
-    for ((network, info) in networks) {
-      if (info.caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)) {
-        return network
-      }
-    }
-    return networks.keys.firstOrNull()
-  }
-
   // pickDefaultNetwork returns a non-VPN network to use as the 'default'
   // network; one that is used as a gateway to the internet and from which we
   // obtain our DNS servers.
+  //
+  // Networks are preferred in this order:
+  //   1. VALIDATED + INTERNET + NOT_VPN + DNS
+  //   2. VALIDATED + INTERNET + NOT_VPN
+  //   3. INTERNET + NOT_VPN + DNS
+  //   4. INTERNET + NOT_VPN
+  //   5. null
+  //
+  // Within each group, prefer a non-metered network. VALIDATED is preferred,
+  // but not required, because per
+  // https://developer.android.com/develop/connectivity/network-ops/reading-network-state,
+  // newly available networks may be usable before Android has finished validating them.
   private fun pickDefaultNetwork(): Network? {
-    // Filter the list of all networks to those that have the INTERNET
-    // capability, are not VPNs, and have a non-zero number of DNS servers
-    // available.
-    val networks =
-        activeNetworks.filter { (_, info) ->
-          info.caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-              info.caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN) &&
-              info.linkProps.dnsServers.isNotEmpty()
-        }
-
-    // If we have one; just return it; otherwise, prefer networks that are also
-    // not metered (i.e. cell modems).
-    val nonMeteredNetwork = pickNonMetered(networks)
-    if (nonMeteredNetwork != null) {
-      return nonMeteredNetwork
-    }
-
-    // Okay, less good; just return the first network that has the INTERNET and
-    // NOT_VPN capabilities; even though this interface doesn't have any DNS
-    // servers set, we'll use our DNS fallback servers to make queries. It's
-    // strictly better to return an interface + use the DNS fallback servers
-    // than to return nothing and not be able to route traffic.
-    for ((network, info) in activeNetworks) {
-      if (info.caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-          info.caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)) {
-        Log.w(TAG, "no networks with DNS; falling back to first network $network")
-        return network
-      }
-    }
-
-    // Otherwise, return nothing; we don't want to return a VPN network since
-    // it could result in a routing loop, and a non-INTERNET network isn't
-    // helpful.
-    Log.w(TAG, "no networks available to pick default network")
-    return null
+    return pickPreferredNetwork(
+        activeNetworks.map { (network, info) ->
+          NetworkCandidate(
+              value = network,
+              internet = info.caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET),
+              notVpn = info.caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN),
+              validated = info.caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED),
+              hasDns = info.linkProps.dnsServers.isNotEmpty(),
+              nonMetered = info.caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED),
+          )
+        })
   }
 
   // Update cached default network + log interface name.
   private fun recomputeDefaultNetworkLocked(why: String) {
+    val oldNetwork = cachedDefaultNetwork
     val newNetwork = pickDefaultNetwork()
     cachedDefaultNetwork = newNetwork
 
@@ -167,6 +179,10 @@ object NetworkChangeCallback {
 
     TSLog.d(
         TAG, "$why: cachedDefaultNetwork=$newNetwork iface=${cachedDefaultInterfaceName ?: "none"}")
+
+    if (newNetwork != oldNetwork) {
+      underlyingNetworkListener?.invoke(newNetwork)
+    }
   }
 
   // maybeUpdateDNSConfig will maybe update our DNS configuration based on the
