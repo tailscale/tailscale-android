@@ -234,7 +234,7 @@ open class IPNService : VpnService(), libtailscale.IPNService {
             builtInDisallowedPackages = UninitializedApp.get().builtInDisallowedPackageNames)
 
     if (allowPackages && packagesList.isNotEmpty()) {
-      for (packageName in (packagesList + tailscalePackageName).distinct()) {
+      for (packageName in packagesList) {
         TSLog.d(TAG, "Including app: $packageName")
         allowApp(b, packageName)
       }
@@ -263,7 +263,11 @@ internal fun packagesForVpnBuilder(
     builtInDisallowedPackages: List<String>,
 ): List<String> =
     if (allowPackages) {
-      packagesList + tailscalePackageName
+      if (packagesList.isEmpty()) {
+        emptyList()
+      } else {
+        (packagesList + tailscalePackageName).distinct()
+      }
     } else {
-      packagesList + builtInDisallowedPackages
+      (packagesList + builtInDisallowedPackages).distinct()
     }
