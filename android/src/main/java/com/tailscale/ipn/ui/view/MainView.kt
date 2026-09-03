@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +26,7 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowDropDown
@@ -37,6 +39,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -106,6 +109,7 @@ import com.tailscale.ipn.ui.util.AutoResizingText
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.PeerSet
+import com.tailscale.ipn.ui.util.PeerSet.Companion.FAVORITES_ID
 import com.tailscale.ipn.ui.util.itemsWithDividers
 import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.viewModel.AppViewModel
@@ -134,26 +138,23 @@ fun MainView(
   val healthIcon by viewModel.healthIcon.collectAsState()
 
   LoadingIndicator.Wrap {
-    Scaffold(contentWindowInsets = WindowInsets.Companion.statusBars) { paddingInsets ->
+    Scaffold(contentWindowInsets = WindowInsets.statusBars) { paddingInsets ->
       Column(
           modifier = Modifier.fillMaxWidth().padding(paddingInsets),
           verticalArrangement = Arrangement.Center,
       ) {
-        // Assume VPN has been prepared for optimistic UI. Whether or not it has been prepared
-        // cannot be known
-        // until permission has been granted to prepare the VPN.
-        val isPrepared by viewModel.isVpnPrepared.collectAsState(initial = true)
-        val isOn by viewModel.vpnToggleState.collectAsState(initial = false)
-        val state by viewModel.ipnState.collectAsState(initial = Ipn.State.NoState)
-        val user by viewModel.loggedInUser.collectAsState(initial = null)
+        val isPrepared by viewModel.isVpnPrepared.collectAsState()
+        val isOn by viewModel.vpnToggleState.collectAsState()
+        val state by viewModel.ipnState.collectAsState()
+        val user by viewModel.loggedInUser.collectAsState()
         val stateVal by viewModel.stateRes.collectAsState(initial = R.string.placeholder)
         val stateStr = stringResource(id = stateVal)
-        val netmap by viewModel.netmap.collectAsState(initial = null)
+        val netmap by viewModel.netmap.collectAsState()
         val showExitNodePicker by MDMSettings.exitNodesPicker.flow.collectAsState()
         val disableToggle by MDMSettings.forceEnabled.flow.collectAsState()
-        val showKeyExpiry by viewModel.showExpiry.collectAsState(initial = false)
+        val isToggleInProgress by viewModel.isToggleInProgress.collectAsState()
+        val showKeyExpiry by viewModel.showExpiry.collectAsState()
 
-        // Hide the header only on Android TV when the user needs to login
         val hideHeader = (isAndroidTV() && state == Ipn.State.NeedsLogin)
         ListItem(
             colors = MaterialTheme.colorScheme.surfaceContainerListItem,
@@ -163,8 +164,7 @@ fun MainView(
                     checked = isOn,
                     enabled =
                         !disableToggle.value &&
-                            !viewModel.isToggleInProgress
-                                .value, // Disable switch if toggle is in progress
+                            !isToggleInProgress, // Disable switch if toggle is in progress
                     onCheckedChange = { desiredState -> viewModel.toggleVpn(desiredState) },
                 )
               }
@@ -223,7 +223,7 @@ fun MainView(
             PromptForMissingPermissions(viewModel)
 
             if (showKeyExpiry) {
-              ExpiryNotification(netmap = netmap, action = { viewModel.login() })
+              netmap?.let { ExpiryNotification(netmap = it, action = { viewModel.login() }) }
             }
             if (showExitNodePicker.value == ShowHide.Show) {
               ExitNodeStatus(
@@ -284,7 +284,10 @@ fun MainView(
 @Composable
 fun TaildropDirectoryPickerPrompt() {
   val uriHandler = LocalUriHandler.current
-  Column(verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = Alignment.Start) {
+  Column(
+      verticalArrangement = Arrangement.spacedBy(8.dp),
+      horizontalAlignment = Alignment.Start,
+  ) {
     Text(text = stringResource(id = R.string.taildrop_directory_picker_body))
     Text(
         text = stringResource(id = R.string.taildrop_directory_picker_info),
@@ -295,8 +298,14 @@ fun TaildropDirectoryPickerPrompt() {
   }
 }
 
+@Preview(showBackground = true)
 @Composable
-fun LaunchVpnPermissionIfNeeded(viewModel: MainViewModel) {
+private fun TaildropDirectoryPickerPromptPreview() {
+  TaildropDirectoryPickerPrompt()
+}
+
+@Composable
+private fun LaunchVpnPermissionIfNeeded(viewModel: MainViewModel) {
   val lifecycleOwner = LocalLifecycleOwner.current
   val shouldRequest by viewModel.requestVpnPermission.collectAsState()
   LaunchedEffect(shouldRequest) {
@@ -309,10 +318,11 @@ fun LaunchVpnPermissionIfNeeded(viewModel: MainViewModel) {
 }
 
 @Composable
-fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
+private fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
   val nodeState by viewModel.nodeState.collectAsState()
   val maybePrefs by viewModel.prefs.collectAsState()
   val netmap by viewModel.netmap.collectAsState()
+  val managedByOrganization by viewModel.managedByOrganization.collectAsState()
   // There's nothing to render if we haven't loaded the prefs yet
   val prefs = maybePrefs ?: return
   // The activeExitNode is the source of truth.  The selectedExitNode is only relevant if we
@@ -320,7 +330,7 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
   val chosenExitNodeId = prefs.activeExitNodeID ?: prefs.selectedExitNodeID
   val exitNodePeer = chosenExitNodeId?.let { id -> netmap?.Peers?.find { it.StableID == id } }
   val name = exitNodePeer?.exitNodeName
-  val managedByOrganization by viewModel.managedByOrganization.collectAsState()
+
   Box(
       modifier =
           Modifier.fillMaxWidth().background(color = MaterialTheme.colorScheme.surfaceContainer)
@@ -438,7 +448,7 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
 }
 
 @Composable
-fun SettingsButton(action: () -> Unit) {
+private fun SettingsButton(action: () -> Unit) {
   IconButton(modifier = Modifier.size(24.dp), onClick = { action() }) {
     Icon(
         Icons.Outlined.Settings,
@@ -449,7 +459,7 @@ fun SettingsButton(action: () -> Unit) {
 }
 
 @Composable
-fun StartingView() {
+private fun StartingView() {
   Column(
       modifier = Modifier.fillMaxSize(),
       verticalArrangement = Arrangement.Center,
@@ -480,11 +490,22 @@ fun ConnectView(
       showVPNPermissionLauncher()
     }
   }
-  Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+
+  Row(
+      horizontalArrangement = Arrangement.Center,
+      modifier = Modifier.fillMaxWidth(),
+  ) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
       Column(
           modifier = Modifier.padding(8.dp).fillMaxWidth(0.7f).fillMaxHeight(),
-          verticalArrangement = Arrangement.spacedBy(8.dp, alignment = Alignment.CenterVertically),
+          verticalArrangement =
+              Arrangement.spacedBy(
+                  8.dp,
+                  alignment = Alignment.CenterVertically,
+              ),
           horizontalAlignment = Alignment.CenterHorizontally,
       ) {
         if (!isPrepared) {
@@ -524,6 +545,7 @@ fun ConnectView(
               textAlign = TextAlign.Center,
           )
           Spacer(modifier = Modifier.size(1.dp))
+
           selfNode?.let {
             PrimaryActionButton(onClick = { loginAtUrlAction(it.nodeAdminUrl) }) {
               Text(
@@ -546,12 +568,11 @@ fun ConnectView(
               textAlign = TextAlign.Center,
               fontFamily = MaterialTheme.typography.titleMedium.fontFamily,
           )
-          val tailnetName = user.NetworkProfile?.tailnetNameForDisplay() ?: ""
           Text(
               buildAnnotatedString {
                 append(stringResource(id = R.string.connect_to_tailnet_prefix))
                 pushStyle(SpanStyle(fontWeight = FontWeight.Bold))
-                append(tailnetName)
+                append(user.NetworkProfile?.tailnetNameForDisplay() ?: "")
                 pop()
                 append(stringResource(id = R.string.connect_to_tailnet_suffix))
               },
@@ -592,6 +613,57 @@ fun ConnectView(
   }
 }
 
+@Preview(showBackground = true)
+@Composable
+private fun ConnectViewPreview() {
+  var isPrepared by remember { mutableStateOf(false) }
+  var showUser by remember { mutableStateOf(false) }
+  var showNode by remember { mutableStateOf(false) }
+  var showState by remember { mutableStateOf(false) }
+  var state by remember { mutableStateOf(Ipn.State.NoState) }
+  val user =
+      IpnLocal.LoginProfile(
+          ID = "id",
+          Name = "name",
+          Key = "key",
+          UserProfile = Tailcfg.UserProfile(ID = -1),
+          NetworkProfile = null,
+          LocalUserID = "id",
+          ControlURL = null,
+      )
+
+  Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = Modifier.horizontalScroll(rememberScrollState()),
+    ) {
+      Button(onClick = { isPrepared = !isPrepared }) { Text("Prepared: $isPrepared") }
+      Button(onClick = { showState = true }) {
+        Text("State: $state")
+        DropdownMenu(expanded = showState, onDismissRequest = { showState = false }) {
+          Ipn.State.entries.forEach { entry ->
+            DropdownMenuItem(text = { Text("$entry") }, onClick = { state = entry })
+          }
+        }
+      }
+      Button(onClick = { showUser = !showUser }) { Text("User: $showUser") }
+      Button(onClick = { showNode = !showNode }) { Text("Node: $showNode") }
+    }
+
+    ConnectView(
+        state = state,
+        isPrepared = isPrepared,
+        shouldStartAutomatically = false,
+        user = if (showUser) user else null,
+        connectAction = {},
+        loginAction = {},
+        loginAtUrlAction = {},
+        selfNode = if (showNode) Tailcfg.Node() else null,
+        showVPNPermissionLauncher = {},
+    )
+  }
+}
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun PeerList(
@@ -600,32 +672,30 @@ fun PeerList(
     onSearchBarClick: () -> Unit,
     onSearch: (String) -> Unit,
 ) {
-  val peerList by viewModel.peers.collectAsState(initial = emptyList<PeerSet>())
-  val searchTermStr by viewModel.searchTerm.collectAsState(initial = "")
-  val showNoResults = remember {
+  val focusManager = LocalFocusManager.current
+  val peerList by viewModel.peers.collectAsState()
+  val searchTermStr by viewModel.searchTerm.collectAsState()
+  val expandedPeer by viewModel.expandedMenuPeer.collectAsState()
+  val netmap by viewModel.netmap.collectAsState()
+  val showNoResults by remember {
     derivedStateOf { searchTermStr.isNotEmpty() && peerList.isEmpty() }
   }
-      .value
-  val netmap = viewModel.netmap.collectAsState()
-  val focusManager = LocalFocusManager.current
   var isSearchFocussed by remember { mutableStateOf(false) }
   var isListFocussed by remember { mutableStateOf(false) }
-  val expandedPeer = viewModel.expandedMenuPeer.collectAsState()
-  val localClipboardManager = LocalClipboardManager.current
+
   // Restrict search to devices running API 33+ (see https://github.com/tailscale/corp/issues/27375)
   val enableSearch = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
 
   val renderedPeers = peerList.flatMap { peerSet ->
-    peerSet.peers.map { peer -> peerSet.userID to peer }
+    peerSet.nodes.map { peer -> peerSet.id to peer }
   }
   val duplicateRenderedStableIDs =
       renderedPeers.groupBy { (_, peer) -> peer.StableID }.filterValues { it.size > 1 }
   val duplicateRenderedNodeIDs =
       renderedPeers.groupBy { (_, peer) -> peer.ID }.filterValues { it.size > 1 }
 
-  val currentNetmap = netmap.value
-  val netmapPeers = currentNetmap?.Peers.orEmpty()
-  val self = currentNetmap?.SelfNode
+  val netmapPeers = netmap?.Peers.orEmpty()
+  val self = netmap?.SelfNode
   val duplicateNetmapStableIDs = netmapPeers.groupBy { it.StableID }.filterValues { it.size > 1 }
   val duplicateNetmapNodeIDs = netmapPeers.groupBy { it.ID }.filterValues { it.size > 1 }
   val selfInPeersByStableID = self != null && netmapPeers.any { it.StableID == self.StableID }
@@ -711,6 +781,7 @@ fun PeerList(
         }
       }
     }
+
     // Peers display
     LazyColumn(
         modifier =
@@ -737,19 +808,18 @@ fun PeerList(
           )
         }
       }
+
       // Iterate over peer sets to display them
-      var first = true
-      peerList.forEach { peerSet ->
-        if (!first) {
-          item(key = "user_divider_${peerSet.userID}") { Lists.ItemDivider() }
+      peerList.forEachIndexed { idx, peerSet ->
+        if (idx != 0) {
+          item(key = "user_divider_${peerSet.id}") { Lists.ItemDivider() }
         }
-        first = false
         if (isAndroidTV()) {
           item { NodesSectionHeader(peerSet = peerSet) }
         } else {
           stickyHeader { NodesSectionHeader(peerSet = peerSet) }
         }
-        itemsWithDividers(peerSet.peers, key = { it.StableID }) { peer ->
+        itemsWithDividers(peerSet.nodes, key = { it.StableID }) { peer ->
           ListItem(
               modifier =
                   Modifier.combinedClickable(
@@ -758,52 +828,29 @@ fun PeerList(
                   ),
               colors = MaterialTheme.colorScheme.listItem,
               headlineContent = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                   Box(
                       modifier =
                           Modifier.padding(top = 2.dp)
                               .size(10.dp)
                               .background(
-                                  color = peer.connectedColor(netmap.value),
+                                  color = peer.connectedColor(netmap),
                                   shape = RoundedCornerShape(percent = 50),
                               )
-                  ) {}
-                  Spacer(modifier = Modifier.size(8.dp))
-                  Text(text = peer.displayName, style = MaterialTheme.typography.titleMedium)
-                  DropdownMenu(
-                      expanded = expandedPeer.value?.StableID == peer.StableID,
-                      onDismissRequest = { viewModel.hidePeerDropdownMenu() },
-                  ) {
-                    DropdownMenuItem(
-                        leadingIcon = {
-                          Icon(
-                              painter = painterResource(R.drawable.clipboard),
-                              contentDescription = null,
-                          )
-                        },
-                        text = { Text(text = stringResource(R.string.copy_ip_address)) },
-                        onClick = {
-                          viewModel.copyIpAddress(peer, localClipboardManager)
-                          viewModel.hidePeerDropdownMenu()
-                        },
+                  )
+                  Text(
+                      text = peer.displayName,
+                      style = MaterialTheme.typography.titleMedium,
+                  )
+                  if (expandedPeer?.StableID == peer.StableID) {
+                    DeviceDropdownMenu(
+                        viewModel,
+                        peer,
+                        netmap,
                     )
-                    netmap.value?.let { netMap ->
-                      if (!peer.isSelfNode(netMap)) {
-                        DropdownMenuItem(
-                            leadingIcon = {
-                              Icon(
-                                  painter = painterResource(R.drawable.timer),
-                                  contentDescription = null,
-                              )
-                            },
-                            text = { Text(text = stringResource(R.string.ping)) },
-                            onClick = {
-                              viewModel.hidePeerDropdownMenu()
-                              viewModel.startPing(peer)
-                            },
-                        )
-                      }
-                    }
                   }
                 }
               },
@@ -824,20 +871,137 @@ fun PeerList(
 }
 
 @Composable
+fun DeviceDropdownMenu(
+    viewModel: MainViewModel,
+    peer: Tailcfg.Node,
+    netmap: Netmap.NetworkMap?,
+) {
+  val localClipboardManager = LocalClipboardManager.current
+  val favorites by viewModel.favorites.collectAsState()
+  val isFavorite = favorites?.isFavoriteDevice(peer.StableID) == true
+
+  DropdownMenu(
+      expanded = true,
+      onDismissRequest = viewModel::hidePeerDropdownMenu,
+  ) {
+    netmap?.let { netMap ->
+      if (!peer.isSelfNode(netMap)) {
+        DropdownMenuItem(
+            leadingIcon = {
+              Icon(
+                  painter = painterResource(R.drawable.sensors_24),
+                  contentDescription = null,
+              )
+            },
+            text = { Text(text = stringResource(R.string.ping)) },
+            onClick = {
+              viewModel.hidePeerDropdownMenu()
+              viewModel.startPing(peer)
+            },
+        )
+      }
+    }
+    DropdownMenuItem(
+        leadingIcon = {
+          Icon(
+              painter = painterResource(R.drawable.clipboard),
+              contentDescription = null,
+          )
+        },
+        text = { Text(text = stringResource(R.string.copy_magic_dns_address)) },
+        onClick = {
+          viewModel.copyMagicDNSAddress(peer, localClipboardManager)
+          viewModel.hidePeerDropdownMenu()
+        },
+    )
+    DropdownMenuItem(
+        leadingIcon = {
+          Icon(
+              painter = painterResource(R.drawable.clipboard),
+              contentDescription = null,
+          )
+        },
+        text = { Text(text = stringResource(R.string.copy_ipv4_address)) },
+        onClick = {
+          viewModel.copyIPV4Address(peer, localClipboardManager)
+          viewModel.hidePeerDropdownMenu()
+        },
+    )
+    DropdownMenuItem(
+        leadingIcon = {
+          Icon(
+              painter = painterResource(R.drawable.clipboard),
+              contentDescription = null,
+          )
+        },
+        text = { Text(text = stringResource(R.string.copy_ipv6_address)) },
+        onClick = {
+          viewModel.copyIPV6Address(peer, localClipboardManager)
+          viewModel.hidePeerDropdownMenu()
+        },
+    )
+
+    HorizontalDivider()
+
+    DropdownMenuItem(
+        leadingIcon = {
+          Icon(
+              painter = painterResource(if (isFavorite) R.drawable.unpin_24 else R.drawable.pin_24),
+              contentDescription = null,
+          )
+        },
+        text = {
+          Text(
+              text = stringResource(if (isFavorite) R.string.unpin_device else R.string.pin_device)
+          )
+        },
+        onClick = {
+          viewModel.togglePin(peer)
+          viewModel.hidePeerDropdownMenu()
+        },
+    )
+  }
+}
+
+@Composable
+fun PeerSet.sectionTitle(): String =
+    if (isFavorite) stringResource(id = R.string.pinned_devices)
+    else title ?: stringResource(id = R.string.unknown_user)
+
+@Composable
 fun NodesSectionHeader(peerSet: PeerSet) {
   Spacer(Modifier.height(16.dp).fillMaxSize().background(color = MaterialTheme.colorScheme.surface))
   Lists.LargeTitle(
-      peerSet.user?.DisplayName ?: stringResource(id = R.string.unknown_user),
+      peerSet.sectionTitle(),
       bottomPadding = 8.dp,
       focusable = isAndroidTV(),
       style = MaterialTheme.typography.titleLarge,
       fontWeight = FontWeight.SemiBold,
+      leadingIcon =
+          if (peerSet.isFavorite) {
+            {
+              Icon(
+                  painter = painterResource(R.drawable.pin_24),
+                  contentDescription = null,
+                  modifier = Modifier.size(16.dp),
+                  tint = MaterialTheme.colorScheme.onSurfaceVariant,
+              )
+            }
+          } else null,
   )
 }
 
+@Preview(showBackground = true)
 @Composable
-fun ExpiryNotification(netmap: Netmap.NetworkMap?, action: () -> Unit = {}) {
-  if (netmap == null) return
+private fun NodesSectionHeaderPreview() {
+  Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    NodesSectionHeader(peerSet = PeerSet(FAVORITES_ID, null, nodes = emptyList()))
+    NodesSectionHeader(peerSet = PeerSet(1, "Thing", nodes = emptyList()))
+  }
+}
+
+@Composable
+fun ExpiryNotification(netmap: Netmap.NetworkMap, action: () -> Unit = {}) {
   Box(modifier = Modifier.background(color = MaterialTheme.colorScheme.surfaceContainer)) {
     Box(
         modifier =

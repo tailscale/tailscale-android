@@ -31,6 +31,7 @@ import com.tailscale.ipn.ui.localapi.Client
 import com.tailscale.ipn.ui.localapi.Request
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.Netmap
+import com.tailscale.ipn.ui.notifier.FavoritesManager
 import com.tailscale.ipn.ui.notifier.HealthNotifier
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.viewModel.AppViewModel
@@ -91,6 +92,7 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
 
   private val appViewModelStore: ViewModelStore by lazy { ViewModelStore() }
   var healthNotifier: HealthNotifier? = null
+  lateinit var favoritesManager: FavoritesManager
 
   override fun getPlatformDNSConfig(): String = dns.dnsConfigAsString
 
@@ -182,6 +184,7 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
       startLibtailscale(this.filesDir.absolutePath, hardwareAttestation)
     }
     healthNotifier = HealthNotifier(Notifier.health, Notifier.state, applicationScope)
+    favoritesManager = FavoritesManager(Notifier.state, Notifier.netmap, applicationScope)
     connectivityManager = this.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     NetworkChangeCallback.monitorDnsChanges(connectivityManager, dns)
     initViewModels()

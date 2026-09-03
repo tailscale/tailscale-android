@@ -7,6 +7,8 @@ import android.content.Context
 import com.tailscale.ipn.App
 import com.tailscale.ipn.ui.model.BugReportID
 import com.tailscale.ipn.ui.model.Errors
+import com.tailscale.ipn.ui.model.Favorites
+import com.tailscale.ipn.ui.model.FavoritesRequest
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.IpnState
@@ -49,6 +51,7 @@ private object Endpoint {
   const val FILE_PUT = "file-put"
   const val TAILFS_SERVER_ADDRESS = "tailfs/fileserver-address"
   const val ENABLE_EXIT_NODE = "set-use-exit-node-enabled"
+  const val FAVORITES = "pins"
 }
 
 typealias StatusResponseHandler = (Result<IpnState.Status>) -> Unit
@@ -192,6 +195,17 @@ class Client(private val scope: CoroutineScope) {
     )
   }
 
+  // Favorites
+
+  fun getFavorites(responseHandler: (Result<Favorites>) -> Unit) {
+    get(Endpoint.FAVORITES, responseHandler = responseHandler)
+  }
+
+  fun setFavorites(favorites: FavoritesRequest, responseHandler: (Result<Favorites>) -> Unit) {
+    val body = Json.encodeToString(favorites).toByteArray()
+    return post(Endpoint.FAVORITES, body, responseHandler = responseHandler)
+  }
+
   private inline fun <reified T> get(
       path: String,
       body: ByteArray? = null,
@@ -321,7 +335,13 @@ class Request<T>(
       TSLog.d(TAG, "Executing request:${method}:${fullPath} on app $app")
       try {
         val resp =
-            if (parts != null) app.callLocalAPIMultipart(timeoutMillis, method, fullPath, parts)
+            if (parts != null)
+                app.callLocalAPIMultipart(
+                    timeoutMillis,
+                    method,
+                    fullPath,
+                    parts,
+                )
             else
                 app.callLocalAPI(
                     timeoutMillis,
