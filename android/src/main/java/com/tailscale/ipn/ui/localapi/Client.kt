@@ -302,7 +302,6 @@ class Client(private val scope: CoroutineScope) {
         )
         .execute()
   }
-  // endregion
 }
 
 class Request<T>(

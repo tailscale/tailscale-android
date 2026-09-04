@@ -53,13 +53,19 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
+import com.tailscale.ipn.App
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.theme.listItem
 import com.tailscale.ipn.ui.util.Lists
+import com.tailscale.ipn.ui.viewModel.AppViewModel
 import com.tailscale.ipn.ui.viewModel.MainViewModel
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.emptyFlow
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -68,7 +74,7 @@ fun SearchView(
     viewModel: MainViewModel,
     navController: NavController,
     onNavigateBack: () -> Unit,
-    autoFocus: Boolean // Pass true if coming from the main view, false otherwise.
+    autoFocus: Boolean, // Pass true if coming from the main view, false otherwise.
 ) {
   // Use TextFieldValue to preserve text and cursor position.
   var searchFieldValue by
@@ -106,7 +112,7 @@ fun SearchView(
 
   LaunchedEffect(searchTerm, filteredPeers) {
     if (searchTerm.isEmpty() && filteredPeers.isNotEmpty()) {
-      delay(100) // Give Compose time to update list
+      delay(100.milliseconds) // Give Compose time to update list
       listState.scrollToItem(0)
     }
   }
@@ -114,7 +120,7 @@ fun SearchView(
   // Use the autoFocus parameter to decide if we request focus when entering.
   LaunchedEffect(autoFocus) {
     if (autoFocus) {
-      delay(300) // Delay to ensure UI is fully composed
+      delay(300.milliseconds) // Delay to ensure UI is fully composed
       focusRequester.requestFocus()
       keyboardController?.show()
     }
@@ -150,12 +156,14 @@ fun SearchView(
                         focusManager.clearFocus()
                         onNavigateBack()
                         viewModel.updateSearchTerm("")
-                      }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.search),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant)
                       }
+                  ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = stringResource(R.string.search),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                  }
                 },
                 trailingIcon = {
                   if (searchTerm.isNotEmpty()) {
@@ -165,11 +173,13 @@ fun SearchView(
                           viewModel.updateSearchTerm("")
                           focusManager.clearFocus()
                           keyboardController?.hide()
-                        }) {
-                          Icon(
-                              Icons.Default.Clear,
-                              contentDescription = stringResource(R.string.clear_search))
                         }
+                    ) {
+                      Icon(
+                          Icons.Default.Clear,
+                          contentDescription = stringResource(R.string.clear_search),
+                      )
+                    }
                   }
                 },
             )
@@ -188,7 +198,8 @@ fun SearchView(
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Light,
                     backgroundColor = noResultsBackground,
-                    fontColor = MaterialTheme.colorScheme.onSurfaceVariant)
+                    fontColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
               }
             }
           } else {
@@ -199,8 +210,7 @@ fun SearchView(
               }
               firstGroup = false
 
-              val userName = peerSet.user?.DisplayName ?: "Unknown User"
-              peerSet.peers.forEachIndexed { index, peer ->
+              peerSet.nodes.forEachIndexed { index, peer ->
                 if (index > 0) {
                   item(key = "divider_${peer.StableID}") { Lists.ItemDivider() }
                 }
@@ -214,7 +224,11 @@ fun SearchView(
                             Box(
                                 modifier =
                                     Modifier.size(10.dp)
-                                        .background(onlineColor, RoundedCornerShape(50)))
+                                        .background(
+                                            onlineColor,
+                                            RoundedCornerShape(50),
+                                        )
+                            )
                             Spacer(modifier = Modifier.size(8.dp))
                             Text(peer.displayName)
                           }
@@ -222,7 +236,7 @@ fun SearchView(
                       },
                       supportingContent = {
                         Column {
-                          Text(userName)
+                          Text(peerSet.sectionTitle())
                           Text(peer.Addresses?.firstOrNull()?.split("/")?.first() ?: "No IP")
                         }
                       },
@@ -232,7 +246,8 @@ fun SearchView(
                               .clickable {
                                 viewModel.disableSearchAutoFocus()
                                 navController.navigate("peerDetails/${peer.StableID}")
-                              })
+                              },
+                  )
                 }
               }
             }
@@ -241,4 +256,20 @@ fun SearchView(
       }
     }
   }
+}
+
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+@Preview(showSystemUi = true)
+@Composable
+private fun SearchViewPreview() {
+  val fakePrompt = emptyFlow<Unit>()
+  val appViewModel = AppViewModel(App.get(), fakePrompt)
+  val vm = MainViewModel(appViewModel)
+
+  SearchView(
+      vm,
+      rememberNavController(),
+      {},
+      true,
+  )
 }

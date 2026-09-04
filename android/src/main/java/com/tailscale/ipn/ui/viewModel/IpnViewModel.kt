@@ -40,7 +40,7 @@ open class IpnViewModel : ViewModel() {
   private val _favorites = MutableStateFlow(Favorites())
   val favorites: StateFlow<Favorites> = _favorites
 
-  private var _isToggleFavoriteInProgress = MutableStateFlow(false)
+  private val _isToggleFavoriteInProgress = MutableStateFlow(false)
   val isToggleFavoriteInProgress: StateFlow<Boolean> = _isToggleFavoriteInProgress
 
   // The userId associated with the current node. ie: The logged in user.

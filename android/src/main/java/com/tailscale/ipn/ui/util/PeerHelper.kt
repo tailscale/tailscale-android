@@ -37,7 +37,7 @@ data class PeerSet(
   }
 }
 
-private fun MutableList<Tailcfg.Node>.nodeSort(netmap: Netmap.NetworkMap): List<Tailcfg.Node> {
+private fun List<Tailcfg.Node>.nodeSort(netmap: Netmap.NetworkMap): List<Tailcfg.Node> {
   return this.sortedWith { a, b ->
     when {
       a.StableID == b.StableID -> 0
@@ -60,7 +60,6 @@ class PeerCategorizer {
     val peers: List<Tailcfg.Node> = netmap.Peers ?: return
     val selfNode = netmap.SelfNode
     val grouped = mutableMapOf<UserID, MutableList<Tailcfg.Node>>()
-    grouped[FAVORITES_ID] = mutableListOf()
     val favoriteDeviceIds = favorites.deviceIds.toSet()
 
     val mdm = MDMSettings.hiddenNetworkDevices.flow.value.value
@@ -71,8 +70,9 @@ class PeerCategorizer {
     val me = netmap.currentUserProfile()
 
     for (peer in (peers + selfNode)) {
-      val userId = if (favoriteDeviceIds.contains(peer.StableID)) FAVORITES_ID else peer.User
+      val userId = peer.User
       val profile = netmap.userProfile(userId)
+      val groupId = if (favoriteDeviceIds.contains(peer.StableID)) FAVORITES_ID else peer.User
 
       // Mullvad nodes should not be shown in the peer list
       if (peer.isMullvadNode) {
@@ -92,11 +92,11 @@ class PeerCategorizer {
         continue
       }
 
-      if (!grouped.containsKey(userId)) {
-        grouped[userId] = mutableListOf()
+      if (!grouped.containsKey(groupId)) {
+        grouped[groupId] = mutableListOf()
       }
 
-      grouped[userId]?.add(peer)
+      grouped[groupId]?.add(peer)
     }
 
     peerSets =
@@ -133,25 +133,21 @@ class PeerCategorizer {
         else peerSets
     this.lastSearchTerm = searchTerm
 
-    val matchingSets =
-        setsToSearch
-            .map { peerSet ->
-              val peers = peerSet.nodes
+    val matchingSets = setsToSearch.mapNotNull { peerSet ->
+      val peers = peerSet.nodes
 
-              if (peerSet.title?.contains(searchTerm, ignoreCase = true) ?: false) {
-                return@map peerSet
-              }
+      if (peerSet.title?.contains(searchTerm, ignoreCase = true) ?: false) {
+        return@mapNotNull peerSet
+      }
 
-              val matchingPeers = peers.filter { peer ->
-                val matchDisplay = peer.displayName.contains(searchTerm, ignoreCase = true)
-                val matchAddress = peer.Addresses.orEmpty().fastAny { it.contains(searchTerm) }
-                matchDisplay || matchAddress
-              }
+      val matchingPeers = peers.filter { peer ->
+        val matchDisplay = peer.displayName.contains(searchTerm, ignoreCase = true)
+        val matchAddress = peer.Addresses.orEmpty().fastAny { it.contains(searchTerm) }
+        matchDisplay || matchAddress
+      }
 
-              if (matchingPeers.isNotEmpty()) PeerSet(peerSet.id, peerSet.title, matchingPeers)
-              else null
-            }
-            .filterNotNull()
+      if (matchingPeers.isNotEmpty()) PeerSet(peerSet.id, peerSet.title, matchingPeers) else null
+    }
 
     lastSearchResult = matchingSets
     return matchingSets

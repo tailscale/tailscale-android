@@ -13,13 +13,13 @@
     <string name="not_connected">Not connected</string>
     <string name="empty" translatable="false"> </string>
     <string name="template" translatable="false">%s</string>
-    <string name="selected" tools:override="true">Selected</string>
+    <string name="selected">Selected</string>
     <string name="offline">Offline</string>
     <string name="ok">OK</string>
     <string name="_continue">Continue</string>
     <string name="warning">Warning</string>
     <string name="search">Search</string>
-    <string name="search_ellipsis">Search…</string>
+    <string name="search_ellipsis">Search...</string>
     <string name="dismiss">Dismiss</string>
     <string name="no_results">No results</string>
     <string name="back">Back</string>
@@ -395,7 +395,7 @@
     <string name="enable_hardware_attestation">Enable hardware attestation</string>
     <string name="use_hardware_backed_keys_to_bind_node_identity_to_the_device">Use hardware-backed keys to bind node identity to the device</string>
 
-    <!-- Strings for Pinned Favourites -->
+    <!-- Strings for Pinned Favorites -->
     <string name="pinned_devices">Pinned Devices</string>
 
     <!-- Strings for device dropdown menu -->
