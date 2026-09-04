@@ -6,14 +6,56 @@ package com.tailscale.ipn.ui.util
 import androidx.compose.ui.util.fastAny
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.model.Netmap
+import com.tailscale.ipn.ui.model.StableNodeID
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.model.UserID
 
 data class PeerSet(
-    val userID: UserID,
-    val user: Tailcfg.UserProfile?,
-    val peers: List<Tailcfg.Node>
-)
+    val id: UserID,
+    val title: String?,
+    val nodes: List<Tailcfg.Node>,
+) {
+  companion object {
+    const val FAVORITES_ID: UserID = -1
+
+    fun create(id: UserID, title: String?, nodes: List<Tailcfg.Node>): PeerSet? =
+        if (nodes.isEmpty()) null else PeerSet(id, title, nodes)
+  }
+
+  val isFavorite: Boolean
+    get() = id == FAVORITES_ID
+}
+
+fun List<PeerSet>.withPinnedSection(pinnedIds: List<StableNodeID>): List<PeerSet> {
+  val ids = pinnedIds.distinct()
+  if (ids.isEmpty()) return this
+
+  val pinned = ids.toSet()
+  val byId = mutableMapOf<StableNodeID, Tailcfg.Node>()
+  for (set in this) for (node in set.nodes) {
+    if (node.StableID in pinned) byId[node.StableID] = node
+  }
+
+  val pinnedNodes = ids.mapNotNull { byId[it] }
+  if (pinnedNodes.isEmpty()) return this
+
+  val remaining = mapNotNull { set ->
+    PeerSet.create(set.id, set.title, set.nodes.filterNot { it.StableID in pinned })
+  }
+
+  return listOf(PeerSet(PeerSet.FAVORITES_ID, null, pinnedNodes)) + remaining
+}
+
+private fun List<Tailcfg.Node>.nodeSort(netmap: Netmap.NetworkMap): List<Tailcfg.Node> {
+  return this.sortedWith { a, b ->
+    when {
+      a.StableID == b.StableID -> 0
+      a.isSelfNode(netmap) -> -1
+      b.isSelfNode(netmap) -> 1
+      else -> (a.ComputedName?.lowercase() ?: "").compareTo(b.ComputedName?.lowercase() ?: "")
+    }
+  }
+}
 
 class PeerCategorizer {
   var peerSets: List<PeerSet> = emptyList()
@@ -21,9 +63,9 @@ class PeerCategorizer {
   var lastSearchTerm: String = ""
 
   fun regenerateGroupedPeers(netmap: Netmap.NetworkMap) {
-    val peers: List<Tailcfg.Node> = netmap.Peers ?: return
+    val peers: List<Tailcfg.Node> = netmap.Peers.orEmpty()
     val selfNode = netmap.SelfNode
-    var grouped = mutableMapOf<UserID, MutableList<Tailcfg.Node>>()
+    val grouped = mutableMapOf<UserID, MutableList<Tailcfg.Node>>()
 
     val mdm = MDMSettings.hiddenNetworkDevices.flow.value.value
     val hideMyDevices = mdm?.contains("current-user") ?: false
@@ -33,7 +75,6 @@ class PeerCategorizer {
     val me = netmap.currentUserProfile()
 
     for (peer in (peers + selfNode)) {
-
       val userId = peer.User
       val profile = netmap.userProfile(userId)
 
@@ -58,34 +99,23 @@ class PeerCategorizer {
       if (!grouped.containsKey(userId)) {
         grouped[userId] = mutableListOf()
       }
+
       grouped[userId]?.add(peer)
     }
 
     peerSets =
         grouped
-            .map { (userId, peers) ->
-              val profile = netmap.userProfile(userId)
-              PeerSet(
+            .mapNotNull { (userId, peers) ->
+              PeerSet.create(
                   userId,
-                  profile,
-                  peers.sortedWith { a, b ->
-                    when {
-                      a.StableID == b.StableID -> 0
-                      a.isSelfNode(netmap) -> -1
-                      b.isSelfNode(netmap) -> 1
-                      else ->
-                          (a.ComputedName?.lowercase() ?: "").compareTo(
-                              b.ComputedName?.lowercase() ?: "")
-                    }
-                  })
+                  netmap.userProfile(userId)?.DisplayName,
+                  peers.nodeSort(netmap),
+              )
             }
-            .sortedBy {
-              if (it.user?.ID == me?.ID) {
-                ""
-              } else {
-                it.user?.DisplayName?.lowercase() ?: "unknown user"
-              }
-            }
+            .sortedBy { if (it.id == me?.ID) "" else it.title?.lowercase() ?: "unknown user" }
+
+    lastSearchTerm = ""
+    lastSearchResult = emptyList()
   }
 
   fun groupedAndFilteredPeers(searchTerm: String = ""): List<PeerSet> {
@@ -106,28 +136,24 @@ class PeerCategorizer {
     this.lastSearchTerm = searchTerm
 
     val matchingSets =
-        setsToSearch
-            .map { peerSet ->
-              val user = peerSet.user
-              val peers = peerSet.peers
+        setsToSearch.mapNotNull { peerSet ->
+          val peers = peerSet.nodes
 
-              val userMatches = user?.DisplayName?.contains(searchTerm, ignoreCase = true) ?: false
-              if (userMatches) {
-                return@map peerSet
+          if (peerSet.title?.contains(searchTerm, ignoreCase = true) == true) {
+            return@mapNotNull peerSet
+          }
+
+          val matchingPeers =
+              peers.filter { peer ->
+                val matchDisplay = peer.displayName.contains(searchTerm, ignoreCase = true)
+                val matchAddress = peer.Addresses.orEmpty().fastAny { it.contains(searchTerm) }
+                matchDisplay || matchAddress
               }
 
-              val matchingPeers =
-                  peers.filter {
-                    it.displayName.contains(searchTerm, ignoreCase = true) ||
-                        (it.Addresses ?: emptyList()).fastAny { addr -> addr.contains(searchTerm) }
-                  }
-              if (matchingPeers.isNotEmpty()) {
-                PeerSet(peerSet.userID, user, matchingPeers)
-              } else {
-                null
-              }
-            }
-            .filterNotNull()
+          if (matchingPeers.isNotEmpty()) PeerSet(peerSet.id, peerSet.title, matchingPeers)
+          else null
+        }
+
     lastSearchResult = matchingSets
     return matchingSets
   }

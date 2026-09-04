@@ -13,7 +13,7 @@
     <string name="not_connected">Not connected</string>
     <string name="empty" translatable="false"> </string>
     <string name="template" translatable="false">%s</string>
-    <string name="selected">Selected</string> 
+    <string name="selected">Selected</string>
     <string name="offline">Offline</string>
     <string name="ok">OK</string>
     <string name="_continue">Continue</string>
@@ -142,11 +142,11 @@
     <string name="request_deletion_owner_part1">
     As the owner of this tailnet, to remove yourself from the tailnet you can either reassign ownership and contact our Support team, or delete the whole tailnet through the admin console. To do the latter, go to
 </string>
-<string name="request_deletion_owner_part2a">
+    <string name="request_deletion_owner_part2a">
     and look for “Delete tailnet”.
 </string>
 
-<string name="request_deletion_owner_part2b">
+    <string name="request_deletion_owner_part2b">
     All requests related to the removal or deletion of data are handled by our Support team. To open a request, tap the Contact Support button below to be taken to our contact form in the browser. Complete the form, and a Customer Support Engineer will work with you directly to assist.
 </string>
 
@@ -303,7 +303,6 @@
     <string name="notifications_delivered_when_a_file_is_received_using_taildrop">Notifications delivered when a file is received using Taildrop.</string>
     <string name="health_channel_name">Errors and warnings</string>
     <string name="health_channel_description">This notification category is used to deliver important status notifications and should be left enabled. For instance, it is used to notify you about errors or warnings that affect Internet connectivity.</string>
-    <string name="copy_ip_address">Copy IP Address</string>
     <string name="ping">Ping</string>
     <string name="relayed_connection">Relayed connection (%1$s)</string>
     <string name="direct_connection">Direct connection</string>
@@ -396,4 +395,13 @@
     <string name="enable_hardware_attestation">Enable hardware attestation</string>
     <string name="use_hardware_backed_keys_to_bind_node_identity_to_the_device">Use hardware-backed keys to bind node identity to the device</string>
 
+    <!-- Strings for Pinned Favorites -->
+    <string name="pinned_devices">Pinned Devices</string>
+
+    <!-- Strings for device dropdown menu -->
+    <string name="pin_device">Pin device</string>
+    <string name="unpin_device">Unpin device</string>
+    <string name="copy_magic_dns_address">Copy MagicDNS hostname</string>
+    <string name="copy_ipv4_address">Copy IPv4</string>
+    <string name="copy_ipv6_address">Copy IPv6</string>
 </resources>
