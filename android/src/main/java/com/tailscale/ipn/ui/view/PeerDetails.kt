@@ -53,8 +53,7 @@ fun PeerDetails(
     model: PeerDetailsViewModel =
         viewModel(
             factory =
-                PeerDetailsViewModelFactory(nodeId, LocalContext.current.filesDir, pingViewModel)
-        ),
+                PeerDetailsViewModelFactory(nodeId, LocalContext.current.filesDir, pingViewModel)),
 ) {
   val isPinging by model.isPinging.collectAsState()
 
@@ -77,8 +76,7 @@ fun PeerDetails(
                                   .background(
                                       color = node.connectedColor(netmap),
                                       shape = RoundedCornerShape(percent = 50),
-                                  )
-                      ) {}
+                                  )) {}
                       Spacer(modifier = Modifier.size(8.dp))
                       Text(
                           text = stringResource(id = node.connectedStrRes(netmap)),
@@ -105,8 +103,7 @@ fun PeerDetails(
                         painterResource(if (isPinned) R.drawable.unpin_24 else R.drawable.pin_24),
                         contentDescription =
                             stringResource(
-                                if (isPinned) R.string.unpin_device else R.string.pin_device
-                            ),
+                                if (isPinned) R.string.unpin_device else R.string.pin_device),
                     )
                   }
                 },

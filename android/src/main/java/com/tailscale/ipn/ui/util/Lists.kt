@@ -57,24 +57,23 @@ object Lists {
   ) {
     Box(
         modifier =
-            Modifier.fillMaxWidth().background(color = backgroundColor, shape = RectangleShape)
-    ) {
-      Row(
-          modifier =
-              Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = bottomPadding)
-                  .focusable(focusable),
-          verticalAlignment = Alignment.CenterVertically,
-          horizontalArrangement = Arrangement.spacedBy(4.dp),
-      ) {
-        leadingIcon?.invoke()
-        Text(
-            text = title,
-            style = style,
-            fontWeight = fontWeight,
-            color = fontColor ?: Color.Unspecified,
-        )
-      }
-    }
+            Modifier.fillMaxWidth().background(color = backgroundColor, shape = RectangleShape)) {
+          Row(
+              modifier =
+                  Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = bottomPadding)
+                      .focusable(focusable),
+              verticalAlignment = Alignment.CenterVertically,
+              horizontalArrangement = Arrangement.spacedBy(4.dp),
+          ) {
+            leadingIcon?.invoke()
+            Text(
+                text = title,
+                style = style,
+                fontWeight = fontWeight,
+                color = fontColor ?: Color.Unspecified,
+            )
+          }
+        }
   }
 
   @Composable
@@ -82,15 +81,14 @@ object Lists {
     Box(
         modifier =
             Modifier.fillMaxWidth()
-                .background(color = MaterialTheme.colorScheme.surface, shape = RectangleShape)
-    ) {
-      Text(
-          modifier = Modifier.padding(start = 16.dp, top = 16.dp),
-          text = text,
-          style = MaterialTheme.typography.titleSmall,
-          color = MaterialTheme.colorScheme.onSurfaceVariant,
-      )
-    }
+                .background(color = MaterialTheme.colorScheme.surface, shape = RectangleShape)) {
+          Text(
+              modifier = Modifier.padding(start = 16.dp, top = 16.dp),
+              text = text,
+              style = MaterialTheme.typography.titleSmall,
+              color = MaterialTheme.colorScheme.onSurfaceVariant,
+          )
+        }
   }
 
   @Composable
@@ -108,8 +106,7 @@ object Lists {
               )
             } ?: run { Text(text as String, style = style) }
           }
-        }
-    )
+        })
   }
 
   @Composable
@@ -117,8 +114,7 @@ object Lists {
     ListItem(
         headlineContent = {
           Box(modifier = Modifier.padding(vertical = 8.dp)) { headlineContent() }
-        }
-    )
+        })
   }
 }
 
