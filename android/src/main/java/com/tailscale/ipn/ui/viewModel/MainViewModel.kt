@@ -17,6 +17,7 @@ import androidx.lifecycle.viewModelScope
 import com.tailscale.ipn.App
 import com.tailscale.ipn.R
 import com.tailscale.ipn.mdm.MDMSettings
+import com.tailscale.ipn.ui.model.Favorites
 import com.tailscale.ipn.ui.model.Ipn.State
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.notifier.Notifier
@@ -24,6 +25,7 @@ import com.tailscale.ipn.ui.util.PeerCategorizer
 import com.tailscale.ipn.ui.util.PeerSet
 import com.tailscale.ipn.ui.util.TimeUtil
 import com.tailscale.ipn.ui.util.set
+import com.tailscale.ipn.ui.util.withPinnedSection
 import com.tailscale.ipn.util.TSLog
 import java.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -83,6 +85,10 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
   // The current state of the IPN for determining view visibility
   val ipnState = Notifier.state
 
+  private val favoritesManager = App.get().favoritesManager
+  val favorites: StateFlow<Favorites?> = favoritesManager.favorites
+  val isWritingFavorites: StateFlow<Boolean> = favoritesManager.writing
+
   // The active search term for filtering peers
   private val _searchTerm = MutableStateFlow("")
   val searchTerm: StateFlow<String> = _searchTerm
@@ -130,7 +136,7 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
   }
 
   fun togglePin(peer: Tailcfg.Node) {
-    toggleDeviceFavorite(peer)
+    favoritesManager.toggleDevice(peer.StableID)
   }
 
   fun startPing(peer: Tailcfg.Node) {
@@ -187,13 +193,15 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
     }
 
     viewModelScope.launch {
-      combine(Notifier.netmap.filterNotNull(), favorites) { netmap, favs -> netmap to favs }
+      combine(Notifier.netmap.filterNotNull(), favorites) { netmap, favs ->
+            netmap to favs
+          }
           .collectLatest { (netmap, favs) ->
             searchJob?.cancel()
             withContext(categorizerDispatcher) {
-              peerCategorizer.regenerateGroupedPeers(netmap, favs)
+              peerCategorizer.regenerateGroupedPeers(netmap)
               val filteredPeers = peerCategorizer.groupedAndFilteredPeers(searchTerm.value)
-              _peers.value = peerCategorizer.peerSets
+              _peers.value = peerCategorizer.peerSets.withPinnedSection(favs?.deviceIds.orEmpty())
               _searchViewPeers.value = filteredPeers
             }
           }
@@ -212,7 +220,8 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
               TimeUtil.isWithinExpiryNotificationWindow(
                   window,
                   netmap.SelfNode.KeyExpiry ?: "",
-              ))
+              )
+          )
         }
       }
     }

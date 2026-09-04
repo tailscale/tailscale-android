@@ -108,13 +108,12 @@ class FavoritesTest {
   @Test
   fun parsesAGetPinsResponse() {
     // Client decodes with ignoreUnknownKeys = true; mirror that here.
-    val json =
-        """{"Devices":[{"ID":"nodeA","Name":"laptop"}],"ExitNodes":null,"Services":[],"Unknown":1}"""
+    val json = """{"Devices":[{"ID":"nodeA"}],"ExitNodes":null,"Services":[],"Unknown":1}"""
 
     val favorites = Json { ignoreUnknownKeys = true }.decodeFromString<Favorites>(json)
 
     assertTrue(favorites.isFavoriteDevice("nodeA"))
-    assertEquals("laptop", favorites.devices?.single()?.name)
+    assertEquals("nodeA", favorites.devices?.single()?.id)
     assertNull(favorites.exitNodes)
     assertEquals(emptyList<FavoriteItem>(), favorites.services)
   }

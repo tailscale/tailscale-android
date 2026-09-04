@@ -15,7 +15,7 @@ data class Favorites(
     @SerialName("ExitNodes") val exitNodes: List<FavoriteItem>? = null,
     @SerialName("Services") val services: List<FavoriteItem>? = null,
 ) {
-  val deviceIds: Set<StableNodeID> by lazy { devices.orEmpty().mapNotNull { it.id }.toSet() }
+  val deviceIds: List<StableNodeID> by lazy { devices.orEmpty().mapNotNull { it.id } }
 
   fun isFavoriteDevice(id: StableNodeID): Boolean = id in deviceIds
 

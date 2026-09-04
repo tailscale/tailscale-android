@@ -8,10 +8,8 @@ import androidx.lifecycle.viewModelScope
 import com.tailscale.ipn.UninitializedApp
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.localapi.Client
-import com.tailscale.ipn.ui.model.Favorites
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.IpnLocal
-import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.model.UserID
 import com.tailscale.ipn.ui.model.deepCopy
 import com.tailscale.ipn.ui.notifier.Notifier
@@ -36,12 +34,6 @@ open class IpnViewModel : ViewModel() {
 
   private val _vpnPrepared = MutableStateFlow(false)
   val vpnPrepared: StateFlow<Boolean> = _vpnPrepared
-
-  private val _favorites = MutableStateFlow(Favorites())
-  val favorites: StateFlow<Favorites> = _favorites
-
-  private val _isToggleFavoriteInProgress = MutableStateFlow(false)
-  val isToggleFavoriteInProgress: StateFlow<Boolean> = _isToggleFavoriteInProgress
 
   // The userId associated with the current node. ie: The logged in user.
   private var selfNodeUserId: UserID? = null
@@ -80,7 +72,6 @@ open class IpnViewModel : ViewModel() {
         // Reload the user profiles/favorites on all state transitions to ensure loggedInUser is
         // correct
         viewModelScope.launch { loadUserProfiles() }
-        viewModelScope.launch { loadUserFavorites() }
       }
     }
 
@@ -91,9 +82,7 @@ open class IpnViewModel : ViewModel() {
         netmap?.SelfNode?.User.let {
           if (it != selfNodeUserId) {
             selfNodeUserId = it
-            _favorites.value = Favorites()
             viewModelScope.launch { loadUserProfiles() }
-            viewModelScope.launch { loadUserFavorites() }
           }
         }
       }
@@ -110,8 +99,6 @@ open class IpnViewModel : ViewModel() {
 
     viewModelScope.launch { loadUserProfiles() }
 
-    viewModelScope.launch { loadUserFavorites() }
-
     viewModelScope.launch {
       combine(prefs, netmap, isRunningExitNode) { prefs, netmap, isRunningExitNode ->
             // Handle nullability for prefs and netmap
@@ -119,8 +106,9 @@ open class IpnViewModel : ViewModel() {
             val validNetmap = netmap ?: return@combine NodeState.NONE
 
             val chosenExitNodeId = validPrefs.activeExitNodeID ?: validPrefs.selectedExitNodeID
-            val exitNodePeer =
-                chosenExitNodeId?.let { id -> validNetmap.Peers?.find { it.StableID == id } }
+            val exitNodePeer = chosenExitNodeId?.let { id ->
+              validNetmap.Peers?.find { it.StableID == id }
+            }
 
             when {
               exitNodePeer?.Online == false -> {
@@ -301,31 +289,6 @@ open class IpnViewModel : ViewModel() {
     Client(viewModelScope).deleteProfile(profile) {
       viewModelScope.launch { loadUserProfiles() }
       completionHandler(it)
-    }
-  }
-
-  // Favorites
-
-  private fun loadUserFavorites() {
-    Client(viewModelScope).getFavorites { result ->
-      result
-          .onSuccess { _favorites.value = it }
-          .onFailure {
-            _favorites.value = Favorites()
-            TSLog.e(TAG, "Error loading favorites: ${it.message}")
-          }
-    }
-  }
-
-  fun toggleDeviceFavorite(peer: Tailcfg.Node) {
-    if (!_isToggleFavoriteInProgress.compareAndSet(expect = false, update = true)) return
-
-    val toggled = favorites.value.withToggledDevice(peer.StableID)
-    Client(viewModelScope).setFavorites(toggled) { result ->
-      result
-          .onSuccess { _favorites.value = it }
-          .onFailure { TSLog.e(TAG, "Error toggling favorites: ${it.message}") }
-      _isToggleFavoriteInProgress.value = false
     }
   }
 
