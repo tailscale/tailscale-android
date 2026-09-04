@@ -1,7 +1,6 @@
 // Copyright (c) Tailscale Inc & AUTHORS
 // SPDX-License-Identifier: BSD-3-Clause
 
-// Package root is "tailcale", matching the existing unit tests (TimeUtilTest, HealthNotifierTest).
 package com.tailcale.ipn.ui.util
 
 import com.tailscale.ipn.ui.model.Tailcfg

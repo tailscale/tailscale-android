@@ -34,9 +34,9 @@ class FavoritesTest {
                     FavoriteItem(id = "n1"),
                     FavoriteItem(name = "no id"),
                     FavoriteItem(id = "n2"),
-                ))
+                )
+        )
 
-    // .toSet() so this holds whether deviceIds stays a List or becomes a Set.
     assertEquals(setOf("n1", "n2"), favorites.deviceIds.toSet())
   }
 
@@ -78,9 +78,6 @@ class FavoritesTest {
     assertEquals(listOf("s1"), request.pins.services?.map { it.id })
   }
 
-  // Locks the exact bytes Client.setFavorites puts on the wire. Client uses the
-  // default Json instance (encodeDefaults = false), which is what makes the
-  // null *Set flags and the unset ExitNodes/Services drop out.
   @Test
   fun pinRequestSerializesToTheExpectedJson() {
     val request = Favorites().withToggledDevice("nodeA")
@@ -93,8 +90,7 @@ class FavoritesTest {
 
   @Test
   fun unpinningTheLastDeviceSendsAnExplicitEmptyList() {
-    // An omitted Devices key would mean "no change" to the backend, so the
-    // empty list has to survive serialization.
+    // An omitted Devices key would mean "no change" to the backend
     val request = Favorites(devices = listOf(FavoriteItem(id = "nodeA"))).withToggledDevice("nodeA")
 
     assertEquals("""{"Pins":{"Devices":[]},"DevicesSet":true}""", Json.encodeToString(request))
