@@ -121,12 +121,10 @@ class Tailcfg {
 
     val exitNodeName: String
       get() {
-        if (
-            isMullvadNode &&
-                Hostinfo.Location?.Country != null &&
-                Hostinfo.Location?.City != null &&
-                Hostinfo.Location?.CountryCode != null
-        ) {
+        if (isMullvadNode &&
+            Hostinfo.Location?.Country != null &&
+            Hostinfo.Location?.City != null &&
+            Hostinfo.Location?.CountryCode != null) {
           return "${Hostinfo.Location!!.CountryCode!!.flag()} ${Hostinfo.Location!!.Country!!}: ${Hostinfo.Location!!.City!!}"
         }
         return displayName

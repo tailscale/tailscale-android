@@ -223,9 +223,7 @@ fun MainView(
             PromptForMissingPermissions(viewModel)
 
             if (showKeyExpiry) {
-              netmap?.let {
-                ExpiryNotification(netmap = it, action = { viewModel.login() })
-              }
+              netmap?.let { ExpiryNotification(netmap = it, action = { viewModel.login() }) }
             }
             if (showExitNodePicker.value == ShowHide.Show) {
               ExitNodeStatus(
@@ -274,10 +272,9 @@ fun MainView(
         ModalBottomSheet(
             onDismissRequest = {
               viewModel.pendingTaildrop.isPresentingPendingItemsList.value = false
+            }) {
+              InlineShareListSheet(viewModel = viewModel.pendingTaildrop)
             }
-        ) {
-          InlineShareListSheet(viewModel = viewModel.pendingTaildrop)
-        }
       }
     }
   }
@@ -335,123 +332,116 @@ private fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
 
   Box(
       modifier =
-          Modifier.fillMaxWidth().background(color = MaterialTheme.colorScheme.surfaceContainer)
-  ) {
-    if (nodeState == NodeState.OFFLINE_MDM) {
-      Box(
-          modifier =
-              Modifier.padding(start = 16.dp, end = 16.dp, top = 56.dp, bottom = 16.dp)
-                  .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
-                  .background(MaterialTheme.colorScheme.customErrorContainer)
-                  .fillMaxWidth()
-                  .align(Alignment.TopCenter)
-      ) {
-        Column(
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 36.dp, bottom = 16.dp)
-        ) {
-          Text(
-              text =
-                  managedByOrganization.value?.let {
-                    stringResource(R.string.exit_node_offline_mdm_orgname, it)
-                  } ?: stringResource(R.string.exit_node_offline_mdm),
-              style = MaterialTheme.typography.bodyMedium,
-              color = Color.White,
-          )
+          Modifier.fillMaxWidth().background(color = MaterialTheme.colorScheme.surfaceContainer)) {
+        if (nodeState == NodeState.OFFLINE_MDM) {
+          Box(
+              modifier =
+                  Modifier.padding(start = 16.dp, end = 16.dp, top = 56.dp, bottom = 16.dp)
+                      .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
+                      .background(MaterialTheme.colorScheme.customErrorContainer)
+                      .fillMaxWidth()
+                      .align(Alignment.TopCenter)) {
+                Column(
+                    modifier =
+                        Modifier.padding(start = 16.dp, end = 16.dp, top = 36.dp, bottom = 16.dp)) {
+                      Text(
+                          text =
+                              managedByOrganization.value?.let {
+                                stringResource(R.string.exit_node_offline_mdm_orgname, it)
+                              } ?: stringResource(R.string.exit_node_offline_mdm),
+                          style = MaterialTheme.typography.bodyMedium,
+                          color = Color.White,
+                      )
+                    }
+              }
         }
-      }
-    }
-    Box(
-        modifier =
-            Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp)
-                .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
-                .fillMaxWidth()
-    ) {
-      ListItem(
-          modifier = Modifier.clickable { navAction() },
-          colors =
-              when (nodeState) {
-                NodeState.ACTIVE_AND_RUNNING -> MaterialTheme.colorScheme.primaryListItem
-                NodeState.ACTIVE_NOT_RUNNING -> MaterialTheme.colorScheme.listItem
-                NodeState.RUNNING_AS_EXIT_NODE -> MaterialTheme.colorScheme.warningListItem
-                NodeState.OFFLINE_ENABLED -> MaterialTheme.colorScheme.errorListItem
-                NodeState.OFFLINE_DISABLED -> MaterialTheme.colorScheme.errorListItem
-                NodeState.OFFLINE_MDM -> MaterialTheme.colorScheme.errorListItem
-                else -> ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surface)
-              },
-          overlineContent = {
-            Text(
-                text =
-                    if (
-                        nodeState == NodeState.OFFLINE_ENABLED ||
-                            nodeState == NodeState.OFFLINE_DISABLED ||
-                            nodeState == NodeState.OFFLINE_MDM
-                    )
-                        stringResource(R.string.exit_node_offline)
-                    else stringResource(R.string.exit_node),
-                style = MaterialTheme.typography.bodySmall,
-            )
-          },
-          headlineContent = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-              Text(
-                  text =
-                      when (nodeState) {
-                        NodeState.NONE -> stringResource(id = R.string.none)
-                        NodeState.RUNNING_AS_EXIT_NODE ->
-                            stringResource(id = R.string.running_exit_node)
-
-                        else -> name ?: ""
-                      },
-                  style = MaterialTheme.typography.bodyMedium,
-                  maxLines = 1,
-                  overflow = TextOverflow.Ellipsis,
-              )
-              Icon(
-                  imageVector = Icons.Outlined.ArrowDropDown,
-                  contentDescription = null,
-                  tint =
-                      if (nodeState == NodeState.NONE) MaterialTheme.colorScheme.onSurfaceVariant
-                      else MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
-              )
-            }
-          },
-          trailingContent = {
-            if (nodeState != NodeState.NONE) {
-              Button(
+        Box(
+            modifier =
+                Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp)
+                    .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
+                    .fillMaxWidth()) {
+              ListItem(
+                  modifier = Modifier.clickable { navAction() },
                   colors =
                       when (nodeState) {
-                        NodeState.OFFLINE_ENABLED -> MaterialTheme.colorScheme.errorButton
-                        NodeState.OFFLINE_DISABLED -> MaterialTheme.colorScheme.errorButton
-                        NodeState.OFFLINE_MDM -> MaterialTheme.colorScheme.errorButton
-                        NodeState.RUNNING_AS_EXIT_NODE -> MaterialTheme.colorScheme.warningButton
-
-                        NodeState.ACTIVE_NOT_RUNNING ->
-                            MaterialTheme.colorScheme.exitNodeToggleButton
-
-                        else -> MaterialTheme.colorScheme.secondaryButton
+                        NodeState.ACTIVE_AND_RUNNING -> MaterialTheme.colorScheme.primaryListItem
+                        NodeState.ACTIVE_NOT_RUNNING -> MaterialTheme.colorScheme.listItem
+                        NodeState.RUNNING_AS_EXIT_NODE -> MaterialTheme.colorScheme.warningListItem
+                        NodeState.OFFLINE_ENABLED -> MaterialTheme.colorScheme.errorListItem
+                        NodeState.OFFLINE_DISABLED -> MaterialTheme.colorScheme.errorListItem
+                        NodeState.OFFLINE_MDM -> MaterialTheme.colorScheme.errorListItem
+                        else ->
+                            ListItemDefaults.colors(
+                                containerColor = MaterialTheme.colorScheme.surface)
                       },
-                  onClick = {
-                    if (nodeState == NodeState.RUNNING_AS_EXIT_NODE)
-                        viewModel.setRunningExitNode(false)
-                    else viewModel.toggleExitNode()
+                  overlineContent = {
+                    Text(
+                        text =
+                            if (nodeState == NodeState.OFFLINE_ENABLED ||
+                                nodeState == NodeState.OFFLINE_DISABLED ||
+                                nodeState == NodeState.OFFLINE_MDM)
+                                stringResource(R.string.exit_node_offline)
+                            else stringResource(R.string.exit_node),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
                   },
-              ) {
-                Text(
-                    when (nodeState) {
-                      NodeState.OFFLINE_DISABLED -> stringResource(id = R.string.enable)
-                      NodeState.ACTIVE_NOT_RUNNING -> stringResource(id = R.string.enable)
-
-                      NodeState.RUNNING_AS_EXIT_NODE -> stringResource(id = R.string.stop)
-
-                      else -> stringResource(id = R.string.disable)
+                  headlineContent = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                      Text(
+                          text =
+                              when (nodeState) {
+                                NodeState.NONE -> stringResource(id = R.string.none)
+                                NodeState.RUNNING_AS_EXIT_NODE ->
+                                    stringResource(id = R.string.running_exit_node)
+                                else -> name ?: ""
+                              },
+                          style = MaterialTheme.typography.bodyMedium,
+                          maxLines = 1,
+                          overflow = TextOverflow.Ellipsis,
+                      )
+                      Icon(
+                          imageVector = Icons.Outlined.ArrowDropDown,
+                          contentDescription = null,
+                          tint =
+                              if (nodeState == NodeState.NONE)
+                                  MaterialTheme.colorScheme.onSurfaceVariant
+                              else MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
+                      )
                     }
-                )
-              }
+                  },
+                  trailingContent = {
+                    if (nodeState != NodeState.NONE) {
+                      Button(
+                          colors =
+                              when (nodeState) {
+                                NodeState.OFFLINE_ENABLED -> MaterialTheme.colorScheme.errorButton
+                                NodeState.OFFLINE_DISABLED -> MaterialTheme.colorScheme.errorButton
+                                NodeState.OFFLINE_MDM -> MaterialTheme.colorScheme.errorButton
+                                NodeState.RUNNING_AS_EXIT_NODE ->
+                                    MaterialTheme.colorScheme.warningButton
+                                NodeState.ACTIVE_NOT_RUNNING ->
+                                    MaterialTheme.colorScheme.exitNodeToggleButton
+                                else -> MaterialTheme.colorScheme.secondaryButton
+                              },
+                          onClick = {
+                            if (nodeState == NodeState.RUNNING_AS_EXIT_NODE)
+                                viewModel.setRunningExitNode(false)
+                            else viewModel.toggleExitNode()
+                          },
+                      ) {
+                        Text(
+                            when (nodeState) {
+                              NodeState.OFFLINE_DISABLED -> stringResource(id = R.string.enable)
+                              NodeState.ACTIVE_NOT_RUNNING -> stringResource(id = R.string.enable)
+                              NodeState.RUNNING_AS_EXIT_NODE -> stringResource(id = R.string.stop)
+                              else -> stringResource(id = R.string.disable)
+                            })
+                      }
+                    }
+                  },
+              )
             }
-          },
-      )
-    }
-  }
+      }
 }
 
 @Composable
@@ -644,9 +634,7 @@ private fun ConnectViewPreview() {
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         modifier = Modifier.horizontalScroll(rememberScrollState()),
     ) {
-      Button(onClick = { isPrepared = !isPrepared }) {
-        Text("Prepared: $isPrepared")
-      }
+      Button(onClick = { isPrepared = !isPrepared }) { Text("Prepared: $isPrepared") }
       Button(onClick = { showState = true }) {
         Text("State: $state")
         DropdownMenu(expanded = showState, onDismissRequest = { showState = false }) {
@@ -655,12 +643,8 @@ private fun ConnectViewPreview() {
           }
         }
       }
-      Button(onClick = { showUser = !showUser }) {
-        Text("User: $showUser")
-      }
-      Button(onClick = { showNode = !showNode }) {
-        Text("Node: $showNode")
-      }
+      Button(onClick = { showUser = !showUser }) { Text("User: $showUser") }
+      Button(onClick = { showNode = !showNode }) { Text("Node: $showNode") }
     }
 
     ConnectView(
@@ -705,48 +689,47 @@ fun PeerList(
     } else {
       if (!isAndroidTV()) {
         Box(
-            modifier = Modifier.fillMaxWidth().background(color = MaterialTheme.colorScheme.surface)
-        ) {
-          OutlinedTextField(
-              modifier =
-                  Modifier.fillMaxWidth()
-                      .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 0.dp)
-                      .onFocusChanged { isSearchFocussed = it.isFocused },
-              singleLine = true,
-              shape = MaterialTheme.shapes.extraLarge,
-              colors = MaterialTheme.colorScheme.searchBarColors,
-              leadingIcon = {
-                Icon(imageVector = Icons.Outlined.Search, contentDescription = "search")
-              },
-              trailingIcon = {
-                if (isSearchFocussed) {
-                  IconButton(
-                      onClick = {
-                        focusManager.clearFocus()
-                        onSearch("")
-                      }
-                  ) {
-                    Icon(
-                        imageVector =
-                            if (searchTermStr.isEmpty()) Icons.Outlined.Close
-                            else Icons.Outlined.Clear,
-                        contentDescription = "clear search",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier =
+                Modifier.fillMaxWidth().background(color = MaterialTheme.colorScheme.surface)) {
+              OutlinedTextField(
+                  modifier =
+                      Modifier.fillMaxWidth()
+                          .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 0.dp)
+                          .onFocusChanged { isSearchFocussed = it.isFocused },
+                  singleLine = true,
+                  shape = MaterialTheme.shapes.extraLarge,
+                  colors = MaterialTheme.colorScheme.searchBarColors,
+                  leadingIcon = {
+                    Icon(imageVector = Icons.Outlined.Search, contentDescription = "search")
+                  },
+                  trailingIcon = {
+                    if (isSearchFocussed) {
+                      IconButton(
+                          onClick = {
+                            focusManager.clearFocus()
+                            onSearch("")
+                          }) {
+                            Icon(
+                                imageVector =
+                                    if (searchTermStr.isEmpty()) Icons.Outlined.Close
+                                    else Icons.Outlined.Clear,
+                                contentDescription = "clear search",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                          }
+                    }
+                  },
+                  placeholder = {
+                    Text(
+                        text = stringResource(id = R.string.search),
+                        style = MaterialTheme.typography.bodyLarge,
+                        maxLines = 1,
                     )
-                  }
-                }
-              },
-              placeholder = {
-                Text(
-                    text = stringResource(id = R.string.search),
-                    style = MaterialTheme.typography.bodyLarge,
-                    maxLines = 1,
-                )
-              },
-              value = searchTermStr,
-              onValueChange = { onSearch(it) },
-          )
-        }
+                  },
+                  value = searchTermStr,
+                  onValueChange = { onSearch(it) },
+              )
+            }
       }
     }
 
@@ -757,90 +740,80 @@ fun PeerList(
                 .weight(1f) // LazyColumn gets the remaining vertical space
                 .onFocusChanged { isListFocussed = it.isFocused }
                 .background(color = MaterialTheme.colorScheme.surface)
-                .windowInsetsPadding(WindowInsets.navigationBars)
-    ) {
-      // Handle case when no results are found
-      if (showNoResults) {
-        item {
-          Spacer(
-              Modifier.height(16.dp)
-                  .fillMaxSize()
-                  .focusable(false)
-                  .background(color = MaterialTheme.colorScheme.surface)
-          )
-          Lists.LargeTitle(
-              stringResource(id = R.string.no_results),
-              bottomPadding = 8.dp,
-              style = MaterialTheme.typography.bodyMedium,
-              fontWeight = FontWeight.Light,
-          )
-        }
-      }
+                .windowInsetsPadding(WindowInsets.navigationBars)) {
+          // Handle case when no results are found
+          if (showNoResults) {
+            item {
+              Spacer(
+                  Modifier.height(16.dp)
+                      .fillMaxSize()
+                      .focusable(false)
+                      .background(color = MaterialTheme.colorScheme.surface))
+              Lists.LargeTitle(
+                  stringResource(id = R.string.no_results),
+                  bottomPadding = 8.dp,
+                  style = MaterialTheme.typography.bodyMedium,
+                  fontWeight = FontWeight.Light,
+              )
+            }
+          }
 
-      // Iterate over peer sets to display them
-      peerList.forEachIndexed { idx, peerSet ->
-        if (idx != 0) {
-          item(key = "user_divider_${peerSet.id}") {
-            Lists.ItemDivider()
-          }
-        }
-        if (isAndroidTV()) {
-          item {
-            NodesSectionHeader(peerSet = peerSet)
-          }
-        } else {
-          stickyHeader {
-            NodesSectionHeader(peerSet = peerSet)
-          }
-        }
-        itemsWithDividers(peerSet.nodes, key = { it.StableID }) { peer ->
-          ListItem(
-              modifier =
-                  Modifier.combinedClickable(
-                      onClick = { onNavigateToPeerDetails(peer) },
-                      onLongClick = { viewModel.expandedMenuPeer.set(peer) },
-                  ),
-              colors = MaterialTheme.colorScheme.listItem,
-              headlineContent = {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                  Box(
-                      modifier =
-                          Modifier.padding(top = 2.dp)
-                              .size(10.dp)
-                              .background(
-                                  color = peer.connectedColor(netmap),
-                                  shape = RoundedCornerShape(percent = 50),
-                              )
-                  )
-                  Text(
-                      text = peer.displayName,
-                      style = MaterialTheme.typography.titleMedium,
-                  )
-                  if (expandedPeer?.StableID == peer.StableID) {
-                    DeviceDropdownMenu(
-                        viewModel,
-                        peer,
-                        netmap,
+          // Iterate over peer sets to display them
+          peerList.forEachIndexed { idx, peerSet ->
+            if (idx != 0) {
+              item(key = "user_divider_${peerSet.id}") { Lists.ItemDivider() }
+            }
+            if (isAndroidTV()) {
+              item { NodesSectionHeader(peerSet = peerSet) }
+            } else {
+              stickyHeader { NodesSectionHeader(peerSet = peerSet) }
+            }
+            itemsWithDividers(peerSet.nodes, key = { it.StableID }) { peer ->
+              ListItem(
+                  modifier =
+                      Modifier.combinedClickable(
+                          onClick = { onNavigateToPeerDetails(peer) },
+                          onLongClick = { viewModel.expandedMenuPeer.set(peer) },
+                      ),
+                  colors = MaterialTheme.colorScheme.listItem,
+                  headlineContent = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                      Box(
+                          modifier =
+                              Modifier.padding(top = 2.dp)
+                                  .size(10.dp)
+                                  .background(
+                                      color = peer.connectedColor(netmap),
+                                      shape = RoundedCornerShape(percent = 50),
+                                  ))
+                      Text(
+                          text = peer.displayName,
+                          style = MaterialTheme.typography.titleMedium,
+                      )
+                      if (expandedPeer?.StableID == peer.StableID) {
+                        DeviceDropdownMenu(
+                            viewModel,
+                            peer,
+                            netmap,
+                        )
+                      }
+                    }
+                  },
+                  supportingContent = {
+                    Text(
+                        text = peer.Addresses?.first()?.split("/")?.first() ?: "",
+                        style =
+                            MaterialTheme.typography.bodyMedium.copy(
+                                lineHeight = MaterialTheme.typography.titleMedium.lineHeight),
                     )
-                  }
-                }
-              },
-              supportingContent = {
-                Text(
-                    text = peer.Addresses?.first()?.split("/")?.first() ?: "",
-                    style =
-                        MaterialTheme.typography.bodyMedium.copy(
-                            lineHeight = MaterialTheme.typography.titleMedium.lineHeight
-                        ),
-                )
-              },
-          )
+                  },
+              )
+            }
+          }
         }
-      }
-    }
   }
 }
 
@@ -928,8 +901,7 @@ fun DeviceDropdownMenu(
         },
         text = {
           Text(
-              text = stringResource(if (isFavorite) R.string.unpin_device else R.string.pin_device)
-          )
+              text = stringResource(if (isFavorite) R.string.unpin_device else R.string.pin_device))
         },
         onClick = {
           viewModel.togglePin(peer)
@@ -941,7 +913,7 @@ fun DeviceDropdownMenu(
 
 @Composable
 fun PeerSet.sectionTitle(): String =
-    if (id == FAVORITES_ID) stringResource(id = R.string.pinned_devices)
+    if (isFavorite) stringResource(id = R.string.pinned_devices)
     else title ?: stringResource(id = R.string.unknown_user)
 
 @Composable
@@ -960,7 +932,7 @@ fun NodesSectionHeader(peerSet: PeerSet) {
 @Composable
 private fun NodesSectionHeaderPreview() {
   Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-    NodesSectionHeader(peerSet = PeerSet(-1, null, nodes = emptyList()))
+    NodesSectionHeader(peerSet = PeerSet(FAVORITES_ID, null, nodes = emptyList()))
     NodesSectionHeader(peerSet = PeerSet(1, "Thing", nodes = emptyList()))
   }
 }
@@ -972,25 +944,24 @@ fun ExpiryNotification(netmap: Netmap.NetworkMap, action: () -> Unit = {}) {
         modifier =
             Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp)
                 .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
-                .fillMaxWidth()
-    ) {
-      ListItem(
-          modifier = Modifier.clickable { action() },
-          colors = MaterialTheme.colorScheme.warningListItem,
-          headlineContent = {
-            Text(
-                netmap.SelfNode.expiryLabel(),
-                style = MaterialTheme.typography.titleMedium,
-            )
-          },
-          supportingContent = {
-            Text(
-                stringResource(id = R.string.keyExpiryExplainer),
-                style = MaterialTheme.typography.bodyMedium,
-            )
-          },
-      )
-    }
+                .fillMaxWidth()) {
+          ListItem(
+              modifier = Modifier.clickable { action() },
+              colors = MaterialTheme.colorScheme.warningListItem,
+              headlineContent = {
+                Text(
+                    netmap.SelfNode.expiryLabel(),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+              },
+              supportingContent = {
+                Text(
+                    stringResource(id = R.string.keyExpiryExplainer),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+              },
+          )
+        }
   }
 }
 
@@ -1021,45 +992,47 @@ fun Search(
   var isNavigating by remember { mutableStateOf(false) }
   Box(
       modifier =
-          Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface).padding(top = 8.dp)
-  ) {
-    Box(
-        modifier =
-            Modifier.fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp, top = 16.dp)
-                .height(56.dp)
-                .clip(MaterialTheme.shapes.extraLarge) // Rounded corners for search bar
-                .background(backgroundColor) // Search bar background
-                .clickable(enabled = !isNavigating) { // Intercept taps
-                  isNavigating = true
-                  onSearchBarClick()
-                }
-                .padding(horizontal = 16.dp) // Internal padding
-    ) {
-      Row(
-          verticalAlignment = Alignment.CenterVertically, // Ensure icon aligns with text
-          modifier = Modifier.fillMaxSize(),
-      ) {
-        // Leading Icon
-        Icon(
-            imageVector = Icons.Outlined.Search,
-            contentDescription = "Search",
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 0.dp), // Optional start padding for alignment
-        )
-        Spacer(modifier = Modifier.width(4.dp))
-        // Placeholder Text
-        Text(
-            text = stringResource(R.string.search_ellipsis),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f), // Ensure text takes up remaining space
-        )
+          Modifier.fillMaxWidth()
+              .background(MaterialTheme.colorScheme.surface)
+              .padding(top = 8.dp)) {
+        Box(
+            modifier =
+                Modifier.fillMaxWidth()
+                    .padding(start = 16.dp, end = 16.dp, top = 16.dp)
+                    .height(56.dp)
+                    .clip(MaterialTheme.shapes.extraLarge) // Rounded corners for search bar
+                    .background(backgroundColor) // Search bar background
+                    .clickable(enabled = !isNavigating) { // Intercept taps
+                      isNavigating = true
+                      onSearchBarClick()
+                    }
+                    .padding(horizontal = 16.dp) // Internal padding
+            ) {
+              Row(
+                  verticalAlignment = Alignment.CenterVertically, // Ensure icon aligns with text
+                  modifier = Modifier.fillMaxSize(),
+              ) {
+                // Leading Icon
+                Icon(
+                    imageVector = Icons.Outlined.Search,
+                    contentDescription = "Search",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier =
+                        Modifier.padding(start = 0.dp), // Optional start padding for alignment
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                // Placeholder Text
+                Text(
+                    text = stringResource(R.string.search_ellipsis),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f), // Ensure text takes up remaining space
+                )
+              }
+            }
       }
-    }
-  }
 }
 
 @Preview

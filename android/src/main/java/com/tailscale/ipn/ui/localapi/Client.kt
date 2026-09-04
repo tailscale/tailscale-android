@@ -179,8 +179,7 @@ class Client(private val scope: CoroutineScope) {
             part.contentLength = file.DeclaredSize
             part.body = InputStreamAdapter(stream)
             part
-          }
-      )
+          })
     } catch (e: Exception) {
       parts.forEach { it.body.close() }
       TSLog.e(TAG, "Error creating file upload body: $e")
@@ -364,8 +363,7 @@ class Request<T>(
                         jsonDecoder.decodeFromStream(
                             Json.serializersModule.serializer(responseType),
                             respData.inputStream(),
-                        ) as T
-                    )
+                        ) as T)
                   } catch (t: Throwable) {
                     // If we couldn't parse the response body, assume it's an error response
                     try {
@@ -383,8 +381,7 @@ class Request<T>(
                             respData.toString(
                                 Charset.defaultCharset()
                             )
-                        }"
-          )
+                        }")
         }
         // The response handler will invoked internally by the request parser
         scope.launch { responseHandler(response) }

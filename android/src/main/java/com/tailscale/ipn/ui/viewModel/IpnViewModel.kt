@@ -119,9 +119,8 @@ open class IpnViewModel : ViewModel() {
             val validNetmap = netmap ?: return@combine NodeState.NONE
 
             val chosenExitNodeId = validPrefs.activeExitNodeID ?: validPrefs.selectedExitNodeID
-            val exitNodePeer = chosenExitNodeId?.let { id ->
-              validNetmap.Peers?.find { it.StableID == id }
-            }
+            val exitNodePeer =
+                chosenExitNodeId?.let { id -> validNetmap.Peers?.find { it.StableID == id } }
 
             when {
               exitNodePeer?.Online == false -> {
@@ -133,7 +132,6 @@ open class IpnViewModel : ViewModel() {
                   NodeState.OFFLINE_DISABLED
                 }
               }
-
               exitNodePeer != null -> {
                 if (!validPrefs.activeExitNodeID.isNullOrEmpty()) {
                   NodeState.ACTIVE_AND_RUNNING
@@ -141,11 +139,9 @@ open class IpnViewModel : ViewModel() {
                   NodeState.ACTIVE_NOT_RUNNING
                 }
               }
-
               isRunningExitNode -> {
                 NodeState.RUNNING_AS_EXIT_NODE
               }
-
               else -> {
                 NodeState.NONE
               }
@@ -328,9 +324,7 @@ open class IpnViewModel : ViewModel() {
     Client(viewModelScope).setFavorites(toggled) { result ->
       result
           .onSuccess { _favorites.value = it }
-          .onFailure {
-            TSLog.e(TAG, "Error toggling favorites: ${it.message}")
-          }
+          .onFailure { TSLog.e(TAG, "Error toggling favorites: ${it.message}") }
       _isToggleFavoriteInProgress.value = false
     }
   }

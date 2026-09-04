@@ -156,14 +156,13 @@ fun SearchView(
                         focusManager.clearFocus()
                         onNavigateBack()
                         viewModel.updateSearchTerm("")
+                      }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.search),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                       }
-                  ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = stringResource(R.string.search),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                  }
                 },
                 trailingIcon = {
                   if (searchTerm.isNotEmpty()) {
@@ -173,13 +172,12 @@ fun SearchView(
                           viewModel.updateSearchTerm("")
                           focusManager.clearFocus()
                           keyboardController?.hide()
+                        }) {
+                          Icon(
+                              Icons.Default.Clear,
+                              contentDescription = stringResource(R.string.clear_search),
+                          )
                         }
-                    ) {
-                      Icon(
-                          Icons.Default.Clear,
-                          contentDescription = stringResource(R.string.clear_search),
-                      )
-                    }
                   }
                 },
             )
@@ -227,8 +225,7 @@ fun SearchView(
                                         .background(
                                             onlineColor,
                                             RoundedCornerShape(50),
-                                        )
-                            )
+                                        ))
                             Spacer(modifier = Modifier.size(8.dp))
                             Text(peer.displayName)
                           }

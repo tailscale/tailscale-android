@@ -61,7 +61,7 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
 
   // Keeps track of whether a toggle operation is in progress. This ensures that toggleVpn cannot be
   // invoked until the current operation is complete.
-  private var _isToggleInProgress = MutableStateFlow(false)
+  private val _isToggleInProgress = MutableStateFlow(false)
   val isToggleInProgress: StateFlow<Boolean> = _isToggleInProgress
 
   // Permission to prepare VPN
@@ -164,7 +164,6 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
                 when {
                   active && (currentState == State.Running || currentState == State.Starting) ->
                       true
-
                   previousState == State.NoState && currentState == State.Starting -> true
                   else -> false
                 }
@@ -180,7 +179,7 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
         // run the search as a background task
         searchJob?.cancel()
         searchJob =
-            launch(Dispatchers.Default) {
+            launch(categorizerDispatcher) {
               val filteredPeers = peerCategorizer.groupedAndFilteredPeers(term)
               _searchViewPeers.value = filteredPeers
             }
@@ -213,8 +212,7 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
               TimeUtil.isWithinExpiryNotificationWindow(
                   window,
                   netmap.SelfNode.KeyExpiry ?: "",
-              )
-          )
+              ))
         }
       }
     }
@@ -292,7 +290,6 @@ private fun userStringRes(currentState: State?, previousState: State?, vpnActive
     currentState == State.InUseOtherUser -> R.string.placeholder
     currentState == State.NeedsLogin ->
         if (vpnActive) R.string.please_login else R.string.connect_to_vpn
-
     currentState == State.NeedsMachineAuth -> R.string.needs_machine_auth
     currentState == State.Stopped -> R.string.stopped
     currentState == State.Starting -> R.string.starting
