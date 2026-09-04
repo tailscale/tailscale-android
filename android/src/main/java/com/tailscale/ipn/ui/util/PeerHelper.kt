@@ -32,7 +32,14 @@ class PeerCategorizer {
 
     val me = netmap.currentUserProfile()
 
-    for (peer in (peers + selfNode)) {
+    // The control server can include this node in its own peer list. Appending
+    // selfNode unconditionally would then list this node twice, and MainView keys
+    // its LazyColumn by StableID, so Compose rejects the duplicate key by throwing
+    // IllegalArgumentException on the main thread. Prefer the authoritative
+    // SelfNode entry over whatever the peer list carried.
+    val nodes = peers.filterNot { it.StableID == selfNode.StableID } + selfNode
+
+    for (peer in nodes) {
 
       val userId = peer.User
       val profile = netmap.userProfile(userId)
