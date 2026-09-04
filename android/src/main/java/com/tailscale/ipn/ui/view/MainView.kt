@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 package com.tailscale.ipn.ui.view
 
-import android.os.Build
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -575,10 +574,8 @@ fun PeerList(
   var isListFocussed by remember { mutableStateOf(false) }
   val expandedPeer = viewModel.expandedMenuPeer.collectAsState()
   val localClipboardManager = LocalClipboardManager.current
-  // Restrict search to devices running API 33+ (see https://github.com/tailscale/corp/issues/27375)
-  val enableSearch = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
   Column(modifier = Modifier.fillMaxSize()) {
-    if (enableSearch && FeatureFlags.isEnabled("enable_new_search")) {
+    if (FeatureFlags.isEnabled("enable_new_search")) {
       Search(onSearchBarClick)
     } else {
       if (!isAndroidTV()) {
