@@ -17,9 +17,7 @@ import androidx.lifecycle.viewModelScope
 import com.tailscale.ipn.App
 import com.tailscale.ipn.R
 import com.tailscale.ipn.mdm.MDMSettings
-import com.tailscale.ipn.ui.model.Favorites
 import com.tailscale.ipn.ui.model.Ipn.State
-import com.tailscale.ipn.ui.model.Netmap
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.util.PeerCategorizer
@@ -30,14 +28,17 @@ import com.tailscale.ipn.util.TSLog
 import java.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainViewModelFactory(private val appViewModel: AppViewModel) : ViewModelProvider.Factory {
   @Suppress("UNCHECKED_CAST")
@@ -103,8 +104,7 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
 
   val isVpnActive: StateFlow<Boolean> = appViewModel.vpnActive
 
-  var searchJob: Job? = null
-  var categorizeJob: Job? = null
+  private var searchJob: Job? = null
 
   // Icon displayed in the button to present the health view
   val healthIcon: StateFlow<Int?> = MutableStateFlow(null)
@@ -149,6 +149,8 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
   }
 
   private val peerCategorizer = PeerCategorizer()
+  @OptIn(ExperimentalCoroutinesApi::class)
+  private val categorizerDispatcher = Dispatchers.Default.limitedParallelism(1)
 
   init {
     viewModelScope.launch {
@@ -172,6 +174,7 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
             previousState = currentState
           }
     }
+
     viewModelScope.launch {
       _searchTerm.debounce(250L.milliseconds).collect { term ->
         // run the search as a background task
@@ -183,52 +186,41 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
             }
       }
     }
+
     viewModelScope.launch {
-      Notifier.netmap.collect { it ->
-        it?.let { netmap ->
-          searchJob?.cancel()
-          categorizeJob?.cancel()
-          categorizeJob =
-              launch(Dispatchers.Default) {
-                categorize(netmap, favorites.value)
-              }
-          if (netmap.SelfNode.keyDoesNotExpire) {
-            showExpiry.set(false)
-            return@let
-          } else {
-            val expiryNotificationWindowMDM = MDMSettings.keyExpirationNotice.flow.value.value
-            val window =
-                expiryNotificationWindowMDM?.let { TimeUtil.duration(it) } ?: Duration.ofHours(24)
-            val expiresSoon =
-                TimeUtil.isWithinExpiryNotificationWindow(
-                    window,
-                    it.SelfNode.KeyExpiry ?: "",
-                )
-            showExpiry.set(expiresSoon)
-          }
-        }
-      }
-    }
-    viewModelScope.launch {
-      favorites.drop(1).collect { favs ->
-        val netmap = Notifier.netmap.value ?: return@collect
-        categorizeJob?.cancel()
-        categorizeJob =
-            launch(Dispatchers.Default) {
-              categorize(netmap, favs)
+      combine(Notifier.netmap.filterNotNull(), favorites) { netmap, favs -> netmap to favs }
+          .collectLatest { (netmap, favs) ->
+            searchJob?.cancel()
+            withContext(categorizerDispatcher) {
+              peerCategorizer.regenerateGroupedPeers(netmap, favs)
+              val filteredPeers = peerCategorizer.groupedAndFilteredPeers(searchTerm.value)
+              _peers.value = peerCategorizer.peerSets
+              _searchViewPeers.value = filteredPeers
             }
+          }
+    }
+
+    // Key expiry on depends on netmap
+    viewModelScope.launch {
+      Notifier.netmap.filterNotNull().collect { netmap ->
+        if (netmap.SelfNode.keyDoesNotExpire) {
+          showExpiry.set(false)
+        } else {
+          val expiryNotificationWindowMDM = MDMSettings.keyExpirationNotice.flow.value.value
+          val window =
+              expiryNotificationWindowMDM?.let { TimeUtil.duration(it) } ?: Duration.ofHours(24)
+          showExpiry.set(
+              TimeUtil.isWithinExpiryNotificationWindow(
+                  window,
+                  netmap.SelfNode.KeyExpiry ?: "",
+              )
+          )
+        }
       }
     }
     viewModelScope.launch {
       App.get().healthNotifier?.currentIcon?.collect { icon -> healthIcon.set(icon) }
     }
-  }
-
-  fun categorize(netmap: Netmap.NetworkMap, favorites: Favorites) {
-    peerCategorizer.regenerateGroupedPeers(netmap, favorites)
-    val filteredPeers = peerCategorizer.groupedAndFilteredPeers(searchTerm.value)
-    _peers.value = peerCategorizer.peerSets
-    _searchViewPeers.value = filteredPeers
   }
 
   fun maybeRequestVpnPermission() {

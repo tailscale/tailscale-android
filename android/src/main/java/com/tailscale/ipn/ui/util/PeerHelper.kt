@@ -3,17 +3,12 @@
 
 package com.tailscale.ipn.ui.util
 
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.util.fastAny
-import com.tailscale.ipn.R
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.model.Favorites
 import com.tailscale.ipn.ui.model.Netmap
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.model.UserID
-
-private const val FAVORITES_ID: UserID = -1
 
 data class PeerSet(
     val id: UserID,
@@ -21,20 +16,14 @@ data class PeerSet(
     val nodes: List<Tailcfg.Node>,
 ) {
   companion object {
-    fun create(id: UserID, title: String?, nodes: List<Tailcfg.Node>): PeerSet? {
-      if (nodes.isEmpty()) return null
-      return PeerSet(id, title, nodes)
-    }
+    const val FAVORITES_ID: UserID = -1
+
+    fun create(id: UserID, title: String?, nodes: List<Tailcfg.Node>): PeerSet? =
+        if (nodes.isEmpty()) null else PeerSet(id, title, nodes)
   }
 
-  @Composable
-  fun sectionTitle(): String {
-    return if (id == FAVORITES_ID) {
-      stringResource(id = R.string.pinned_devices)
-    } else {
-      title ?: stringResource(id = R.string.unknown_user)
-    }
-  }
+  val isPinned: Boolean
+    get() = id == FAVORITES_ID
 }
 
 private fun List<Tailcfg.Node>.nodeSort(netmap: Netmap.NetworkMap): List<Tailcfg.Node> {
@@ -60,7 +49,7 @@ class PeerCategorizer {
     val peers: List<Tailcfg.Node> = netmap.Peers ?: return
     val selfNode = netmap.SelfNode
     val grouped = mutableMapOf<UserID, MutableList<Tailcfg.Node>>()
-    val favoriteDeviceIds = favorites.deviceIds.toSet()
+    val favoriteDeviceIds = favorites.deviceIds
 
     val mdm = MDMSettings.hiddenNetworkDevices.flow.value.value
     val hideMyDevices = mdm?.contains("current-user") ?: false
@@ -72,7 +61,8 @@ class PeerCategorizer {
     for (peer in (peers + selfNode)) {
       val userId = peer.User
       val profile = netmap.userProfile(userId)
-      val groupId = if (favoriteDeviceIds.contains(peer.StableID)) FAVORITES_ID else peer.User
+      val groupId =
+          if (favoriteDeviceIds.contains(peer.StableID)) PeerSet.FAVORITES_ID else peer.User
 
       // Mullvad nodes should not be shown in the peer list
       if (peer.isMullvadNode) {
@@ -110,10 +100,13 @@ class PeerCategorizer {
             }
             .sortedWith(
                 compareBy(
-                    { it.id != FAVORITES_ID }, // keep pinned at top
+                    { it.id != PeerSet.FAVORITES_ID }, // keep pinned at top
                     { if (it.id == me?.ID) "" else it.title?.lowercase() ?: "unknown user" },
                 )
             )
+
+    lastSearchTerm = ""
+    lastSearchResult = emptyList()
   }
 
   fun groupedAndFilteredPeers(searchTerm: String = ""): List<PeerSet> {
@@ -136,7 +129,7 @@ class PeerCategorizer {
     val matchingSets = setsToSearch.mapNotNull { peerSet ->
       val peers = peerSet.nodes
 
-      if (peerSet.title?.contains(searchTerm, ignoreCase = true) ?: false) {
+      if (peerSet.title?.contains(searchTerm, ignoreCase = true) == true) {
         return@mapNotNull peerSet
       }
 

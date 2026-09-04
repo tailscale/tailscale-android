@@ -109,6 +109,7 @@ import com.tailscale.ipn.ui.util.AutoResizingText
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.PeerSet
+import com.tailscale.ipn.ui.util.PeerSet.Companion.FAVORITES_ID
 import com.tailscale.ipn.ui.util.itemsWithDividers
 import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.viewModel.AppViewModel
@@ -818,12 +819,13 @@ fun PeerList(
                       text = peer.displayName,
                       style = MaterialTheme.typography.titleMedium,
                   )
-                  DeviceDropdownMenu(
-                      viewModel,
-                      peer,
-                      netmap,
-                      expandedPeer?.StableID == peer.StableID,
-                  )
+                  if (expandedPeer?.StableID == peer.StableID) {
+                    DeviceDropdownMenu(
+                        viewModel,
+                        peer,
+                        netmap,
+                    )
+                  }
                 }
               },
               supportingContent = {
@@ -847,7 +849,6 @@ fun DeviceDropdownMenu(
     viewModel: MainViewModel,
     peer: Tailcfg.Node,
     netmap: Netmap.NetworkMap?,
-    expanded: Boolean,
 ) {
   val localClipboardManager = LocalClipboardManager.current
   val favorites by viewModel.favorites.collectAsState()
@@ -855,7 +856,7 @@ fun DeviceDropdownMenu(
   val isFavorite = favorites.isFavoriteDevice(peer.StableID)
 
   DropdownMenu(
-      expanded = expanded,
+      expanded = true,
       onDismissRequest = viewModel::hidePeerDropdownMenu,
   ) {
     netmap?.let { netMap ->
@@ -937,6 +938,11 @@ fun DeviceDropdownMenu(
     )
   }
 }
+
+@Composable
+fun PeerSet.sectionTitle(): String =
+    if (id == FAVORITES_ID) stringResource(id = R.string.pinned_devices)
+    else title ?: stringResource(id = R.string.unknown_user)
 
 @Composable
 fun NodesSectionHeader(peerSet: PeerSet) {

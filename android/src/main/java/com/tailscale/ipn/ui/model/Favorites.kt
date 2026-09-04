@@ -15,12 +15,9 @@ data class Favorites(
     @SerialName("ExitNodes") val exitNodes: List<FavoriteItem>? = null,
     @SerialName("Services") val services: List<FavoriteItem>? = null,
 ) {
-  val deviceIds: List<String>
-    get() = devices.orEmpty().mapNotNull { it.id }
+  val deviceIds: Set<StableNodeID> by lazy { devices.orEmpty().mapNotNull { it.id }.toSet() }
 
-  fun isFavoriteDevice(id: StableNodeID): Boolean {
-    return deviceIds.contains(id)
-  }
+  fun isFavoriteDevice(id: StableNodeID): Boolean = id in deviceIds
 
   fun withToggledDevice(id: StableNodeID): FavoritesRequest {
     val current = devices.orEmpty()

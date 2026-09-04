@@ -91,6 +91,7 @@ open class IpnViewModel : ViewModel() {
         netmap?.SelfNode?.User.let {
           if (it != selfNodeUserId) {
             selfNodeUserId = it
+            _favorites.value = Favorites()
             viewModelScope.launch { loadUserProfiles() }
             viewModelScope.launch { loadUserFavorites() }
           }
@@ -313,18 +314,24 @@ open class IpnViewModel : ViewModel() {
     Client(viewModelScope).getFavorites { result ->
       result
           .onSuccess { _favorites.value = it }
-          .onFailure { TSLog.e(TAG, "Error loading favorites: ${it.message}") }
+          .onFailure {
+            _favorites.value = Favorites()
+            TSLog.e(TAG, "Error loading favorites: ${it.message}")
+          }
     }
   }
 
   fun toggleDeviceFavorite(peer: Tailcfg.Node) {
-    _isToggleFavoriteInProgress.value = true
+    if (!_isToggleFavoriteInProgress.compareAndSet(expect = false, update = true)) return
+
     val toggled = favorites.value.withToggledDevice(peer.StableID)
     Client(viewModelScope).setFavorites(toggled) { result ->
-      _isToggleFavoriteInProgress.value = false
       result
           .onSuccess { _favorites.value = it }
-          .onFailure { TSLog.e(TAG, "Error toggling favorites: ${it.message}") }
+          .onFailure {
+            TSLog.e(TAG, "Error toggling favorites: ${it.message}")
+          }
+      _isToggleFavoriteInProgress.value = false
     }
   }
 
