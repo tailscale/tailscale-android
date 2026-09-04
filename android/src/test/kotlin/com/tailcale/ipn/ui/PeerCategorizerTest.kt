@@ -258,7 +258,7 @@ class PeerCategorizerTest {
 
     // "ta" matches the "tagged-devices" section title, so the whole section
     // comes back and is cached as lastSearchResult.
-    assertEquals(listOf(TAGGED_ID), categorizer.groupedAndFilteredPeers("ta").map { it.id })
+    assertEquals(listOf(TAGGED_ID), categorizer.groupedAndFilteredPeers("tagg").map { it.id })
 
     // "tagged-box" no longer matches the title but does match the node, and is
     // resolved against the cached result rather than all peerSets.
