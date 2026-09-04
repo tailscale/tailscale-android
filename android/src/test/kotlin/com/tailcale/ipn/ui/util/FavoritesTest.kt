@@ -1,10 +1,6 @@
 // Copyright (c) Tailscale Inc & AUTHORS
 // SPDX-License-Identifier: BSD-3-Clause
 
-// DESTINATION: android/src/test/kotlin/com/tailcale/ipn/ui/model/FavoritesTest.kt
-//
-// Run with:  cd android && ./gradlew test --tests '*FavoritesTest*'
-
 package com.tailcale.ipn.ui.util
 
 import com.tailscale.ipn.ui.model.FavoriteItem

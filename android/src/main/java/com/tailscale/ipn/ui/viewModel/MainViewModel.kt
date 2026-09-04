@@ -78,6 +78,8 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
   private val _peers = MutableStateFlow<List<PeerSet>>(emptyList())
   val peers: StateFlow<List<PeerSet>> = _peers
 
+  private val _groupedPeers = MutableStateFlow<List<PeerSet>>(emptyList())
+
   // The list of peers
   private val _searchViewPeers = MutableStateFlow<List<PeerSet>>(emptyList())
   val searchViewPeers: StateFlow<List<PeerSet>> = _searchViewPeers
@@ -192,20 +194,30 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
       }
     }
 
+    // handle grouping
     viewModelScope.launch {
-      combine(Notifier.netmap.filterNotNull(), favorites) { netmap, favs -> netmap to favs }
-          .collectLatest { (netmap, favs) ->
-            searchJob?.cancel()
+      Notifier.netmap.filterNotNull().collectLatest { netmap ->
+        searchJob?.cancel()
+        withContext(categorizerDispatcher) {
+          peerCategorizer.regenerateGroupedPeers(netmap)
+          val filteredPeers = peerCategorizer.groupedAndFilteredPeers(searchTerm.value)
+          _groupedPeers.value = peerCategorizer.peerSets
+          _searchViewPeers.value = filteredPeers
+        }
+      }
+    }
+
+    // transform with favorites
+    viewModelScope.launch {
+      combine(_groupedPeers, favorites) { sets, favs -> sets to favs }
+          .collectLatest { (sets, favs) ->
             withContext(categorizerDispatcher) {
-              peerCategorizer.regenerateGroupedPeers(netmap)
-              val filteredPeers = peerCategorizer.groupedAndFilteredPeers(searchTerm.value)
-              _peers.value = peerCategorizer.peerSets.withPinnedSection(favs?.deviceIds.orEmpty())
-              _searchViewPeers.value = filteredPeers
+              _peers.value = sets.withPinnedSection(favs?.deviceIds.orEmpty())
             }
           }
     }
 
-    // Key expiry on depends on netmap
+    // Key expiry
     viewModelScope.launch {
       Notifier.netmap.filterNotNull().collect { netmap ->
         if (netmap.SelfNode.keyDoesNotExpire) {

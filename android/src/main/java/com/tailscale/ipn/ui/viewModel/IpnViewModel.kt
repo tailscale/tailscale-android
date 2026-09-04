@@ -69,13 +69,13 @@ open class IpnViewModel : ViewModel() {
   init {
     viewModelScope.launch {
       Notifier.state.collect {
-        // Reload the user profiles/favorites on all state transitions to ensure loggedInUser is
+        // Reload the user profiles on all state transitions to ensure loggedInUser is
         // correct
         viewModelScope.launch { loadUserProfiles() }
       }
     }
 
-    // This will observe the userId of the current node and reload our user profiles/favorites if
+    // This will observe the userId of the current node and reload our user profiles if
     // we discover it has changed (e.g. due to a login or user switch)
     viewModelScope.launch {
       Notifier.netmap.collect { netmap ->

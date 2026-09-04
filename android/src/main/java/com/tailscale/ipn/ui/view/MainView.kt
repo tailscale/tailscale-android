@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 package com.tailscale.ipn.ui.view
 
-import android.graphics.drawable.Icon
 import android.os.Build
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background

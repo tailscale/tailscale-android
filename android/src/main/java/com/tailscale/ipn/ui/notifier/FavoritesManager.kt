@@ -10,6 +10,7 @@ import com.tailscale.ipn.ui.model.UserID
 import com.tailscale.ipn.util.TSLog
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -31,6 +32,7 @@ class FavoritesManager(
     @OptIn(ExperimentalCoroutinesApi::class)
     private val dispatcher: CoroutineDispatcher = Dispatchers.Default.limitedParallelism(1),
     private val writeDebounce: Duration = 350.milliseconds,
+    private val retryDelay: Duration = 2.seconds,
 ) {
   private val TAG = "FavoritesManager"
 
@@ -81,6 +83,13 @@ class FavoritesManager(
             .onFailure {
               TSLog.e(TAG, "Error loading favorites: ${it.message}")
               loadedForUser = null
+              scope.launch(dispatcher) {
+                delay(retryDelay)
+                if (currentUser == user && loadedForUser == null) {
+                  loadedForUser = user
+                  load(user)
+                }
+              }
             }
       }
     }
@@ -95,12 +104,11 @@ class FavoritesManager(
       scope.launch(dispatcher) {
         if (currentUser != user) return@launch
         _writing.value = false
-        result
-            .onSuccess { _favorites.value = it }
-            .onFailure {
-              TSLog.e(TAG, "Error writing favorites: ${it.message}")
-              _favorites.value = snapshot
-            }
+        if (revert != null) return@launch // newer burst opened while inflight
+        result.onFailure {
+          TSLog.e(TAG, "Error writing favorites: ${it.message}")
+          _favorites.value = snapshot
+        }
       }
     }
   }

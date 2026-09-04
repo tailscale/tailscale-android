@@ -53,19 +53,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
-import com.tailscale.ipn.App
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.theme.listItem
 import com.tailscale.ipn.ui.util.Lists
-import com.tailscale.ipn.ui.viewModel.AppViewModel
 import com.tailscale.ipn.ui.viewModel.MainViewModel
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.emptyFlow
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -253,20 +248,4 @@ fun SearchView(
       }
     }
   }
-}
-
-@RequiresApi(Build.VERSION_CODES.TIRAMISU)
-@Preview(showSystemUi = true)
-@Composable
-private fun SearchViewPreview() {
-  val fakePrompt = emptyFlow<Unit>()
-  val appViewModel = AppViewModel(App.get(), fakePrompt)
-  val vm = MainViewModel(appViewModel)
-
-  SearchView(
-      vm,
-      rememberNavController(),
-      {},
-      true,
-  )
 }
