@@ -71,6 +71,17 @@ class Client(private val scope: CoroutineScope) {
   // Access libtailscale.Application lazily
   private val app: libtailscale.Application by lazy { App.get().getLibtailscaleApp() }
 
+  init {
+    // Force the lazy `app` property to evaluate now, at construction time, instead of
+    // waiting for something to read it. This guarantees App.get() (and therefore
+    // Request.setApp()) has run before this Client can be used to execute a Request,
+    // even if the very first caller is a background WorkManager task on a cold-started
+    // process that never otherwise touches App.get(). Without this, `app` was declared
+    // but never read anywhere in this class, so it never actually forced initialization
+    // (see #563, which added this property with that intent but never wired it up).
+    app
+  }
+
   fun start(options: Ipn.Options, responseHandler: (Result<Unit>) -> Unit) {
     val body = Json.encodeToString(options).toByteArray()
     return post(Endpoint.START, body, responseHandler = responseHandler)
