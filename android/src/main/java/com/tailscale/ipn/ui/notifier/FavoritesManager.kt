@@ -1,3 +1,6 @@
+// Copyright (c) Tailscale Inc & AUTHORS
+// SPDX-License-Identifier: BSD-3-Clause
+
 package com.tailscale.ipn.ui.notifier
 
 import com.tailscale.ipn.ui.localapi.Client
