@@ -74,7 +74,7 @@ class FavoritesManager(
     }
   }
 
-  private fun load(user: UserID) {
+  private fun load(user: UserID, isRetry: Boolean = false) {
     client.getFavorites { result ->
       scope.launch(dispatcher) {
         if (currentUser != user) return@launch
@@ -83,11 +83,12 @@ class FavoritesManager(
             .onFailure {
               TSLog.e(TAG, "Error loading favorites: ${it.message}")
               loadedForUser = null
+              if (isRetry) return@onFailure
               scope.launch(dispatcher) {
                 delay(retryDelay)
                 if (currentUser == user && loadedForUser == null) {
                   loadedForUser = user
-                  load(user)
+                  load(user, isRetry = true)
                 }
               }
             }
