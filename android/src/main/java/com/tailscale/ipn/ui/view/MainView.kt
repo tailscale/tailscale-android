@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 package com.tailscale.ipn.ui.view
 
+import android.graphics.drawable.Icon
 import android.os.Build
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -932,6 +933,17 @@ fun NodesSectionHeader(peerSet: PeerSet) {
       focusable = isAndroidTV(),
       style = MaterialTheme.typography.titleLarge,
       fontWeight = FontWeight.SemiBold,
+      leadingIcon =
+          if (peerSet.isFavorite) {
+            {
+              Icon(
+                  painter = painterResource(R.drawable.pin_24),
+                  contentDescription = null,
+                  modifier = Modifier.size(16.dp),
+                  tint = MaterialTheme.colorScheme.onSurfaceVariant,
+              )
+            }
+          } else null,
   )
 }
 

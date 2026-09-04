@@ -193,9 +193,7 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
     }
 
     viewModelScope.launch {
-      combine(Notifier.netmap.filterNotNull(), favorites) { netmap, favs ->
-            netmap to favs
-          }
+      combine(Notifier.netmap.filterNotNull(), favorites) { netmap, favs -> netmap to favs }
           .collectLatest { (netmap, favs) ->
             searchJob?.cancel()
             withContext(categorizerDispatcher) {
@@ -220,8 +218,7 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
               TimeUtil.isWithinExpiryNotificationWindow(
                   window,
                   netmap.SelfNode.KeyExpiry ?: "",
-              )
-          )
+              ))
         }
       }
     }

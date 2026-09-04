@@ -95,9 +95,8 @@ class PeerCategorizerTest {
 
   private fun sectionIds(sets: List<PeerSet> = categorizer.peerSets) = sets.map { it.id }
 
-  private fun section(id: Long, sets: List<PeerSet> = categorizer.peerSets) = sets.first {
-    it.id == id
-  }
+  private fun section(id: Long, sets: List<PeerSet> = categorizer.peerSets) =
+      sets.first { it.id == id }
 
   private fun stableIds(peerSet: PeerSet) = peerSet.nodes.map { it.StableID }
 

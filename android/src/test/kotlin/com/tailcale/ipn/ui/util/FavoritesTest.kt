@@ -38,8 +38,7 @@ class FavoritesTest {
                     FavoriteItem(id = "n1"),
                     FavoriteItem(name = "no id"),
                     FavoriteItem(id = "n2"),
-                )
-        )
+                ))
 
     // .toSet() so this holds whether deviceIds stays a List or becomes a Set.
     assertEquals(setOf("n1", "n2"), favorites.deviceIds.toSet())

@@ -135,21 +135,24 @@ class PeerCategorizer {
         else peerSets
     this.lastSearchTerm = searchTerm
 
-    val matchingSets = setsToSearch.mapNotNull { peerSet ->
-      val peers = peerSet.nodes
+    val matchingSets =
+        setsToSearch.mapNotNull { peerSet ->
+          val peers = peerSet.nodes
 
-      if (peerSet.title?.contains(searchTerm, ignoreCase = true) == true) {
-        return@mapNotNull peerSet
-      }
+          if (peerSet.title?.contains(searchTerm, ignoreCase = true) == true) {
+            return@mapNotNull peerSet
+          }
 
-      val matchingPeers = peers.filter { peer ->
-        val matchDisplay = peer.displayName.contains(searchTerm, ignoreCase = true)
-        val matchAddress = peer.Addresses.orEmpty().fastAny { it.contains(searchTerm) }
-        matchDisplay || matchAddress
-      }
+          val matchingPeers =
+              peers.filter { peer ->
+                val matchDisplay = peer.displayName.contains(searchTerm, ignoreCase = true)
+                val matchAddress = peer.Addresses.orEmpty().fastAny { it.contains(searchTerm) }
+                matchDisplay || matchAddress
+              }
 
-      if (matchingPeers.isNotEmpty()) PeerSet(peerSet.id, peerSet.title, matchingPeers) else null
-    }
+          if (matchingPeers.isNotEmpty()) PeerSet(peerSet.id, peerSet.title, matchingPeers)
+          else null
+        }
 
     lastSearchResult = matchingSets
     return matchingSets

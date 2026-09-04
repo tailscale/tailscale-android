@@ -106,9 +106,8 @@ open class IpnViewModel : ViewModel() {
             val validNetmap = netmap ?: return@combine NodeState.NONE
 
             val chosenExitNodeId = validPrefs.activeExitNodeID ?: validPrefs.selectedExitNodeID
-            val exitNodePeer = chosenExitNodeId?.let { id ->
-              validNetmap.Peers?.find { it.StableID == id }
-            }
+            val exitNodePeer =
+                chosenExitNodeId?.let { id -> validNetmap.Peers?.find { it.StableID == id } }
 
             when {
               exitNodePeer?.Online == false -> {

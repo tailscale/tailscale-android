@@ -20,13 +20,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class FavoritesManager
-constructor(
+class FavoritesManager(
     ipnStateFlow: StateFlow<Ipn.State>,
     netmapFlow: StateFlow<Netmap.NetworkMap?>,
     private val scope: CoroutineScope,
@@ -47,40 +45,43 @@ constructor(
   private val client = Client(scope)
 
   private var currentUser: UserID? = null
+  private var loadedForUser: UserID? = null
   private var pendingWrite: Job? = null
   private var revert: Favorites? = null
 
   init {
     scope.launch {
-      userFlow.distinctUntilChanged().collect { user ->
-        withContext(dispatcher) {
-          currentUser = user
-          pendingWrite?.cancel()
-          revert = null
-          _writing.value = false
-          _favorites.value = null
-        }
-      }
-    }
-
-    scope.launch {
-      combine(ipnStateFlow, userFlow) { state, user -> user.takeIf { state == Ipn.State.Running } }
-          .filterNotNull()
+      combine(ipnStateFlow, userFlow) { state, user -> state to user }
           .distinctUntilChanged()
-          .collect { load() }
+          .collect { (state, user) ->
+            withContext(dispatcher) {
+              if (user != currentUser) {
+                currentUser = user
+                loadedForUser = null
+                pendingWrite?.cancel()
+                revert = null
+                _writing.value = false
+                _favorites.value = null
+              }
+              if (state == Ipn.State.Running && loadedForUser != user) {
+                loadedForUser = user
+                load(user)
+              }
+            }
+          }
     }
   }
 
-  private fun load() {
-    scope.launch(dispatcher) {
-      val user = currentUser
-      client.getFavorites { result ->
-        scope.launch(dispatcher) {
-          if (currentUser != user) return@launch
-          result
-              .onSuccess { _favorites.value = it }
-              .onFailure { TSLog.e(TAG, "Error loading favorites: ${it.message}") }
-        }
+  private fun load(user: UserID) {
+    client.getFavorites { result ->
+      scope.launch(dispatcher) {
+        if (currentUser != user) return@launch
+        result
+            .onSuccess { _favorites.value = it }
+            .onFailure {
+              TSLog.e(TAG, "Error loading favorites: ${it.message}")
+              loadedForUser = null
+            }
       }
     }
   }

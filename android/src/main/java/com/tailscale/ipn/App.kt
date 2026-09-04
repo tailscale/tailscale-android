@@ -381,8 +381,7 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
                 pointToPoint = nif.isPointToPoint,
                 multicast = nif.supportsMulticast(),
                 addrs = addrs,
-            )
-        )
+            ))
       } catch (_: Exception) {
         continue
       }
@@ -671,10 +670,8 @@ open class UninitializedApp : Application() {
   }
 
   fun notifyStatus(notification: Notification) {
-    if (
-        ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
-            PackageManager.PERMISSION_GRANTED
-    ) {
+    if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
+        PackageManager.PERMISSION_GRANTED) {
       // TODO: Consider calling
       //    ActivityCompat#requestPermissions
       // here to request the missing permissions, and then overriding
@@ -733,8 +730,7 @@ open class UninitializedApp : Application() {
             .setContentIntent(pendingIntent)
     if (!vpnRunning || !hideDisconnectAction) {
       builder.addAction(
-          NotificationCompat.Action.Builder(0, actionLabel, pendingButtonIntent).build()
-      )
+          NotificationCompat.Action.Builder(0, actionLabel, pendingButtonIntent).build())
     }
     return builder.build()
   }
