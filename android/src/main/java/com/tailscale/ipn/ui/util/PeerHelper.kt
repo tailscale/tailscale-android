@@ -3,27 +3,65 @@
 
 package com.tailscale.ipn.ui.util
 
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.util.fastAny
+import com.tailscale.ipn.R
 import com.tailscale.ipn.mdm.MDMSettings
+import com.tailscale.ipn.ui.model.Favorites
 import com.tailscale.ipn.ui.model.Netmap
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.model.UserID
 
+private const val FAVORITES_ID: UserID = -1
+
 data class PeerSet(
-    val userID: UserID,
-    val user: Tailcfg.UserProfile?,
-    val peers: List<Tailcfg.Node>
-)
+    val id: UserID,
+    val title: String?,
+    val nodes: List<Tailcfg.Node>,
+) {
+  companion object {
+    fun create(id: UserID, title: String?, nodes: List<Tailcfg.Node>): PeerSet? {
+      if (nodes.isEmpty()) return null
+      return PeerSet(id, title, nodes)
+    }
+  }
+
+  @Composable
+  fun sectionTitle(): String {
+    return if (id == FAVORITES_ID) {
+      stringResource(id = R.string.pinned_devices)
+    } else {
+      title ?: stringResource(id = R.string.unknown_user)
+    }
+  }
+}
+
+private fun MutableList<Tailcfg.Node>.nodeSort(netmap: Netmap.NetworkMap): List<Tailcfg.Node> {
+  return this.sortedWith { a, b ->
+    when {
+      a.StableID == b.StableID -> 0
+      a.isSelfNode(netmap) -> -1
+      b.isSelfNode(netmap) -> 1
+      else -> (a.ComputedName?.lowercase() ?: "").compareTo(b.ComputedName?.lowercase() ?: "")
+    }
+  }
+}
 
 class PeerCategorizer {
   var peerSets: List<PeerSet> = emptyList()
   var lastSearchResult: List<PeerSet> = emptyList()
   var lastSearchTerm: String = ""
 
-  fun regenerateGroupedPeers(netmap: Netmap.NetworkMap) {
+  fun regenerateGroupedPeers(
+      netmap: Netmap.NetworkMap,
+      favorites: Favorites,
+  ) {
     val peers: List<Tailcfg.Node> = netmap.Peers ?: return
     val selfNode = netmap.SelfNode
-    var grouped = mutableMapOf<UserID, MutableList<Tailcfg.Node>>()
+    val grouped = mutableMapOf<UserID, MutableList<Tailcfg.Node>>()
+    grouped[FAVORITES_ID] = mutableListOf()
+    val favoriteDeviceIds = favorites.deviceIds.toSet()
 
     val mdm = MDMSettings.hiddenNetworkDevices.flow.value.value
     val hideMyDevices = mdm?.contains("current-user") ?: false
@@ -33,8 +71,7 @@ class PeerCategorizer {
     val me = netmap.currentUserProfile()
 
     for (peer in (peers + selfNode)) {
-
-      val userId = peer.User
+      val userId = if (favoriteDeviceIds.contains(peer.StableID)) FAVORITES_ID else peer.User
       val profile = netmap.userProfile(userId)
 
       // Mullvad nodes should not be shown in the peer list
@@ -58,34 +95,25 @@ class PeerCategorizer {
       if (!grouped.containsKey(userId)) {
         grouped[userId] = mutableListOf()
       }
+
       grouped[userId]?.add(peer)
     }
 
     peerSets =
         grouped
-            .map { (userId, peers) ->
-              val profile = netmap.userProfile(userId)
-              PeerSet(
+            .mapNotNull { (userId, peers) ->
+              PeerSet.create(
                   userId,
-                  profile,
-                  peers.sortedWith { a, b ->
-                    when {
-                      a.StableID == b.StableID -> 0
-                      a.isSelfNode(netmap) -> -1
-                      b.isSelfNode(netmap) -> 1
-                      else ->
-                          (a.ComputedName?.lowercase() ?: "").compareTo(
-                              b.ComputedName?.lowercase() ?: "")
-                    }
-                  })
+                  netmap.userProfile(userId)?.DisplayName,
+                  peers.nodeSort(netmap),
+              )
             }
-            .sortedBy {
-              if (it.user?.ID == me?.ID) {
-                ""
-              } else {
-                it.user?.DisplayName?.lowercase() ?: "unknown user"
-              }
-            }
+            .sortedWith(
+                compareBy(
+                    { it.id != FAVORITES_ID }, // keep pinned at top
+                    { if (it.id == me?.ID) "" else it.title?.lowercase() ?: "unknown user" },
+                )
+            )
   }
 
   fun groupedAndFilteredPeers(searchTerm: String = ""): List<PeerSet> {
@@ -108,26 +136,23 @@ class PeerCategorizer {
     val matchingSets =
         setsToSearch
             .map { peerSet ->
-              val user = peerSet.user
-              val peers = peerSet.peers
+              val peers = peerSet.nodes
 
-              val userMatches = user?.DisplayName?.contains(searchTerm, ignoreCase = true) ?: false
-              if (userMatches) {
+              if (peerSet.title?.contains(searchTerm, ignoreCase = true) ?: false) {
                 return@map peerSet
               }
 
-              val matchingPeers =
-                  peers.filter {
-                    it.displayName.contains(searchTerm, ignoreCase = true) ||
-                        (it.Addresses ?: emptyList()).fastAny { addr -> addr.contains(searchTerm) }
-                  }
-              if (matchingPeers.isNotEmpty()) {
-                PeerSet(peerSet.userID, user, matchingPeers)
-              } else {
-                null
+              val matchingPeers = peers.filter { peer ->
+                val matchDisplay = peer.displayName.contains(searchTerm, ignoreCase = true)
+                val matchAddress = peer.Addresses.orEmpty().fastAny { it.contains(searchTerm) }
+                matchDisplay || matchAddress
               }
+
+              if (matchingPeers.isNotEmpty()) PeerSet(peerSet.id, peerSet.title, matchingPeers)
+              else null
             }
             .filterNotNull()
+
     lastSearchResult = matchingSets
     return matchingSets
   }
