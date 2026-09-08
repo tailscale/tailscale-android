@@ -101,6 +101,18 @@ class NetworkChangeCallbackTest {
     assertNull(result)
   }
 
+  @Test
+  fun networkCanBecomePreferredWhenItBecomesValidated() {
+    val cellular = candidate("cellular", validated = true, nonMetered = false)
+    val wifi = candidate("wifi", validated = false, nonMetered = true)
+
+    assertEquals("cellular", pickPreferredNetwork(listOf(cellular, wifi)))
+
+    val validatedWifi = wifi.copy(validated = true)
+
+    assertEquals("wifi", pickPreferredNetwork(listOf(cellular, validatedWifi)))
+  }
+
   private fun candidate(
       name: String,
       internet: Boolean = true,
