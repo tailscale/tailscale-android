@@ -213,21 +213,26 @@ func (a *App) runBackend(ctx context.Context, hardwareAttestation bool) error {
 				break
 			}
 			netns.SetAndroidProtectFunc(func(fd int) error {
-				if !s.Protect(int32(fd)) {
-					// TODO(bradfitz): return an error back up to netns if this fails, once
-					// we've had some experience with this and analyzed the logs over a wide
-					// range of Android phones. For now we're being paranoid and conservative
-					// and do the JNI call to protect best effort, only logging if it fails.
-					// The risk of returning an error is that it breaks users on some Android
-					// versions even when they're not using exit nodes. I'd rather the
-					// relatively few number of exit node users file bug reports if Tailscale
-					// doesn't work and then we can look for this log print.
+				ok := s.Protect(int32(fd))
+				// TODO(bradfitz): return an error back up to netns if this fails, once
+				// we've had some experience with this and analyzed the logs over a wide
+				// range of Android phones. For now we're being paranoid and conservative
+				// and do the JNI call to protect best effort, only logging if it fails.
+				// The risk of returning an error is that it breaks users on some Android
+				// versions even when they're not using exit nodes. I'd rather the
+				// relatively few number of exit node users file bug reports if Tailscale
+				// doesn't work and then we can look for this log print.
+				log.Printf("VpnService.protect(%d) = %v", fd, ok)
+				if !ok {
 					log.Printf("[unexpected] VpnService.protect(%d) returned false", fd)
 				}
-				return nil // even on error. see big TODO above.
+				return nil
 			})
+
 			netns.SetAndroidBindToNetworkFunc(func(fd int) error {
-				if ok := a.appCtx.BindSocketToNetwork(int32(fd)); !ok {
+				ok := a.appCtx.BindSocketToNetwork(int32(fd))
+				log.Printf("BindSocketToNetwork(%d) = %v", fd, ok)
+				if !ok {
 					log.Printf("[unexpected] IPNService.bindSocketToNetwork(%d) returned false", fd)
 				}
 				return nil
