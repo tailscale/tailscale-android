@@ -118,6 +118,19 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
         getString(R.string.optional_notifications_which_display_the_status_of_the_vpn_tunnel),
         NotificationManagerCompat.IMPORTANCE_MIN)
     createNotificationChannel(
+      STATUS_FAILURE_CHANNEL_ID,
+      getString(R.string.intent_failure_channel_name),
+      getString(R.string.intent_failure_channel_description),
+      NotificationManagerCompat.IMPORTANCE_MIN)
+    if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.R) {
+      createNotificationChannel(
+        WORKER_LEGACY_CHANNEL_ID,
+        getString(R.string.intent_status_channel_name),
+        getString(R.string.intent_status_channel_description),
+        NotificationManagerCompat.IMPORTANCE_MIN
+      )
+    }
+    createNotificationChannel(
         FILE_CHANNEL_ID,
         getString(R.string.taildrop_file_transfers),
         getString(R.string.notifications_delivered_when_a_file_is_received_using_taildrop),
@@ -507,7 +520,10 @@ open class UninitializedApp : Application() {
     const val TAG = "UninitializedApp"
     const val STATUS_NOTIFICATION_ID = 1
     const val STATUS_EXIT_NODE_FAILURE_NOTIFICATION_ID = 2
+    const val STATUS_WORKER_LEGACY_NOTIFICATION_ID = 3
     const val STATUS_CHANNEL_ID = "tailscale-status"
+    const val STATUS_FAILURE_CHANNEL_ID = "tailscale-status-failure"
+    const val WORKER_LEGACY_CHANNEL_ID = "tailscale-worker-legacy"
     // Key for shared preference that tracks whether or not we're able to start
     // the VPN (i.e. we're logged in and machine is authorized).
     private const val ABLE_TO_START_VPN_KEY = "ableToStartVPN"
@@ -641,7 +657,7 @@ open class UninitializedApp : Application() {
     notifyStatus(buildStatusNotification(vpnRunning, hideDisconnectAction, exitNodeName))
   }
 
-  fun notifyStatus(notification: Notification) {
+  fun notifyStatus(notification: Notification, exitNodeFailure: Boolean = false) {
     if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
         PackageManager.PERMISSION_GRANTED) {
       // TODO: Consider calling
@@ -653,7 +669,10 @@ open class UninitializedApp : Application() {
       // for ActivityCompat#requestPermissions for more details.
       return
     }
-    notificationManager.notify(STATUS_NOTIFICATION_ID, notification)
+    notificationManager.notify(
+      if (exitNodeFailure) STATUS_EXIT_NODE_FAILURE_NOTIFICATION_ID else STATUS_NOTIFICATION_ID,
+      notification
+    )
   }
 
   fun buildStatusNotification(
