@@ -1,7 +1,7 @@
 // Copyright (c) Tailscale Inc & AUTHORS
 // SPDX-License-Identifier: BSD-3-Clause
 
-package com.tailcale.ipn.ui.util
+package com.tailscale.ipn.ui.util
 
 import com.tailscale.ipn.ui.model.FavoriteItem
 import com.tailscale.ipn.ui.model.Favorites
@@ -34,7 +34,8 @@ class FavoritesTest {
                     FavoriteItem(id = "n1"),
                     FavoriteItem(name = "no id"),
                     FavoriteItem(id = "n2"),
-                ))
+                )
+        )
 
     assertEquals(setOf("n1", "n2"), favorites.deviceIds.toSet())
   }

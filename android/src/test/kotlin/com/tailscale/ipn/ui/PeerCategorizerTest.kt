@@ -1,7 +1,7 @@
 // Copyright (c) Tailscale Inc & AUTHORS
 // SPDX-License-Identifier: BSD-3-Clause
 
-package com.tailcale.ipn.ui
+package com.tailscale.ipn.ui
 
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.mdm.SettingState
@@ -22,12 +22,14 @@ private const val ZEKE_ID = 3L
 private const val TAGGED_ID = 4L
 
 private fun node(
+    id: Long,
     stableId: String,
     computedName: String,
     user: Long,
     address: String,
 ) =
     Tailcfg.Node(
+        ID = id,
         StableID = stableId,
         Name = "$computedName.example.ts.net.",
         User = user,
@@ -40,15 +42,13 @@ private fun profile(id: Long, displayName: String, loginName: String) =
 
 class PeerCategorizerTest {
 
-  private val self = node("self", "my-phone", ME_ID, "100.64.0.1/32")
-  private val delta = node("d1", "Delta", ME_ID, "100.64.0.2/32")
-  private val alpha = node("a1", "alpha", ME_ID, "100.64.0.3/32")
-  private val bravo = node("b1", "bravo", BOB_ID, "100.64.0.4/32")
-  private val zulu = node("z1", "zulu", ZEKE_ID, "100.64.0.5/32")
-  private val taggedBox = node("t1", "tagged-box", TAGGED_ID, "100.64.0.6/32")
-
-  // isMullvadNode matches on Name/ComputedName suffix
-  private val mullvad = node("mv", "se-sto-wg-001.mullvad.ts.net", BOB_ID, "100.64.0.7/32")
+  private val self = node(1, "self", "my-phone", ME_ID, "100.64.0.1/32")
+  private val delta = node(2, "d1", "Delta", ME_ID, "100.64.0.2/32")
+  private val alpha = node(3, "a1", "alpha", ME_ID, "100.64.0.3/32")
+  private val bravo = node(4, "b1", "bravo", BOB_ID, "100.64.0.4/32")
+  private val zulu = node(5, "z1", "zulu", ZEKE_ID, "100.64.0.5/32")
+  private val taggedBox = node(6, "t1", "tagged-box", TAGGED_ID, "100.64.0.6/32")
+  private val mullvad = node(7, "mv", "se-sto-wg-001.mullvad.ts.net", BOB_ID, "100.64.0.7/32")
 
   private val netmap =
       Netmap.NetworkMap(
@@ -95,8 +95,9 @@ class PeerCategorizerTest {
 
   private fun sectionIds(sets: List<PeerSet> = categorizer.peerSets) = sets.map { it.id }
 
-  private fun section(id: Long, sets: List<PeerSet> = categorizer.peerSets) =
-      sets.first { it.id == id }
+  private fun section(id: Long, sets: List<PeerSet> = categorizer.peerSets) = sets.first {
+    it.id == id
+  }
 
   private fun stableIds(peerSet: PeerSet) = peerSet.nodes.map { it.StableID }
 

@@ -1,11 +1,9 @@
 // Copyright (c) Tailscale Inc & AUTHORS
 // SPDX-License-Identifier: BSD-3-Clause
 
-package com.tailcale.ipn.ui.util
+package com.tailscale.ipn.ui.util
 
 import com.tailscale.ipn.ui.model.Tailcfg
-import com.tailscale.ipn.ui.util.PeerSet
-import com.tailscale.ipn.ui.util.withPinnedSection
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame

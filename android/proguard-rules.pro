@@ -3,7 +3,7 @@
     native <methods>;
 }
 
-# Keep Tailcale classes for debuggability, but especially
+# Keep Tailscale classes for debuggability, but especially
 # keep the classes with syspolicy MDM keys, some of which
 # get used only by the Go backend. (The second rule is redundant,
 # but explicit.)
