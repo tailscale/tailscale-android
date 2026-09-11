@@ -232,6 +232,43 @@ object Notifier {
       val suffix = next.magicDNSSuffix()
       next = next.copy(Peers = mergePeers(next.Peers, changed.map { it.withDisplayNames(suffix) }))
     }
+
+    val peers = next.Peers.orEmpty()
+    val duplicateStableIDs = peers.groupBy { it.StableID }.filterValues { it.size > 1 }
+    val duplicateNodeIDs = peers.groupBy { it.ID }.filterValues { it.size > 1 }
+    val selfInPeersByStableID = peers.any { it.StableID == next.SelfNode.StableID }
+    val selfInPeersByNodeID = peers.any { it.ID == next.SelfNode.ID }
+
+    check(
+        duplicateStableIDs.isEmpty() &&
+            duplicateNodeIDs.isEmpty() &&
+            !selfInPeersByStableID &&
+            !selfInPeersByNodeID) {
+          buildString {
+            append("Invalid Notifier netmap")
+            append("; sourceInitial=${initial != null}")
+            append("; hadSelfChange=${self != null}")
+            append("; peersChanged=${changed?.size ?: 0}")
+            append("; peersRemoved=${removed?.size ?: 0}")
+            append("; peers=${peers.size}")
+            append("; selfNodeID=${next.SelfNode.ID}")
+            append("; selfStableID=${next.SelfNode.StableID}")
+            append("; duplicateStableIDs=${duplicateStableIDs.keys}")
+            append("; duplicateNodeIDs=${duplicateNodeIDs.keys}")
+            append("; selfInPeersByStableID=$selfInPeersByStableID")
+            append("; selfInPeersByNodeID=$selfInPeersByNodeID")
+            if (duplicateStableIDs.isNotEmpty()) {
+              append("; entries=")
+              append(
+                  duplicateStableIDs.entries.joinToString("|") { (stableID, nodes) ->
+                    "$stableID=[" +
+                        nodes.joinToString(",") { node -> "nodeID=${node.ID}/user=${node.User}" } +
+                        "]"
+                  })
+            }
+          }
+        }
+
     if (next != cur) {
       _netmap.set(next)
     }

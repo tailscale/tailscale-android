@@ -56,6 +56,15 @@ fun ExitNodePicker(
       val managedByOrganization by model.managedByOrganization.collectAsState()
       val forcedExitNodeId = MDMSettings.exitNodeID.flow.collectAsState().value.value
 
+      val duplicateExitNodeIDs = tailnetExitNodes.groupBy { it.id }.filterValues { it.size > 1 }
+
+      check(duplicateExitNodeIDs.isEmpty()) {
+        "Duplicate exit node IDs in ExitNodePicker: " +
+            duplicateExitNodeIDs.entries.joinToString("; ") { (id, nodes) ->
+              "$id(count=${nodes.size})"
+            }
+      }
+
       LazyColumn(modifier = Modifier.padding(innerPadding)) {
         item(key = "header") {
           if (forcedExitNodeId != null) {
