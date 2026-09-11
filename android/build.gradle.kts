@@ -1,10 +1,11 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
 
 plugins {
-    id("org.jetbrains.kotlin.android") version "1.9.22"
-    id("com.android.application") version "8.13.0"
-    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.22"
-    id("com.ncorti.ktfmt.gradle") version "0.17.0"
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.ktfmt)
 }
 
 repositories {
@@ -12,8 +13,11 @@ repositories {
     mavenCentral()
 }
 
-
-val composeVersion = "1.5.10"
+kotlin {
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_17
+    }
+}
 
 android {
     val androidApiLevel = providers.gradleProperty("androidApiLevel").get().toInt()
@@ -45,17 +49,9 @@ android {
         warningsAsErrors = true
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     buildFeatures {
         buildConfig = true
         compose = true
-    }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion = composeVersion
     }
 
     flavorDimensions += "version"
