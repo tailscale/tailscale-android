@@ -17,6 +17,8 @@ typealias MachineKey = String
 
 typealias UserID = Long
 
+typealias ProfileID = String
+
 typealias Time = String
 
 typealias StableNodeID = String

@@ -8,9 +8,10 @@ import com.tailscale.ipn.ui.model.Favorites
 import com.tailscale.ipn.ui.model.FavoritesRequest
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.Netmap
+import com.tailscale.ipn.ui.model.ProfileID
 import com.tailscale.ipn.ui.model.StableNodeID
-import com.tailscale.ipn.ui.model.UserID
 import com.tailscale.ipn.util.TSLog
+import kotlin.coroutines.resume
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -19,14 +20,15 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.suspendCancellableCoroutine
 
 class FavoritesManager(
     ipnStateFlow: StateFlow<Ipn.State>,
@@ -45,53 +47,85 @@ class FavoritesManager(
   private val _writing = MutableStateFlow(false)
   val writing: StateFlow<Boolean> = _writing
 
-  private val userFlow = netmapFlow.mapNotNull { it?.User() }
+  private val nodeFlow = netmapFlow.map { it?.SelfNode?.StableID }
 
   private val client = Client(scope)
+  // newer request replaces undelivered one
+  private val writes = Channel<FavoritesRequest>(Channel.CONFLATED)
 
-  private var currentUser: UserID? = null
-  private var loadedForUser: UserID? = null
+  // All below guarded by dispatcher
+  private var currentProfile: ProfileID? = null
+  private var loadedForProfile: ProfileID? = null
+  private var loadedForNode: StableNodeID? = null
+  private var profileSeq = 0L
   private var pendingWrite: Job? = null
   private var revert: Favorites? = null
 
   init {
-    scope.launch {
-      combine(ipnStateFlow, userFlow) { state, user -> state to user }
+    scope.launch(dispatcher) {
+      combine(ipnStateFlow, nodeFlow) { state, node -> state to node }
           .distinctUntilChanged()
-          .collect { (state, user) ->
-            withContext(dispatcher) {
-              if (user != currentUser) {
-                currentUser = user
-                loadedForUser = null
-                pendingWrite?.cancel()
-                revert = null
-                _writing.value = false
-                _favorites.value = null
-              }
-              if (state == Ipn.State.Running && loadedForUser != user) {
-                loadedForUser = user
-                load(user)
-              }
+          .collect { (state, node) ->
+            val seq = ++profileSeq
+            if (node != loadedForNode) {
+              loadedForNode = node
+              reset()
             }
+            if (state == Ipn.State.Running) resolveProfile(seq)
           }
+    }
+
+    scope.launch(dispatcher) { for (request in writes) write(request) }
+  }
+
+  private fun resolveProfile(seq: Long) {
+    client.currentProfile { result ->
+      scope.launch(dispatcher) {
+        if (seq != profileSeq) return@launch
+        val profile =
+            result
+                .onFailure { TSLog.e(TAG, "Error loading current profile: ${it.message}") }
+                .getOrNull()
+                ?.ID
+                ?.takeIf { it.isNotEmpty() }
+        if (profile == null) return@launch // dont know what profile we are on so leave state alone
+        if (profile != currentProfile) {
+          reset()
+          currentProfile = profile
+        }
+        if (loadedForProfile != profile) {
+          loadedForProfile = profile
+          load(profile)
+        }
+      }
     }
   }
 
-  private fun load(user: UserID, isRetry: Boolean = false) {
+  private fun reset() {
+    currentProfile = null
+    loadedForProfile = null
+    pendingWrite?.cancel()
+    writes.tryReceive() // drop write queued for previous profile
+    revert = null
+    _writing.value = false
+    _favorites.value = null
+  }
+
+  private fun load(profile: ProfileID, isRetry: Boolean = false) {
     client.getFavorites { result ->
       scope.launch(dispatcher) {
-        if (currentUser != user) return@launch
+        if (currentProfile != profile) return@launch
         result
             .onSuccess { _favorites.value = it }
             .onFailure {
               TSLog.e(TAG, "Error loading favorites: ${it.message}")
-              loadedForUser = null
+              loadedForProfile = null
               if (isRetry) return@onFailure
               scope.launch(dispatcher) {
                 delay(retryDelay)
-                if (currentUser == user && loadedForUser == null) {
-                  loadedForUser = user
-                  load(user, isRetry = true)
+                if (currentProfile == profile && loadedForProfile == null) {
+                  loadedForProfile = profile
+                  load(profile, isRetry = true)
                 }
               }
             }
@@ -99,21 +133,22 @@ class FavoritesManager(
     }
   }
 
-  private fun send(request: FavoritesRequest) {
+  private suspend fun write(request: FavoritesRequest) {
     val snapshot = revert
-    val user = currentUser
+    val profile = currentProfile
     revert = null
     _writing.value = true
-    client.setFavorites(request) { result ->
-      scope.launch(dispatcher) {
-        if (currentUser != user) return@launch
-        _writing.value = false
-        if (revert != null) return@launch // newer burst opened while inflight
-        result.onFailure {
-          TSLog.e(TAG, "Error writing favorites: ${it.message}")
-          _favorites.value = snapshot
-        }
-      }
+
+    val result = suspendCancellableCoroutine { cont ->
+      client.setFavorites(request) { cont.resume(it) }
+    }
+
+    if (currentProfile != profile) return
+    _writing.value = false
+    if (revert != null) return // newer burst opened while in flight
+    result.onFailure {
+      TSLog.e(TAG, "Error writing favorites: ${it.message}")
+      _favorites.value = snapshot
     }
   }
 
@@ -129,7 +164,7 @@ class FavoritesManager(
       pendingWrite =
           scope.launch(dispatcher) {
             delay(writeDebounce)
-            send(request)
+            writes.trySend(request)
           }
     }
   }
