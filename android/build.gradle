@@ -123,7 +123,6 @@ dependencies {
     // Kotlin dependencies.
     implementation libs.kotlinx.serialization.json
     implementation libs.kotlinx.coroutines.core
-    implementation libs.junit
     implementation libs.androidx.room.ktx
     runtimeOnly libs.kotlinx.coroutines.android
     implementation libs.kotlin.stdlib
@@ -135,7 +134,8 @@ dependencies {
     implementation libs.androidx.compose.material3
     implementation libs.androidx.compose.material.icons
     implementation libs.androidx.compose.ui
-    implementation libs.androidx.compose.ui.tooling
+    debugImplementation libs.androidx.compose.ui.tooling
+    implementation libs.androidx.compose.ui.toolingPreview
     implementation libs.androidx.lifecycle.viewmodel.ktx
     implementation libs.androidx.activity.compose
     implementation libs.accompanist.permissions
@@ -162,7 +162,8 @@ dependencies {
     androidTestImplementation libs.androidx.test.ext.junit
     androidTestImplementation libs.androidx.test.ext.junitKtx
     androidTestImplementation libs.androidx.test.espresso.core
-    implementation libs.androidx.test.uiautomator
+    androidTestImplementation libs.androidx.test.uiautomator
+    androidTestImplementation libs.junit
 
     // Authentication only for tests
     androidTestImplementation libs.kotlin.onetimepassword
@@ -174,9 +175,6 @@ dependencies {
     testImplementation libs.mockito.inline
     testImplementation libs.mockito.kotlin
     testImplementation libs.kotlinx.coroutines.test
-
-    debugImplementation libs.androidx.compose.ui.tooling
-    implementation libs.androidx.compose.ui.toolingPreview
 }
 
 def getLocalProperty(key, defaultValue) {
