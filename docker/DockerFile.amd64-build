@@ -37,7 +37,7 @@ COPY android/gradle.properties android/gradle.properties
 RUN make androidsdk
 
 # Preload Gradle
-COPY android/gradlew android/build.gradle android/
+COPY android/gradlew android/build.gradle.kts android/
 COPY android/gradle android/gradle
 
 RUN chmod 755 android/gradlew && \
