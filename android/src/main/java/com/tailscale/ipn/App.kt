@@ -31,6 +31,7 @@ import com.tailscale.ipn.ui.localapi.Client
 import com.tailscale.ipn.ui.localapi.Request
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.Netmap
+import com.tailscale.ipn.ui.notifier.FavoritesManager
 import com.tailscale.ipn.ui.notifier.HealthNotifier
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.viewModel.AppViewModel
@@ -67,6 +68,7 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     private val PREF_KEY_SAF_URI = "saf_directory_uri"
     private const val TAG = "App"
     private lateinit var appInstance: App
+
     /**
      * Initializes the app (if necessary) and returns the singleton app instance. Always use this
      * function to obtain an App reference to make sure the app initializes.
@@ -87,6 +89,7 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
 
   private val appViewModelStore: ViewModelStore by lazy { ViewModelStore() }
   var healthNotifier: HealthNotifier? = null
+  lateinit var favoritesManager: FavoritesManager
 
   override fun getPlatformDNSConfig(): String = dns.dnsConfigAsString
 
@@ -116,17 +119,20 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
         STATUS_CHANNEL_ID,
         getString(R.string.vpn_status),
         getString(R.string.optional_notifications_which_display_the_status_of_the_vpn_tunnel),
-        NotificationManagerCompat.IMPORTANCE_MIN)
+        NotificationManagerCompat.IMPORTANCE_MIN,
+    )
     createNotificationChannel(
         FILE_CHANNEL_ID,
         getString(R.string.taildrop_file_transfers),
         getString(R.string.notifications_delivered_when_a_file_is_received_using_taildrop),
-        NotificationManagerCompat.IMPORTANCE_DEFAULT)
+        NotificationManagerCompat.IMPORTANCE_DEFAULT,
+    )
     createNotificationChannel(
         HealthNotifier.HEALTH_CHANNEL_ID,
         getString(R.string.health_channel_name),
         getString(R.string.health_channel_description),
-        NotificationManagerCompat.IMPORTANCE_HIGH)
+        NotificationManagerCompat.IMPORTANCE_HIGH,
+    )
   }
 
   override fun onTerminate() {
@@ -169,6 +175,7 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
       startLibtailscale(this.filesDir.absolutePath, hardwareAttestation)
     }
     healthNotifier = HealthNotifier(Notifier.health, Notifier.state, applicationScope)
+    favoritesManager = FavoritesManager(Notifier.state, Notifier.netmap, applicationScope)
     connectivityManager = this.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     NetworkChangeCallback.monitorDnsChanges(connectivityManager, dns)
     initViewModels()
@@ -203,7 +210,8 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
                 notifyStatus(
                     vpnRunning = true,
                     hideDisconnectAction = hideDisconnectAction.value,
-                    exitNodeName = exitNodeName)
+                    exitNodeName = exitNodeName,
+                )
               }
             }
       }
@@ -211,6 +219,7 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     TSLog.init(this)
     FeatureFlags.initialize(mapOf("enable_new_search" to true))
   }
+
   /**
    * Called when a SAF directory URI is available (either already stored or chosen). We must restart
    * Tailscale because directFileRoot must be set before LocalBackend starts being used.
@@ -235,17 +244,20 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
           onSuccess = { onSuccess?.invoke() },
           onFailure = { error ->
             TSLog.d("TAG", "Set want running: failed to update preferences: ${error.message}")
-          })
+          },
+      )
     }
     Client(applicationScope)
         .editPrefs(Ipn.MaskedPrefs().apply { WantRunning = wantRunning }, callback)
   }
+
   // encryptToPref a byte array of data using the Jetpack Security
   // library and writes it to a global encrypted preference store.
   @Throws(IOException::class, GeneralSecurityException::class)
   override fun encryptToPref(prefKey: String?, plaintext: String?) {
     getEncryptedPrefs().edit().putString(prefKey, plaintext).commit()
   }
+
   // decryptFromPref decrypts a encrypted preference using the Jetpack Security
   // library and returns the plaintext.
   @Throws(IOException::class, GeneralSecurityException::class)
@@ -272,13 +284,15 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
         "secret_shared_prefs",
         key,
         EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM)
+        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
+    )
   }
 
   fun getStoredDirectoryUri(): Uri? {
     val uriString = getEncryptedPrefs().getString(PREF_KEY_SAF_URI, null)
     return uriString?.let { Uri.parse(it) }
   }
+
   /*
    * setAbleToStartVPN remembers whether or not we're able to start the VPN
    * by storing this in a shared preference. This allows us to check this
@@ -293,7 +307,9 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
   override fun getDeviceName(): String {
     // Try user-defined device name first
     android.provider.Settings.Global.getString(
-            contentResolver, android.provider.Settings.Global.DEVICE_NAME)
+            contentResolver,
+            android.provider.Settings.Global.DEVICE_NAME,
+        )
         ?.let {
           return it
         }
@@ -376,13 +392,19 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
   }
 
   @Throws(
-      IOException::class, GeneralSecurityException::class, MDMSettings.NoSuchKeyException::class)
+      IOException::class,
+      GeneralSecurityException::class,
+      MDMSettings.NoSuchKeyException::class,
+  )
   override fun getSyspolicyBooleanValue(key: String): Boolean {
     return getSyspolicyStringValue(key) == "true"
   }
 
   @Throws(
-      IOException::class, GeneralSecurityException::class, MDMSettings.NoSuchKeyException::class)
+      IOException::class,
+      GeneralSecurityException::class,
+      MDMSettings.NoSuchKeyException::class,
+  )
   override fun getSyspolicyStringValue(key: String): String {
     val setting = MDMSettings.allSettingsByKey[key]?.flow?.value
     if (setting?.isSet != true) {
@@ -392,7 +414,10 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
   }
 
   @Throws(
-      IOException::class, GeneralSecurityException::class, MDMSettings.NoSuchKeyException::class)
+      IOException::class,
+      GeneralSecurityException::class,
+      MDMSettings.NoSuchKeyException::class,
+  )
   override fun getSyspolicyStringArrayJSONValue(key: String): String {
     val setting = MDMSettings.allSettingsByKey[key]?.flow?.value
     if (setting?.isSet != true) {
@@ -532,6 +557,7 @@ open class UninitializedApp : Application() {
     fun get(): UninitializedApp {
       return appInstance
     }
+
     /**
      * Return the name of the active (but not the selected/prior one) exit node based on the
      * provided [Ipn.Prefs] and [Netmap.NetworkMap].
@@ -552,6 +578,7 @@ open class UninitializedApp : Application() {
   protected fun setAbleToStartVPN(rdy: Boolean) {
     getUnencryptedPrefs().edit().putBoolean(ABLE_TO_START_VPN_KEY, rdy).apply()
   }
+
   /** This function can be called without initializing the App. */
   fun isAbleToStartVPN(): Boolean {
     return getUnencryptedPrefs().getBoolean(ABLE_TO_START_VPN_KEY, false)
@@ -588,14 +615,15 @@ open class UninitializedApp : Application() {
             0,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or
-                PendingIntent.FLAG_IMMUTABLE // FLAG_IMMUTABLE for Android 12+
-            )
+                PendingIntent.FLAG_IMMUTABLE, // FLAG_IMMUTABLE for Android 12+
+        )
     try {
       pendingIntent.send()
     } catch (foregroundServiceStartException: IllegalStateException) {
       TSLog.e(
           TAG,
-          "startVPN hit ForegroundServiceStartNotAllowedException: $foregroundServiceStartException")
+          "startVPN hit ForegroundServiceStartNotAllowedException: $foregroundServiceStartException",
+      )
     } catch (securityException: SecurityException) {
       TSLog.e(TAG, "startVPN hit SecurityException: $securityException")
     } catch (e: Exception) {
@@ -636,7 +664,7 @@ open class UninitializedApp : Application() {
   fun notifyStatus(
       vpnRunning: Boolean,
       hideDisconnectAction: Boolean,
-      exitNodeName: String? = null
+      exitNodeName: String? = null,
   ) {
     notifyStatus(buildStatusNotification(vpnRunning, hideDisconnectAction, exitNodeName))
   }
@@ -659,7 +687,7 @@ open class UninitializedApp : Application() {
   fun buildStatusNotification(
       vpnRunning: Boolean,
       hideDisconnectAction: Boolean,
-      exitNodeName: String? = null
+      exitNodeName: String? = null,
   ): Notification {
     val title = getString(if (vpnRunning) R.string.connected else R.string.not_connected)
     val message =
@@ -676,14 +704,19 @@ open class UninitializedApp : Application() {
             this,
             0,
             buttonIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
     val intent =
         Intent(this, MainActivity::class.java).apply {
           flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
     val pendingIntent: PendingIntent =
         PendingIntent.getActivity(
-            this, 1, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+            this,
+            1,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
     val builder =
         NotificationCompat.Builder(this, STATUS_CHANNEL_ID)
             .setSmallIcon(icon)
