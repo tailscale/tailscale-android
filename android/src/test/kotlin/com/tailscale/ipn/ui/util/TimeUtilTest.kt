@@ -1,9 +1,8 @@
 // Copyright (c) Tailscale Inc & AUTHORS
 // SPDX-License-Identifier: BSD-3-Clause
 
-package com.tailcale.ipn.ui.util
+package com.tailscale.ipn.ui.util
 
-import com.tailscale.ipn.ui.util.TimeUtil
 import com.tailscale.ipn.util.TSLog
 import com.tailscale.ipn.util.TSLog.LibtailscaleWrapper
 import java.time.Duration
