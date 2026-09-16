@@ -48,45 +48,51 @@ fun LoginQRView(onDismiss: () -> Unit = {}, model: LoginQRViewModel = viewModel(
                   .background(MaterialTheme.colorScheme.surfaceContainer)
                   .padding(20.dp),
           verticalArrangement = Arrangement.spacedBy(10.dp),
-          horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = stringResource(R.string.scan_to_connect_to_your_tailnet),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center)
+          horizontalAlignment = Alignment.CenterHorizontally,
+      ) {
+        Text(
+            text = stringResource(R.string.scan_to_connect_to_your_tailnet),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center,
+        )
 
-            Box(
-                modifier = Modifier.size(200.dp).background(MaterialTheme.colorScheme.onSurface),
-                contentAlignment = Alignment.Center) {
-                  image?.let {
-                    Image(
-                        bitmap = it,
-                        contentDescription = "Scan to login",
-                        modifier = Modifier.fillMaxSize())
-                  }
-                }
-            Text(
-                text = stringResource(R.string.enter_code_to_connect_to_tailnet),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface)
-
-            numCode?.let {
-              Box(
-                  modifier =
-                      Modifier.clip(RoundedCornerShape(6.dp))
-                          .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
-                  contentAlignment = Alignment.Center) {
-                    Text(
-                        text = it,
-                        style =
-                            MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurface)
-                  }
-            }
-            Button(onClick = onDismiss, modifier = Modifier.padding(top = 16.dp)) {
-              Text(text = stringResource(R.string.dismiss))
-            }
+        Box(
+            modifier = Modifier.size(200.dp).background(MaterialTheme.colorScheme.onSurface),
+            contentAlignment = Alignment.Center,
+        ) {
+          image?.let {
+            Image(
+                bitmap = it,
+                contentDescription = "Scan to login",
+                modifier = Modifier.fillMaxSize(),
+            )
           }
+        }
+        Text(
+            text = stringResource(R.string.enter_code_to_connect_to_tailnet),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+
+        numCode?.let {
+          Box(
+              modifier =
+                  Modifier.clip(RoundedCornerShape(6.dp))
+                      .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+              contentAlignment = Alignment.Center,
+          ) {
+            Text(
+                text = it,
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+          }
+        }
+        Button(onClick = onDismiss, modifier = Modifier.padding(top = 16.dp)) {
+          Text(text = stringResource(R.string.dismiss))
+        }
+      }
     }
   }
 }

@@ -45,7 +45,7 @@ import com.tailscale.ipn.ui.viewModel.TailnetLockSetupViewModelFactory
 @Composable
 fun TailnetLockSetupView(
     backToSettings: BackNavigation,
-    model: TailnetLockSetupViewModel = viewModel(factory = TailnetLockSetupViewModelFactory())
+    model: TailnetLockSetupViewModel = viewModel(factory = TailnetLockSetupViewModelFactory()),
 ) {
   val statusItems by model.statusItems.collectAsState()
   val nodeKey by model.nodeKey.collectAsState()
@@ -63,14 +63,17 @@ fun TailnetLockSetupView(
               modifier =
                   Modifier.focusable(interactionSource = interactionSource).clickable(
                       interactionSource = interactionSource,
-                      indication = LocalIndication.current) {},
+                      indication = LocalIndication.current,
+                  ) {},
               leadingContent = {
                 Icon(
                     painter = painterResource(id = statusItem.icon),
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
               },
-              headlineContent = { Text(stringResource(statusItem.title)) })
+              headlineContent = { Text(stringResource(statusItem.title)) },
+          )
         }
 
         item {
@@ -79,14 +82,16 @@ fun TailnetLockSetupView(
           ClipboardValueView(
               value = nodeKey,
               title = stringResource(R.string.node_key),
-              subtitle = stringResource(R.string.node_key_explainer))
+              subtitle = stringResource(R.string.node_key_explainer),
+          )
 
           // Tailnet lock key section
           Lists.SectionDivider()
           ClipboardValueView(
               value = tailnetLockTlPubKey,
               title = stringResource(R.string.tailnet_lock_key),
-              subtitle = stringResource(R.string.tailnet_lock_key_explainer))
+              subtitle = stringResource(R.string.tailnet_lock_key_explainer),
+          )
         }
       }
     }
@@ -113,9 +118,11 @@ fun explainerText(): AnnotatedString {
         style =
             SpanStyle(
                 color = MaterialTheme.colorScheme.link,
-                textDecoration = TextDecoration.Underline)) {
-          append(stringResource(id = R.string.learn_more))
-        }
+                textDecoration = TextDecoration.Underline,
+            )
+    ) {
+      append(stringResource(id = R.string.learn_more))
+    }
     pop()
   }
 }

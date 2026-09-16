@@ -28,8 +28,10 @@ object TaildropNotifier {
   }
 
   fun notify(context: Context, pending: PendingInlineShare) {
-    if (ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
-        PackageManager.PERMISSION_GRANTED) {
+    if (
+        ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+    ) {
       TSLog.d(TAG, "POST_NOTIFICATIONS not granted; skipping inline share notification")
       return
     }
@@ -61,7 +63,8 @@ object TaildropNotifier {
             context,
             pending.id.hashCode(),
             tapIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
 
     // Without a delete intent a swipe-away is invisible to us, leaving the inbox entry
     // (and, for URLs, the file) behind.
@@ -76,7 +79,8 @@ object TaildropNotifier {
             context,
             "dismiss-${pending.id}".hashCode(),
             dismissIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
 
     val notification =
         NotificationCompat.Builder(context, App.FILE_CHANNEL_ID)

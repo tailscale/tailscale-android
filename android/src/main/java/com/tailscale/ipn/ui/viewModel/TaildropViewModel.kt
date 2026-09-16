@@ -37,7 +37,7 @@ import kotlinx.coroutines.launch
 
 class TaildropViewModelFactory(
     private val requestedTransfers: StateFlow<List<Ipn.OutgoingFile>>,
-    private val applicationScope: CoroutineScope
+    private val applicationScope: CoroutineScope,
 ) : ViewModelProvider.Factory {
   @Suppress("UNCHECKED_CAST")
   override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -47,14 +47,14 @@ class TaildropViewModelFactory(
 
 class TaildropViewModel(
     private val requestedTransfers: StateFlow<List<Ipn.OutgoingFile>>,
-    private val applicationScope: CoroutineScope
+    private val applicationScope: CoroutineScope,
 ) : IpnViewModel() {
 
   // Represents the state of a file transfer
   enum class TransferState {
     SENDING,
     SENT,
-    FAILED
+    FAILED,
   }
 
   // The overall VPN state
@@ -140,13 +140,12 @@ class TaildropViewModel(
   // Re-polls fileTargets so the device list updates as peers come online.
   private fun startPeriodicTargetRefresh() {
     refreshJob?.cancel()
-    refreshJob =
-        viewModelScope.launch {
-          while (true) {
-            loadTargets()
-            delay(refreshIntervalMs)
-          }
-        }
+    refreshJob = viewModelScope.launch {
+      while (true) {
+        loadTargets()
+        delay(refreshIntervalMs)
+      }
+    }
   }
 
   // Loads valid fileTargets from localAPI and splits into recent vs other.
@@ -161,7 +160,8 @@ class TaildropViewModel(
             val onlineFirst =
                 other.sortedWith(
                     compareByDescending<Tailcfg.Node> { it.Online ?: false }
-                        .thenBy { (it.ComputedName ?: it.Name).lowercase() })
+                        .thenBy { (it.ComputedName ?: it.Name).lowercase() }
+                )
             recentPeers.set(recent)
             otherPeers.set(onlineFirst)
           }
@@ -185,7 +185,8 @@ class TaildropViewModel(
           val progress = progress(transfers)
           Text(
               stringResource(id = R.string.taildrop_sending),
-              style = MaterialTheme.typography.bodyMedium)
+              style = MaterialTheme.typography.bodyMedium,
+          )
           ActivityIndicator(progress, 60)
         }
         TransferState.SENT -> CheckedIndicator()

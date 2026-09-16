@@ -100,7 +100,7 @@ class IpnState {
       var NodeKeySigned: Boolean? = null,
       var FilteredPeers: List<TKAFilteredPeer>? = null,
       var StateID: ULong? = null,
-      var TrustedKeys: List<TKAKey>? = null
+      var TrustedKeys: List<TKAKey>? = null,
   ) {
 
     fun IsPublicKeyTrusted(): Boolean {

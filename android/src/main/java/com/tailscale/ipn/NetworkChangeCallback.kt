@@ -24,13 +24,9 @@ internal data class NetworkCandidate<T>(
 
 internal fun <T> pickPreferredNetwork(candidates: List<NetworkCandidate<T>>): T? {
   fun pick(requireValidated: Boolean, requireDNS: Boolean): T? {
-    val matching =
-        candidates.filter {
-          it.internet &&
-              it.notVpn &&
-              (!requireValidated || it.validated) &&
-              (!requireDNS || it.hasDns)
-        }
+    val matching = candidates.filter {
+      it.internet && it.notVpn && (!requireValidated || it.validated) && (!requireDNS || it.hasDns)
+    }
 
     return matching.firstOrNull { it.nonMetered }?.value ?: matching.firstOrNull()?.value
   }
@@ -141,7 +137,8 @@ object NetworkChangeCallback {
               maybeUpdateDNSConfig("onLost", dns)
             }
           }
-        })
+        },
+    )
   }
 
   // pickDefaultNetwork returns a non-VPN network to use as the 'default'
@@ -170,7 +167,8 @@ object NetworkChangeCallback {
               hasDns = info.linkProps.dnsServers.isNotEmpty(),
               nonMetered = info.caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED),
           )
-        })
+        }
+    )
   }
 
   // Update cached default network + log interface name. Return whether or not default network

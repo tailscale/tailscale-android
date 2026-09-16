@@ -51,70 +51,81 @@ fun SubnetRoutingView(backToSettings: BackNavigation, model: SubnetRoutingViewMo
               IconButton(onClick = { uriHandler.openUri(SUBNET_ROUTERS_KB_URL) }) {
                 Icon(
                     painter = painterResource(R.drawable.info),
-                    contentDescription = stringResource(R.string.open_kb_article))
+                    contentDescription = stringResource(R.string.open_kb_article),
+                )
               }
-            })
-      }) { innerPadding ->
-        LoadingIndicator.Wrap {
-          LazyColumn(modifier = Modifier.padding(innerPadding)) {
-            currentError?.let {
-              item("error") {
-                ErrorDialog(
-                    title = R.string.failed_to_save,
-                    message = it,
-                    onDismiss = { model.onErrorDismissed() })
-              }
-            }
-            item("subnetsToggle") {
-              Setting.Switch(
-                  R.string.use_tailscale_subnets,
-                  isOn = useSubnets,
-                  onToggle = {
-                    LoadingIndicator.start()
-                    model.toggleUseSubnets { LoadingIndicator.stop() }
-                  })
-            }
-            item("subtitle") {
-              ListItem(
-                  headlineContent = {
-                    Text(
-                        stringResource(R.string.use_tailscale_subnets_subtitle),
-                        modifier = Modifier.padding(bottom = 8.dp))
-                  })
-            }
-            item("divider0") { Lists.SectionDivider() }
-            item(key = "header") {
-              Lists.MutedHeader(stringResource(R.string.advertised_routes))
-              ListItem(
-                  headlineContent = {
-                    Text(
-                        stringResource(R.string.run_as_subnet_router_header),
-                        modifier = Modifier.padding(vertical = 8.dp))
-                  })
-            }
-
-            itemsWithDividers(subnetRoutes, key = { it }) {
-              SubnetRouteRowView(
-                  route = it,
-                  onEdit = { model.startEditingRoute(it) },
-                  onDelete = { model.deleteRoute(it) },
-                  modifier = Modifier.animateItem())
-            }
-
-            item("addNewRoute") {
-              Lists.ItemDivider()
-              ListItem(
-                  headlineContent = {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                      Icon(Icons.Outlined.Add, contentDescription = null)
-                      Text(stringResource(R.string.add_new_route))
-                    }
-                  },
-                  modifier = Modifier.clickable { model.startEditingRoute("") })
-            }
+            },
+        )
+      }
+  ) { innerPadding ->
+    LoadingIndicator.Wrap {
+      LazyColumn(modifier = Modifier.padding(innerPadding)) {
+        currentError?.let {
+          item("error") {
+            ErrorDialog(
+                title = R.string.failed_to_save,
+                message = it,
+                onDismiss = { model.onErrorDismissed() },
+            )
           }
         }
+        item("subnetsToggle") {
+          Setting.Switch(
+              R.string.use_tailscale_subnets,
+              isOn = useSubnets,
+              onToggle = {
+                LoadingIndicator.start()
+                model.toggleUseSubnets { LoadingIndicator.stop() }
+              },
+          )
+        }
+        item("subtitle") {
+          ListItem(
+              headlineContent = {
+                Text(
+                    stringResource(R.string.use_tailscale_subnets_subtitle),
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
+              }
+          )
+        }
+        item("divider0") { Lists.SectionDivider() }
+        item(key = "header") {
+          Lists.MutedHeader(stringResource(R.string.advertised_routes))
+          ListItem(
+              headlineContent = {
+                Text(
+                    stringResource(R.string.run_as_subnet_router_header),
+                    modifier = Modifier.padding(vertical = 8.dp),
+                )
+              }
+          )
+        }
+
+        itemsWithDividers(subnetRoutes, key = { it }) {
+          SubnetRouteRowView(
+              route = it,
+              onEdit = { model.startEditingRoute(it) },
+              onDelete = { model.deleteRoute(it) },
+              modifier = Modifier.animateItem(),
+          )
+        }
+
+        item("addNewRoute") {
+          Lists.ItemDivider()
+          ListItem(
+              headlineContent = {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                  Icon(Icons.Outlined.Add, contentDescription = null)
+                  Text(stringResource(R.string.add_new_route))
+                }
+              },
+              modifier = Modifier.clickable { model.startEditingRoute("") },
+          )
+        }
       }
+    }
+  }
 
   if (isPresentingDialog) {
     Dialog(onDismissRequest = { model.isPresentingDialog.set(false) }) {
@@ -124,7 +135,8 @@ fun SubnetRoutingView(backToSettings: BackNavigation, model: SubnetRoutingViewMo
             isValueValidFlow = model.isTextFieldValueValid,
             onValueChange = { model.dialogTextFieldValue.set(it) },
             onCommit = { model.doneEditingRoute(newValue = it) },
-            onCancel = { model.stopEditingRoute() })
+            onCancel = { model.stopEditingRoute() },
+        )
       }
     }
   }

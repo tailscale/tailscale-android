@@ -14,7 +14,7 @@ class Netmap {
       var UserProfiles: Map<String, Tailcfg.UserProfile>,
       var TKAEnabled: Boolean,
       var DNS: Tailcfg.DNSConfig? = null,
-      var AllCaps: List<String> = emptyList()
+      var AllCaps: List<String> = emptyList(),
   ) {
     // Keys are tailcfg.UserIDs thet get stringified
     // Helpers

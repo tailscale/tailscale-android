@@ -51,7 +51,7 @@ import com.tailscale.ipn.ui.viewModel.SettingsViewModel
 fun SettingsView(
     settingsNav: SettingsNav,
     viewModel: SettingsViewModel = viewModel(),
-    appViewModel: AppViewModel = viewModel()
+    appViewModel: AppViewModel = viewModel(),
 ) {
   val handler = LocalUriHandler.current
 
@@ -69,98 +69,108 @@ fun SettingsView(
   Scaffold(
       topBar = {
         Header(titleRes = R.string.settings_title, onBack = settingsNav.onNavigateBackHome)
-      }) { innerPadding ->
-        Column(modifier = Modifier.padding(innerPadding).verticalScroll(rememberScrollState())) {
-          if (isVPNPrepared) {
-            UserView(
-                profile = user,
-                actionState = UserActionState.NAV,
-                onClick = settingsNav.onNavigateToUserSwitcher)
-          }
-
-          if (isAdmin && !isAndroidTV()) {
-            Lists.ItemDivider()
-            AdminTextView { handler.openUri(Links.ADMIN_URL) }
-          }
-
-          Lists.SectionDivider()
-          Setting.Text(
-              R.string.dns_settings,
-              subtitle =
-                  corpDNSEnabled?.let {
-                    stringResource(
-                        if (it) R.string.using_tailscale_dns else R.string.not_using_tailscale_dns)
-                  },
-              onClick = settingsNav.onNavigateToDNSSettings)
-
-          Lists.ItemDivider()
-          Setting.Text(
-              R.string.split_tunneling,
-              subtitle = stringResource(R.string.filter_apps_allowed_to_access_tailscale),
-              onClick = settingsNav.onNavigateToSplitTunneling)
-
-          if (showTailnetLock.value == ShowHide.Show) {
-            Lists.ItemDivider()
-            Setting.Text(
-                R.string.tailnet_lock,
-                subtitle =
-                    tailnetLockEnabled?.let {
-                      stringResource(if (it) R.string.enabled else R.string.disabled)
-                    },
-                onClick = settingsNav.onNavigateToTailnetLock)
-          }
-          if (useTailscaleSubnets.value == AlwaysNeverUserDecides.UserDecides) {
-            Lists.ItemDivider()
-            Setting.Text(R.string.subnet_routing, onClick = settingsNav.onNavigateToSubnetRouting)
-          }
-
-          Lists.ItemDivider()
-          Setting.Switch(
-              R.string.client_remote_logging_enabled,
-              subtitle =
-                  stringResource(
-                      if (MDMSettings.isMDMConfigured)
-                          R.string.client_remote_logging_enabled_subtitle_mdm
-                      else R.string.client_remote_logging_enabled_subtitle),
-              isOn = isClientRemoteLoggingEnabled,
-              enabled = !MDMSettings.isMDMConfigured,
-              onToggle = {
-                if (isClientRemoteLoggingEnabled) {
-                  showDisableLoggingDialog = true
-                } else {
-                  viewModel.toggleIsClientRemoteLoggingEnabled()
-                }
-              })
-
-          if (!AndroidTVUtil.isAndroidTV()) {
-            Lists.ItemDivider()
-            Setting.Text(R.string.permissions, onClick = settingsNav.onNavigateToPermissions)
-          }
-
-          managedByOrganization.value?.let {
-            Lists.ItemDivider()
-            Setting.Text(
-                title = stringResource(R.string.managed_by_orgName, it),
-                onClick = settingsNav.onNavigateToManagedBy)
-          }
-
-          Lists.SectionDivider()
-          Setting.Text(R.string.bug_report, onClick = settingsNav.onNavigateToBugReport)
-
-          Lists.ItemDivider()
-          Setting.Text(
-              R.string.about_tailscale,
-              subtitle = "${stringResource(id = R.string.version)} ${AppVersion.Short()}",
-              onClick = settingsNav.onNavigateToAbout)
-
-          // TODO: put a heading for the debug section
-          if (BuildConfig.DEBUG) {
-            Lists.SectionDivider()
-            Lists.MutedHeader(text = stringResource(R.string.internal_debug_options))
-            Setting.Text(R.string.mdm_settings, onClick = settingsNav.onNavigateToMDMSettings)
-          }
-        }
       }
+  ) { innerPadding ->
+    Column(modifier = Modifier.padding(innerPadding).verticalScroll(rememberScrollState())) {
+      if (isVPNPrepared) {
+        UserView(
+            profile = user,
+            actionState = UserActionState.NAV,
+            onClick = settingsNav.onNavigateToUserSwitcher,
+        )
+      }
+
+      if (isAdmin && !isAndroidTV()) {
+        Lists.ItemDivider()
+        AdminTextView { handler.openUri(Links.ADMIN_URL) }
+      }
+
+      Lists.SectionDivider()
+      Setting.Text(
+          R.string.dns_settings,
+          subtitle =
+              corpDNSEnabled?.let {
+                stringResource(
+                    if (it) R.string.using_tailscale_dns else R.string.not_using_tailscale_dns
+                )
+              },
+          onClick = settingsNav.onNavigateToDNSSettings,
+      )
+
+      Lists.ItemDivider()
+      Setting.Text(
+          R.string.split_tunneling,
+          subtitle = stringResource(R.string.filter_apps_allowed_to_access_tailscale),
+          onClick = settingsNav.onNavigateToSplitTunneling,
+      )
+
+      if (showTailnetLock.value == ShowHide.Show) {
+        Lists.ItemDivider()
+        Setting.Text(
+            R.string.tailnet_lock,
+            subtitle =
+                tailnetLockEnabled?.let {
+                  stringResource(if (it) R.string.enabled else R.string.disabled)
+                },
+            onClick = settingsNav.onNavigateToTailnetLock,
+        )
+      }
+      if (useTailscaleSubnets.value == AlwaysNeverUserDecides.UserDecides) {
+        Lists.ItemDivider()
+        Setting.Text(R.string.subnet_routing, onClick = settingsNav.onNavigateToSubnetRouting)
+      }
+
+      Lists.ItemDivider()
+      Setting.Switch(
+          R.string.client_remote_logging_enabled,
+          subtitle =
+              stringResource(
+                  if (MDMSettings.isMDMConfigured)
+                      R.string.client_remote_logging_enabled_subtitle_mdm
+                  else R.string.client_remote_logging_enabled_subtitle
+              ),
+          isOn = isClientRemoteLoggingEnabled,
+          enabled = !MDMSettings.isMDMConfigured,
+          onToggle = {
+            if (isClientRemoteLoggingEnabled) {
+              showDisableLoggingDialog = true
+            } else {
+              viewModel.toggleIsClientRemoteLoggingEnabled()
+            }
+          },
+      )
+
+      if (!AndroidTVUtil.isAndroidTV()) {
+        Lists.ItemDivider()
+        Setting.Text(R.string.permissions, onClick = settingsNav.onNavigateToPermissions)
+      }
+
+      managedByOrganization.value?.let {
+        Lists.ItemDivider()
+        Setting.Text(
+            title = stringResource(R.string.managed_by_orgName, it),
+            onClick = settingsNav.onNavigateToManagedBy,
+        )
+      }
+
+      Lists.SectionDivider()
+      Setting.Text(R.string.bug_report, onClick = settingsNav.onNavigateToBugReport)
+
+      Lists.ItemDivider()
+      Setting.Text(
+          R.string.about_tailscale,
+          subtitle = "${stringResource(id = R.string.version)} ${AppVersion.Short()}",
+          onClick = settingsNav.onNavigateToAbout,
+      )
+
+      // TODO: put a heading for the debug section
+      if (BuildConfig.DEBUG) {
+        Lists.SectionDivider()
+        Lists.MutedHeader(text = stringResource(R.string.internal_debug_options))
+        Setting.Text(R.string.mdm_settings, onClick = settingsNav.onNavigateToMDMSettings)
+      }
+    }
+  }
 
   if (showDisableLoggingDialog) {
     AlertDialog(
@@ -172,17 +182,20 @@ fun SettingsView(
               onClick = {
                 showDisableLoggingDialog = false
                 viewModel.toggleIsClientRemoteLoggingEnabled()
-              }) {
-                Text(
-                    stringResource(R.string.client_remote_logging_disable_confirm_button),
-                    color = MaterialTheme.colorScheme.error)
               }
+          ) {
+            Text(
+                stringResource(R.string.client_remote_logging_disable_confirm_button),
+                color = MaterialTheme.colorScheme.error,
+            )
+          }
         },
         dismissButton = {
           TextButton(onClick = { showDisableLoggingDialog = false }) {
             Text(stringResource(R.string.cancel))
           }
-        })
+        },
+    )
   }
 }
 
@@ -194,7 +207,7 @@ object Setting {
       subtitle: String? = null,
       destructive: Boolean = false,
       enabled: Boolean = true,
-      onClick: (() -> Unit)? = null
+      onClick: (() -> Unit)? = null,
   ) {
     var modifier: Modifier = Modifier
     if (enabled) {
@@ -207,7 +220,8 @@ object Setting {
           Text(
               title ?: stringResource(titleRes),
               style = MaterialTheme.typography.bodyMedium,
-              color = if (destructive) MaterialTheme.colorScheme.error else Color.Unspecified)
+              color = if (destructive) MaterialTheme.colorScheme.error else Color.Unspecified,
+          )
         },
         supportingContent =
             subtitle?.let {
@@ -215,9 +229,11 @@ object Setting {
                 Text(
                     it,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
               }
-            })
+            },
+    )
   }
 
   @Composable
@@ -227,7 +243,7 @@ object Setting {
       subtitle: String? = null,
       isOn: Boolean,
       enabled: Boolean = true,
-      onToggle: (Boolean) -> Unit = {}
+      onToggle: (Boolean) -> Unit = {},
   ) {
     ListItem(
         colors = MaterialTheme.colorScheme.listItem,
@@ -243,12 +259,14 @@ object Setting {
                 Text(
                     it,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
               }
             },
         trailingContent = {
           TintedSwitch(checked = isOn, onCheckedChange = onToggle, enabled = enabled)
-        })
+        },
+    )
   }
 }
 
@@ -262,9 +280,11 @@ fun AdminTextView(onNavigateToAdminConsole: () -> Unit) {
         style =
             SpanStyle(
                 color = MaterialTheme.colorScheme.link,
-                textDecoration = TextDecoration.Underline)) {
-          append(stringResource(id = R.string.settings_admin_link))
-        }
+                textDecoration = TextDecoration.Underline,
+            )
+    ) {
+      append(stringResource(id = R.string.settings_admin_link))
+    }
   }
 
   Lists.InfoItem(adminStr, onClick = onNavigateToAdminConsole)

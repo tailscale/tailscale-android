@@ -58,26 +58,31 @@ fun HealthView(backToSettings: BackNavigation, model: HealthViewModel = viewMode
           Column(
               horizontalAlignment = Alignment.CenterHorizontally,
               verticalArrangement = Arrangement.spacedBy(16.dp, alignment = Alignment.Top),
-              modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)) {
-                Icon(
-                    painter = painterResource(id = R.drawable.check_circle),
-                    modifier = Modifier.size(48.dp),
-                    contentDescription = "A green checkmark",
-                    tint = MaterialTheme.colorScheme.success)
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement =
-                        Arrangement.spacedBy(2.dp, alignment = Alignment.CenterVertically),
-                    modifier = Modifier.fillMaxWidth()) {
-                      Text(
-                          text = stringResource(R.string.no_issues_found),
-                          fontSize = MaterialTheme.typography.titleMedium.fontSize,
-                          fontWeight = MaterialTheme.typography.titleMedium.fontWeight)
-                      Text(
-                          text = stringResource(R.string.tailscale_is_operating_normally),
-                          color = MaterialTheme.colorScheme.secondary)
-                    }
-              }
+              modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+          ) {
+            Icon(
+                painter = painterResource(id = R.drawable.check_circle),
+                modifier = Modifier.size(48.dp),
+                contentDescription = "A green checkmark",
+                tint = MaterialTheme.colorScheme.success,
+            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement =
+                    Arrangement.spacedBy(2.dp, alignment = Alignment.CenterVertically),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+              Text(
+                  text = stringResource(R.string.no_issues_found),
+                  fontSize = MaterialTheme.typography.titleMedium.fontSize,
+                  fontWeight = MaterialTheme.typography.titleMedium.fontWeight,
+              )
+              Text(
+                  text = stringResource(R.string.tailscale_is_operating_normally),
+                  color = MaterialTheme.colorScheme.secondary,
+              )
+            }
+          }
         }
       }
 
@@ -107,38 +112,39 @@ fun HealthWarningView(warning: Health.UnhealthyState) {
         modifier =
             Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp)
                 .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
-                .fillMaxWidth()) {
-          ListItem(
-              modifier = itemModifier,
-              colors = warning.Severity.listItemColors(),
-              headlineContent = {
-                if (warning.Title.isNotEmpty()) {
-                  Text(
-                      warning.Title,
-                      style = MaterialTheme.typography.titleMedium,
-                  )
-                }
-              },
-              supportingContent = {
-                Text(warning.Text, style = MaterialTheme.typography.bodyMedium)
-              })
+                .fillMaxWidth()
+    ) {
+      ListItem(
+          modifier = itemModifier,
+          colors = warning.Severity.listItemColors(),
+          headlineContent = {
+            if (warning.Title.isNotEmpty()) {
+              Text(
+                  warning.Title,
+                  style = MaterialTheme.typography.titleMedium,
+              )
+            }
+          },
+          supportingContent = { Text(warning.Text, style = MaterialTheme.typography.bodyMedium) },
+      )
 
-          // Copy for now; KB-page links to follow.
-          DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-            DropdownMenuItem(
-                leadingIcon = {
-                  Icon(painter = painterResource(R.drawable.clipboard), contentDescription = null)
-                },
-                text = { Text(text = stringResource(R.string.copy)) },
-                onClick = {
-                  localClipboardManager.setText(AnnotatedString(warning.clipboardText))
-                  // Android 13+ shows its own copy confirmation.
-                  if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-                    Toast.makeText(context, copiedText, Toast.LENGTH_SHORT).show()
-                  }
-                  menuExpanded = false
-                })
-          }
-        }
+      // Copy for now; KB-page links to follow.
+      DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+        DropdownMenuItem(
+            leadingIcon = {
+              Icon(painter = painterResource(R.drawable.clipboard), contentDescription = null)
+            },
+            text = { Text(text = stringResource(R.string.copy)) },
+            onClick = {
+              localClipboardManager.setText(AnnotatedString(warning.clipboardText))
+              // Android 13+ shows its own copy confirmation.
+              if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                Toast.makeText(context, copiedText, Toast.LENGTH_SHORT).show()
+              }
+              menuExpanded = false
+            },
+        )
+      }
+    }
   }
 }

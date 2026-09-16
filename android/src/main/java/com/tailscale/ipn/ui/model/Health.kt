@@ -77,7 +77,8 @@ class Health {
                 trailingIconColor = MaterialTheme.colorScheme.secondary,
                 disabledHeadlineColor = default.disabledHeadlineColor,
                 disabledLeadingIconColor = default.disabledLeadingIconColor,
-                disabledTrailingIconColor = default.disabledTrailingIconColor)
+                disabledTrailingIconColor = default.disabledTrailingIconColor,
+            )
         Severity.medium,
         Severity.high ->
             ListItemColors(
@@ -89,7 +90,8 @@ class Health {
                 trailingIconColor = MaterialTheme.colorScheme.onPrimary,
                 disabledHeadlineColor = default.disabledHeadlineColor,
                 disabledLeadingIconColor = default.disabledLeadingIconColor,
-                disabledTrailingIconColor = default.disabledTrailingIconColor)
+                disabledTrailingIconColor = default.disabledTrailingIconColor,
+            )
       }
     }
   }

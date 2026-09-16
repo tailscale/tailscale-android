@@ -30,7 +30,7 @@ fun PeerView(
     stateVal: Ipn.State? = null,
     subtitle: () -> String = { peer.primaryIPv4Address ?: peer.primaryIPv6Address ?: "" },
     onClick: (Tailcfg.Node) -> Unit = {},
-    trailingContent: @Composable () -> Unit = {}
+    trailingContent: @Composable () -> Unit = {},
 ) {
   val disabled = !(peer.Online ?: false)
   val textColor = if (disabled) MaterialTheme.colorScheme.onSurfaceVariant else Color.Unspecified
@@ -51,16 +51,19 @@ fun PeerView(
           Box(
               modifier =
                   Modifier.size(8.dp)
-                      .background(color = color, shape = RoundedCornerShape(percent = 50))) {}
+                      .background(color = color, shape = RoundedCornerShape(percent = 50))
+          ) {}
           Spacer(modifier = Modifier.size(8.dp))
           Text(
               text = peer.displayName,
               style = MaterialTheme.typography.titleMedium,
-              color = textColor)
+              color = textColor,
+          )
         }
       },
       supportingContent = {
         Text(text = subtitle(), style = MaterialTheme.typography.bodyMedium, color = textColor)
       },
-      trailingContent = trailingContent)
+      trailingContent = trailingContent,
+  )
 }

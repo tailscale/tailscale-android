@@ -54,10 +54,14 @@ object LoadingIndicator {
         if (showSpinner.value) {
           Column(
               modifier = Modifier.fillMaxWidth(),
-              horizontalAlignment = Alignment.CenterHorizontally) {
-                TailscaleLogoView(
-                    true, usesOnBackgroundColors = false, Modifier.size(72.dp).alpha(0.4f))
-              }
+              horizontalAlignment = Alignment.CenterHorizontally,
+          ) {
+            TailscaleLogoView(
+                true,
+                usesOnBackgroundColors = false,
+                Modifier.size(72.dp).alpha(0.4f),
+            )
+          }
         }
       }
     }

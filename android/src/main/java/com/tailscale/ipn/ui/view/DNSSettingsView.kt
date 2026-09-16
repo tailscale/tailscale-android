@@ -40,7 +40,7 @@ data class ViewableRoute(val name: String, val resolvers: List<DnsType.Resolver>
 @Composable
 fun DNSSettingsView(
     backToSettings: BackNavigation,
-    model: DNSSettingsViewModel = viewModel(factory = DNSSettingsViewModelFactory())
+    model: DNSSettingsViewModel = viewModel(factory = DNSSettingsViewModelFactory()),
 ) {
   val state: DNSEnablementState by model.enablementState.collectAsState()
   val resolvers = model.dnsConfig.collectAsState().value?.Resolvers ?: emptyList()
@@ -62,12 +62,14 @@ fun DNSSettingsView(
                     painter = painterResource(state.symbolDrawable),
                     contentDescription = null,
                     tint = state.tint(),
-                    modifier = Modifier.size(36.dp))
+                    modifier = Modifier.size(36.dp),
+                )
               },
               headlineContent = {
                 Text(stringResource(state.title), style = MaterialTheme.typography.titleMedium)
               },
-              supportingContent = { Text(stringResource(state.caption)) })
+              supportingContent = { Text(stringResource(state.caption)) },
+          )
 
           if (!dnsSettingsMDMDisposition.value.hiddenFromUser) {
             Lists.ItemDivider()
@@ -77,7 +79,8 @@ fun DNSSettingsView(
                 onToggle = {
                   LoadingIndicator.start()
                   model.toggleCorpDNS { LoadingIndicator.stop() }
-                })
+                },
+            )
           }
         }
 

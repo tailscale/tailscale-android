@@ -27,7 +27,7 @@ class Tailcfg {
       var UrgentSecurityUpdate: Boolean? = null,
       var Notify: Boolean? = null,
       var NotifyURL: String? = null,
-      var NotifyText: String? = null
+      var NotifyText: String? = null,
   )
 
   @Serializable
@@ -84,7 +84,7 @@ class Tailcfg {
       var Capabilities: List<String>? = null,
       var CapMap: Map<String, JsonElement?>? = null,
       var ComputedName: String? = null,
-      var ComputedNameWithHost: String? = null
+      var ComputedNameWithHost: String? = null,
   ) {
     val isAdmin: Boolean
       get() =
@@ -118,10 +118,12 @@ class Tailcfg {
 
     val exitNodeName: String
       get() {
-        if (isMullvadNode &&
-            Hostinfo.Location?.Country != null &&
-            Hostinfo.Location?.City != null &&
-            Hostinfo.Location?.CountryCode != null) {
+        if (
+            isMullvadNode &&
+                Hostinfo.Location?.Country != null &&
+                Hostinfo.Location?.City != null &&
+                Hostinfo.Location?.CountryCode != null
+        ) {
           return "${Hostinfo.Location!!.CountryCode!!.flag()} ${Hostinfo.Location!!.Country!!}: ${Hostinfo.Location!!.City!!}"
         }
         return displayName
@@ -163,7 +165,10 @@ class Tailcfg {
         if (keyDoesNotExpire) {
           result.add(
               PeerSettingInfo(
-                  R.string.key_expiry, ComposableStringFormatter(R.string.deviceKeyNeverExpires)))
+                  R.string.key_expiry,
+                  ComposableStringFormatter(R.string.deviceKeyNeverExpires),
+              )
+          )
         } else {
           result.add(PeerSettingInfo(R.string.key_expiry, TimeUtil.keyExpiryFromGoTime(KeyExpiry)))
         }
@@ -192,7 +197,7 @@ class Tailcfg {
   data class NetworkProfile(
       var MagicDNSName: String? = null,
       var DomainName: String? = null,
-      var DisplayName: String? = null
+      var DisplayName: String? = null,
   ) {
     fun tailnetNameForDisplay(): String? {
       return DisplayName?.takeIf { it.isNotEmpty() } ?: DomainName
@@ -205,7 +210,7 @@ class Tailcfg {
       var CountryCode: String? = null,
       var City: String? = null,
       var CityCode: String? = null,
-      var Priority: Int? = null
+      var Priority: Int? = null,
   )
 
   @Serializable
@@ -214,6 +219,6 @@ class Tailcfg {
       var Routes: Map<String, List<DnsType.Resolver>?>? = null,
       var FallbackResolvers: List<DnsType.Resolver>? = null,
       var Domains: List<String>? = null,
-      var Nameservers: List<Addr>? = null
+      var Nameservers: List<Addr>? = null,
   )
 }

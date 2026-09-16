@@ -12,7 +12,7 @@ import com.tailscale.ipn.ui.model.UserID
 data class PeerSet(
     val userID: UserID,
     val user: Tailcfg.UserProfile?,
-    val peers: List<Tailcfg.Node>
+    val peers: List<Tailcfg.Node>,
 )
 
 class PeerCategorizer {
@@ -33,27 +33,29 @@ class PeerCategorizer {
         duplicateStableIDs.isEmpty() &&
             duplicateNodeIDs.isEmpty() &&
             !selfInPeersByStableID &&
-            !selfInPeersByNodeID) {
-          buildString {
-            append("Invalid PeerCategorizer input")
-            append("; peers=${peers.size}")
-            append("; selfNodeID=${selfNode.ID}")
-            append("; selfStableID=${selfNode.StableID}")
-            append("; duplicateStableIDs=${duplicateStableIDs.keys}")
-            append("; duplicateNodeIDs=${duplicateNodeIDs.keys}")
-            append("; selfInPeersByStableID=$selfInPeersByStableID")
-            append("; selfInPeersByNodeID=$selfInPeersByNodeID")
-            if (duplicateStableIDs.isNotEmpty()) {
-              append("; entries=")
-              append(
-                  duplicateStableIDs.entries.joinToString("|") { (stableID, nodes) ->
-                    "$stableID=[" +
-                        nodes.joinToString(",") { node -> "nodeID=${node.ID}/user=${node.User}" } +
-                        "]"
-                  })
-            }
-          }
+            !selfInPeersByNodeID
+    ) {
+      buildString {
+        append("Invalid PeerCategorizer input")
+        append("; peers=${peers.size}")
+        append("; selfNodeID=${selfNode.ID}")
+        append("; selfStableID=${selfNode.StableID}")
+        append("; duplicateStableIDs=${duplicateStableIDs.keys}")
+        append("; duplicateNodeIDs=${duplicateNodeIDs.keys}")
+        append("; selfInPeersByStableID=$selfInPeersByStableID")
+        append("; selfInPeersByNodeID=$selfInPeersByNodeID")
+        if (duplicateStableIDs.isNotEmpty()) {
+          append("; entries=")
+          append(
+              duplicateStableIDs.entries.joinToString("|") { (stableID, nodes) ->
+                "$stableID=[" +
+                    nodes.joinToString(",") { node -> "nodeID=${node.ID}/user=${node.User}" } +
+                    "]"
+              }
+          )
         }
+      }
+    }
 
     var grouped = mutableMapOf<UserID, MutableList<Tailcfg.Node>>()
 
@@ -106,9 +108,11 @@ class PeerCategorizer {
                       b.isSelfNode(netmap) -> 1
                       else ->
                           (a.ComputedName?.lowercase() ?: "").compareTo(
-                              b.ComputedName?.lowercase() ?: "")
+                              b.ComputedName?.lowercase() ?: ""
+                          )
                     }
-                  })
+                  },
+              )
             }
             .sortedBy {
               if (it.user?.ID == me?.ID) {
@@ -147,11 +151,10 @@ class PeerCategorizer {
                 return@map peerSet
               }
 
-              val matchingPeers =
-                  peers.filter {
-                    it.displayName.contains(searchTerm, ignoreCase = true) ||
-                        (it.Addresses ?: emptyList()).fastAny { addr -> addr.contains(searchTerm) }
-                  }
+              val matchingPeers = peers.filter {
+                it.displayName.contains(searchTerm, ignoreCase = true) ||
+                    (it.Addresses ?: emptyList()).fastAny { addr -> addr.contains(searchTerm) }
+              }
               if (matchingPeers.isNotEmpty()) {
                 PeerSet(peerSet.userID, user, matchingPeers)
               } else {

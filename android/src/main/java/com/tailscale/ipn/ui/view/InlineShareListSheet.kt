@@ -45,15 +45,17 @@ fun InlineShareListSheet(viewModel: PendingTaildropViewModel) {
   Column(modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-          Text(
-              text = stringResource(R.string.taildrop_received_sheet_title),
-              style = MaterialTheme.typography.titleMedium,
-              modifier = Modifier.weight(1f))
-          TextButton(onClick = { viewModel.isPresentingPendingItemsList.value = false }) {
-            Text(text = stringResource(R.string.taildrop_done))
-          }
-        }
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+    ) {
+      Text(
+          text = stringResource(R.string.taildrop_received_sheet_title),
+          style = MaterialTheme.typography.titleMedium,
+          modifier = Modifier.weight(1f),
+      )
+      TextButton(onClick = { viewModel.isPresentingPendingItemsList.value = false }) {
+        Text(text = stringResource(R.string.taildrop_done))
+      }
+    }
 
     HorizontalDivider()
 
@@ -64,7 +66,8 @@ fun InlineShareListSheet(viewModel: PendingTaildropViewModel) {
               item = item,
               onConsume = { viewModel.consume(context, item) },
               onDismiss = { viewModel.dismiss(context, item) },
-              onOpenFolder = { viewModel.openTaildropFolder(context) })
+              onOpenFolder = { viewModel.openTaildropFolder(context) },
+          )
           if (index < items.size - 1) HorizontalDivider()
         }
       }

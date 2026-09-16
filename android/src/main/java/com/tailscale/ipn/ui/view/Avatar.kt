@@ -41,7 +41,7 @@ fun Avatar(
     profile: IpnLocal.LoginProfile?,
     size: Int = 50,
     action: (() -> Unit)? = null,
-    isFocusable: Boolean = false
+    isFocusable: Boolean = false,
 ) {
   val isFocused = remember { mutableStateOf(false) }
   val focusManager = LocalFocusManager.current
@@ -56,7 +56,8 @@ fun Avatar(
                   AndroidTVUtil.isAndroidTV() && isFocusable,
                   {
                     size((size * 1.5f).dp) // Focusable area is larger than the avatar
-                  })
+                  },
+              )
               .clip(CircleShape) // Ensure both the focus and click area are circular
               .background(
                   if (isFocused.value) MaterialTheme.colorScheme.surface else Color.Transparent,
@@ -69,35 +70,41 @@ fun Avatar(
                   onClick = {
                     action?.invoke()
                     focusManager.clearFocus() // Clear focus after clicking the avatar
-                  })) {
-        // Inner Box to hold the avatar content (Icon or AsyncImage)
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.size(size.dp).clip(CircleShape)) {
-              // Always display the default icon as a background layer
-              if (!isIconLoaded.value) {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = stringResource(R.string.settings_title),
-                    modifier =
-                        Modifier.conditional(
-                                AndroidTVUtil.isAndroidTV(), { size((size * 0.8f).dp) })
-                            .clip(CircleShape) // Icon size slightly smaller than the Box
+                  },
+              ),
+  ) {
+    // Inner Box to hold the avatar content (Icon or AsyncImage)
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier.size(size.dp).clip(CircleShape),
+    ) {
+      // Always display the default icon as a background layer
+      if (!isIconLoaded.value) {
+        Icon(
+            imageVector = Icons.Default.Person,
+            contentDescription = stringResource(R.string.settings_title),
+            modifier =
+                Modifier.conditional(
+                        AndroidTVUtil.isAndroidTV(),
+                        { size((size * 0.8f).dp) },
                     )
-              }
-
-              // Overlay the profile picture if available
-              profile?.UserProfile?.ProfilePicURL?.let { url ->
-                AsyncImage(
-                    model = url,
-                    modifier = Modifier.size(size.dp).clip(CircleShape),
-                    contentDescription = null,
-                    onState = { state ->
-                      if (state is AsyncImagePainter.State.Success) {
-                        isIconLoaded.value = true
-                      }
-                    })
-              }
-            }
+                    .clip(CircleShape), // Icon size slightly smaller than the Box
+        )
       }
+
+      // Overlay the profile picture if available
+      profile?.UserProfile?.ProfilePicURL?.let { url ->
+        AsyncImage(
+            model = url,
+            modifier = Modifier.size(size.dp).clip(CircleShape),
+            contentDescription = null,
+            onState = { state ->
+              if (state is AsyncImagePainter.State.Success) {
+                isIconLoaded.value = true
+              }
+            },
+        )
+      }
+    }
+  }
 }

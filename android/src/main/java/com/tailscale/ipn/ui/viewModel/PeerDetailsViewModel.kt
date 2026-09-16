@@ -21,7 +21,7 @@ data class PeerSettingInfo(val titleRes: Int, val value: ComposableStringFormatt
 class PeerDetailsViewModelFactory(
     private val nodeId: StableNodeID,
     private val filesDir: File,
-    private val pingViewModel: PingViewModel
+    private val pingViewModel: PingViewModel,
 ) : ViewModelProvider.Factory {
   @Suppress("UNCHECKED_CAST")
   override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -32,7 +32,7 @@ class PeerDetailsViewModelFactory(
 class PeerDetailsViewModel(
     val nodeId: StableNodeID,
     val filesDir: File,
-    val pingViewModel: PingViewModel
+    val pingViewModel: PingViewModel,
 ) : IpnViewModel() {
   val node: StateFlow<Tailcfg.Node?> = MutableStateFlow(null)
   val isPinging: StateFlow<Boolean> = MutableStateFlow(false)

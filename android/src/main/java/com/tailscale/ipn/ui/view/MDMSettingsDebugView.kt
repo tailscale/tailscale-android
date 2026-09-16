@@ -27,7 +27,7 @@ import com.tailscale.ipn.ui.viewModel.IpnViewModel
 @Composable
 fun MDMSettingsDebugView(
     backToSettings: BackNavigation,
-    @Suppress("UNUSED_PARAMETER") model: IpnViewModel = viewModel()
+    @Suppress("UNUSED_PARAMETER") model: IpnViewModel = viewModel(),
 ) {
   Scaffold(topBar = { Header(R.string.current_mdm_settings, onBack = backToSettings) }) {
       innerPadding ->
@@ -49,13 +49,16 @@ fun MDMSettingView(setting: MDMSetting<*>) {
         Text(
             setting.key,
             fontSize = MaterialTheme.typography.labelSmall.fontSize,
-            fontFamily = FontFamily.Monospace)
+            fontFamily = FontFamily.Monospace,
+        )
       },
       trailingContent = {
         Text(
             if (value.isSet) value.value.toString() else "[not set]",
             fontFamily = FontFamily.Monospace,
             maxLines = 1,
-            fontWeight = FontWeight.SemiBold)
-      })
+            fontWeight = FontWeight.SemiBold,
+        )
+      },
+  )
 }

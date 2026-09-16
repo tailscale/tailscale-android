@@ -26,7 +26,7 @@ private val threadLocalTimeout = ThreadLocal<Duration>()
  */
 fun UiDevice.find(
     selector: BySelector,
-    timeout: Duration = threadLocalTimeout.get() ?: defaultTimeout
+    timeout: Duration = threadLocalTimeout.get() ?: defaultTimeout,
 ): UiObject2 {
   wait(Until.findObject(selector), timeout.inWholeMilliseconds)?.let {
     return it
@@ -41,7 +41,7 @@ fun UiDevice.find(
  */
 fun UiDevice.find(
     selector: UiSelector,
-    timeout: Duration = threadLocalTimeout.get() ?: defaultTimeout
+    timeout: Duration = threadLocalTimeout.get() ?: defaultTimeout,
 ): UiObject {
   val obj = findObject(selector)
   if (!obj.waitForExists(timeout.inWholeMilliseconds)) {
@@ -63,7 +63,7 @@ fun asNecessary(timeout: Duration, vararg steps: () -> Unit) {
     val start = System.currentTimeMillis()
     var furthestSuccessful = -1
     while (System.currentTimeMillis() - start < timeout.inWholeMilliseconds) {
-      for (i in furthestSuccessful + 1 ..< steps.size) {
+      for (i in furthestSuccessful + 1..<steps.size) {
         val step = steps[i]
         try {
           step()

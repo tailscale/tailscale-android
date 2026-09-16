@@ -145,12 +145,13 @@ open class IPNService : VpnService(), libtailscale.IPNService {
 
   private fun showForegroundNotification(
       hideDisconnectAction: Boolean,
-      exitNodeName: String? = null
+      exitNodeName: String? = null,
   ) {
     try {
       startForeground(
           UninitializedApp.STATUS_NOTIFICATION_ID,
-          UninitializedApp.get().buildStatusNotification(true, hideDisconnectAction, exitNodeName))
+          UninitializedApp.get().buildStatusNotification(true, hideDisconnectAction, exitNodeName),
+      )
     } catch (e: Exception) {
       TSLog.e(TAG, "Failed to start foreground service: $e")
     }
@@ -167,7 +168,8 @@ open class IPNService : VpnService(), libtailscale.IPNService {
         this,
         0,
         Intent(this, MainActivity::class.java),
-        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+    )
   }
 
   private fun allowApp(b: Builder, name: String) {
@@ -231,7 +233,8 @@ open class IPNService : VpnService(), libtailscale.IPNService {
             packagesList = packagesList,
             allowPackages = allowPackages,
             tailscalePackageName = UninitializedApp.get().packageName,
-            builtInDisallowedPackages = UninitializedApp.get().builtInDisallowedPackageNames)
+            builtInDisallowedPackages = UninitializedApp.get().builtInDisallowedPackageNames,
+        )
 
     if (allowPackages) {
       for (packageName in packagesList) {

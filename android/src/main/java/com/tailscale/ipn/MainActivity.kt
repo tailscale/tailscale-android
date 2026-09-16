@@ -129,6 +129,7 @@ class MainActivity : ComponentActivity() {
     return (resources.configuration.screenLayout and SCREENLAYOUT_SIZE_MASK) >=
         SCREENLAYOUT_SIZE_LARGE
   }
+
   // The loginQRCode is used to track whether or not we should be rendering a QR code
   // to the user.  This is used only on TV platforms with no browser in lieu of
   // simply opening the URL.  This should be consumed once it has been handled.
@@ -149,8 +150,10 @@ class MainActivity : ComponentActivity() {
 
     val rm = getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
     MDMSettings.update(App.get(), rm)
-    if (MDMSettings.onboardingFlow.flow.value.value == ShowHide.Hide ||
-        MDMSettings.authKey.flow.value.value != null) {
+    if (
+        MDMSettings.onboardingFlow.flow.value.value == ShowHide.Hide ||
+            MDMSettings.authKey.flow.value.value != null
+    ) {
       setIntroScreenViewed(true)
     }
     // (jonathan) TODO: Force the app to be portrait on small screens until we have
@@ -192,14 +195,19 @@ class MainActivity : ComponentActivity() {
               // Try to take persistable permissions for both read and write.
               contentResolver.takePersistableUriPermission(
                   uri,
-                  Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                  Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+              )
             } catch (e: SecurityException) {
               TSLog.e("MainActivity", "Failed to persist permissions: $e")
             }
             // Check if write permission is actually granted.
             val writePermission =
                 this.checkUriPermission(
-                    uri, Process.myPid(), Process.myUid(), Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                    uri,
+                    Process.myPid(),
+                    Process.myUid(),
+                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+                )
             if (writePermission == PackageManager.PERMISSION_GRANTED) {
               TSLog.d("MainActivity", "Write permission granted for $uri")
 
@@ -216,12 +224,15 @@ class MainActivity : ComponentActivity() {
             } else {
               TSLog.d(
                   "MainActivity",
-                  "Write access not granted for $uri. Falling back to internal storage.")
+                  "Write access not granted for $uri. Falling back to internal storage.",
+              )
               // Don't save directory URI and fall back to internal storage.
             }
           } else {
             TSLog.d(
-                "MainActivity", "Taildrop directory not saved. Will fall back to internal storage.")
+                "MainActivity",
+                "Taildrop directory not saved. Will fall back to internal storage.",
+            )
             // Fall back to internal storage.
           }
         }
@@ -249,10 +260,12 @@ class MainActivity : ComponentActivity() {
                     onClick = {
                       showDialog = false
                       appViewModel.directoryPickerLauncher?.launch(null)
-                    }) {
-                      Text(text = stringResource(id = R.string.taildrop_directory_picker_button))
                     }
-              })
+                ) {
+                  Text(text = stringResource(id = R.string.taildrop_directory_picker_button))
+                }
+              },
+          )
         }
       }
 
@@ -281,147 +294,163 @@ class MainActivity : ComponentActivity() {
                 enterTransition = {
                   slideInHorizontally(
                       animationSpec = tween(250, easing = LinearOutSlowInEasing),
-                      initialOffsetX = { it }) +
-                      fadeIn(animationSpec = tween(500, easing = LinearOutSlowInEasing))
+                      initialOffsetX = { it },
+                  ) + fadeIn(animationSpec = tween(500, easing = LinearOutSlowInEasing))
                 },
                 exitTransition = {
                   slideOutHorizontally(
                       animationSpec = tween(250, easing = LinearOutSlowInEasing),
-                      targetOffsetX = { -it }) +
-                      fadeOut(animationSpec = tween(500, easing = LinearOutSlowInEasing))
+                      targetOffsetX = { -it },
+                  ) + fadeOut(animationSpec = tween(500, easing = LinearOutSlowInEasing))
                 },
                 popEnterTransition = {
                   slideInHorizontally(
                       animationSpec = tween(250, easing = LinearOutSlowInEasing),
-                      initialOffsetX = { -it }) +
-                      fadeIn(animationSpec = tween(500, easing = LinearOutSlowInEasing))
+                      initialOffsetX = { -it },
+                  ) + fadeIn(animationSpec = tween(500, easing = LinearOutSlowInEasing))
                 },
                 popExitTransition = {
                   slideOutHorizontally(
                       animationSpec = tween(250, easing = LinearOutSlowInEasing),
-                      targetOffsetX = { it }) +
-                      fadeOut(animationSpec = tween(500, easing = LinearOutSlowInEasing))
-                }) {
-                  fun backTo(route: String): () -> Unit = {
-                    navController.popBackStack(route = route, inclusive = false)
-                  }
-                  val mainViewNav =
-                      MainViewNavigation(
-                          onNavigateToSettings = { navController.navigate("settings") },
-                          onNavigateToPeerDetails = {
-                            navController.navigate("peerDetails/${it.StableID}")
-                          },
-                          onNavigateToExitNodes = { navController.navigate("exitNodes") },
-                          onNavigateToHealth = { navController.navigate("health") },
-                          onNavigateToSearch = {
-                            viewModel.enableSearchAutoFocus()
-                            navController.navigate("search")
-                          })
-                  val settingsNav =
-                      SettingsNav(
-                          onNavigateToBugReport = { navController.navigate("bugReport") },
-                          onNavigateToAbout = { navController.navigate("about") },
-                          onNavigateToDNSSettings = { navController.navigate("dnsSettings") },
-                          onNavigateToSplitTunneling = { navController.navigate("splitTunneling") },
-                          onNavigateToTailnetLock = { navController.navigate("tailnetLock") },
-                          onNavigateToSubnetRouting = { navController.navigate("subnetRouting") },
-                          onNavigateToMDMSettings = { navController.navigate("mdmSettings") },
-                          onNavigateToManagedBy = { navController.navigate("managedBy") },
-                          onNavigateToUserSwitcher = { navController.navigate("userSwitcher") },
-                          onNavigateToPermissions = { navController.navigate("permissions") },
-                          onBackToSettings = backTo("settings"),
-                          onNavigateBackHome = backTo("main"))
-                  val exitNodePickerNav =
-                      ExitNodePickerNav(
-                          onNavigateBackHome = {
-                            navController.popBackStack(route = "main", inclusive = false)
-                          },
-                          onNavigateBackToExitNodes = backTo("exitNodes"),
-                          onNavigateToMullvad = { navController.navigate("mullvad") },
-                          onNavigateToMullvadInfo = { navController.navigate("mullvad_info") },
-                          onNavigateBackToMullvad = backTo("mullvad"),
-                          onNavigateToMullvadCountry = { navController.navigate("mullvad/$it") },
-                          onNavigateToRunAsExitNode = { navController.navigate("runExitNode") })
-                  val userSwitcherNav =
-                      UserSwitcherNav(
-                          backToSettings = backTo("settings"),
-                          onNavigateHome = backTo("main"),
-                          onNavigateCustomControl = {
-                            navController.navigate("loginWithCustomControl")
-                          },
-                          onNavigateToAuthKey = { navController.navigate("loginWithAuthKey") })
+                      targetOffsetX = { it },
+                  ) + fadeOut(animationSpec = tween(500, easing = LinearOutSlowInEasing))
+                },
+            ) {
+              fun backTo(route: String): () -> Unit = {
+                navController.popBackStack(route = route, inclusive = false)
+              }
+              val mainViewNav =
+                  MainViewNavigation(
+                      onNavigateToSettings = { navController.navigate("settings") },
+                      onNavigateToPeerDetails = {
+                        navController.navigate("peerDetails/${it.StableID}")
+                      },
+                      onNavigateToExitNodes = { navController.navigate("exitNodes") },
+                      onNavigateToHealth = { navController.navigate("health") },
+                      onNavigateToSearch = {
+                        viewModel.enableSearchAutoFocus()
+                        navController.navigate("search")
+                      },
+                  )
+              val settingsNav =
+                  SettingsNav(
+                      onNavigateToBugReport = { navController.navigate("bugReport") },
+                      onNavigateToAbout = { navController.navigate("about") },
+                      onNavigateToDNSSettings = { navController.navigate("dnsSettings") },
+                      onNavigateToSplitTunneling = { navController.navigate("splitTunneling") },
+                      onNavigateToTailnetLock = { navController.navigate("tailnetLock") },
+                      onNavigateToSubnetRouting = { navController.navigate("subnetRouting") },
+                      onNavigateToMDMSettings = { navController.navigate("mdmSettings") },
+                      onNavigateToManagedBy = { navController.navigate("managedBy") },
+                      onNavigateToUserSwitcher = { navController.navigate("userSwitcher") },
+                      onNavigateToPermissions = { navController.navigate("permissions") },
+                      onBackToSettings = backTo("settings"),
+                      onNavigateBackHome = backTo("main"),
+                  )
+              val exitNodePickerNav =
+                  ExitNodePickerNav(
+                      onNavigateBackHome = {
+                        navController.popBackStack(route = "main", inclusive = false)
+                      },
+                      onNavigateBackToExitNodes = backTo("exitNodes"),
+                      onNavigateToMullvad = { navController.navigate("mullvad") },
+                      onNavigateToMullvadInfo = { navController.navigate("mullvad_info") },
+                      onNavigateBackToMullvad = backTo("mullvad"),
+                      onNavigateToMullvadCountry = { navController.navigate("mullvad/$it") },
+                      onNavigateToRunAsExitNode = { navController.navigate("runExitNode") },
+                  )
+              val userSwitcherNav =
+                  UserSwitcherNav(
+                      backToSettings = backTo("settings"),
+                      onNavigateHome = backTo("main"),
+                      onNavigateCustomControl = {
+                        navController.navigate("loginWithCustomControl")
+                      },
+                      onNavigateToAuthKey = { navController.navigate("loginWithAuthKey") },
+                  )
 
-                  composable("main", enterTransition = { fadeIn(animationSpec = tween(150)) }) {
-                    MainView(
-                        loginAtUrl = ::login,
-                        navigation = mainViewNav,
-                        viewModel = viewModel,
-                    )
-                  }
-                  composable("search") {
-                    val autoFocus = viewModel.autoFocusSearch
-                    SearchView(
-                        viewModel = viewModel,
-                        navController = navController,
-                        onNavigateBack = { navController.popBackStack() },
-                        autoFocus = autoFocus)
-                  }
-                  composable("settings") {
-                    SettingsView(settingsNav = settingsNav, appViewModel = appViewModel)
-                  }
-                  composable("exitNodes") { ExitNodePicker(exitNodePickerNav) }
-                  composable("health") { HealthView(backTo("main")) }
-                  composable("mullvad") { MullvadExitNodePickerList(exitNodePickerNav) }
-                  composable("mullvad_info") { MullvadInfoView(exitNodePickerNav) }
-                  composable(
-                      "mullvad/{countryCode}",
-                      arguments =
-                          listOf(navArgument("countryCode") { type = NavType.StringType })) {
-                        MullvadExitNodePicker(
-                            it.arguments!!.getString("countryCode")!!, exitNodePickerNav)
-                      }
-                  composable("runExitNode") { RunExitNodeView(exitNodePickerNav) }
-                  composable(
-                      "peerDetails/{nodeId}",
-                      arguments = listOf(navArgument("nodeId") { type = NavType.StringType })) {
-                        PeerDetails(
-                            { navController.popBackStack() },
-                            it.arguments?.getString("nodeId") ?: "",
-                            PingViewModel())
-                      }
-                  composable("bugReport") { BugReportView(backTo("settings")) }
-                  composable("dnsSettings") { DNSSettingsView(backTo("settings")) }
-                  composable("splitTunneling") { SplitTunnelAppPickerView(backTo("settings")) }
-                  composable("tailnetLock") { TailnetLockSetupView(backTo("settings")) }
-                  composable("subnetRouting") { SubnetRoutingView(backTo("settings")) }
-                  composable("about") { AboutView(backTo("settings")) }
-                  composable("mdmSettings") { MDMSettingsDebugView(backTo("settings")) }
-                  composable("managedBy") { ManagedByView(backTo("settings")) }
-                  composable("userSwitcher") { UserSwitcherView(userSwitcherNav) }
-                  composable("permissions") {
-                    PermissionsView(
-                        backTo("settings"),
-                        { navController.navigate("taildropDir") },
-                        { navController.navigate("notifications") })
-                  }
-                  composable("taildropDir") {
-                    TaildropDirView(
-                        backTo("permissions"), directoryPickerLauncher, permissionsViewModel)
-                  }
-                  composable("notifications") {
-                    NotificationsView(backTo("permissions"), ::openApplicationSettings)
-                  }
-                  composable("intro", exitTransition = { fadeOut(animationSpec = tween(150)) }) {
-                    IntroView(backTo("main"))
-                  }
-                  composable("loginWithAuthKey") {
-                    LoginWithAuthKeyView(onNavigateHome = backTo("main"), backTo("userSwitcher"))
-                  }
-                  composable("loginWithCustomControl") {
-                    LoginWithCustomControlURLView(
-                        onNavigateHome = backTo("main"), backTo("userSwitcher"))
-                  }
-                }
+              composable("main", enterTransition = { fadeIn(animationSpec = tween(150)) }) {
+                MainView(
+                    loginAtUrl = ::login,
+                    navigation = mainViewNav,
+                    viewModel = viewModel,
+                )
+              }
+              composable("search") {
+                val autoFocus = viewModel.autoFocusSearch
+                SearchView(
+                    viewModel = viewModel,
+                    navController = navController,
+                    onNavigateBack = { navController.popBackStack() },
+                    autoFocus = autoFocus,
+                )
+              }
+              composable("settings") {
+                SettingsView(settingsNav = settingsNav, appViewModel = appViewModel)
+              }
+              composable("exitNodes") { ExitNodePicker(exitNodePickerNav) }
+              composable("health") { HealthView(backTo("main")) }
+              composable("mullvad") { MullvadExitNodePickerList(exitNodePickerNav) }
+              composable("mullvad_info") { MullvadInfoView(exitNodePickerNav) }
+              composable(
+                  "mullvad/{countryCode}",
+                  arguments = listOf(navArgument("countryCode") { type = NavType.StringType }),
+              ) {
+                MullvadExitNodePicker(
+                    it.arguments!!.getString("countryCode")!!,
+                    exitNodePickerNav,
+                )
+              }
+              composable("runExitNode") { RunExitNodeView(exitNodePickerNav) }
+              composable(
+                  "peerDetails/{nodeId}",
+                  arguments = listOf(navArgument("nodeId") { type = NavType.StringType }),
+              ) {
+                PeerDetails(
+                    { navController.popBackStack() },
+                    it.arguments?.getString("nodeId") ?: "",
+                    PingViewModel(),
+                )
+              }
+              composable("bugReport") { BugReportView(backTo("settings")) }
+              composable("dnsSettings") { DNSSettingsView(backTo("settings")) }
+              composable("splitTunneling") { SplitTunnelAppPickerView(backTo("settings")) }
+              composable("tailnetLock") { TailnetLockSetupView(backTo("settings")) }
+              composable("subnetRouting") { SubnetRoutingView(backTo("settings")) }
+              composable("about") { AboutView(backTo("settings")) }
+              composable("mdmSettings") { MDMSettingsDebugView(backTo("settings")) }
+              composable("managedBy") { ManagedByView(backTo("settings")) }
+              composable("userSwitcher") { UserSwitcherView(userSwitcherNav) }
+              composable("permissions") {
+                PermissionsView(
+                    backTo("settings"),
+                    { navController.navigate("taildropDir") },
+                    { navController.navigate("notifications") },
+                )
+              }
+              composable("taildropDir") {
+                TaildropDirView(
+                    backTo("permissions"),
+                    directoryPickerLauncher,
+                    permissionsViewModel,
+                )
+              }
+              composable("notifications") {
+                NotificationsView(backTo("permissions"), ::openApplicationSettings)
+              }
+              composable("intro", exitTransition = { fadeOut(animationSpec = tween(150)) }) {
+                IntroView(backTo("main"))
+              }
+              composable("loginWithAuthKey") {
+                LoginWithAuthKeyView(onNavigateHome = backTo("main"), backTo("userSwitcher"))
+              }
+              composable("loginWithCustomControl") {
+                LoginWithCustomControlURLView(
+                    onNavigateHome = backTo("main"),
+                    backTo("userSwitcher"),
+                )
+              }
+            }
             if (isIntroScreenViewedSet()) {
               navController.navigate("intro")
               setIntroScreenViewed(true)
@@ -473,13 +502,16 @@ class MainActivity : ComponentActivity() {
     val activeNetwork = connectivityManager.activeNetwork
     if (activeNetwork != null) {
       val networkCapabilities = connectivityManager.getNetworkCapabilities(activeNetwork)
-      if (networkCapabilities != null &&
-          networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) {
+      if (
+          networkCapabilities != null &&
+              networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)
+      ) {
         return true
       }
     }
     return false
   }
+
   // Returns true if we should render a QR code instead of launching a browser
   // for login requests
   private fun useQRCodeLogin(): Boolean {
@@ -497,7 +529,8 @@ class MainActivity : ComponentActivity() {
         } else {
           TSLog.e(
               "MainActivity",
-              "onNewIntent: No previous back stack entry, navigating directly to 'main'")
+              "onNewIntent: No previous back stack entry, navigating directly to 'main'",
+          )
           navController.navigate("main") { popUpTo("main") { inclusive = true } }
         }
       }

@@ -36,7 +36,9 @@ object Lists {
   @Composable
   fun ItemDivider() {
     HorizontalDivider(
-        color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.fillMaxWidth())
+        color = MaterialTheme.colorScheme.outlineVariant,
+        modifier = Modifier.fillMaxWidth(),
+    )
   }
 
   @Composable
@@ -47,30 +49,33 @@ object Lists {
       fontWeight: FontWeight? = null,
       focusable: Boolean = false,
       backgroundColor: Color = MaterialTheme.colorScheme.surface,
-      fontColor: Color? = null
+      fontColor: Color? = null,
   ) {
     Box(
         modifier =
-            Modifier.fillMaxWidth().background(color = backgroundColor, shape = RectangleShape)) {
-          if (fontColor != null) {
-            Text(
-                text = title,
-                modifier =
-                    Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = bottomPadding)
-                        .focusable(focusable),
-                style = style,
-                fontWeight = fontWeight,
-                color = fontColor)
-          } else {
-            Text(
-                text = title,
-                modifier =
-                    Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = bottomPadding)
-                        .focusable(focusable),
-                style = style,
-                fontWeight = fontWeight)
-          }
-        }
+            Modifier.fillMaxWidth().background(color = backgroundColor, shape = RectangleShape)
+    ) {
+      if (fontColor != null) {
+        Text(
+            text = title,
+            modifier =
+                Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = bottomPadding)
+                    .focusable(focusable),
+            style = style,
+            fontWeight = fontWeight,
+            color = fontColor,
+        )
+      } else {
+        Text(
+            text = title,
+            modifier =
+                Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = bottomPadding)
+                    .focusable(focusable),
+            style = style,
+            fontWeight = fontWeight,
+        )
+      }
+    }
   }
 
   @Composable
@@ -78,13 +83,15 @@ object Lists {
     Box(
         modifier =
             Modifier.fillMaxWidth()
-                .background(color = MaterialTheme.colorScheme.surface, shape = RectangleShape)) {
-          Text(
-              modifier = Modifier.padding(start = 16.dp, top = 16.dp),
-              text = text,
-              style = MaterialTheme.typography.titleSmall,
-              color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
+                .background(color = MaterialTheme.colorScheme.surface, shape = RectangleShape)
+    ) {
+      Text(
+          modifier = Modifier.padding(start = 16.dp, top = 16.dp),
+          text = text,
+          style = MaterialTheme.typography.titleSmall,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+      )
+    }
   }
 
   @Composable
@@ -98,10 +105,12 @@ object Lists {
               Text(
                   text = text as AnnotatedString,
                   style = style,
-                  modifier = Modifier.clickable { onClick() })
+                  modifier = Modifier.clickable { onClick() },
+              )
             } ?: run { Text(text as String, style = style) }
           }
-        })
+        }
+    )
   }
 
   @Composable
@@ -109,7 +118,8 @@ object Lists {
     ListItem(
         headlineContent = {
           Box(modifier = Modifier.padding(vertical = 8.dp)) { headlineContent() }
-        })
+        }
+    )
   }
 }
 
@@ -121,22 +131,23 @@ inline fun <T> LazyListScope.itemsWithDividers(
     noinline key: ((item: T) -> Any)? = null,
     forceLeading: Boolean = false,
     crossinline contentType: (item: T) -> Any? = { _ -> null },
-    crossinline itemContent: @Composable LazyItemScope.(item: T) -> Unit
+    crossinline itemContent: @Composable LazyItemScope.(item: T) -> Unit,
 ) =
     items(
         count = items.size,
         key = if (key != null) { index: Int -> key(items[index]) } else null,
-        contentType = { index -> contentType(items[index]) }) {
-          if (forceLeading && it == 0 || it > 0 && it < items.size) {
-            Lists.ItemDivider()
-          }
-          itemContent(items[it])
-        }
+        contentType = { index -> contentType(items[index]) },
+    ) {
+      if (forceLeading && it == 0 || it > 0 && it < items.size) {
+        Lists.ItemDivider()
+      }
+      itemContent(items[it])
+    }
 
 inline fun <T> LazyListScope.itemsWithDividers(
     items: Array<T>,
     noinline key: ((item: T) -> Any)? = null,
     forceLeading: Boolean = false,
     crossinline contentType: (item: T) -> Any? = { _ -> null },
-    crossinline itemContent: @Composable LazyItemScope.(item: T) -> Unit
+    crossinline itemContent: @Composable LazyItemScope.(item: T) -> Unit,
 ) = itemsWithDividers(items.toList(), key, forceLeading, contentType, itemContent)

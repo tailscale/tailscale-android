@@ -148,9 +148,11 @@ class PendingTaildropViewModel : ViewModel() {
             }
     val docUri =
         runCatching {
-              DocumentsContract.buildDocumentUriUsingTree(
-                  treeUri, DocumentsContract.getTreeDocumentId(treeUri))
-            }
+          DocumentsContract.buildDocumentUriUsingTree(
+              treeUri,
+              DocumentsContract.getTreeDocumentId(treeUri),
+          )
+        }
             .getOrNull() ?: treeUri
     val intent =
         Intent(Intent.ACTION_VIEW).apply {

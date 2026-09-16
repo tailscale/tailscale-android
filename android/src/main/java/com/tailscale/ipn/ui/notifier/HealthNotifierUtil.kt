@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 fun Notifier.injectFakeHealthState(
     includeHighSeverity: Boolean = true,
     includeConnectivityImpact: Boolean = false,
-    customWarnings: List<Health.UnhealthyState> = emptyList()
+    customWarnings: List<Health.UnhealthyState> = emptyList(),
 ) {
   val warnings = mutableMapOf<String, Health.UnhealthyState?>()
 
@@ -26,7 +26,8 @@ fun Notifier.injectFakeHealthState(
             Title = "Test High Severity Warning",
             Text = "This is a test warning with high severity",
             ImpactsConnectivity = includeConnectivityImpact,
-            DependsOn = null)
+            DependsOn = null,
+        )
   }
 
   warnings["test-low-severity"] =
@@ -36,7 +37,8 @@ fun Notifier.injectFakeHealthState(
           Title = "Test Low Severity Warning",
           Text = "This is a test warning with low severity",
           ImpactsConnectivity = false,
-          DependsOn = null)
+          DependsOn = null,
+      )
 
   customWarnings.forEach { warning -> warnings[warning.WarnableCode] = warning }
 

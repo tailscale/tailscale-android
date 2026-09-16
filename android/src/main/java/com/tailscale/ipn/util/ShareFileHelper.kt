@@ -178,7 +178,9 @@ object ShareFileHelper : libtailscale.ShareFileHelper {
       }
     } catch (e: Exception) {
       TSLog.w(
-          "renameFile", "renameDocument fallback triggered for $srcUri -> $finalName: ${e.message}")
+          "renameFile",
+          "renameDocument fallback triggered for $srcUri -> $finalName: ${e.message}",
+      )
     }
 
     val dest =
@@ -228,6 +230,7 @@ object ShareFileHelper : libtailscale.ShareFileHelper {
 
   private fun lengthOfUri(ctx: Context, uri: Uri): Long =
       ctx.contentResolver.openAssetFileDescriptor(uri, "r").use { it?.length ?: -1 }
+
   // delete any stray “.partial” files for this base name
   private fun cleanupPartials(dir: DocumentFile, base: String) {
     for (child in dir.listFiles()) {
@@ -327,7 +330,7 @@ object ShareFileHelper : libtailscale.ShareFileHelper {
 
   private class SeekableOutputStream(
       private val fos: FileOutputStream,
-      private val pfd: ParcelFileDescriptor
+      private val pfd: ParcelFileDescriptor,
   ) : OutputStream() {
     private var closed = false
 

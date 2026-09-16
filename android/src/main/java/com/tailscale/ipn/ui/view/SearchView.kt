@@ -68,7 +68,7 @@ fun SearchView(
     viewModel: MainViewModel,
     navController: NavController,
     onNavigateBack: () -> Unit,
-    autoFocus: Boolean // Pass true if coming from the main view, false otherwise.
+    autoFocus: Boolean, // Pass true if coming from the main view, false otherwise.
 ) {
   // Use TextFieldValue to preserve text and cursor position.
   var searchFieldValue by
@@ -150,12 +150,14 @@ fun SearchView(
                         focusManager.clearFocus()
                         onNavigateBack()
                         viewModel.updateSearchTerm("")
-                      }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.search),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant)
                       }
+                  ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = stringResource(R.string.search),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                  }
                 },
                 trailingIcon = {
                   if (searchTerm.isNotEmpty()) {
@@ -165,11 +167,13 @@ fun SearchView(
                           viewModel.updateSearchTerm("")
                           focusManager.clearFocus()
                           keyboardController?.hide()
-                        }) {
-                          Icon(
-                              Icons.Default.Clear,
-                              contentDescription = stringResource(R.string.clear_search))
                         }
+                    ) {
+                      Icon(
+                          Icons.Default.Clear,
+                          contentDescription = stringResource(R.string.clear_search),
+                      )
+                    }
                   }
                 },
             )
@@ -188,7 +192,8 @@ fun SearchView(
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Light,
                     backgroundColor = noResultsBackground,
-                    fontColor = MaterialTheme.colorScheme.onSurfaceVariant)
+                    fontColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
               }
             }
           } else {
@@ -214,7 +219,8 @@ fun SearchView(
                             Box(
                                 modifier =
                                     Modifier.size(10.dp)
-                                        .background(onlineColor, RoundedCornerShape(50)))
+                                        .background(onlineColor, RoundedCornerShape(50))
+                            )
                             Spacer(modifier = Modifier.size(8.dp))
                             Text(peer.displayName)
                           }
@@ -232,7 +238,8 @@ fun SearchView(
                               .clickable {
                                 viewModel.disableSearchAutoFocus()
                                 navController.navigate("peerDetails/${peer.StableID}")
-                              })
+                              },
+                  )
                 }
               }
             }

@@ -23,7 +23,8 @@ fun PrimaryActionButton(onClick: () -> Unit, content: @Composable RowScope.() ->
       onClick = onClick,
       contentPadding = PaddingValues(vertical = 12.dp),
       modifier = Modifier.fillMaxWidth(),
-      content = content)
+      content = content,
+  )
 }
 
 @Composable

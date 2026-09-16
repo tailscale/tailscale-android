@@ -28,7 +28,7 @@ import com.tailscale.ipn.ui.viewModel.ExitNodePickerViewModelFactory
 fun MullvadExitNodePicker(
     countryCode: String,
     nav: ExitNodePickerNav,
-    model: ExitNodePickerViewModel = viewModel(factory = ExitNodePickerViewModelFactory(nav))
+    model: ExitNodePickerViewModel = viewModel(factory = ExitNodePickerViewModelFactory(nav)),
 ) {
   val mullvadExitNodes by model.mullvadExitNodesByCountryCode.collectAsState()
   val bestAvailableByCountry by model.mullvadBestAvailableByCountry.collectAsState()
@@ -41,27 +41,30 @@ fun MullvadExitNodePicker(
           topBar = {
             Header(
                 title = { Text("${countryCode.flag()} ${any.country}") },
-                onBack = nav.onNavigateBackToMullvad)
-          }) { innerPadding ->
-            LazyColumn(modifier = Modifier.padding(innerPadding)) {
-              if (nodes.size > 1) {
-                val bestAvailableNode = bestAvailableByCountry[countryCode]!!
-                item {
-                  ExitNodeItem(
-                      model,
-                      ExitNodePickerViewModel.ExitNode(
-                          id = bestAvailableNode.id,
-                          label = stringResource(R.string.best_available),
-                          online = bestAvailableNode.online,
-                          selected = false,
-                      ))
-                  Lists.SectionDivider()
-                }
-              }
-
-              itemsWithDividers(nodes) { node -> ExitNodeItem(model, node) }
+                onBack = nav.onNavigateBackToMullvad,
+            )
+          }
+      ) { innerPadding ->
+        LazyColumn(modifier = Modifier.padding(innerPadding)) {
+          if (nodes.size > 1) {
+            val bestAvailableNode = bestAvailableByCountry[countryCode]!!
+            item {
+              ExitNodeItem(
+                  model,
+                  ExitNodePickerViewModel.ExitNode(
+                      id = bestAvailableNode.id,
+                      label = stringResource(R.string.best_available),
+                      online = bestAvailableNode.online,
+                      selected = false,
+                  ),
+              )
+              Lists.SectionDivider()
             }
           }
+
+          itemsWithDividers(nodes) { node -> ExitNodeItem(model, node) }
+        }
+      }
     }
   }
 }

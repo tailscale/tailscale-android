@@ -41,7 +41,8 @@ object TimeUtil {
         else ->
             ComposableStringFormatter(
                 R.string.ago_x_years,
-                diff.toDouble() / 31536000.0) // 2 years to n years (in decimal)
+                diff.toDouble() / 31536000.0,
+            ) // 2 years to n years (in decimal)
       }
     }
 
@@ -58,7 +59,9 @@ object TimeUtil {
           ComposableStringFormatter(R.string.in_x_months, diff / 2592000) // ~2 months to 2 years
       else ->
           ComposableStringFormatter(
-              R.string.in_x_years, diff.toDouble() / 31536000.0) // 2 years to n years (in decimal)
+              R.string.in_x_years,
+              diff.toDouble() / 31536000.0,
+          ) // 2 years to n years (in decimal)
     }
   }
 

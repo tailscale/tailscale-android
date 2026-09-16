@@ -31,52 +31,57 @@ import com.tailscale.ipn.util.TSLog
 fun TaildropDirView(
     backToPermissionsView: BackNavigation,
     openDirectoryLauncher: ActivityResultLauncher<Uri?>,
-    permissionsViewModel: PermissionsViewModel
+    permissionsViewModel: PermissionsViewModel,
 ) {
   Scaffold(
-      topBar = {
-        Header(titleRes = R.string.taildrop_dir_access, onBack = backToPermissionsView)
-      }) { innerPadding ->
-        LazyColumn(modifier = Modifier.padding(innerPadding)) {
-          item {
-            ListItem(
-                headlineContent = {
-                  Text(
-                      stringResource(R.string.taildrop_dir_access),
-                      style = MaterialTheme.typography.titleMedium)
-                },
-                supportingContent = {
-                  Text(
-                      text = stringResource(R.string.permission_taildrop_dir),
-                      style = MaterialTheme.typography.bodyMedium)
-                })
-          }
-
-          item("divider0") { Lists.SectionDivider() }
-
-          item {
-            val currentDir by permissionsViewModel.currentDir.collectAsState()
-            TSLog.d("TaildropDirView", "currentDir in UI: $currentDir")
-            val displayPath = currentDir?.let { friendlyDirName(it) } ?: "No access"
-
-            ListItem(
-                headlineContent = {
-                  Text(
-                      text = stringResource(R.string.dir_access),
-                      style = MaterialTheme.typography.titleMedium)
-                },
-                supportingContent = {
-                  Column(modifier = Modifier.fillMaxWidth()) {
-                    Text(text = displayPath, style = MaterialTheme.typography.bodyMedium)
-                    Button(
-                        colors = MaterialTheme.colorScheme.exitNodeToggleButton,
-                        onClick = { openDirectoryLauncher.launch(null) },
-                        modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) {
-                          Text(stringResource(R.string.pick_dir))
-                        }
-                  }
-                })
-          }
-        }
+      topBar = { Header(titleRes = R.string.taildrop_dir_access, onBack = backToPermissionsView) }
+  ) { innerPadding ->
+    LazyColumn(modifier = Modifier.padding(innerPadding)) {
+      item {
+        ListItem(
+            headlineContent = {
+              Text(
+                  stringResource(R.string.taildrop_dir_access),
+                  style = MaterialTheme.typography.titleMedium,
+              )
+            },
+            supportingContent = {
+              Text(
+                  text = stringResource(R.string.permission_taildrop_dir),
+                  style = MaterialTheme.typography.bodyMedium,
+              )
+            },
+        )
       }
+
+      item("divider0") { Lists.SectionDivider() }
+
+      item {
+        val currentDir by permissionsViewModel.currentDir.collectAsState()
+        TSLog.d("TaildropDirView", "currentDir in UI: $currentDir")
+        val displayPath = currentDir?.let { friendlyDirName(it) } ?: "No access"
+
+        ListItem(
+            headlineContent = {
+              Text(
+                  text = stringResource(R.string.dir_access),
+                  style = MaterialTheme.typography.titleMedium,
+              )
+            },
+            supportingContent = {
+              Column(modifier = Modifier.fillMaxWidth()) {
+                Text(text = displayPath, style = MaterialTheme.typography.bodyMedium)
+                Button(
+                    colors = MaterialTheme.colorScheme.exitNodeToggleButton,
+                    onClick = { openDirectoryLauncher.launch(null) },
+                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                ) {
+                  Text(stringResource(R.string.pick_dir))
+                }
+              }
+            },
+        )
+      }
+    }
+  }
 }

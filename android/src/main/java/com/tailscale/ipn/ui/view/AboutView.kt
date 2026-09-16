@@ -49,51 +49,57 @@ fun AboutView(backToSettings: BackNavigation) {
             Modifier.fillMaxWidth()
                 .fillMaxHeight()
                 .padding(innerPadding)
-                .verticalScroll(rememberScrollState())) {
-          TailscaleLogoView(
-              usesOnBackgroundColors = true,
-              modifier =
-                  Modifier.width(100.dp)
-                      .height(100.dp)
-                      .clip(RoundedCornerShape(50))
-                      .background(MaterialTheme.colorScheme.logoBackground)
-                      .padding(25.dp))
+                .verticalScroll(rememberScrollState()),
+    ) {
+      TailscaleLogoView(
+          usesOnBackgroundColors = true,
+          modifier =
+              Modifier.width(100.dp)
+                  .height(100.dp)
+                  .clip(RoundedCornerShape(50))
+                  .background(MaterialTheme.colorScheme.logoBackground)
+                  .padding(25.dp),
+      )
 
-          Column(
-              verticalArrangement =
-                  Arrangement.spacedBy(space = 2.dp, alignment = Alignment.CenterVertically),
-              horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    stringResource(R.string.about_view_title),
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = MaterialTheme.typography.titleLarge.fontSize)
-                Text(
-                    modifier =
-                        Modifier.clickable {
-                          // When users tap on the version number, the extended version string
-                          // (including commit hashes) is copied to the clipboard.
-                          // This may be useful for debugging purposes...
-                          localClipboardManager.setText(AnnotatedString(BuildConfig.VERSION_NAME))
-                        },
-                    // ... but we always display the short version in the UI to avoid user
-                    // confusion.
-                    text = "${stringResource(R.string.version)} ${AppVersion.Short()}",
-                    fontWeight = MaterialTheme.typography.bodyMedium.fontWeight,
-                    fontSize = MaterialTheme.typography.bodyMedium.fontSize)
-              }
+      Column(
+          verticalArrangement =
+              Arrangement.spacedBy(space = 2.dp, alignment = Alignment.CenterVertically),
+          horizontalAlignment = Alignment.CenterHorizontally,
+      ) {
+        Text(
+            stringResource(R.string.about_view_title),
+            fontWeight = FontWeight.SemiBold,
+            fontSize = MaterialTheme.typography.titleLarge.fontSize,
+        )
+        Text(
+            modifier =
+                Modifier.clickable {
+                  // When users tap on the version number, the extended version string
+                  // (including commit hashes) is copied to the clipboard.
+                  // This may be useful for debugging purposes...
+                  localClipboardManager.setText(AnnotatedString(BuildConfig.VERSION_NAME))
+                },
+            // ... but we always display the short version in the UI to avoid user
+            // confusion.
+            text = "${stringResource(R.string.version)} ${AppVersion.Short()}",
+            fontWeight = MaterialTheme.typography.bodyMedium.fontWeight,
+            fontSize = MaterialTheme.typography.bodyMedium.fontSize,
+        )
+      }
 
-          Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            OpenURLButton(stringResource(R.string.acknowledgements), Links.LICENSES_URL)
-            OpenURLButton(stringResource(R.string.privacy_policy), Links.PRIVACY_POLICY_URL)
-            OpenURLButton(stringResource(R.string.terms_of_service), Links.TERMS_URL)
-          }
+      Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        OpenURLButton(stringResource(R.string.acknowledgements), Links.LICENSES_URL)
+        OpenURLButton(stringResource(R.string.privacy_policy), Links.PRIVACY_POLICY_URL)
+        OpenURLButton(stringResource(R.string.terms_of_service), Links.TERMS_URL)
+      }
 
-          Text(
-              stringResource(R.string.about_view_footnotes),
-              fontWeight = FontWeight.Normal,
-              fontSize = MaterialTheme.typography.labelMedium.fontSize,
-              textAlign = TextAlign.Center)
-        }
+      Text(
+          stringResource(R.string.about_view_footnotes),
+          fontWeight = FontWeight.Normal,
+          fontSize = MaterialTheme.typography.labelMedium.fontSize,
+          textAlign = TextAlign.Center,
+      )
+    }
   }
 }
 

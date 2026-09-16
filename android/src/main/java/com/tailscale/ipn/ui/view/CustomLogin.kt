@@ -47,7 +47,7 @@ data class LoginViewStrings(
 fun LoginWithCustomControlURLView(
     onNavigateHome: BackNavigation,
     backToSettings: BackNavigation,
-    viewModel: LoginWithCustomControlURLViewModel = LoginWithCustomControlURLViewModel()
+    viewModel: LoginWithCustomControlURLViewModel = LoginWithCustomControlURLViewModel(),
 ) {
 
   Scaffold(
@@ -56,30 +56,32 @@ fun LoginWithCustomControlURLView(
             R.string.add_account,
             onBack = backToSettings,
         )
-      }) { innerPadding ->
-        val error by viewModel.errorDialog.collectAsState()
-        val strings =
-            LoginViewStrings(
-                title = stringResource(id = R.string.custom_control_menu),
-                explanation = stringResource(id = R.string.custom_control_menu_desc),
-                inputTitle = stringResource(id = R.string.custom_control_url_title),
-                placeholder = stringResource(id = R.string.custom_control_placeholder),
-            )
-
-        error?.let { ErrorDialog(type = it, action = { viewModel.errorDialog.set(null) }) }
-
-        LoginView(
-            innerPadding = innerPadding,
-            strings = strings,
-            onSubmitAction = { viewModel.setControlURL(it, onNavigateHome) })
       }
+  ) { innerPadding ->
+    val error by viewModel.errorDialog.collectAsState()
+    val strings =
+        LoginViewStrings(
+            title = stringResource(id = R.string.custom_control_menu),
+            explanation = stringResource(id = R.string.custom_control_menu_desc),
+            inputTitle = stringResource(id = R.string.custom_control_url_title),
+            placeholder = stringResource(id = R.string.custom_control_placeholder),
+        )
+
+    error?.let { ErrorDialog(type = it, action = { viewModel.errorDialog.set(null) }) }
+
+    LoginView(
+        innerPadding = innerPadding,
+        strings = strings,
+        onSubmitAction = { viewModel.setControlURL(it, onNavigateHome) },
+    )
+  }
 }
 
 @Composable
 fun LoginWithAuthKeyView(
     onNavigateHome: BackNavigation,
     backToSettings: BackNavigation,
-    viewModel: LoginWithAuthKeyViewModel = LoginWithAuthKeyViewModel()
+    viewModel: LoginWithAuthKeyViewModel = LoginWithAuthKeyViewModel(),
 ) {
 
   Scaffold(
@@ -88,23 +90,25 @@ fun LoginWithAuthKeyView(
             R.string.add_account,
             onBack = backToSettings,
         )
-      }) { innerPadding ->
-        val error by viewModel.errorDialog.collectAsState()
-        val strings =
-            LoginViewStrings(
-                title = stringResource(id = R.string.auth_key_title),
-                explanation = stringResource(id = R.string.auth_key_explanation),
-                inputTitle = stringResource(id = R.string.auth_key_input_title),
-                placeholder = stringResource(id = R.string.auth_key_placeholder),
-            )
-        // Show the error overlay if need be
-        error?.let { ErrorDialog(type = it, action = { viewModel.errorDialog.set(null) }) }
-
-        LoginView(
-            innerPadding = innerPadding,
-            strings = strings,
-            onSubmitAction = { viewModel.setAuthKey(it, onNavigateHome) })
       }
+  ) { innerPadding ->
+    val error by viewModel.errorDialog.collectAsState()
+    val strings =
+        LoginViewStrings(
+            title = stringResource(id = R.string.auth_key_title),
+            explanation = stringResource(id = R.string.auth_key_explanation),
+            inputTitle = stringResource(id = R.string.auth_key_input_title),
+            placeholder = stringResource(id = R.string.auth_key_placeholder),
+        )
+    // Show the error overlay if need be
+    error?.let { ErrorDialog(type = it, action = { viewModel.errorDialog.set(null) }) }
+
+    LoginView(
+        innerPadding = innerPadding,
+        strings = strings,
+        onSubmitAction = { viewModel.setAuthKey(it, onNavigateHome) },
+    )
+  }
 }
 
 @Composable
@@ -120,42 +124,51 @@ fun LoginView(
       modifier =
           Modifier.padding(innerPadding)
               .fillMaxWidth()
-              .background(MaterialTheme.colorScheme.surface)) {
-        ListItem(
-            colors = MaterialTheme.colorScheme.listItem,
-            headlineContent = { Text(text = strings.title) },
-            supportingContent = { Text(text = strings.explanation) })
+              .background(MaterialTheme.colorScheme.surface)
+  ) {
+    ListItem(
+        colors = MaterialTheme.colorScheme.listItem,
+        headlineContent = { Text(text = strings.title) },
+        supportingContent = { Text(text = strings.explanation) },
+    )
 
-        ListItem(
-            colors = MaterialTheme.colorScheme.listItem,
-            headlineContent = { Text(text = strings.inputTitle) },
-            supportingContent = {
-              OutlinedTextField(
-                  modifier = Modifier.fillMaxWidth(),
-                  colors =
-                      TextFieldDefaults.colors(
-                          focusedContainerColor = Color.Transparent,
-                          unfocusedContainerColor = Color.Transparent),
-                  textStyle = MaterialTheme.typography.bodyMedium,
-                  value = textVal,
-                  onValueChange = { textVal = it },
-                  placeholder = {
-                    Text(strings.placeholder, style = MaterialTheme.typography.bodySmall)
-                  },
-                  keyboardOptions =
-                      KeyboardOptions(
-                          capitalization = KeyboardCapitalization.None, imeAction = ImeAction.Go),
-                  keyboardActions = KeyboardActions(onGo = { onSubmitAction(textVal) }))
-            })
+    ListItem(
+        colors = MaterialTheme.colorScheme.listItem,
+        headlineContent = { Text(text = strings.inputTitle) },
+        supportingContent = {
+          OutlinedTextField(
+              modifier = Modifier.fillMaxWidth(),
+              colors =
+                  TextFieldDefaults.colors(
+                      focusedContainerColor = Color.Transparent,
+                      unfocusedContainerColor = Color.Transparent,
+                  ),
+              textStyle = MaterialTheme.typography.bodyMedium,
+              value = textVal,
+              onValueChange = { textVal = it },
+              placeholder = {
+                Text(strings.placeholder, style = MaterialTheme.typography.bodySmall)
+              },
+              keyboardOptions =
+                  KeyboardOptions(
+                      capitalization = KeyboardCapitalization.None,
+                      imeAction = ImeAction.Go,
+                  ),
+              keyboardActions = KeyboardActions(onGo = { onSubmitAction(textVal) }),
+          )
+        },
+    )
 
-        ListItem(
-            colors = MaterialTheme.colorScheme.listItem,
-            headlineContent = {
-              Box(modifier = Modifier.fillMaxWidth()) {
-                Button(
-                    onClick = { onSubmitAction(textVal) },
-                    content = { Text(stringResource(id = R.string.add_account_short)) })
-              }
-            })
-      }
+    ListItem(
+        colors = MaterialTheme.colorScheme.listItem,
+        headlineContent = {
+          Box(modifier = Modifier.fillMaxWidth()) {
+            Button(
+                onClick = { onSubmitAction(textVal) },
+                content = { Text(stringResource(id = R.string.add_account_short)) },
+            )
+          }
+        },
+    )
+  }
 }

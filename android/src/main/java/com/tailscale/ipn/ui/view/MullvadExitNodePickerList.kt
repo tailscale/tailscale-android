@@ -34,64 +34,68 @@ import com.tailscale.ipn.ui.viewModel.selected
 @Composable
 fun MullvadExitNodePickerList(
     nav: ExitNodePickerNav,
-    model: ExitNodePickerViewModel = viewModel(factory = ExitNodePickerViewModelFactory(nav))
+    model: ExitNodePickerViewModel = viewModel(factory = ExitNodePickerViewModelFactory(nav)),
 ) {
   LoadingIndicator.Wrap {
     Scaffold(
         topBar = {
           Header(R.string.choose_mullvad_exit_node, onBack = nav.onNavigateBackToExitNodes)
-        }) { innerPadding ->
-          val mullvadExitNodes by model.mullvadExitNodesByCountryCode.collectAsState()
+        }
+    ) { innerPadding ->
+      val mullvadExitNodes by model.mullvadExitNodesByCountryCode.collectAsState()
 
-          LazyColumn(modifier = Modifier.padding(innerPadding)) {
-            val sortedCountries =
-                mullvadExitNodes.entries.toList().sortedBy { it.value.first().country.lowercase() }
-            itemsWithDividers(sortedCountries) { (countryCode, nodes) ->
-              val first = nodes.first()
+      LazyColumn(modifier = Modifier.padding(innerPadding)) {
+        val sortedCountries =
+            mullvadExitNodes.entries.toList().sortedBy { it.value.first().country.lowercase() }
+        itemsWithDividers(sortedCountries) { (countryCode, nodes) ->
+          val first = nodes.first()
 
-              // TODO(oxtoacart): the modifier on the ListItem occasionally causes a crash
-              // with java.lang.ClassCastException: androidx.compose.ui.ComposedModifier cannot be
-              // cast
-              // to androidx.compose.runtime.RecomposeScopeImpl
-              // Wrapping it in a Box eliminates this. It appears to be some kind of
-              // interaction between the LazyList and the modifier.
-              Box {
-                ListItem(
-                    modifier =
-                        Modifier.clickable {
-                          if (nodes.size > 1) {
-                            nav.onNavigateToMullvadCountry(countryCode)
-                          } else {
-                            model.setExitNode(first)
-                          }
-                        },
-                    leadingContent = {
-                      Text(
-                          countryCode.flag(),
-                          style = MaterialTheme.typography.titleLarge,
-                      )
-                    },
-                    headlineContent = {
-                      Text(first.country, style = MaterialTheme.typography.bodyMedium)
-                    },
-                    supportingContent = {
-                      Text(
-                          if (nodes.size == 1) first.city
-                          else "${nodes.size} ${stringResource(R.string.cities_available)}",
-                          style = MaterialTheme.typography.bodyMedium)
-                    },
-                    trailingContent = {
-                      if (nodes.size > 1 && nodes.selected || first.selected) {
-                        if (nodes.selected) {
-                          Icon(
-                              Icons.Outlined.Check,
-                              contentDescription = stringResource(R.string.selected))
-                        }
+          // TODO(oxtoacart): the modifier on the ListItem occasionally causes a crash
+          // with java.lang.ClassCastException: androidx.compose.ui.ComposedModifier cannot be
+          // cast
+          // to androidx.compose.runtime.RecomposeScopeImpl
+          // Wrapping it in a Box eliminates this. It appears to be some kind of
+          // interaction between the LazyList and the modifier.
+          Box {
+            ListItem(
+                modifier =
+                    Modifier.clickable {
+                      if (nodes.size > 1) {
+                        nav.onNavigateToMullvadCountry(countryCode)
+                      } else {
+                        model.setExitNode(first)
                       }
-                    })
-              }
-            }
+                    },
+                leadingContent = {
+                  Text(
+                      countryCode.flag(),
+                      style = MaterialTheme.typography.titleLarge,
+                  )
+                },
+                headlineContent = {
+                  Text(first.country, style = MaterialTheme.typography.bodyMedium)
+                },
+                supportingContent = {
+                  Text(
+                      if (nodes.size == 1) first.city
+                      else "${nodes.size} ${stringResource(R.string.cities_available)}",
+                      style = MaterialTheme.typography.bodyMedium,
+                  )
+                },
+                trailingContent = {
+                  if (nodes.size > 1 && nodes.selected || first.selected) {
+                    if (nodes.selected) {
+                      Icon(
+                          Icons.Outlined.Check,
+                          contentDescription = stringResource(R.string.selected),
+                      )
+                    }
+                  }
+                },
+            )
           }
         }
+      }
+    }
   }
 }

@@ -74,21 +74,24 @@ enum class DNSEnablementState(
     @param:StringRes val title: Int,
     @param:StringRes val caption: Int,
     val symbolDrawable: Int,
-    val tint: @Composable () -> Color
+    val tint: @Composable () -> Color,
 ) {
   NOT_RUNNING(
       R.string.not_running,
       R.string.tailscale_is_not_running_this_device_is_using_the_system_dns_resolver,
       R.drawable.xmark_circle,
-      { MaterialTheme.colorScheme.off }),
+      { MaterialTheme.colorScheme.off },
+  ),
   ENABLED(
       R.string.using_tailscale_dns,
       R.string.this_device_is_using_tailscale_to_resolve_dns_names,
       R.drawable.check_circle,
-      { MaterialTheme.colorScheme.success }),
+      { MaterialTheme.colorScheme.success },
+  ),
   DISABLED(
       R.string.not_using_tailscale_dns,
       R.string.this_device_is_using_the_system_dns_resolver,
       R.drawable.xmark_circle,
-      { MaterialTheme.colorScheme.error })
+      { MaterialTheme.colorScheme.error },
+  ),
 }

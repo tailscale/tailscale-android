@@ -32,21 +32,21 @@ fun ManagedByView(backToSettings: BackNavigation, model: IpnViewModel = viewMode
             Arrangement.spacedBy(space = 20.dp, alignment = Alignment.CenterVertically),
         horizontalAlignment = Alignment.Start,
         modifier =
-            Modifier.fillMaxWidth().safeContentPadding().verticalScroll(rememberScrollState())) {
-          val managedByOrganization =
-              MDMSettings.managedByOrganizationName.flow.collectAsState().value.value
-          val managedByCaption = MDMSettings.managedByCaption.flow.collectAsState().value.value
-          val managedByURL = MDMSettings.managedByURL.flow.collectAsState().value.value
-          managedByOrganization?.let {
-            Text(stringResource(R.string.managed_by_explainer_orgName, it))
-          } ?: run { Text(stringResource(R.string.managed_by_explainer)) }
-          managedByCaption?.let {
-            if (it.isNotEmpty()) {
-              Text(it)
-            }
-          }
-          managedByURL?.let { OpenURLButton(stringResource(R.string.open_support), it) }
+            Modifier.fillMaxWidth().safeContentPadding().verticalScroll(rememberScrollState()),
+    ) {
+      val managedByOrganization =
+          MDMSettings.managedByOrganizationName.flow.collectAsState().value.value
+      val managedByCaption = MDMSettings.managedByCaption.flow.collectAsState().value.value
+      val managedByURL = MDMSettings.managedByURL.flow.collectAsState().value.value
+      managedByOrganization?.let { Text(stringResource(R.string.managed_by_explainer_orgName, it)) }
+          ?: run { Text(stringResource(R.string.managed_by_explainer)) }
+      managedByCaption?.let {
+        if (it.isNotEmpty()) {
+          Text(it)
         }
+      }
+      managedByURL?.let { OpenURLButton(stringResource(R.string.open_support), it) }
+    }
   }
 }
 

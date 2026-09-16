@@ -38,12 +38,15 @@ fun ClipboardValueView(value: String, title: String? = null, subtitle: String? =
           Modifier.focusable(interactionSource = interactionSource)
               .onFocusChanged { focusState -> isFocused.value = focusState.isFocused }
               .clickable(
-                  interactionSource = interactionSource, indication = LocalIndication.current) {
-                    localClipboardManager.setText(AnnotatedString(value))
-                  }
+                  interactionSource = interactionSource,
+                  indication = LocalIndication.current,
+              ) {
+                localClipboardManager.setText(AnnotatedString(value))
+              }
               .background(
                   if (isFocused.value) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                  else Color.Transparent),
+                  else Color.Transparent
+              ),
       overlineContent = title?.let { { Text(it, style = MaterialTheme.typography.titleMedium) } },
       headlineContent = { Text(text = value, style = MaterialTheme.typography.bodyMedium) },
       supportingContent =
@@ -52,13 +55,16 @@ fun ClipboardValueView(value: String, title: String? = null, subtitle: String? =
               Text(
                   it,
                   modifier = Modifier.padding(top = 8.dp),
-                  style = MaterialTheme.typography.bodyMedium)
+                  style = MaterialTheme.typography.bodyMedium,
+              )
             }
           },
       trailingContent = {
         Icon(
             painterResource(R.drawable.clipboard),
             contentDescription = stringResource(R.string.copy_to_clipboard),
-            modifier = Modifier.size(24.dp))
-      })
+            modifier = Modifier.size(24.dp),
+        )
+      },
+  )
 }

@@ -86,7 +86,8 @@ fun TaildropBannerView(viewModel: PendingTaildropViewModel) {
                             else -> 0f
                           }
                     },
-                    onHorizontalDrag = { _, dragAmount -> dragOffsetPx += dragAmount })
+                    onHorizontalDrag = { _, dragAmount -> dragOffsetPx += dragAmount },
+                )
               },
       shape = RoundedCornerShape(10.dp),
       color = MaterialTheme.colorScheme.warning,
@@ -102,7 +103,8 @@ fun TaildropBannerView(viewModel: PendingTaildropViewModel) {
       Icon(
           painter = painterResource(id = iconFor(items)),
           contentDescription = null,
-          modifier = Modifier.size(28.dp))
+          modifier = Modifier.size(28.dp),
+      )
       Column(modifier = Modifier.padding(start = 12.dp).weight(1f)) {
         Text(
             text = titleFor(items).uppercase(),

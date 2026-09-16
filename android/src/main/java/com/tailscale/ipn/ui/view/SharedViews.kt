@@ -53,7 +53,7 @@ fun Header(
     @StringRes titleRes: Int = 0,
     title: (@Composable () -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {},
-    onBack: (() -> Unit)? = null
+    onBack: (() -> Unit)? = null,
 ) {
   val focusRequester = remember { FocusRequester() }
 
@@ -73,7 +73,8 @@ fun Header(
             ?: Text(
                 stringResource(titleRes),
                 style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface)
+                color = MaterialTheme.colorScheme.onSurface,
+            )
       },
       colors = MaterialTheme.colorScheme.topAppBar,
       actions = actions,
@@ -102,13 +103,15 @@ fun BackArrow(action: () -> Unit, focusRequester: FocusRequester) {
       Modifier.clickable(
           interactionSource = remember { MutableInteractionSource() },
           indication = ripple(bounded = false, radius = 24.dp),
-          onClick = action)
+          onClick = action,
+      )
 
   Box(modifier = boxModifier.padding(start = 8.dp, end = 8.dp)) {
     Icon(
         Icons.AutoMirrored.Filled.ArrowBack,
         contentDescription = "Go back to the previous screen",
-        modifier = iconModifier)
+        modifier = iconModifier,
+    )
   }
 }
 
@@ -135,5 +138,6 @@ fun ActivityIndicator(progress: Double, size: Int = 32) {
       color = ts_color_light_blue,
       trackColor = MaterialTheme.colorScheme.secondary,
       gapSize = -height,
-      drawStopIndicator = {})
+      drawStopIndicator = {},
+  )
 }

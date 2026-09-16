@@ -85,7 +85,11 @@ class UseExitNodeWorker(appContext: Context, workerParams: WorkerParameters) :
           }
       val pendingIntent: PendingIntent =
           PendingIntent.getActivity(
-              app, 1, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+              app,
+              1,
+              intent,
+              PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+          )
 
       val notification =
           NotificationCompat.Builder(app, STATUS_CHANNEL_ID)

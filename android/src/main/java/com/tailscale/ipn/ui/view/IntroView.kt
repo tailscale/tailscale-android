@@ -33,32 +33,37 @@ fun IntroView(onContinue: () -> Unit) {
   Column(
       modifier = Modifier.fillMaxHeight().fillMaxWidth().verticalScroll(rememberScrollState()),
       horizontalAlignment = Alignment.CenterHorizontally,
-      verticalArrangement = Arrangement.Center) {
-        TailscaleLogoView(modifier = Modifier.width(60.dp).height(60.dp))
-        Spacer(modifier = Modifier.height(40.dp))
-        Text(
-            modifier = Modifier.padding(start = 40.dp, end = 40.dp, bottom = 40.dp),
-            text = stringResource(R.string.welcome1),
-            style = MaterialTheme.typography.bodyLarge,
-            textAlign = TextAlign.Center)
+      verticalArrangement = Arrangement.Center,
+  ) {
+    TailscaleLogoView(modifier = Modifier.width(60.dp).height(60.dp))
+    Spacer(modifier = Modifier.height(40.dp))
+    Text(
+        modifier = Modifier.padding(start = 40.dp, end = 40.dp, bottom = 40.dp),
+        text = stringResource(R.string.welcome1),
+        style = MaterialTheme.typography.bodyLarge,
+        textAlign = TextAlign.Center,
+    )
 
-        Button(onClick = onContinue) {
-          Text(
-              text = stringResource(id = R.string.getStarted),
-              fontSize = MaterialTheme.typography.titleMedium.fontSize)
-        }
-        Spacer(modifier = Modifier.height(40.dp))
+    Button(onClick = onContinue) {
+      Text(
+          text = stringResource(id = R.string.getStarted),
+          fontSize = MaterialTheme.typography.titleMedium.fontSize,
+      )
+    }
+    Spacer(modifier = Modifier.height(40.dp))
 
-        Box(
-            modifier = Modifier.fillMaxHeight().padding(start = 20.dp, end = 20.dp, bottom = 40.dp),
-            contentAlignment = Alignment.BottomCenter) {
-              Text(
-                  text = stringResource(R.string.welcome2),
-                  style = MaterialTheme.typography.bodyMedium,
-                  color = MaterialTheme.colorScheme.onSurfaceVariant,
-                  textAlign = TextAlign.Center)
-            }
-      }
+    Box(
+        modifier = Modifier.fillMaxHeight().padding(start = 20.dp, end = 20.dp, bottom = 40.dp),
+        contentAlignment = Alignment.BottomCenter,
+    ) {
+      Text(
+          text = stringResource(R.string.welcome2),
+          style = MaterialTheme.typography.bodyMedium,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+          textAlign = TextAlign.Center,
+      )
+    }
+  }
 }
 
 @Composable
