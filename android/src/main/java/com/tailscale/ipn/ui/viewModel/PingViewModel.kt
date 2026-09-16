@@ -98,10 +98,14 @@ class PingViewModel : ViewModel() {
           if (stringError.contains("timeout")) {
             this.errorMessage.set(
                 context.getString(
-                    R.string.request_timed_out_make_sure_that_is_online, peer.ComputedName))
+                    R.string.request_timed_out_make_sure_that_is_online,
+                    peer.ComputedName,
+                )
+            )
           } else {
             this.errorMessage.set(
-                context.getString(R.string.an_unknown_error_occurred_please_try_again))
+                context.getString(R.string.an_unknown_error_occurred_please_try_again)
+            )
           }
         }
       }

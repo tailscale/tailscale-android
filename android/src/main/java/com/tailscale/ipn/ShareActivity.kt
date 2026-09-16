@@ -66,11 +66,12 @@ class ShareActivity : ComponentActivity() {
                         }
                       },
                   )
-                }) { innerPadding ->
-                  Surface(modifier = Modifier.padding(innerPadding)) {
-                    TaildropView(requestedTransfers, (application as App).applicationScope)
-                  }
                 }
+            ) { innerPadding ->
+              Surface(modifier = Modifier.padding(innerPadding)) {
+                TaildropView(requestedTransfers, (application as App).applicationScope)
+              }
+            }
           }
         }
       }

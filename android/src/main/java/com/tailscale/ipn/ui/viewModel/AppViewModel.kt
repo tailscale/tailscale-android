@@ -102,7 +102,8 @@ class AppViewModel(application: Application, private val taildropPrompt: Flow<Un
     if (documentFile == null || !documentFile.exists() || !documentFile.canWrite()) {
       TSLog.d(
           "MainViewModel",
-          "Stored directory URI is invalid or inaccessible; launching directory picker.")
+          "Stored directory URI is invalid or inaccessible; launching directory picker.",
+      )
       viewModelScope.launch { requestDirectoryPicker() }
     } else {
       TSLog.d("MainViewModel", "Using stored directory URI: $storedUri")

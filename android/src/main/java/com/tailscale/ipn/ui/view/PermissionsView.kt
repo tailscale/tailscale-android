@@ -30,7 +30,7 @@ fun PermissionsView(
     backToSettings: BackNavigation,
     navToTaildropDirView: () -> Unit,
     navToNotificationsView: () -> Unit,
-    permissionsViewModel: PermissionsViewModel = viewModel()
+    permissionsViewModel: PermissionsViewModel = viewModel(),
 ) {
   val permissions = Permissions.withGrantedStatus
 
@@ -47,14 +47,16 @@ fun PermissionsView(
                   tint = MaterialTheme.colorScheme.onSurfaceVariant,
                   modifier = Modifier.size(24.dp),
                   contentDescription =
-                      stringResource(if (granted) R.string.ok else R.string.warning))
+                      stringResource(if (granted) R.string.ok else R.string.warning),
+              )
             },
             headlineContent = {
               Text(stringResource(permission.title), style = MaterialTheme.typography.titleMedium)
             },
             supportingContent = {
               if (granted) Text(stringResource(R.string.on)) else Text(stringResource(R.string.off))
-            })
+            },
+        )
       }
 
       item {
@@ -65,12 +67,14 @@ fun PermissionsView(
                   painterResource(R.drawable.baseline_drive_folder_upload_24),
                   tint = MaterialTheme.colorScheme.onSurfaceVariant,
                   modifier = Modifier.size(24.dp),
-                  contentDescription = stringResource(R.string.taildrop_dir))
+                  contentDescription = stringResource(R.string.taildrop_dir),
+              )
             },
             headlineContent = {
               Text(
                   stringResource(R.string.taildrop_dir_access),
-                  style = MaterialTheme.typography.titleMedium)
+                  style = MaterialTheme.typography.titleMedium,
+              )
             },
             supportingContent = {
               val displayPath =
@@ -79,7 +83,8 @@ fun PermissionsView(
                   } ?: "No access"
 
               Text(displayPath)
-            })
+            },
+        )
       }
     }
   }

@@ -22,6 +22,7 @@ class LoginQRViewModel : IpnViewModel() {
 
   val numCode: StateFlow<String?> = MutableStateFlow(null)
   val qrCode: StateFlow<ImageBitmap?> = MutableStateFlow(null)
+
   // Remove this once changes to admin console allowing input code to be entered are made.
 
   init {

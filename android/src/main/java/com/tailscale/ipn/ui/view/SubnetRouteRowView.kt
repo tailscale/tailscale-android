@@ -31,7 +31,7 @@ fun SubnetRouteRowView(
     route: String,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
   ListItem(
       headlineContent = { Text(text = route, style = MaterialTheme.typography.bodyMedium) },
@@ -41,19 +41,24 @@ fun SubnetRouteRowView(
             Icon(
                 painterResource(R.drawable.pencil),
                 contentDescription = stringResource(R.string.edit_route),
-                modifier = Modifier.size(24.dp))
+                modifier = Modifier.size(24.dp),
+            )
           }
           IconButton(
               onClick = onDelete,
               colors =
                   IconButtonDefaults.iconButtonColors(
-                      contentColor = MaterialTheme.colorScheme.error)) {
-                Icon(
-                    painterResource(R.drawable.xmark),
-                    contentDescription = stringResource(R.string.delete_route),
-                    modifier = Modifier.size(24.dp))
-              }
+                      contentColor = MaterialTheme.colorScheme.error
+                  ),
+          ) {
+            Icon(
+                painterResource(R.drawable.xmark),
+                contentDescription = stringResource(R.string.delete_route),
+                modifier = Modifier.size(24.dp),
+            )
+          }
         }
       },
-      modifier = modifier)
+      modifier = modifier,
+  )
 }

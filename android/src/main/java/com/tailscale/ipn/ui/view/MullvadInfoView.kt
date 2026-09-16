@@ -25,32 +25,35 @@ import com.tailscale.ipn.ui.viewModel.ExitNodePickerNav
 @Composable
 fun MullvadInfoView(nav: ExitNodePickerNav) {
   Scaffold(
-      topBar = {
-        Header(R.string.choose_mullvad_exit_node, onBack = nav.onNavigateBackToExitNodes)
-      }) { innerPadding ->
-        LazyColumn(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(20.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 48.dp),
-            modifier = Modifier.padding(innerPadding)) {
-              item {
-                Image(
-                    painter = painterResource(id = R.drawable.mullvad_logo),
-                    contentDescription = stringResource(R.string.the_mullvad_vpn_logo))
-              }
-              item {
-                Text(
-                    stringResource(R.string.mullvad_info_title),
-                    fontFamily = MaterialTheme.typography.titleLarge.fontFamily,
-                    fontSize = MaterialTheme.typography.titleLarge.fontSize,
-                    fontWeight = FontWeight.SemiBold)
-              }
-              item {
-                Text(
-                    stringResource(R.string.mullvad_info_explainer),
-                    color = MaterialTheme.colorScheme.secondary,
-                    textAlign = TextAlign.Center)
-              }
-            }
+      topBar = { Header(R.string.choose_mullvad_exit_node, onBack = nav.onNavigateBackToExitNodes) }
+  ) { innerPadding ->
+    LazyColumn(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(20.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 48.dp),
+        modifier = Modifier.padding(innerPadding),
+    ) {
+      item {
+        Image(
+            painter = painterResource(id = R.drawable.mullvad_logo),
+            contentDescription = stringResource(R.string.the_mullvad_vpn_logo),
+        )
       }
+      item {
+        Text(
+            stringResource(R.string.mullvad_info_title),
+            fontFamily = MaterialTheme.typography.titleLarge.fontFamily,
+            fontSize = MaterialTheme.typography.titleLarge.fontSize,
+            fontWeight = FontWeight.SemiBold,
+        )
+      }
+      item {
+        Text(
+            stringResource(R.string.mullvad_info_explainer),
+            color = MaterialTheme.colorScheme.secondary,
+            textAlign = TextAlign.Center,
+        )
+      }
+    }
+  }
 }

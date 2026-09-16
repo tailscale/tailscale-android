@@ -47,7 +47,7 @@ class ExitNodePickerViewModel(private val nav: ExitNodePickerNav) : IpnViewModel
       val priority: Int = 0,
       val countryCode: String = "",
       val country: String = "",
-      val city: String = ""
+      val city: String = "",
   )
 
   val tailnetExitNodes: StateFlow<List<ExitNode>> = MutableStateFlow(emptyList())
@@ -86,12 +86,11 @@ class ExitNodePickerViewModel(private val nav: ExitNodePickerNav) : IpnViewModel
               val tailnetNodes = allNodes.filter { !it.mullvad }
               tailnetExitNodes.set(tailnetNodes.sortedWith { a, b -> a.label.compareTo(b.label) })
 
-              val allMullvadExitNodes =
-                  allNodes.filter { node ->
-                    // Pick all mullvad nodes that are online or the currently selected
-                    val online = node.online.value
-                    node.mullvad && (node.selected || online)
-                  }
+              val allMullvadExitNodes = allNodes.filter { node ->
+                // Pick all mullvad nodes that are online or the currently selected
+                val online = node.online.value
+                node.mullvad && (node.selected || online)
+              }
               val mullvadExitNodes =
                   allMullvadExitNodes
                       .groupBy {
@@ -123,10 +122,9 @@ class ExitNodePickerViewModel(private val nav: ExitNodePickerNav) : IpnViewModel
               mullvadExitNodesByCountryCode.set(mullvadExitNodes)
               mullvadExitNodeCount.set(allMullvadExitNodes.size)
 
-              val bestAvailableByCountry =
-                  mullvadExitNodes.mapValues { (_, nodes) ->
-                    nodes.minByOrNull { -1 * it.priority }!!
-                  }
+              val bestAvailableByCountry = mullvadExitNodes.mapValues { (_, nodes) ->
+                nodes.minByOrNull { -1 * it.priority }!!
+              }
               mullvadBestAvailableByCountry.set(bestAvailableByCountry)
 
               anyActive.set(allNodes.any { it.selected })
@@ -135,7 +133,8 @@ class ExitNodePickerViewModel(private val nav: ExitNodePickerNav) : IpnViewModel
                 // Only show the Mullvad info view if the user is an admin and is using a Tailscale
                 // control server, as it wouldn't be actionable information otherwise.
                 shouldShowMullvadInfo.set(
-                    netmap.SelfNode.isAdmin && prefs.ControlURL.endsWith(".tailscale.com"))
+                    netmap.SelfNode.isAdmin && prefs.ControlURL.endsWith(".tailscale.com")
+                )
               }
             }
           }

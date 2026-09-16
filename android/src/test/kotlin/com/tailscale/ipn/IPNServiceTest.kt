@@ -14,7 +14,8 @@ class IPNServiceTest {
             packagesList = listOf("com.termux"),
             allowPackages = true,
             tailscalePackageName = "com.tailscale.ipn",
-            builtInDisallowedPackages = emptyList())
+            builtInDisallowedPackages = emptyList(),
+        )
 
     assertEquals(listOf("com.termux", "com.tailscale.ipn"), packages)
   }
@@ -26,7 +27,8 @@ class IPNServiceTest {
             packagesList = listOf("com.example.excluded"),
             allowPackages = false,
             tailscalePackageName = "com.tailscale.ipn",
-            builtInDisallowedPackages = listOf("com.example.builtin"))
+            builtInDisallowedPackages = listOf("com.example.builtin"),
+        )
 
     assertEquals(listOf("com.example.excluded", "com.example.builtin"), packages)
   }
@@ -38,7 +40,8 @@ class IPNServiceTest {
             packagesList = emptyList(),
             allowPackages = true,
             tailscalePackageName = "com.tailscale.ipn",
-            builtInDisallowedPackages = emptyList())
+            builtInDisallowedPackages = emptyList(),
+        )
 
     assertEquals(emptyList<String>(), packages)
   }
@@ -50,7 +53,8 @@ class IPNServiceTest {
             packagesList = listOf("com.termux", "com.tailscale.ipn"),
             allowPackages = true,
             tailscalePackageName = "com.tailscale.ipn",
-            builtInDisallowedPackages = emptyList())
+            builtInDisallowedPackages = emptyList(),
+        )
 
     assertEquals(listOf("com.termux", "com.tailscale.ipn"), packages)
   }

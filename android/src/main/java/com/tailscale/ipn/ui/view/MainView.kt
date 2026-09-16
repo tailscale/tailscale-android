@@ -137,119 +137,130 @@ fun MainView(
     Scaffold(contentWindowInsets = WindowInsets.Companion.statusBars) { paddingInsets ->
       Column(
           modifier = Modifier.fillMaxWidth().padding(paddingInsets),
-          verticalArrangement = Arrangement.Center) {
-            // Assume VPN has been prepared for optimistic UI. Whether or not it has been prepared
-            // cannot be known
-            // until permission has been granted to prepare the VPN.
-            val isPrepared by viewModel.isVpnPrepared.collectAsState(initial = true)
-            val isOn by viewModel.vpnToggleState.collectAsState(initial = false)
-            val state by viewModel.ipnState.collectAsState(initial = Ipn.State.NoState)
-            val user by viewModel.loggedInUser.collectAsState(initial = null)
-            val stateVal by viewModel.stateRes.collectAsState(initial = R.string.placeholder)
-            val stateStr = stringResource(id = stateVal)
-            val netmap by viewModel.netmap.collectAsState(initial = null)
-            val showExitNodePicker by MDMSettings.exitNodesPicker.flow.collectAsState()
-            val disableToggle by MDMSettings.forceEnabled.flow.collectAsState()
-            val showKeyExpiry by viewModel.showExpiry.collectAsState(initial = false)
+          verticalArrangement = Arrangement.Center,
+      ) {
+        // Assume VPN has been prepared for optimistic UI. Whether or not it has been prepared
+        // cannot be known
+        // until permission has been granted to prepare the VPN.
+        val isPrepared by viewModel.isVpnPrepared.collectAsState(initial = true)
+        val isOn by viewModel.vpnToggleState.collectAsState(initial = false)
+        val state by viewModel.ipnState.collectAsState(initial = Ipn.State.NoState)
+        val user by viewModel.loggedInUser.collectAsState(initial = null)
+        val stateVal by viewModel.stateRes.collectAsState(initial = R.string.placeholder)
+        val stateStr = stringResource(id = stateVal)
+        val netmap by viewModel.netmap.collectAsState(initial = null)
+        val showExitNodePicker by MDMSettings.exitNodesPicker.flow.collectAsState()
+        val disableToggle by MDMSettings.forceEnabled.flow.collectAsState()
+        val showKeyExpiry by viewModel.showExpiry.collectAsState(initial = false)
 
-            // Hide the header only on Android TV when the user needs to login
-            val hideHeader = (isAndroidTV() && state == Ipn.State.NeedsLogin)
-            ListItem(
-                colors = MaterialTheme.colorScheme.surfaceContainerListItem,
-                leadingContent = {
-                  if (!hideHeader) {
-                    TintedSwitch(
-                        checked = isOn,
-                        enabled =
-                            !disableToggle.value &&
-                                !viewModel.isToggleInProgress
-                                    .value, // Disable switch if toggle is in progress
-                        onCheckedChange = { desiredState -> viewModel.toggleVpn(desiredState) })
-                  }
-                },
-                headlineContent = {
-                  user?.NetworkProfile?.tailnetNameForDisplay()?.let { domain ->
-                    AutoResizingText(
-                        text = domain,
-                        style = MaterialTheme.typography.titleMedium.short,
-                        minFontSize = MaterialTheme.typography.minTextSize,
-                        overflow = TextOverflow.Ellipsis)
-                  }
-                },
-                supportingContent = {
-                  if (!hideHeader) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                      Text(text = stateStr, style = MaterialTheme.typography.bodyMedium.short)
-                      healthIcon?.let {
-                        Spacer(modifier = Modifier.size(4.dp))
-                        IconButton(
-                            onClick = { navigation.onNavigateToHealth() },
-                            modifier = Modifier.size(16.dp)) {
-                              Icon(
-                                  painterResource(id = it),
-                                  contentDescription = null,
-                                  modifier = Modifier.size(16.dp),
-                                  tint = MaterialTheme.colorScheme.error)
-                            }
-                      }
+        // Hide the header only on Android TV when the user needs to login
+        val hideHeader = (isAndroidTV() && state == Ipn.State.NeedsLogin)
+        ListItem(
+            colors = MaterialTheme.colorScheme.surfaceContainerListItem,
+            leadingContent = {
+              if (!hideHeader) {
+                TintedSwitch(
+                    checked = isOn,
+                    enabled =
+                        !disableToggle.value &&
+                            !viewModel.isToggleInProgress
+                                .value, // Disable switch if toggle is in progress
+                    onCheckedChange = { desiredState -> viewModel.toggleVpn(desiredState) },
+                )
+              }
+            },
+            headlineContent = {
+              user?.NetworkProfile?.tailnetNameForDisplay()?.let { domain ->
+                AutoResizingText(
+                    text = domain,
+                    style = MaterialTheme.typography.titleMedium.short,
+                    minFontSize = MaterialTheme.typography.minTextSize,
+                    overflow = TextOverflow.Ellipsis,
+                )
+              }
+            },
+            supportingContent = {
+              if (!hideHeader) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                  Text(text = stateStr, style = MaterialTheme.typography.bodyMedium.short)
+                  healthIcon?.let {
+                    Spacer(modifier = Modifier.size(4.dp))
+                    IconButton(
+                        onClick = { navigation.onNavigateToHealth() },
+                        modifier = Modifier.size(16.dp),
+                    ) {
+                      Icon(
+                          painterResource(id = it),
+                          contentDescription = null,
+                          modifier = Modifier.size(16.dp),
+                          tint = MaterialTheme.colorScheme.error,
+                      )
                     }
                   }
-                },
-                trailingContent = {
-                  Box(modifier = Modifier.padding(8.dp), contentAlignment = Alignment.CenterEnd) {
-                    when (user) {
-                      null -> SettingsButton { navigation.onNavigateToSettings() }
-                      else -> {
-                        Avatar(
-                            profile = user,
-                            size = 36,
-                            { navigation.onNavigateToSettings() },
-                            isFocusable = true)
-                      }
-                    }
+                }
+              }
+            },
+            trailingContent = {
+              Box(modifier = Modifier.padding(8.dp), contentAlignment = Alignment.CenterEnd) {
+                when (user) {
+                  null -> SettingsButton { navigation.onNavigateToSettings() }
+                  else -> {
+                    Avatar(
+                        profile = user,
+                        size = 36,
+                        { navigation.onNavigateToSettings() },
+                        isFocusable = true,
+                    )
                   }
-                })
-            when (state) {
-              Ipn.State.Running -> {
-                viewModel.maybeRequestVpnPermission()
-                LaunchVpnPermissionIfNeeded(viewModel)
-                PromptForMissingPermissions(viewModel)
+                }
+              }
+            },
+        )
+        when (state) {
+          Ipn.State.Running -> {
+            viewModel.maybeRequestVpnPermission()
+            LaunchVpnPermissionIfNeeded(viewModel)
+            PromptForMissingPermissions(viewModel)
 
-                if (showKeyExpiry) {
-                  ExpiryNotification(netmap = netmap, action = { viewModel.login() })
-                }
-                if (showExitNodePicker.value == ShowHide.Show) {
-                  ExitNodeStatus(
-                      navAction = navigation.onNavigateToExitNodes, viewModel = viewModel)
-                }
-                val pending by viewModel.pendingTaildrop.pendingItems.collectAsState()
-                if (pending.isNotEmpty()) {
-                  TaildropBannerView(viewModel = viewModel.pendingTaildrop)
-                }
-                PeerList(
-                    viewModel = viewModel,
-                    onNavigateToPeerDetails = navigation.onNavigateToPeerDetails,
-                    onSearchBarClick = navigation.onNavigateToSearch,
-                    onSearch = { viewModel.searchPeers(it) })
-              }
-              Ipn.State.NoState,
-              Ipn.State.Starting -> StartingView()
-              else -> {
-                ConnectView(
-                    state,
-                    isPrepared,
-                    // If Tailscale is stopping, don't automatically restart; wait for user to take
-                    // action (eg, if the user connected to another VPN).
-                    state != Ipn.State.Stopping,
-                    user,
-                    { viewModel.toggleVpn(desiredState = !isOn) },
-                    { viewModel.login() },
-                    loginAtUrl,
-                    netmap?.SelfNode,
-                    { viewModel.showVPNPermissionLauncherIfUnauthorized() })
-              }
+            if (showKeyExpiry) {
+              ExpiryNotification(netmap = netmap, action = { viewModel.login() })
             }
+            if (showExitNodePicker.value == ShowHide.Show) {
+              ExitNodeStatus(
+                  navAction = navigation.onNavigateToExitNodes,
+                  viewModel = viewModel,
+              )
+            }
+            val pending by viewModel.pendingTaildrop.pendingItems.collectAsState()
+            if (pending.isNotEmpty()) {
+              TaildropBannerView(viewModel = viewModel.pendingTaildrop)
+            }
+            PeerList(
+                viewModel = viewModel,
+                onNavigateToPeerDetails = navigation.onNavigateToPeerDetails,
+                onSearchBarClick = navigation.onNavigateToSearch,
+                onSearch = { viewModel.searchPeers(it) },
+            )
           }
+          Ipn.State.NoState,
+          Ipn.State.Starting -> StartingView()
+          else -> {
+            ConnectView(
+                state,
+                isPrepared,
+                // If Tailscale is stopping, don't automatically restart; wait for user to take
+                // action (eg, if the user connected to another VPN).
+                state != Ipn.State.Stopping,
+                user,
+                { viewModel.toggleVpn(desiredState = !isOn) },
+                { viewModel.login() },
+                loginAtUrl,
+                netmap?.SelfNode,
+                { viewModel.showVPNPermissionLauncherIfUnauthorized() },
+            )
+          }
+        }
+      }
       currentPingDevice?.let { _ ->
         ModalBottomSheet(onDismissRequest = { viewModel.onPingDismissal() }) {
           PingView(model = viewModel.pingViewModel)
@@ -261,9 +272,10 @@ fun MainView(
         ModalBottomSheet(
             onDismissRequest = {
               viewModel.pendingTaildrop.isPresentingPendingItemsList.value = false
-            }) {
-              InlineShareListSheet(viewModel = viewModel.pendingTaildrop)
             }
+        ) {
+          InlineShareListSheet(viewModel = viewModel.pendingTaildrop)
+        }
       }
     }
   }
@@ -278,7 +290,8 @@ fun TaildropDirectoryPickerPrompt() {
         text = stringResource(id = R.string.taildrop_directory_picker_info),
         modifier = Modifier.clickable { uriHandler.openUri(Links.TAILDROP_KB_URL) },
         color = MaterialTheme.colorScheme.primary,
-        textDecoration = TextDecoration.Underline)
+        textDecoration = TextDecoration.Underline,
+    )
   }
 }
 
@@ -310,114 +323,118 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
   val managedByOrganization by viewModel.managedByOrganization.collectAsState()
   Box(
       modifier =
-          Modifier.fillMaxWidth().background(color = MaterialTheme.colorScheme.surfaceContainer)) {
-        if (nodeState == NodeState.OFFLINE_MDM) {
-          Box(
-              modifier =
-                  Modifier.padding(start = 16.dp, end = 16.dp, top = 56.dp, bottom = 16.dp)
-                      .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
-                      .background(MaterialTheme.colorScheme.customErrorContainer)
-                      .fillMaxWidth()
-                      .align(Alignment.TopCenter)) {
-                Column(
-                    modifier =
-                        Modifier.padding(start = 16.dp, end = 16.dp, top = 36.dp, bottom = 16.dp)) {
-                      Text(
-                          text =
-                              managedByOrganization.value?.let {
-                                stringResource(R.string.exit_node_offline_mdm_orgname, it)
-                              } ?: stringResource(R.string.exit_node_offline_mdm),
-                          style = MaterialTheme.typography.bodyMedium,
-                          color = Color.White)
-                    }
-              }
+          Modifier.fillMaxWidth().background(color = MaterialTheme.colorScheme.surfaceContainer)
+  ) {
+    if (nodeState == NodeState.OFFLINE_MDM) {
+      Box(
+          modifier =
+              Modifier.padding(start = 16.dp, end = 16.dp, top = 56.dp, bottom = 16.dp)
+                  .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
+                  .background(MaterialTheme.colorScheme.customErrorContainer)
+                  .fillMaxWidth()
+                  .align(Alignment.TopCenter)
+      ) {
+        Column(
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 36.dp, bottom = 16.dp)
+        ) {
+          Text(
+              text =
+                  managedByOrganization.value?.let {
+                    stringResource(R.string.exit_node_offline_mdm_orgname, it)
+                  } ?: stringResource(R.string.exit_node_offline_mdm),
+              style = MaterialTheme.typography.bodyMedium,
+              color = Color.White,
+          )
         }
-        Box(
-            modifier =
-                Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp)
-                    .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
-                    .fillMaxWidth()) {
-              ListItem(
-                  modifier = Modifier.clickable { navAction() },
+      }
+    }
+    Box(
+        modifier =
+            Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp)
+                .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
+                .fillMaxWidth()
+    ) {
+      ListItem(
+          modifier = Modifier.clickable { navAction() },
+          colors =
+              when (nodeState) {
+                NodeState.ACTIVE_AND_RUNNING -> MaterialTheme.colorScheme.primaryListItem
+                NodeState.ACTIVE_NOT_RUNNING -> MaterialTheme.colorScheme.listItem
+                NodeState.RUNNING_AS_EXIT_NODE -> MaterialTheme.colorScheme.warningListItem
+                NodeState.OFFLINE_ENABLED -> MaterialTheme.colorScheme.errorListItem
+                NodeState.OFFLINE_DISABLED -> MaterialTheme.colorScheme.errorListItem
+                NodeState.OFFLINE_MDM -> MaterialTheme.colorScheme.errorListItem
+                else -> ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surface)
+              },
+          overlineContent = {
+            Text(
+                text =
+                    if (
+                        nodeState == NodeState.OFFLINE_ENABLED ||
+                            nodeState == NodeState.OFFLINE_DISABLED ||
+                            nodeState == NodeState.OFFLINE_MDM
+                    )
+                        stringResource(R.string.exit_node_offline)
+                    else stringResource(R.string.exit_node),
+                style = MaterialTheme.typography.bodySmall,
+            )
+          },
+          headlineContent = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+              Text(
+                  text =
+                      when (nodeState) {
+                        NodeState.NONE -> stringResource(id = R.string.none)
+                        NodeState.RUNNING_AS_EXIT_NODE ->
+                            stringResource(id = R.string.running_exit_node)
+                        else -> name ?: ""
+                      },
+                  style = MaterialTheme.typography.bodyMedium,
+                  maxLines = 1,
+                  overflow = TextOverflow.Ellipsis,
+              )
+              Icon(
+                  imageVector = Icons.Outlined.ArrowDropDown,
+                  contentDescription = null,
+                  tint =
+                      if (nodeState == NodeState.NONE) MaterialTheme.colorScheme.onSurfaceVariant
+                      else MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
+              )
+            }
+          },
+          trailingContent = {
+            if (nodeState != NodeState.NONE) {
+              Button(
                   colors =
                       when (nodeState) {
-                        NodeState.ACTIVE_AND_RUNNING -> MaterialTheme.colorScheme.primaryListItem
-                        NodeState.ACTIVE_NOT_RUNNING -> MaterialTheme.colorScheme.listItem
-                        NodeState.RUNNING_AS_EXIT_NODE -> MaterialTheme.colorScheme.warningListItem
-                        NodeState.OFFLINE_ENABLED -> MaterialTheme.colorScheme.errorListItem
-                        NodeState.OFFLINE_DISABLED -> MaterialTheme.colorScheme.errorListItem
-                        NodeState.OFFLINE_MDM -> MaterialTheme.colorScheme.errorListItem
-                        else ->
-                            ListItemDefaults.colors(
-                                containerColor = MaterialTheme.colorScheme.surface)
+                        NodeState.OFFLINE_ENABLED -> MaterialTheme.colorScheme.errorButton
+                        NodeState.OFFLINE_DISABLED -> MaterialTheme.colorScheme.errorButton
+                        NodeState.OFFLINE_MDM -> MaterialTheme.colorScheme.errorButton
+                        NodeState.RUNNING_AS_EXIT_NODE -> MaterialTheme.colorScheme.warningButton
+                        NodeState.ACTIVE_NOT_RUNNING ->
+                            MaterialTheme.colorScheme.exitNodeToggleButton
+                        else -> MaterialTheme.colorScheme.secondaryButton
                       },
-                  overlineContent = {
-                    Text(
-                        text =
-                            if (nodeState == NodeState.OFFLINE_ENABLED ||
-                                nodeState == NodeState.OFFLINE_DISABLED ||
-                                nodeState == NodeState.OFFLINE_MDM)
-                                stringResource(R.string.exit_node_offline)
-                            else stringResource(R.string.exit_node),
-                        style = MaterialTheme.typography.bodySmall,
-                    )
+                  onClick = {
+                    if (nodeState == NodeState.RUNNING_AS_EXIT_NODE)
+                        viewModel.setRunningExitNode(false)
+                    else viewModel.toggleExitNode()
                   },
-                  headlineContent = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                      Text(
-                          text =
-                              when (nodeState) {
-                                NodeState.NONE -> stringResource(id = R.string.none)
-                                NodeState.RUNNING_AS_EXIT_NODE ->
-                                    stringResource(id = R.string.running_exit_node)
-                                else -> name ?: ""
-                              },
-                          style = MaterialTheme.typography.bodyMedium,
-                          maxLines = 1,
-                          overflow = TextOverflow.Ellipsis)
-                      Icon(
-                          imageVector = Icons.Outlined.ArrowDropDown,
-                          contentDescription = null,
-                          tint =
-                              if (nodeState == NodeState.NONE)
-                                  MaterialTheme.colorScheme.onSurfaceVariant
-                              else MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
-                      )
+              ) {
+                Text(
+                    when (nodeState) {
+                      NodeState.OFFLINE_DISABLED -> stringResource(id = R.string.enable)
+                      NodeState.ACTIVE_NOT_RUNNING -> stringResource(id = R.string.enable)
+                      NodeState.RUNNING_AS_EXIT_NODE -> stringResource(id = R.string.stop)
+                      else -> stringResource(id = R.string.disable)
                     }
-                  },
-                  trailingContent = {
-                    if (nodeState != NodeState.NONE) {
-                      Button(
-                          colors =
-                              when (nodeState) {
-                                NodeState.OFFLINE_ENABLED -> MaterialTheme.colorScheme.errorButton
-                                NodeState.OFFLINE_DISABLED -> MaterialTheme.colorScheme.errorButton
-                                NodeState.OFFLINE_MDM -> MaterialTheme.colorScheme.errorButton
-                                NodeState.RUNNING_AS_EXIT_NODE ->
-                                    MaterialTheme.colorScheme.warningButton
-                                NodeState.ACTIVE_NOT_RUNNING ->
-                                    MaterialTheme.colorScheme.exitNodeToggleButton
-                                else -> MaterialTheme.colorScheme.secondaryButton
-                              },
-                          onClick = {
-                            if (nodeState == NodeState.RUNNING_AS_EXIT_NODE)
-                                viewModel.setRunningExitNode(false)
-                            else viewModel.toggleExitNode()
-                          }) {
-                            Text(
-                                when (nodeState) {
-                                  NodeState.OFFLINE_DISABLED -> stringResource(id = R.string.enable)
-                                  NodeState.ACTIVE_NOT_RUNNING ->
-                                      stringResource(id = R.string.enable)
-                                  NodeState.RUNNING_AS_EXIT_NODE ->
-                                      stringResource(id = R.string.stop)
-                                  else -> stringResource(id = R.string.disable)
-                                })
-                          }
-                    }
-                  })
+                )
+              }
             }
-      }
+          },
+      )
+    }
+  }
 }
 
 @Composable
@@ -426,7 +443,8 @@ fun SettingsButton(action: () -> Unit) {
     Icon(
         Icons.Outlined.Settings,
         contentDescription = "Open settings",
-        tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
   }
 }
 
@@ -435,10 +453,14 @@ fun StartingView() {
   Column(
       modifier = Modifier.fillMaxSize(),
       verticalArrangement = Arrangement.Center,
-      horizontalAlignment = Alignment.CenterHorizontally) {
-        TailscaleLogoView(
-            animated = true, usesOnBackgroundColors = false, Modifier.size(40.dp).alpha(0.3f))
-      }
+      horizontalAlignment = Alignment.CenterHorizontally,
+  ) {
+    TailscaleLogoView(
+        animated = true,
+        usesOnBackgroundColors = false,
+        Modifier.size(40.dp).alpha(0.3f),
+    )
+  }
 }
 
 @Composable
@@ -471,36 +493,43 @@ fun ConnectView(
           Text(
               text = stringResource(id = R.string.welcome_to_tailscale),
               style = MaterialTheme.typography.titleMedium,
-              textAlign = TextAlign.Center)
+              textAlign = TextAlign.Center,
+          )
           Text(
               stringResource(R.string.give_permissions),
               style = MaterialTheme.typography.titleSmall,
-              textAlign = TextAlign.Center)
+              textAlign = TextAlign.Center,
+          )
           Spacer(modifier = Modifier.size(1.dp))
           PrimaryActionButton(onClick = connectAction) {
             Text(
                 text = stringResource(id = R.string.connect),
-                fontSize = MaterialTheme.typography.titleMedium.fontSize)
+                fontSize = MaterialTheme.typography.titleMedium.fontSize,
+            )
           }
         } else if (state == Ipn.State.NeedsMachineAuth) {
           Icon(
               modifier = Modifier.size(40.dp),
               imageVector = Icons.Outlined.Lock,
-              contentDescription = "Device requires authentication")
+              contentDescription = "Device requires authentication",
+          )
           Text(
               text = stringResource(id = R.string.machine_auth_required),
               style = MaterialTheme.typography.titleMedium,
-              textAlign = TextAlign.Center)
+              textAlign = TextAlign.Center,
+          )
           Text(
               text = stringResource(id = R.string.machine_auth_explainer),
               style = MaterialTheme.typography.bodyMedium,
-              textAlign = TextAlign.Center)
+              textAlign = TextAlign.Center,
+          )
           Spacer(modifier = Modifier.size(1.dp))
           selfNode?.let {
             PrimaryActionButton(onClick = { loginAtUrlAction(it.nodeAdminUrl) }) {
               Text(
                   text = stringResource(id = R.string.open_admin_console),
-                  fontSize = MaterialTheme.typography.titleMedium.fontSize)
+                  fontSize = MaterialTheme.typography.titleMedium.fontSize,
+              )
             }
           }
         } else if (state != Ipn.State.NeedsLogin && user != null && !user.isEmpty()) {
@@ -508,13 +537,15 @@ fun ConnectView(
               painter = painterResource(id = R.drawable.power),
               contentDescription = null,
               modifier = Modifier.size(40.dp),
-              tint = MaterialTheme.colorScheme.disabled)
+              tint = MaterialTheme.colorScheme.disabled,
+          )
           Text(
               text = stringResource(id = R.string.not_connected),
               fontSize = MaterialTheme.typography.titleMedium.fontSize,
               fontWeight = FontWeight.SemiBold,
               textAlign = TextAlign.Center,
-              fontFamily = MaterialTheme.typography.titleMedium.fontFamily)
+              fontFamily = MaterialTheme.typography.titleMedium.fontFamily,
+          )
           val tailnetName = user.NetworkProfile?.tailnetNameForDisplay() ?: ""
           Text(
               buildAnnotatedString {
@@ -532,7 +563,8 @@ fun ConnectView(
           PrimaryActionButton(onClick = connectAction) {
             Text(
                 text = stringResource(id = R.string.connect),
-                fontSize = MaterialTheme.typography.titleMedium.fontSize)
+                fontSize = MaterialTheme.typography.titleMedium.fontSize,
+            )
           }
         } else {
           TailscaleLogoView(modifier = Modifier.size(50.dp))
@@ -540,16 +572,19 @@ fun ConnectView(
           Text(
               text = stringResource(id = R.string.welcome_to_tailscale),
               style = MaterialTheme.typography.titleMedium,
-              textAlign = TextAlign.Center)
+              textAlign = TextAlign.Center,
+          )
           Text(
               stringResource(R.string.login_to_join_your_tailnet),
               style = MaterialTheme.typography.titleSmall,
-              textAlign = TextAlign.Center)
+              textAlign = TextAlign.Center,
+          )
           Spacer(modifier = Modifier.size(1.dp))
           PrimaryActionButton(onClick = loginAction) {
             Text(
                 text = stringResource(id = R.string.log_in),
-                fontSize = MaterialTheme.typography.titleMedium.fontSize)
+                fontSize = MaterialTheme.typography.titleMedium.fontSize,
+            )
           }
         }
       }
@@ -567,8 +602,10 @@ fun PeerList(
 ) {
   val peerList by viewModel.peers.collectAsState(initial = emptyList<PeerSet>())
   val searchTermStr by viewModel.searchTerm.collectAsState(initial = "")
-  val showNoResults =
-      remember { derivedStateOf { searchTermStr.isNotEmpty() && peerList.isEmpty() } }.value
+  val showNoResults = remember {
+    derivedStateOf { searchTermStr.isNotEmpty() && peerList.isEmpty() }
+  }
+      .value
   val netmap = viewModel.netmap.collectAsState()
   val focusManager = LocalFocusManager.current
   var isSearchFocussed by remember { mutableStateOf(false) }
@@ -578,8 +615,9 @@ fun PeerList(
   // Restrict search to devices running API 33+ (see https://github.com/tailscale/corp/issues/27375)
   val enableSearch = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
 
-  val renderedPeers =
-      peerList.flatMap { peerSet -> peerSet.peers.map { peer -> peerSet.userID to peer } }
+  val renderedPeers = peerList.flatMap { peerSet ->
+    peerSet.peers.map { peer -> peerSet.userID to peer }
+  }
   val duplicateRenderedStableIDs =
       renderedPeers.groupBy { (_, peer) -> peer.StableID }.filterValues { it.size > 1 }
   val duplicateRenderedNodeIDs =
@@ -618,7 +656,8 @@ fun PeerList(
                       "/self=${self?.ID == peer.ID}"
                 } +
                 "]"
-          })
+          }
+      )
     }
   }
 
@@ -628,44 +667,48 @@ fun PeerList(
     } else {
       if (!isAndroidTV()) {
         Box(
-            modifier =
-                Modifier.fillMaxWidth().background(color = MaterialTheme.colorScheme.surface)) {
-              OutlinedTextField(
-                  modifier =
-                      Modifier.fillMaxWidth()
-                          .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 0.dp)
-                          .onFocusChanged { isSearchFocussed = it.isFocused },
-                  singleLine = true,
-                  shape = MaterialTheme.shapes.extraLarge,
-                  colors = MaterialTheme.colorScheme.searchBarColors,
-                  leadingIcon = {
-                    Icon(imageVector = Icons.Outlined.Search, contentDescription = "search")
-                  },
-                  trailingIcon = {
-                    if (isSearchFocussed) {
-                      IconButton(
-                          onClick = {
-                            focusManager.clearFocus()
-                            onSearch("")
-                          }) {
-                            Icon(
-                                imageVector =
-                                    if (searchTermStr.isEmpty()) Icons.Outlined.Close
-                                    else Icons.Outlined.Clear,
-                                contentDescription = "clear search",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                          }
-                    }
-                  },
-                  placeholder = {
-                    Text(
-                        text = stringResource(id = R.string.search),
-                        style = MaterialTheme.typography.bodyLarge,
-                        maxLines = 1)
-                  },
-                  value = searchTermStr,
-                  onValueChange = { onSearch(it) })
-            }
+            modifier = Modifier.fillMaxWidth().background(color = MaterialTheme.colorScheme.surface)
+        ) {
+          OutlinedTextField(
+              modifier =
+                  Modifier.fillMaxWidth()
+                      .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 0.dp)
+                      .onFocusChanged { isSearchFocussed = it.isFocused },
+              singleLine = true,
+              shape = MaterialTheme.shapes.extraLarge,
+              colors = MaterialTheme.colorScheme.searchBarColors,
+              leadingIcon = {
+                Icon(imageVector = Icons.Outlined.Search, contentDescription = "search")
+              },
+              trailingIcon = {
+                if (isSearchFocussed) {
+                  IconButton(
+                      onClick = {
+                        focusManager.clearFocus()
+                        onSearch("")
+                      }
+                  ) {
+                    Icon(
+                        imageVector =
+                            if (searchTermStr.isEmpty()) Icons.Outlined.Close
+                            else Icons.Outlined.Clear,
+                        contentDescription = "clear search",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                  }
+                }
+              },
+              placeholder = {
+                Text(
+                    text = stringResource(id = R.string.search),
+                    style = MaterialTheme.typography.bodyLarge,
+                    maxLines = 1,
+                )
+              },
+              value = searchTermStr,
+              onValueChange = { onSearch(it) },
+          )
+        }
       }
     }
     // Peers display
@@ -675,94 +718,108 @@ fun PeerList(
                 .weight(1f) // LazyColumn gets the remaining vertical space
                 .onFocusChanged { isListFocussed = it.isFocused }
                 .background(color = MaterialTheme.colorScheme.surface)
-                .windowInsetsPadding(WindowInsets.navigationBars)) {
-          // Handle case when no results are found
-          if (showNoResults) {
-            item {
-              Spacer(
-                  Modifier.height(16.dp)
-                      .fillMaxSize()
-                      .focusable(false)
-                      .background(color = MaterialTheme.colorScheme.surface))
-              Lists.LargeTitle(
-                  stringResource(id = R.string.no_results),
-                  bottomPadding = 8.dp,
-                  style = MaterialTheme.typography.bodyMedium,
-                  fontWeight = FontWeight.Light)
-            }
-          }
-          // Iterate over peer sets to display them
-          var first = true
-          peerList.forEach { peerSet ->
-            if (!first) {
-              item(key = "user_divider_${peerSet.userID}") { Lists.ItemDivider() }
-            }
-            first = false
-            if (isAndroidTV()) {
-              item { NodesSectionHeader(peerSet = peerSet) }
-            } else {
-              stickyHeader { NodesSectionHeader(peerSet = peerSet) }
-            }
-            itemsWithDividers(peerSet.peers, key = { it.StableID }) { peer ->
-              ListItem(
-                  modifier =
-                      Modifier.combinedClickable(
-                          onClick = { onNavigateToPeerDetails(peer) },
-                          onLongClick = { viewModel.expandedMenuPeer.set(peer) }),
-                  colors = MaterialTheme.colorScheme.listItem,
-                  headlineContent = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                      Box(
-                          modifier =
-                              Modifier.padding(top = 2.dp)
-                                  .size(10.dp)
-                                  .background(
-                                      color = peer.connectedColor(netmap.value),
-                                      shape = RoundedCornerShape(percent = 50))) {}
-                      Spacer(modifier = Modifier.size(8.dp))
-                      Text(text = peer.displayName, style = MaterialTheme.typography.titleMedium)
-                      DropdownMenu(
-                          expanded = expandedPeer.value?.StableID == peer.StableID,
-                          onDismissRequest = { viewModel.hidePeerDropdownMenu() }) {
-                            DropdownMenuItem(
-                                leadingIcon = {
-                                  Icon(
-                                      painter = painterResource(R.drawable.clipboard),
-                                      contentDescription = null)
-                                },
-                                text = { Text(text = stringResource(R.string.copy_ip_address)) },
-                                onClick = {
-                                  viewModel.copyIpAddress(peer, localClipboardManager)
-                                  viewModel.hidePeerDropdownMenu()
-                                })
-                            netmap.value?.let { netMap ->
-                              if (!peer.isSelfNode(netMap)) {
-                                DropdownMenuItem(
-                                    leadingIcon = {
-                                      Icon(
-                                          painter = painterResource(R.drawable.timer),
-                                          contentDescription = null)
-                                    },
-                                    text = { Text(text = stringResource(R.string.ping)) },
-                                    onClick = {
-                                      viewModel.hidePeerDropdownMenu()
-                                      viewModel.startPing(peer)
-                                    })
-                              }
-                            }
-                          }
-                    }
-                  },
-                  supportingContent = {
-                    Text(
-                        text = peer.Addresses?.first()?.split("/")?.first() ?: "",
-                        style =
-                            MaterialTheme.typography.bodyMedium.copy(
-                                lineHeight = MaterialTheme.typography.titleMedium.lineHeight))
-                  })
-            }
-          }
+                .windowInsetsPadding(WindowInsets.navigationBars)
+    ) {
+      // Handle case when no results are found
+      if (showNoResults) {
+        item {
+          Spacer(
+              Modifier.height(16.dp)
+                  .fillMaxSize()
+                  .focusable(false)
+                  .background(color = MaterialTheme.colorScheme.surface)
+          )
+          Lists.LargeTitle(
+              stringResource(id = R.string.no_results),
+              bottomPadding = 8.dp,
+              style = MaterialTheme.typography.bodyMedium,
+              fontWeight = FontWeight.Light,
+          )
         }
+      }
+      // Iterate over peer sets to display them
+      var first = true
+      peerList.forEach { peerSet ->
+        if (!first) {
+          item(key = "user_divider_${peerSet.userID}") { Lists.ItemDivider() }
+        }
+        first = false
+        if (isAndroidTV()) {
+          item { NodesSectionHeader(peerSet = peerSet) }
+        } else {
+          stickyHeader { NodesSectionHeader(peerSet = peerSet) }
+        }
+        itemsWithDividers(peerSet.peers, key = { it.StableID }) { peer ->
+          ListItem(
+              modifier =
+                  Modifier.combinedClickable(
+                      onClick = { onNavigateToPeerDetails(peer) },
+                      onLongClick = { viewModel.expandedMenuPeer.set(peer) },
+                  ),
+              colors = MaterialTheme.colorScheme.listItem,
+              headlineContent = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                  Box(
+                      modifier =
+                          Modifier.padding(top = 2.dp)
+                              .size(10.dp)
+                              .background(
+                                  color = peer.connectedColor(netmap.value),
+                                  shape = RoundedCornerShape(percent = 50),
+                              )
+                  ) {}
+                  Spacer(modifier = Modifier.size(8.dp))
+                  Text(text = peer.displayName, style = MaterialTheme.typography.titleMedium)
+                  DropdownMenu(
+                      expanded = expandedPeer.value?.StableID == peer.StableID,
+                      onDismissRequest = { viewModel.hidePeerDropdownMenu() },
+                  ) {
+                    DropdownMenuItem(
+                        leadingIcon = {
+                          Icon(
+                              painter = painterResource(R.drawable.clipboard),
+                              contentDescription = null,
+                          )
+                        },
+                        text = { Text(text = stringResource(R.string.copy_ip_address)) },
+                        onClick = {
+                          viewModel.copyIpAddress(peer, localClipboardManager)
+                          viewModel.hidePeerDropdownMenu()
+                        },
+                    )
+                    netmap.value?.let { netMap ->
+                      if (!peer.isSelfNode(netMap)) {
+                        DropdownMenuItem(
+                            leadingIcon = {
+                              Icon(
+                                  painter = painterResource(R.drawable.timer),
+                                  contentDescription = null,
+                              )
+                            },
+                            text = { Text(text = stringResource(R.string.ping)) },
+                            onClick = {
+                              viewModel.hidePeerDropdownMenu()
+                              viewModel.startPing(peer)
+                            },
+                        )
+                      }
+                    }
+                  }
+                }
+              },
+              supportingContent = {
+                Text(
+                    text = peer.Addresses?.first()?.split("/")?.first() ?: "",
+                    style =
+                        MaterialTheme.typography.bodyMedium.copy(
+                            lineHeight = MaterialTheme.typography.titleMedium.lineHeight
+                        ),
+                )
+              },
+          )
+        }
+      }
+    }
   }
 }
 
@@ -774,7 +831,8 @@ fun NodesSectionHeader(peerSet: PeerSet) {
       bottomPadding = 8.dp,
       focusable = isAndroidTV(),
       style = MaterialTheme.typography.titleLarge,
-      fontWeight = FontWeight.SemiBold)
+      fontWeight = FontWeight.SemiBold,
+  )
 }
 
 @Composable
@@ -785,22 +843,25 @@ fun ExpiryNotification(netmap: Netmap.NetworkMap?, action: () -> Unit = {}) {
         modifier =
             Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp)
                 .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
-                .fillMaxWidth()) {
-          ListItem(
-              modifier = Modifier.clickable { action() },
-              colors = MaterialTheme.colorScheme.warningListItem,
-              headlineContent = {
-                Text(
-                    netmap.SelfNode.expiryLabel(),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-              },
-              supportingContent = {
-                Text(
-                    stringResource(id = R.string.keyExpiryExplainer),
-                    style = MaterialTheme.typography.bodyMedium)
-              })
-        }
+                .fillMaxWidth()
+    ) {
+      ListItem(
+          modifier = Modifier.clickable { action() },
+          colors = MaterialTheme.colorScheme.warningListItem,
+          headlineContent = {
+            Text(
+                netmap.SelfNode.expiryLabel(),
+                style = MaterialTheme.typography.titleMedium,
+            )
+          },
+          supportingContent = {
+            Text(
+                stringResource(id = R.string.keyExpiryExplainer),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+          },
+      )
+    }
   }
 }
 
@@ -814,9 +875,10 @@ fun PromptForMissingPermissions(viewModel: MainViewModel) {
     ErrorDialog(
         title = permission.title,
         message = permission.description,
-        buttonText = R.string._continue) {
-          state.launchPermissionRequest()
-        }
+        buttonText = R.string._continue,
+    ) {
+      state.launchPermissionRequest()
+    }
   }
 }
 
@@ -830,46 +892,45 @@ fun Search(
   var isNavigating by remember { mutableStateOf(false) }
   Box(
       modifier =
-          Modifier.fillMaxWidth()
-              .background(MaterialTheme.colorScheme.surface)
-              .padding(top = 8.dp)) {
-        Box(
-            modifier =
-                Modifier.fillMaxWidth()
-                    .padding(start = 16.dp, end = 16.dp, top = 16.dp)
-                    .height(56.dp)
-                    .clip(MaterialTheme.shapes.extraLarge) // Rounded corners for search bar
-                    .background(backgroundColor) // Search bar background
-                    .clickable(enabled = !isNavigating) { // Intercept taps
-                      isNavigating = true
-                      onSearchBarClick()
-                    }
-                    .padding(horizontal = 16.dp) // Internal padding
-            ) {
-              Row(
-                  verticalAlignment = Alignment.CenterVertically, // Ensure icon aligns with text
-                  modifier = Modifier.fillMaxSize()) {
-                    // Leading Icon
-                    Icon(
-                        imageVector = Icons.Outlined.Search,
-                        contentDescription = "Search",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier =
-                            Modifier.padding(start = 0.dp) // Optional start padding for alignment
-                        )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    // Placeholder Text
-                    Text(
-                        text = stringResource(R.string.search_ellipsis),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f) // Ensure text takes up remaining space
-                        )
-                  }
-            }
+          Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface).padding(top = 8.dp)
+  ) {
+    Box(
+        modifier =
+            Modifier.fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, top = 16.dp)
+                .height(56.dp)
+                .clip(MaterialTheme.shapes.extraLarge) // Rounded corners for search bar
+                .background(backgroundColor) // Search bar background
+                .clickable(enabled = !isNavigating) { // Intercept taps
+                  isNavigating = true
+                  onSearchBarClick()
+                }
+                .padding(horizontal = 16.dp) // Internal padding
+    ) {
+      Row(
+          verticalAlignment = Alignment.CenterVertically, // Ensure icon aligns with text
+          modifier = Modifier.fillMaxSize(),
+      ) {
+        // Leading Icon
+        Icon(
+            imageVector = Icons.Outlined.Search,
+            contentDescription = "Search",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 0.dp), // Optional start padding for alignment
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        // Placeholder Text
+        Text(
+            text = stringResource(R.string.search_ellipsis),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f), // Ensure text takes up remaining space
+        )
       }
+    }
+  }
 }
 
 @Preview
@@ -885,7 +946,8 @@ fun MainViewPreview() {
           onNavigateToPeerDetails = {},
           onNavigateToExitNodes = {},
           onNavigateToHealth = {},
-          onNavigateToSearch = {}),
+          onNavigateToSearch = {},
+      ),
       vm,
   )
 }

@@ -44,7 +44,8 @@ class HealthNotifier(
 
           // Ignored on Android because we already have a dedicated connected/not connected
           // notification
-          "wantrunning-false")
+          "wantrunning-false",
+      )
 
   // These must be initialized before the init block below, which launches a coroutine that can
   // immediately call dropAllWarnings() (reading currentWarnings) on a background dispatcher. If
@@ -147,9 +148,11 @@ class HealthNotifier(
       this.currentIcon.set(null)
       return
     }
-    if (currentWarnings.value.any {
-      (it.Severity == Health.Severity.high || it.ImpactsConnectivity == true)
-    }) {
+    if (
+        currentWarnings.value.any {
+          (it.Severity == Health.Severity.high || it.ImpactsConnectivity == true)
+        }
+    ) {
       this.currentIcon.set(R.drawable.warning_rounded)
     } else {
       this.currentIcon.set(R.drawable.info)
@@ -166,9 +169,12 @@ class HealthNotifier(
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .build()
-    if (ActivityCompat.checkSelfPermission(
-        App.get().applicationContext, Manifest.permission.POST_NOTIFICATIONS) !=
-        PackageManager.PERMISSION_GRANTED) {
+    if (
+        ActivityCompat.checkSelfPermission(
+            App.get().applicationContext,
+            Manifest.permission.POST_NOTIFICATIONS,
+        ) != PackageManager.PERMISSION_GRANTED
+    ) {
       TSLog.d(TAG, "Notification permission not granted")
       return
     }

@@ -33,8 +33,11 @@ object InlineShareConsumer {
   }
 
   private fun consumeUrl(context: Context, share: PendingInlineShare): Boolean {
-    val uri =
-        runCatching { Uri.parse(share.content) }.getOrNull()?.takeIf { !it.scheme.isNullOrEmpty() }
+    val uri = runCatching {
+      Uri.parse(share.content)
+    }
+        .getOrNull()
+        ?.takeIf { !it.scheme.isNullOrEmpty() }
     if (uri != null && BrowserOpener.openInDefaultBrowser(context, uri)) {
       // Opened links have served their purpose, so don't leave the file behind.
       deleteSavedFile(context, share)
@@ -52,9 +55,9 @@ object InlineShareConsumer {
     }
     // setPrimaryClip is a binder call: it throws on oversized payloads.
     return runCatching {
-          cm.setPrimaryClip(ClipData.newPlainText("Tailscale", content))
-          Toast.makeText(context, R.string.taildrop_copied_to_clipboard, Toast.LENGTH_SHORT).show()
-        }
+      cm.setPrimaryClip(ClipData.newPlainText("Tailscale", content))
+      Toast.makeText(context, R.string.taildrop_copied_to_clipboard, Toast.LENGTH_SHORT).show()
+    }
         .onFailure { TSLog.w(TAG, "copyToClipboard failed: $it") }
         .isSuccess
   }

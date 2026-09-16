@@ -58,11 +58,15 @@ object MDMSettings {
   // Unused on Android
   val detectThirdPartyAppConflicts =
       AlwaysNeverUserDecidesMDMSetting(
-          "DetectThirdPartyAppConflicts", "Detect potentially problematic third-party apps")
+          "DetectThirdPartyAppConflicts",
+          "Detect potentially problematic third-party apps",
+      )
 
   val exitNodeAllowLANAccess =
       AlwaysNeverUserDecidesMDMSetting(
-          "ExitNodeAllowLANAccess", "Allow LAN Access when using an exit node")
+          "ExitNodeAllowLANAccess",
+          "Allow LAN Access when using an exit node",
+      )
 
   // Handled on the backend
   val postureChecking =
@@ -71,7 +75,9 @@ object MDMSettings {
   // Handled on the backend
   val deviceSerialNumber =
       StringMDMSetting(
-          "DeviceSerialNumber", "Serial number of the device that is running Tailscale")
+          "DeviceSerialNumber",
+          "Serial number of the device that is running Tailscale",
+      )
 
   val useTailscaleDNSSettings =
       AlwaysNeverUserDecidesMDMSetting("UseTailscaleDNSSettings", "Use Tailscale DNS Settings")

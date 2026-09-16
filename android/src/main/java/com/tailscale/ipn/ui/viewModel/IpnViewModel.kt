@@ -59,7 +59,7 @@ open class IpnViewModel : ViewModel() {
     // Exit node selection is managed by an administrator, and last selected exit node is currently
     // offline
     OFFLINE_MDM,
-    RUNNING_AS_EXIT_NODE
+    RUNNING_AS_EXIT_NODE,
   }
 
   init {
@@ -101,8 +101,9 @@ open class IpnViewModel : ViewModel() {
             val validNetmap = netmap ?: return@combine NodeState.NONE
 
             val chosenExitNodeId = validPrefs.activeExitNodeID ?: validPrefs.selectedExitNodeID
-            val exitNodePeer =
-                chosenExitNodeId?.let { id -> validNetmap.Peers?.find { it.StableID == id } }
+            val exitNodePeer = chosenExitNodeId?.let { id ->
+              validNetmap.Peers?.find { it.StableID == id }
+            }
 
             when {
               exitNodePeer?.Online == false -> {
@@ -161,7 +162,7 @@ open class IpnViewModel : ViewModel() {
   fun login(
       maskedPrefs: Ipn.MaskedPrefs? = null,
       authKey: String? = null,
-      completionHandler: (Result<Unit>) -> Unit = {}
+      completionHandler: (Result<Unit>) -> Unit = {},
   ) {
     // Start the IPNService foreground notification so that Android
     // does not freeze the process or cut network access while the user is in the browser
@@ -220,7 +221,7 @@ open class IpnViewModel : ViewModel() {
 
   fun loginWithCustomControlURL(
       controlURL: String,
-      completionHandler: (Result<Unit>) -> Unit = {}
+      completionHandler: (Result<Unit>) -> Unit = {},
   ) {
     val prefs = Ipn.MaskedPrefs()
     prefs.ControlURL = controlURL

@@ -41,7 +41,7 @@ fun EditSubnetRouteDialogView(
     isValueValidFlow: StateFlow<Boolean>,
     onValueChange: (String) -> Unit,
     onCommit: (String) -> Unit,
-    onCancel: () -> Unit
+    onCancel: () -> Unit,
 ) {
   val value by valueFlow.collectAsState()
   val isValueValid by isValueValidFlow.collectAsState()
@@ -55,7 +55,8 @@ fun EditSubnetRouteDialogView(
     Text(
         text = stringResource(R.string.route_help_text),
         color = MaterialTheme.colorScheme.secondary,
-        fontSize = MaterialTheme.typography.bodySmall.fontSize)
+        fontSize = MaterialTheme.typography.bodySmall.fontSize,
+    )
 
     Spacer(modifier = Modifier.height(8.dp))
 
@@ -64,7 +65,8 @@ fun EditSubnetRouteDialogView(
         onValueChange = { onValueChange(it) },
         singleLine = true,
         isError = !isValueValid,
-        modifier = Modifier.focusRequester(focusRequester))
+        modifier = Modifier.focusRequester(focusRequester),
+    )
 
     Spacer(modifier = Modifier.height(8.dp))
 

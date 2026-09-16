@@ -37,7 +37,8 @@ object Permissions {
       result.addAll(
           all.zip(permissionStates.permissions).map { (permission, state) ->
             Pair(permission, state.status.isGranted)
-          })
+          }
+      )
       if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
         // On Android versions prior to 13, we have to programmatically check if notifications are
         // being allowed.
@@ -48,8 +49,11 @@ object Permissions {
                 Permission(
                     "",
                     R.string.permission_post_notifications,
-                    R.string.permission_post_notifications_needed),
-                notificationsEnabled))
+                    R.string.permission_post_notifications_needed,
+                ),
+                notificationsEnabled,
+            )
+        )
       }
       return result
     }
@@ -70,14 +74,17 @@ object Permissions {
               Manifest.permission.WRITE_EXTERNAL_STORAGE,
               R.string.permission_write_external_storage,
               R.string.permission_write_external_storage_needed,
-          ))
+          )
+      )
     }
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
       result.add(
           Permission(
               Manifest.permission.POST_NOTIFICATIONS,
               R.string.permission_post_notifications,
-              R.string.permission_post_notifications_needed))
+              R.string.permission_post_notifications_needed,
+          )
+      )
     }
     result
   }

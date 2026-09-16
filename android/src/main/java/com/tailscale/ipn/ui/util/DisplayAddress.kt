@@ -7,7 +7,7 @@ class DisplayAddress(ip: String) {
   enum class addrType {
     V4,
     V6,
-    MagicDNS
+    MagicDNS,
   }
 
   val type: addrType =

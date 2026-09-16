@@ -56,7 +56,8 @@ fun ErrorDialog(type: ErrorDialogType, action: () -> Unit = {}) {
       title = type.title,
       message = stringResource(id = type.message),
       buttonText = type.buttonText,
-      onDismiss = action)
+      onDismiss = action,
+  )
 }
 
 @Composable
@@ -64,13 +65,14 @@ fun ErrorDialog(
     @StringRes title: Int = R.string.error,
     @StringRes message: Int,
     @StringRes buttonText: Int = R.string.ok,
-    onDismiss: () -> Unit = {}
+    onDismiss: () -> Unit = {},
 ) {
   ErrorDialog(
       title = title,
       message = stringResource(id = message),
       buttonText = buttonText,
-      onDismiss = onDismiss)
+      onDismiss = onDismiss,
+  )
 }
 
 @Composable
@@ -78,7 +80,7 @@ fun ErrorDialog(
     @StringRes title: Int = R.string.error,
     message: String,
     @StringRes buttonText: Int = R.string.ok,
-    onDismiss: () -> Unit = {}
+    onDismiss: () -> Unit = {},
 ) {
   AppTheme {
     AlertDialog(
@@ -87,7 +89,8 @@ fun ErrorDialog(
         text = { Text(text = message) },
         confirmButton = {
           PrimaryActionButton(onClick = onDismiss) { Text(text = stringResource(id = buttonText)) }
-        })
+        },
+    )
   }
 }
 

@@ -40,7 +40,7 @@ fun AutoResizingText(
     overflow: TextOverflow = TextOverflow.Clip,
     maxLines: Int = 1,
     onTextLayout: ((TextLayoutResult) -> Unit)? = null,
-    style: TextStyle = LocalTextStyle.current
+    style: TextStyle = LocalTextStyle.current,
 ) {
   var textStyle = remember { mutableStateOf(style) }
   var textOverflow = remember { mutableStateOf(TextOverflow.Clip) }
@@ -74,5 +74,6 @@ fun AutoResizingText(
           readyToDraw.value = true
         }
         onTextLayout?.let { it(result) }
-      })
+      },
+  )
 }

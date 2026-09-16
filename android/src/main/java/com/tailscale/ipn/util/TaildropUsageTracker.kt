@@ -57,17 +57,16 @@ object TaildropUsageTracker {
   private fun sortPeers(
       peers: List<Tailcfg.Node>,
       lastUsed: Map<String, Long>,
-  ): List<Tailcfg.Node> =
-      peers.sortedWith { a, b ->
-        val ta = lastUsed[a.StableID]
-        val tb = lastUsed[b.StableID]
-        when {
-          ta != null && tb != null -> tb.compareTo(ta)
-          ta != null -> -1
-          tb != null -> 1
-          else -> (a.ComputedName ?: a.Name).compareTo(b.ComputedName ?: b.Name, ignoreCase = true)
-        }
-      }
+  ): List<Tailcfg.Node> = peers.sortedWith { a, b ->
+    val ta = lastUsed[a.StableID]
+    val tb = lastUsed[b.StableID]
+    when {
+      ta != null && tb != null -> tb.compareTo(ta)
+      ta != null -> -1
+      tb != null -> 1
+      else -> (a.ComputedName ?: a.Name).compareTo(b.ComputedName ?: b.Name, ignoreCase = true)
+    }
+  }
 
   private fun loadAll(context: Context): Map<String, Map<String, Long>> {
     val raw = prefs(context).getString(KEY, null) ?: return emptyMap()

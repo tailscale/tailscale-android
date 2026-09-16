@@ -38,7 +38,7 @@ val logoDotsMatrix: DotsMatrix =
 fun TailscaleLogoView(
     animated: Boolean = false,
     usesOnBackgroundColors: Boolean = false,
-    modifier: Modifier
+    modifier: Modifier,
 ) {
 
   val primaryColor: Color =
@@ -151,4 +151,5 @@ val gameOfLife: List<DotsMatrix> =
         listOf(listOf(false, false, false), listOf(true, true, false), listOf(false, true, false)),
         listOf(listOf(false, false, false), listOf(true, true, false), listOf(false, true, true)),
         listOf(listOf(false, false, false), listOf(true, true, true), listOf(false, false, true)),
-        listOf(listOf(false, true, false), listOf(true, true, true), listOf(true, false, true)))
+        listOf(listOf(false, true, false), listOf(true, true, true), listOf(true, false, true)),
+    )
