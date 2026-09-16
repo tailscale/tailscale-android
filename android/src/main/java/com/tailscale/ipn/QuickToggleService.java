@@ -61,11 +61,11 @@ public class QuickToggleService extends TileService {
     }
 
     @Override
+    @SuppressWarnings("deprecation") // unlockAndRun is still required on pre-Android 14 devices.
     public void onClick() {
         unlockAndRun(this::secureOnClick);
     }
 
-    @SuppressWarnings("deprecation")                                                                                                                    
     private void secureOnClick() {
         boolean ableToStart;
         synchronized (lock) {
@@ -97,6 +97,7 @@ public class QuickToggleService extends TileService {
       }
     }
 
+    @SuppressWarnings("deprecation")
     private void launchMainActivity() {
       Intent i = getPackageManager().getLaunchIntentForPackage(getPackageName());
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {

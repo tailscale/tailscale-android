@@ -71,8 +71,8 @@ class DNSSettingsViewModel : IpnViewModel() {
 }
 
 enum class DNSEnablementState(
-    @StringRes val title: Int,
-    @StringRes val caption: Int,
+    @param:StringRes val title: Int,
+    @param:StringRes val caption: Int,
     val symbolDrawable: Int,
     val tint: @Composable () -> Color
 ) {

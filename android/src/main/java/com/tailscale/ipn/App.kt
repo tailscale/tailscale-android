@@ -66,6 +66,7 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     // Key to store the SAF URI in EncryptedSharedPreferences.
     private val PREF_KEY_SAF_URI = "saf_directory_uri"
     private const val TAG = "App"
+    private val interfaceJson = Json { encodeDefaults = true }
     private lateinit var appInstance: App
     /**
      * Initializes the app (if necessary) and returns the singleton app instance. Always use this
@@ -372,7 +373,7 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     }
 
     // Avoid pretty printing to keep payload small.
-    return Json { encodeDefaults = true }.encodeToString(out)
+    return interfaceJson.encodeToString(out)
   }
 
   @Throws(
