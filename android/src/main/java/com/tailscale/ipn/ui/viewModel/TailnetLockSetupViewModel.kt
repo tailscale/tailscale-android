@@ -23,7 +23,7 @@ class TailnetLockSetupViewModelFactory : ViewModelProvider.Factory {
   }
 }
 
-data class StatusItem(@StringRes val title: Int, @DrawableRes val icon: Int)
+data class StatusItem(@param:StringRes val title: Int, @param:DrawableRes val icon: Int)
 
 class TailnetLockSetupViewModel : IpnViewModel() {
 

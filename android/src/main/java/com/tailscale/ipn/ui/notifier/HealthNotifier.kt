@@ -16,6 +16,8 @@ import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.util.TSLog
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.debounce
@@ -24,6 +26,7 @@ import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 class HealthNotifier(
     healthStateFlow: StateFlow<Health.State?>,
     ipnStateFlow: StateFlow<Ipn.State>,
