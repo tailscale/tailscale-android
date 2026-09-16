@@ -183,8 +183,8 @@ $(RELEASE_TV_AAB): version gradle-dependencies
 	install -C ./android/build/outputs/bundle/release/android-release.aab $@
 
 tailscale-test.apk: version gradle-dependencies
-	(cd android && ./gradlew assembleApplicationTestAndroidTest)
-	install -C ./android/build/outputs/apk/androidTest/applicationTest/android-applicationTest-androidTest.apk $@
+	(cd android && ./gradlew assembleDebugAndroidTest)
+	install -C ./android/build/outputs/apk/androidTest/debug/android-debug-androidTest.apk $@
 
 # Command that (re)generates tailscale.version from the current git HEAD and
 # go.mod state. VERSION_LONG's trailing -g<hash> is this repo's HEAD, so this
@@ -288,10 +288,10 @@ env:
 .PHONY: jarsign-env
 jarsign-env:
 ifeq ($(JKS_PATH),)
-	$(error JKS_PATH is not set.  export JKS_PATH=/path/to/tailcale.jks)
+	$(error JKS_PATH is not set.  export JKS_PATH=/path/to/tailscale.jks)
 endif
 ifeq ($(JKS_PASSWORD),)
-	$(error JKS_PASSWORD is not set.  export JKS_PASSWORD=passwordForTailcale.jks)
+	$(error JKS_PASSWORD is not set.  export JKS_PASSWORD=passwordForTailscale.jks)
 endif
 ifeq ($(wildcard $(JKS_PATH)),)
 	$(error JKS_PATH does not point to a file)

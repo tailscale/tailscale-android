@@ -58,27 +58,6 @@ android {
     namespace = "com.tailscale.ipn"
 
     buildTypes {
-        create("applicationTest") {
-            initWith(getByName("debug"))
-            manifestPlaceholders["leanbackRequired"] = isTV()
-
-            buildConfigField(
-                "String",
-                "GITHUB_USERNAME",
-                "\"${getLocalProperty("githubUsername", "")}\"",
-            )
-            buildConfigField(
-                "String",
-                "GITHUB_PASSWORD",
-                "\"${getLocalProperty("githubPassword", "")}\"",
-            )
-            buildConfigField(
-                "String",
-                "GITHUB_2FA_SECRET",
-                "\"${getLocalProperty("github2FASecret", "")}\"",
-            )
-        }
-
         debug {
             manifestPlaceholders["leanbackRequired"] = isTV()
         }
@@ -94,8 +73,6 @@ android {
             )
         }
     }
-
-    testBuildType = "applicationTest"
 }
 
 dependencies {
