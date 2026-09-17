@@ -63,6 +63,8 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
 
   companion object {
     const val FILE_CHANNEL_ID = "tailscale-files"
+    const val KEY_EXPIRY_CHANNEL_ID = "tailscale-key-expiry"
+    const val KEY_EXPIRY_NOTIFICATION_ID = 3
     // Key to store the SAF URI in EncryptedSharedPreferences.
     private val PREF_KEY_SAF_URI = "saf_directory_uri"
     private const val TAG = "App"
@@ -131,6 +133,12 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
         getString(R.string.health_channel_name),
         getString(R.string.health_channel_description),
         NotificationManagerCompat.IMPORTANCE_HIGH,
+    )
+    createNotificationChannel(
+        KEY_EXPIRY_CHANNEL_ID,
+        getString(R.string.key_expiry_channel_name),
+        getString(R.string.key_expiry_channel_description),
+        NotificationManagerCompat.IMPORTANCE_DEFAULT,
     )
   }
 
@@ -213,6 +221,25 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
               }
             }
       }
+    }
+    applicationScope.launch {
+      combine(Notifier.netmap, MDMSettings.keyExpirationNotice.flow) { netmap, keyExpirationNotice
+            ->
+            Triple(
+                netmap?.SelfNode?.KeyExpiry,
+                netmap?.SelfNode?.keyDoesNotExpire,
+                keyExpirationNotice.value,
+            )
+          }
+          .distinctUntilChanged()
+          .collect {
+            val self = Notifier.netmap.value?.SelfNode
+            if (self == null) {
+              KeyExpiryNotificationScheduler.cancel(this@App)
+            } else {
+              KeyExpiryNotificationScheduler.schedule(this@App, self)
+            }
+          }
     }
     TSLog.init(this)
     FeatureFlags.initialize(mapOf("enable_new_search" to true))
