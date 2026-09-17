@@ -34,6 +34,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -51,6 +52,7 @@ import androidx.core.net.toUri
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -382,14 +384,16 @@ class MainActivity : ComponentActivity() {
                     navigation = mainViewNav,
                     viewModel = viewModel,
                     settingsPane = {
-                      SettingsView(
-                          settingsNav = settingsNav,
+                      SettingsDetailPane(
                           appViewModel = appViewModel,
-                          showBack = false,
+                          permissionsViewModel = permissionsViewModel,
+                          directoryPickerLauncher = directoryPickerLauncher,
+                          openApplicationSettings = ::openApplicationSettings,
+                          onDismiss = { viewModel.showInDetailPane(null) },
                       )
                     },
                     exitNodePane = {
-                      ExitNodePickerContent(nav = exitNodePickerNav, showBack = false)
+                      ExitNodeDetailPane(onDismiss = { viewModel.showInDetailPane(null) })
                     },
                 )
               }
@@ -656,6 +660,141 @@ class MainActivity : ComponentActivity() {
         .putBoolean("seen", seen)
         .apply()
   }
+}
+
+/**
+ * The settings section rendered in the detail pane, with navigation of its own so that opening a
+ * subscreen replaces the pane's contents instead of covering the window, and the node list with it.
+ * These mirror the settings routes of the main graph, which a single pane window still uses.
+ */
+@Composable
+private fun SettingsDetailPane(
+    appViewModel: AppViewModel,
+    permissionsViewModel: PermissionsViewModel,
+    directoryPickerLauncher: ActivityResultLauncher<Uri?>,
+    openApplicationSettings: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+  val navController = rememberNavController()
+  fun backTo(route: String): () -> Unit = {
+    if (!navController.popBackStack(route = route, inclusive = false)) {
+      navController.popBackStack()
+    }
+  }
+  val settingsNav =
+      SettingsNav(
+          onNavigateToBugReport = { navController.navigate("bugReport") },
+          onNavigateToAbout = { navController.navigate("about") },
+          onNavigateToDNSSettings = { navController.navigate("dnsSettings") },
+          onNavigateToSplitTunneling = { navController.navigate("splitTunneling") },
+          onNavigateToTailnetLock = { navController.navigate("tailnetLock") },
+          onNavigateToSubnetRouting = { navController.navigate("subnetRouting") },
+          onNavigateToMDMSettings = { navController.navigate("mdmSettings") },
+          onNavigateToManagedBy = { navController.navigate("managedBy") },
+          onNavigateToUserSwitcher = { navController.navigate("userSwitcher") },
+          onNavigateToPermissions = { navController.navigate("permissions") },
+          onBackToSettings = backTo("settings"),
+          // Settings is the root of this graph, so going home means closing the pane.
+          onNavigateBackHome = onDismiss,
+      )
+  val userSwitcherNav =
+      UserSwitcherNav(
+          backToSettings = backTo("settings"),
+          onNavigateHome = onDismiss,
+          onNavigateCustomControl = { navController.navigate("loginWithCustomControl") },
+          onNavigateToAuthKey = { navController.navigate("loginWithAuthKey") },
+      )
+
+  DetailPaneNavHost(navController = navController, startDestination = "settings") {
+    composable("settings") {
+      SettingsView(settingsNav = settingsNav, appViewModel = appViewModel, showBack = false)
+    }
+    composable("bugReport") { BugReportView(backTo("settings")) }
+    composable("dnsSettings") { DNSSettingsView(backTo("settings")) }
+    composable("splitTunneling") { SplitTunnelAppPickerView(backTo("settings")) }
+    composable("tailnetLock") { TailnetLockSetupView(backTo("settings")) }
+    composable("subnetRouting") { SubnetRoutingView(backTo("settings")) }
+    composable("about") { AboutView(backTo("settings")) }
+    composable("mdmSettings") { MDMSettingsDebugView(backTo("settings")) }
+    composable("managedBy") { ManagedByView(backTo("settings")) }
+    composable("userSwitcher") { UserSwitcherView(userSwitcherNav) }
+    composable("permissions") {
+      PermissionsView(
+          backTo("settings"),
+          { navController.navigate("taildropDir") },
+          { navController.navigate("notifications") },
+      )
+    }
+    composable("taildropDir") {
+      TaildropDirView(backTo("permissions"), directoryPickerLauncher, permissionsViewModel)
+    }
+    composable("notifications") {
+      NotificationsView(backTo("permissions"), openApplicationSettings)
+    }
+    composable("loginWithAuthKey") {
+      LoginWithAuthKeyView(onNavigateHome = onDismiss, backTo("userSwitcher"))
+    }
+    composable("loginWithCustomControl") {
+      LoginWithCustomControlURLView(onNavigateHome = onDismiss, backTo("userSwitcher"))
+    }
+  }
+}
+
+/** The exit node picker rendered in the detail pane, with navigation of its own. */
+@Composable
+private fun ExitNodeDetailPane(onDismiss: () -> Unit) {
+  val navController = rememberNavController()
+  fun backTo(route: String): () -> Unit = {
+    if (!navController.popBackStack(route = route, inclusive = false)) {
+      navController.popBackStack()
+    }
+  }
+  val nav =
+      ExitNodePickerNav(
+          // Picking an exit node finishes the task, which in the pane means closing it.
+          onNavigateBackHome = onDismiss,
+          onNavigateBackToExitNodes = backTo("exitNodes"),
+          onNavigateToMullvad = { navController.navigate("mullvad") },
+          onNavigateToMullvadInfo = { navController.navigate("mullvad_info") },
+          onNavigateBackToMullvad = backTo("mullvad"),
+          onNavigateToMullvadCountry = { navController.navigate("mullvad/$it") },
+          onNavigateToRunAsExitNode = { navController.navigate("runExitNode") },
+      )
+
+  DetailPaneNavHost(navController = navController, startDestination = "exitNodes") {
+    composable("exitNodes") { ExitNodePickerContent(nav = nav, showBack = false) }
+    composable("mullvad") { MullvadExitNodePickerList(nav) }
+    composable("mullvad_info") { MullvadInfoView(nav) }
+    composable(
+        "mullvad/{countryCode}",
+        arguments = listOf(navArgument("countryCode") { type = NavType.StringType }),
+    ) {
+      MullvadExitNodePicker(it.arguments!!.getString("countryCode")!!, nav)
+    }
+    composable("runExitNode") { RunExitNodeView(nav) }
+  }
+}
+
+/**
+ * A nav host for the detail pane. The pane is small enough that the sliding transitions of the main
+ * graph read as jitter, so it crossfades instead.
+ */
+@Composable
+private fun DetailPaneNavHost(
+    navController: NavHostController,
+    startDestination: String,
+    builder: NavGraphBuilder.() -> Unit,
+) {
+  NavHost(
+      navController = navController,
+      startDestination = startDestination,
+      modifier = Modifier.fillMaxSize(),
+      enterTransition = { fadeIn(animationSpec = tween(150)) },
+      exitTransition = { fadeOut(animationSpec = tween(150)) },
+      popEnterTransition = { fadeIn(animationSpec = tween(150)) },
+      popExitTransition = { fadeOut(animationSpec = tween(150)) },
+      builder = builder,
+  )
 }
 
 /**
