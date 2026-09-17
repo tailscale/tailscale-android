@@ -189,9 +189,10 @@ fun MainView(
         val disableToggle by MDMSettings.forceEnabled.flow.collectAsState()
         val showKeyExpiry by viewModel.showExpiry.collectAsState(initial = false)
 
-        // On a two pane window these controls live in the list pane instead, next to the
-        // nodes they act on. Every other state (login, starting) keeps the full width header.
-        if (!twoPane || state != Ipn.State.Running) {
+        // Once the tailnet is running these controls live in the list, next to the nodes they
+        // act on, whether or not there is room for a detail pane beside it. The states that are
+        // not yet a running tailnet keep the full width header.
+        if (state != Ipn.State.Running) {
           // Hide the header only on Android TV when the user needs to login
           val hideHeader = (isAndroidTV() && state == Ipn.State.NeedsLogin)
           ListItem(
@@ -277,23 +278,18 @@ fun MainView(
                   modifier = Modifier.weight(1f),
               )
             } else {
-              if (showKeyExpiry) {
-                ExpiryNotification(netmap = netmap, action = { viewModel.login() })
-              }
-              if (showExitNodePicker.value == ShowHide.Show) {
-                ExitNodeStatus(
-                    navAction = navigation.onNavigateToExitNodes,
-                    viewModel = viewModel,
-                )
-              }
-              if (pending.isNotEmpty()) {
-                TaildropBannerView(viewModel = viewModel.pendingTaildrop)
-              }
-              PeerList(
+              // The same list, with each row opening a screen of its own rather than a pane.
+              TailnetList(
                   viewModel = viewModel,
-                  onNavigateToPeerDetails = navigation.onNavigateToPeerDetails,
-                  onSearchBarClick = navigation.onNavigateToSearch,
-                  onSearch = { viewModel.searchPeers(it) },
+                  onNavigateToSearch = navigation.onNavigateToSearch,
+                  onShowSettings = navigation.onNavigateToSettings,
+                  onShowExitNodes = navigation.onNavigateToExitNodes,
+                  onShowNode = navigation.onNavigateToPeerDetails,
+                  onShowHealth = navigation.onNavigateToHealth,
+                  showExitNodeRow = showExitNodePicker.value == ShowHide.Show,
+                  showKeyExpiry = showKeyExpiry,
+                  showTaildropBanner = pending.isNotEmpty(),
+                  modifier = Modifier.weight(1f),
               )
             }
           }
@@ -876,10 +872,6 @@ fun PeerList(
 /**
  * Renders the node list and the detail of the selected item side by side, splitting the width
  * evenly. Used on windows wide enough for two panes; see [isTwoPaneWindow].
- *
- * The list pane also carries the controls that the single pane layout keeps in its header: the
- * tailnet row, the VPN toggle and the exit node row. Each of those opens in the detail pane instead
- * of covering the list.
  */
 @Composable
 fun NodeListDetail(
@@ -893,47 +885,20 @@ fun NodeListDetail(
     exitNodePane: @Composable () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-  val user by viewModel.loggedInUser.collectAsState(initial = null)
-  val netmap by viewModel.netmap.collectAsState(initial = null)
-
   Row(modifier = modifier.fillMaxSize()) {
-    PeerList(
+    TailnetList(
         viewModel = viewModel,
-        onNavigateToPeerDetails = { viewModel.selectPeer(it) },
-        onSearchBarClick = navigation.onNavigateToSearch,
-        onSearch = { viewModel.searchPeers(it) },
+        onNavigateToSearch = navigation.onNavigateToSearch,
+        onShowSettings = { viewModel.showInDetailPane(DetailPane.Settings) },
+        onShowExitNodes = { viewModel.showInDetailPane(DetailPane.ExitNodes) },
+        onShowNode = { viewModel.selectPeer(it) },
+        onShowHealth = navigation.onNavigateToHealth,
+        showExitNodeRow = showExitNodeRow,
+        showKeyExpiry = showKeyExpiry,
+        showTaildropBanner = showTaildropBanner,
+        detailPane = detailPane,
         modifier = Modifier.weight(1f),
-        selectedPeerId = (detailPane as? DetailPane.Node)?.id,
-    ) {
-      item(key = "tailnet") {
-        UserView(
-            profile = user,
-            actionState = UserActionState.NAV,
-            selected = detailPane == DetailPane.Settings,
-            onClick = { viewModel.showInDetailPane(DetailPane.Settings) },
-        )
-      }
-      item(key = "vpnToggle") {
-        VpnToggleRow(viewModel = viewModel, onNavigateToHealth = navigation.onNavigateToHealth)
-      }
-      if (showKeyExpiry) {
-        item(key = "keyExpiry") {
-          ExpiryNotification(netmap = netmap, action = { viewModel.login() })
-        }
-      }
-      if (showExitNodeRow) {
-        item(key = "exitNode") {
-          ExitNodeStatus(
-              navAction = { viewModel.showInDetailPane(DetailPane.ExitNodes) },
-              viewModel = viewModel,
-          )
-        }
-      }
-      if (showTaildropBanner) {
-        item(key = "taildrop") { TaildropBannerView(viewModel = viewModel.pendingTaildrop) }
-      }
-      item(key = "nodesDivider") { Lists.ItemDivider() }
-    }
+    )
     VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant)
     Box(
         modifier =
@@ -951,6 +916,65 @@ fun NodeListDetail(
         is DetailPane.Node -> PeerDetailsPane(viewModel = viewModel, nodeId = detailPane.id)
       }
     }
+  }
+}
+
+/**
+ * The tailnet as a list: search, the tailnet row, the VPN toggle, the exit node row, and then the
+ * nodes themselves. This is the whole screen on a narrow window and the list pane on a wide one, so
+ * that folding a device changes how much fits beside the list rather than what the list is.
+ *
+ * [detailPane] is what the pane beside it is showing, which is the row to mark as selected; it is
+ * null when the list is the whole screen and each row opens a screen of its own instead.
+ */
+@Composable
+fun TailnetList(
+    viewModel: MainViewModel,
+    onNavigateToSearch: () -> Unit,
+    onShowSettings: () -> Unit,
+    onShowExitNodes: () -> Unit,
+    onShowNode: (StableNodeID) -> Unit,
+    onShowHealth: () -> Unit,
+    showExitNodeRow: Boolean,
+    showKeyExpiry: Boolean,
+    showTaildropBanner: Boolean,
+    detailPane: DetailPane? = null,
+    modifier: Modifier = Modifier,
+) {
+  val user by viewModel.loggedInUser.collectAsState(initial = null)
+  val netmap by viewModel.netmap.collectAsState(initial = null)
+
+  PeerList(
+      viewModel = viewModel,
+      onNavigateToPeerDetails = onShowNode,
+      onSearchBarClick = onNavigateToSearch,
+      onSearch = { viewModel.searchPeers(it) },
+      modifier = modifier,
+      selectedPeerId = (detailPane as? DetailPane.Node)?.id,
+  ) {
+    item(key = "tailnet") {
+      UserView(
+          profile = user,
+          actionState = UserActionState.NAV,
+          selected = detailPane == DetailPane.Settings,
+          onClick = onShowSettings,
+      )
+    }
+    item(key = "vpnToggle") {
+      VpnToggleRow(viewModel = viewModel, onNavigateToHealth = onShowHealth)
+    }
+    if (showKeyExpiry) {
+      item(key = "keyExpiry") {
+        ExpiryNotification(netmap = netmap, action = { viewModel.login() })
+      }
+    }
+    if (showExitNodeRow) {
+      item(key = "exitNode") { ExitNodeStatus(navAction = onShowExitNodes, viewModel = viewModel) }
+    }
+    if (showTaildropBanner) {
+      item(key = "taildrop") { TaildropBannerView(viewModel = viewModel.pendingTaildrop) }
+    }
+    item(key = "nodesDivider") { Lists.ItemDivider() }
   }
 }
 
