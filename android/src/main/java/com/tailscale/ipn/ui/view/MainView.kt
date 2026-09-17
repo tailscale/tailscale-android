@@ -109,11 +109,14 @@ import com.tailscale.ipn.ui.theme.warningButton
 import com.tailscale.ipn.ui.theme.warningListItem
 import com.tailscale.ipn.ui.util.AndroidTVUtil.isAndroidTV
 import com.tailscale.ipn.ui.util.AutoResizingText
+import com.tailscale.ipn.ui.util.ListRow
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.PeerSet
 import com.tailscale.ipn.ui.util.isTwoPaneWindow
 import com.tailscale.ipn.ui.util.itemsWithDividers
+import com.tailscale.ipn.ui.util.listCard
+import com.tailscale.ipn.ui.util.listCardShape
 import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.viewModel.AppViewModel
 import com.tailscale.ipn.ui.viewModel.DetailPane
@@ -373,15 +376,12 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
   val exitNodePeer = chosenExitNodeId?.let { id -> netmap?.Peers?.find { it.StableID == id } }
   val name = exitNodePeer?.exitNodeName
   val managedByOrganization by viewModel.managedByOrganization.collectAsState()
-  Box(
-      modifier =
-          Modifier.fillMaxWidth().background(color = MaterialTheme.colorScheme.surfaceContainer)
-  ) {
+  Box(modifier = Modifier.fillMaxWidth()) {
     if (nodeState == NodeState.OFFLINE_MDM) {
       Box(
           modifier =
               Modifier.padding(start = 16.dp, end = 16.dp, top = 56.dp, bottom = 16.dp)
-                  .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
+                  .clip(shape = listCardShape)
                   .background(MaterialTheme.colorScheme.customErrorContainer)
                   .fillMaxWidth()
                   .align(Alignment.TopCenter)
@@ -400,12 +400,7 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
         }
       }
     }
-    Box(
-        modifier =
-            Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp)
-                .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
-                .fillMaxWidth()
-    ) {
+    Box(modifier = Modifier.listCard().fillMaxWidth()) {
       ListItem(
           modifier = Modifier.clickable { navAction() },
           colors =
@@ -774,19 +769,14 @@ fun PeerList(
             Modifier.fillMaxWidth()
                 .weight(1f) // LazyColumn gets the remaining vertical space
                 .onFocusChanged { isListFocussed = it.isFocused }
-                .background(color = MaterialTheme.colorScheme.surface)
+                .background(color = MaterialTheme.colorScheme.background)
                 .windowInsetsPadding(WindowInsets.navigationBars)
     ) {
       leadingContent()
       // Handle case when no results are found
       if (showNoResults) {
         item {
-          Spacer(
-              Modifier.height(16.dp)
-                  .fillMaxSize()
-                  .focusable(false)
-                  .background(color = MaterialTheme.colorScheme.surface)
-          )
+          Spacer(Modifier.height(16.dp).fillMaxSize().focusable(false))
           Lists.LargeTitle(
               stringResource(id = R.string.no_results),
               bottomPadding = 8.dp,
@@ -808,7 +798,7 @@ fun PeerList(
           stickyHeader { NodesSectionHeader(peerSet = peerSet) }
         }
         itemsWithDividers(peerSet.peers, key = { it.StableID }) { peer ->
-          ListItem(
+          ListRow(
               modifier =
                   Modifier.combinedClickable(
                       onClick = { onNavigateToPeerDetails(peer.StableID) },
@@ -954,7 +944,7 @@ fun NodeListDetail(
                 // The enclosing scaffold already pads for the status bar. The views rendered in
                 // the pane bring their own scaffolds, which would otherwise pad for it again.
                 .consumeWindowInsets(WindowInsets.statusBars)
-                .background(color = MaterialTheme.colorScheme.surface)
+                .background(color = MaterialTheme.colorScheme.background)
     ) {
       when (detailPane) {
         null -> NoNodeSelected()
@@ -974,8 +964,7 @@ fun VpnToggleRow(viewModel: MainViewModel, onNavigateToHealth: () -> Unit) {
   val healthIcon by viewModel.healthIcon.collectAsState()
   val disableToggle by MDMSettings.forceEnabled.flow.collectAsState()
 
-  ListItem(
-      colors = MaterialTheme.colorScheme.listItem,
+  ListRow(
       headlineContent = {
         Text(
             text = stringResource(id = R.string.app_name),
@@ -1033,10 +1022,14 @@ fun NoNodeSelected() {
 
 @Composable
 fun NodesSectionHeader(peerSet: PeerSet) {
-  Spacer(Modifier.height(16.dp).fillMaxSize().background(color = MaterialTheme.colorScheme.surface))
+  Spacer(
+      Modifier.height(16.dp).fillMaxSize().background(color = MaterialTheme.colorScheme.background)
+  )
   Lists.LargeTitle(
       peerSet.user?.DisplayName ?: stringResource(id = R.string.unknown_user),
       bottomPadding = 8.dp,
+      // The header sticks to the top of the list, so it has to hide the rows passing under it.
+      backgroundColor = MaterialTheme.colorScheme.background,
       focusable = isAndroidTV(),
       style = MaterialTheme.typography.titleLarge,
       fontWeight = FontWeight.SemiBold,
@@ -1046,13 +1039,8 @@ fun NodesSectionHeader(peerSet: PeerSet) {
 @Composable
 fun ExpiryNotification(netmap: Netmap.NetworkMap?, action: () -> Unit = {}) {
   if (netmap == null) return
-  Box(modifier = Modifier.background(color = MaterialTheme.colorScheme.surfaceContainer)) {
-    Box(
-        modifier =
-            Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp)
-                .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
-                .fillMaxWidth()
-    ) {
+  Box {
+    Box(modifier = Modifier.listCard().fillMaxWidth()) {
       ListItem(
           modifier = Modifier.clickable { action() },
           colors = MaterialTheme.colorScheme.warningListItem,
@@ -1094,18 +1082,18 @@ fun PromptForMissingPermissions(viewModel: MainViewModel) {
 @Composable
 fun Search(
     onSearchBarClick: () -> Unit, // Callback for navigating to SearchView
-    backgroundColor: Color = MaterialTheme.colorScheme.background, // Default background color
+    // The search field is a card over the list background, like the rows below it.
+    backgroundColor: Color = MaterialTheme.colorScheme.surface,
 ) {
   // Prevent multiple taps
   var isNavigating by remember { mutableStateOf(false) }
-  Box(
-      modifier =
-          Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface).padding(top = 8.dp)
-  ) {
+  Box(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
     Box(
         modifier =
             Modifier.fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp, top = 16.dp)
+                // The gap below the field separates it from the list, so it matches the space
+                // that separates one group of rows from the next.
+                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 14.dp)
                 .height(56.dp)
                 .clip(MaterialTheme.shapes.extraLarge) // Rounded corners for search bar
                 .background(backgroundColor) // Search bar background

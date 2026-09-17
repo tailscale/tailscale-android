@@ -11,7 +11,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,7 +32,7 @@ fun ClipboardValueView(value: String, title: String? = null, subtitle: String? =
   val localClipboardManager = LocalClipboardManager.current
   val interactionSource = remember { MutableInteractionSource() }
 
-  ListItem(
+  ListRow(
       modifier =
           Modifier.focusable(interactionSource = interactionSource)
               .onFocusChanged { focusState -> isFocused.value = focusState.isFocused }

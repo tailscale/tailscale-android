@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -41,6 +40,7 @@ import com.tailscale.ipn.ui.theme.listItem
 import com.tailscale.ipn.ui.util.AndroidTVUtil
 import com.tailscale.ipn.ui.util.AndroidTVUtil.isAndroidTV
 import com.tailscale.ipn.ui.util.AppVersion
+import com.tailscale.ipn.ui.util.ListRow
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.viewModel.AppViewModel
@@ -219,7 +219,7 @@ object Setting {
     if (enabled) {
       onClick?.let { modifier = modifier.clickable(onClick = it) }
     }
-    ListItem(
+    ListRow(
         modifier = modifier,
         colors = MaterialTheme.colorScheme.listItem,
         headlineContent = {
@@ -251,7 +251,7 @@ object Setting {
       enabled: Boolean = true,
       onToggle: (Boolean) -> Unit = {},
   ) {
-    ListItem(
+    ListRow(
         colors = MaterialTheme.colorScheme.listItem,
         headlineContent = {
           Text(

@@ -11,7 +11,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -28,6 +27,7 @@ import com.tailscale.ipn.mdm.ShowHide
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.theme.disabledListItem
 import com.tailscale.ipn.ui.theme.listItem
+import com.tailscale.ipn.ui.util.ListRow
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.itemsWithDividers
@@ -158,7 +158,7 @@ fun ExitNodeItem(
     if (online && !isRunningExitNode && forcedExitNodeId == null) {
       modifier = modifier.clickable { viewModel.setExitNode(node) }
     }
-    ListItem(
+    ListRow(
         modifier = modifier,
         colors =
             if (online && !isRunningExitNode) MaterialTheme.colorScheme.listItem
@@ -184,7 +184,7 @@ fun ExitNodeItem(
 @Composable
 fun MullvadItem(nav: ExitNodePickerNav, count: Int, selected: Boolean) {
   Box {
-    ListItem(
+    ListRow(
         modifier = Modifier.clickable { nav.onNavigateToMullvad() },
         headlineContent = {
           Text(
@@ -210,7 +210,7 @@ fun MullvadItem(nav: ExitNodePickerNav, count: Int, selected: Boolean) {
 @Composable
 fun MullvadInfoItem(nav: ExitNodePickerNav) {
   Box {
-    ListItem(
+    ListRow(
         modifier = Modifier.clickable { nav.onNavigateToMullvadInfo() },
         headlineContent = {
           Text(
@@ -241,7 +241,7 @@ fun RunAsExitNodeItem(
     if (!anyActive) {
       modifier = modifier.clickable { nav.onNavigateToRunAsExitNode() }
     }
-    ListItem(
+    ListRow(
         modifier = modifier,
         colors =
             if (!anyActive) MaterialTheme.colorScheme.listItem

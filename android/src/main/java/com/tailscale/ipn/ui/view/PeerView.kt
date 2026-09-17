@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,6 +21,7 @@ import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.theme.off
 import com.tailscale.ipn.ui.theme.on
+import com.tailscale.ipn.ui.util.ListRow
 
 @Composable
 fun PeerView(
@@ -35,7 +35,7 @@ fun PeerView(
   val disabled = !(peer.Online ?: false)
   val textColor = if (disabled) MaterialTheme.colorScheme.onSurfaceVariant else Color.Unspecified
 
-  ListItem(
+  ListRow(
       modifier = Modifier.clickable { onClick(peer) },
       headlineContent = {
         Row(verticalAlignment = Alignment.CenterVertically) {

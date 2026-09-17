@@ -21,7 +21,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -41,6 +40,7 @@ import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.App
 import com.tailscale.ipn.R
+import com.tailscale.ipn.ui.util.ListRow
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.viewModel.SplitTunnelAppPickerViewModel
@@ -91,7 +91,7 @@ fun SplitTunnelAppPickerView(
     LazyColumn(modifier = Modifier.padding(innerPadding)) {
       if (mdmExcludedPackages.value?.isNotEmpty() == true) {
         item("mdmExcludedNotice") {
-          ListItem(
+          ListRow(
               headlineContent = {
                 Text(stringResource(R.string.certain_apps_are_not_routed_via_tailscale))
               }
@@ -99,7 +99,7 @@ fun SplitTunnelAppPickerView(
         }
       } else if (mdmIncludedPackages.value?.isNotEmpty() == true) {
         item("mdmIncludedNotice") {
-          ListItem(
+          ListRow(
               headlineContent = {
                 Text(stringResource(R.string.only_specific_apps_are_routed_via_tailscale))
               }
@@ -107,7 +107,7 @@ fun SplitTunnelAppPickerView(
         }
       } else {
         item("header") {
-          ListItem(
+          ListRow(
               headlineContent = {
                 Text(
                     stringResource(
@@ -151,7 +151,7 @@ fun SplitTunnelAppPickerView(
                       .asImageBitmap()
                 }
 
-            ListItem(
+            ListRow(
                 headlineContent = { Text(app.name, fontWeight = FontWeight.SemiBold) },
                 leadingContent = {
                   Image(

@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Button
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -22,6 +21,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.theme.exitNodeToggleButton
+import com.tailscale.ipn.ui.util.ListRow
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.friendlyDirName
 import com.tailscale.ipn.ui.viewModel.PermissionsViewModel
@@ -38,7 +38,7 @@ fun TaildropDirView(
   ) { innerPadding ->
     LazyColumn(modifier = Modifier.padding(innerPadding)) {
       item {
-        ListItem(
+        ListRow(
             headlineContent = {
               Text(
                   stringResource(R.string.taildrop_dir_access),
@@ -61,7 +61,7 @@ fun TaildropDirView(
         TSLog.d("TaildropDirView", "currentDir in UI: $currentDir")
         val displayPath = currentDir?.let { friendlyDirName(it) } ?: "No access"
 
-        ListItem(
+        ListRow(
             headlineContent = {
               Text(
                   text = stringResource(R.string.dir_access),

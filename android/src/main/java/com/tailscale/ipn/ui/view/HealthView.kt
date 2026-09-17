@@ -20,7 +20,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -44,6 +43,7 @@ import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.model.Health
 import com.tailscale.ipn.ui.theme.success
 import com.tailscale.ipn.ui.util.AndroidTVUtil.isAndroidTV
+import com.tailscale.ipn.ui.util.ListRow
 import com.tailscale.ipn.ui.viewModel.HealthViewModel
 
 @Composable
@@ -114,7 +114,7 @@ fun HealthWarningView(warning: Health.UnhealthyState) {
                 .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
                 .fillMaxWidth()
     ) {
-      ListItem(
+      ListRow(
           modifier = itemModifier,
           colors = warning.Severity.listItemColors(),
           headlineContent = {

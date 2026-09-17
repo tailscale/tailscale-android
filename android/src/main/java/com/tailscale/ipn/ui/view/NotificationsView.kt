@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Button
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -21,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.model.Permissions
 import com.tailscale.ipn.ui.theme.exitNodeToggleButton
+import com.tailscale.ipn.ui.util.ListRow
 
 @Composable
 fun NotificationsView(backToPermissionsView: BackNavigation, openApplicationSettings: () -> Unit) {
@@ -41,7 +41,7 @@ fun NotificationsView(backToPermissionsView: BackNavigation, openApplicationSett
     LazyColumn(modifier = Modifier.padding(innerPadding)) {
       item {
         if (permission != null) {
-          ListItem(
+          ListRow(
               headlineContent = {
                 Text(
                     stringResource(permission.title),
@@ -70,7 +70,7 @@ fun NotificationsView(backToPermissionsView: BackNavigation, openApplicationSett
       }
 
       item {
-        ListItem(
+        ListRow(
             headlineContent = {
               Text(
                   text = stringResource(R.string.permission_post_notifications),

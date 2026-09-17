@@ -19,7 +19,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
@@ -44,6 +43,7 @@ import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.theme.listItem
 import com.tailscale.ipn.ui.theme.short
 import com.tailscale.ipn.ui.util.AndroidTVUtil.isAndroidTV
+import com.tailscale.ipn.ui.util.ListRow
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.itemsWithDividers
 import com.tailscale.ipn.ui.viewModel.MainViewModel
@@ -186,7 +186,7 @@ fun AddressRow(address: String, type: String) {
         Modifier.clickable { localClipboardManager.setText(AnnotatedString(address)) }
       }
 
-  ListItem(
+  ListRow(
       modifier = modifier,
       colors = MaterialTheme.colorScheme.listItem,
       headlineContent = { Text(text = address) },
@@ -202,7 +202,7 @@ fun AddressRow(address: String, type: String) {
 
 @Composable
 fun ValueRow(title: String, value: String) {
-  ListItem(
+  ListRow(
       colors = MaterialTheme.colorScheme.listItem,
       headlineContent = { Text(text = title) },
       supportingContent = { Text(text = value) },

@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemColors
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -25,6 +24,7 @@ import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.theme.minTextSize
 import com.tailscale.ipn.ui.theme.short
 import com.tailscale.ipn.ui.util.AutoResizingText
+import com.tailscale.ipn.ui.util.ListRow
 
 // Used to decorate UserViews.
 // NONE indicates no decoration
@@ -49,7 +49,7 @@ fun UserView(
     var modifier: Modifier = Modifier
     onClick?.let { modifier = modifier.clickable { it() } }
     profile?.let {
-      ListItem(
+      ListRow(
           modifier = modifier,
           colors = colors,
           leadingContent = { Avatar(profile = profile, size = 36) },
@@ -101,7 +101,7 @@ fun UserView(
       )
     }
         ?: run {
-          ListItem(
+          ListRow(
               modifier = modifier,
               colors = colors,
               headlineContent = {
