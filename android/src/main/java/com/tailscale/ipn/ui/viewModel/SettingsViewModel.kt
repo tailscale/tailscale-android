@@ -24,6 +24,8 @@ data class SettingsNav(
     val onNavigateToManagedBy: () -> Unit,
     val onNavigateToUserSwitcher: () -> Unit,
     val onNavigateToPermissions: () -> Unit,
+    // Only reached on Android TV, whose home screen has no room for the exit node row.
+    val onNavigateToExitNodes: () -> Unit,
     val onNavigateBackHome: () -> Unit,
     val onBackToSettings: () -> Unit,
 )

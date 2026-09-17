@@ -5,9 +5,7 @@ package com.tailscale.ipn.ui.util
 
 import android.content.pm.PackageManager
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.tailscale.ipn.UninitializedApp
 import com.tailscale.ipn.ui.util.AndroidTVUtil.isAndroidTV
@@ -23,11 +21,11 @@ object AndroidTVUtil {
   }
 }
 
-// Applies a letterbox effect iff we're running on Android TV to reduce the overall width
-// of the UI.
+// On Android TV the UI fills the screen, held off the edges by the margin the platform asks for
+// so that nothing important lands in a television's overscan. Everywhere else this does nothing.
 fun Modifier.universalFit(): Modifier {
   return when (isAndroidTV()) {
-    true -> this.padding(horizontal = 150.dp, vertical = 10.dp).clip(RoundedCornerShape(10.dp))
+    true -> this.padding(horizontal = 48.dp, vertical = 27.dp)
     false -> this
   }
 }

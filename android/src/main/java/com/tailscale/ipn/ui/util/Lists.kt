@@ -23,8 +23,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.AnnotatedString
@@ -34,6 +39,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.tailscale.ipn.ui.theme.listItem
 import com.tailscale.ipn.ui.theme.selectedListItem
+import com.tailscale.ipn.ui.util.AndroidTVUtil.isAndroidTV
 
 object Lists {
   @Composable
@@ -220,6 +226,10 @@ fun ListRow(
     position: RowPosition = RowPosition.Single,
 ) {
   val grouped = LocalGroupedRows.current
+  // A remote has no cursor, so on a TV the row the D-pad is on has to say so. Only the focus is
+  // observed here; the clickable the caller passes is what takes it.
+  var focused by remember { mutableStateOf(false) }
+  val onTV = isAndroidTV()
   val card =
       when {
         // A group already provides the gutter, so a pill inside one only needs its corners.
@@ -230,13 +240,15 @@ fun ListRow(
         else -> Modifier.padding(horizontal = 16.dp, vertical = 1.dp).clip(position.shape())
       }
   ListItem(
-      modifier = card.then(modifier),
+      modifier =
+          card.conditional(onTV, { onFocusChanged { focused = it.isFocused } }).then(modifier),
       headlineContent = headlineContent,
       overlineContent = overlineContent,
       supportingContent = supportingContent,
       leadingContent = leadingContent,
       trailingContent = trailingContent,
-      colors = if (selected) MaterialTheme.colorScheme.selectedListItem else colors,
+      colors =
+          if (selected || (onTV && focused)) MaterialTheme.colorScheme.selectedListItem else colors,
   )
 }
 

@@ -69,6 +69,14 @@ fun SettingsView(
   val useTailscaleSubnets by MDMSettings.useTailscaleSubnets.flow.collectAsState()
   val isClientRemoteLoggingEnabled by viewModel.isClientRemoteLoggingEnabled.collectAsState()
   var showDisableLoggingDialog by remember { mutableStateOf(false) }
+  val showExitNodePicker by MDMSettings.exitNodesPicker.flow.collectAsState()
+  val prefs by viewModel.prefs.collectAsState()
+  val netmap by viewModel.netmap.collectAsState()
+  // The active node is the source of truth; the selected one only matters without an active one.
+  val exitNodeName =
+      (prefs?.activeExitNodeID ?: prefs?.selectedExitNodeID)?.let { id ->
+        netmap?.Peers?.find { it.StableID == id }?.exitNodeName
+      }
 
   Scaffold(
       topBar = {
@@ -95,6 +103,15 @@ fun SettingsView(
 
       Lists.SectionDivider()
       ListGroup {
+        // A TV's home screen has no room for the exit node row, so it lives here instead.
+        if (isAndroidTV() && showExitNodePicker.value == ShowHide.Show) {
+          Setting.Text(
+              R.string.choose_exit_node,
+              subtitle = exitNodeName ?: stringResource(R.string.none),
+              onClick = settingsNav.onNavigateToExitNodes,
+          )
+          Lists.ItemDivider()
+        }
         Setting.Text(
             R.string.dns_settings,
             subtitle =
@@ -312,5 +329,5 @@ fun SettingsPreview() {
   vm.tailNetLockEnabled.set(true)
   vm.isAdmin.set(true)
   vm.managedByOrganization.set("Tails and Scales Inc.")
-  SettingsView(SettingsNav({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}), vm)
+  SettingsView(SettingsNav({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}), vm)
 }
