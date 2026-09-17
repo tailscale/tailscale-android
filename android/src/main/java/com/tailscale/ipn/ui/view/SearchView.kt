@@ -58,6 +58,7 @@ import androidx.navigation.NavController
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.theme.listItem
 import com.tailscale.ipn.ui.util.Lists
+import com.tailscale.ipn.ui.util.isTwoPaneWindow
 import com.tailscale.ipn.ui.viewModel.MainViewModel
 import kotlinx.coroutines.delay
 
@@ -83,6 +84,9 @@ fun SearchView(
   var expanded by rememberSaveable { mutableStateOf(true) }
   val context = LocalContext.current as Activity
   val listState = rememberLazyListState()
+  // On a wide window the node list and detail are shown side by side, so a result opens in the
+  // detail pane rather than in a screen of its own.
+  val twoPane = isTwoPaneWindow()
 
   val noResultsBackground =
       if (isSystemInDarkTheme()) {
@@ -237,7 +241,15 @@ fun SearchView(
                               .padding(horizontal = 4.dp, vertical = 0.dp)
                               .clickable {
                                 viewModel.disableSearchAutoFocus()
-                                navController.navigate("peerDetails/${peer.StableID}")
+                                if (twoPane) {
+                                  focusManager.clearFocus()
+                                  keyboardController?.hide()
+                                  viewModel.selectPeer(peer.StableID)
+                                  viewModel.updateSearchTerm("")
+                                  onNavigateBack()
+                                } else {
+                                  navController.navigate("peerDetails/${peer.StableID}")
+                                }
                               },
                   )
                 }

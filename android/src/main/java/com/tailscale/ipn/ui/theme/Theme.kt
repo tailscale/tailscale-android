@@ -216,6 +216,29 @@ val ColorScheme.titledListItem: ListItemColors
     )
   }
 
+/** Like listItem, but styled to mark the item whose detail is currently shown. */
+val ColorScheme.selectedListItem: ListItemColors
+  @Composable
+  get() {
+    val default = listItem
+    return ListItemColors(
+        containerColor =
+            if (isSystemInDarkTheme()) {
+              Color(0xFF2e2d2d) // gray-700
+            } else {
+              Color(0xFFF0F5FF) // blue-0
+            },
+        headlineColor = default.headlineColor,
+        leadingIconColor = default.leadingIconColor,
+        overlineColor = default.overlineColor,
+        supportingTextColor = default.supportingTextColor,
+        trailingIconColor = default.trailingIconColor,
+        disabledHeadlineColor = default.disabledHeadlineColor,
+        disabledLeadingIconColor = default.disabledLeadingIconColor,
+        disabledTrailingIconColor = default.disabledTrailingIconColor,
+    )
+  }
+
 /** Color scheme for disabled list items. */
 val ColorScheme.disabledListItem: ListItemColors
   @Composable

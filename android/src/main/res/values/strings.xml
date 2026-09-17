@@ -22,6 +22,7 @@
     <string name="search_ellipsis">Search...</string>
     <string name="dismiss">Dismiss</string>
     <string name="no_results">No results</string>
+    <string name="no_node_selected">Select a device to see its details</string>
     <string name="back">Back</string>
     <string name="clear_search">Clear search</string>
     <string name="off">Off</string>

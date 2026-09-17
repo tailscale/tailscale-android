@@ -52,6 +52,9 @@ fun SettingsView(
     settingsNav: SettingsNav,
     viewModel: SettingsViewModel = viewModel(),
     appViewModel: AppViewModel = viewModel(),
+    // False when rendered in the detail pane of the list-detail layout, where the list stays
+    // visible alongside and there is nothing to go back to.
+    showBack: Boolean = true,
 ) {
   val handler = LocalUriHandler.current
 
@@ -68,7 +71,10 @@ fun SettingsView(
 
   Scaffold(
       topBar = {
-        Header(titleRes = R.string.settings_title, onBack = settingsNav.onNavigateBackHome)
+        Header(
+            titleRes = R.string.settings_title,
+            onBack = settingsNav.onNavigateBackHome.takeIf { showBack },
+        )
       }
   ) { innerPadding ->
     Column(modifier = Modifier.padding(innerPadding).verticalScroll(rememberScrollState())) {

@@ -38,6 +38,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -63,12 +64,14 @@ import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.theme.AppTheme
 import com.tailscale.ipn.ui.util.AndroidTVUtil
 import com.tailscale.ipn.ui.util.DeepLinkNavigator
+import com.tailscale.ipn.ui.util.isTwoPaneWindow
 import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.util.universalFit
 import com.tailscale.ipn.ui.view.AboutView
 import com.tailscale.ipn.ui.view.BugReportView
 import com.tailscale.ipn.ui.view.DNSSettingsView
 import com.tailscale.ipn.ui.view.ExitNodePicker
+import com.tailscale.ipn.ui.view.ExitNodePickerContent
 import com.tailscale.ipn.ui.view.HealthView
 import com.tailscale.ipn.ui.view.IntroView
 import com.tailscale.ipn.ui.view.LoginQRView
@@ -96,6 +99,7 @@ import com.tailscale.ipn.ui.view.TailnetLockSetupView
 import com.tailscale.ipn.ui.view.UserSwitcherNav
 import com.tailscale.ipn.ui.view.UserSwitcherView
 import com.tailscale.ipn.ui.viewModel.AppViewModel
+import com.tailscale.ipn.ui.viewModel.DetailPane
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerNav
 import com.tailscale.ipn.ui.viewModel.MainViewModel
 import com.tailscale.ipn.ui.viewModel.MainViewModelFactory
@@ -316,15 +320,18 @@ class MainActivity : ComponentActivity() {
                   ) + fadeOut(animationSpec = tween(500, easing = LinearOutSlowInEasing))
                 },
             ) {
+              // Pops back to the given screen, or one step back if that screen is not on the
+              // stack: on a two pane window a screen can be reached from the detail pane without
+              // its parent ever being pushed.
               fun backTo(route: String): () -> Unit = {
-                navController.popBackStack(route = route, inclusive = false)
+                if (!navController.popBackStack(route = route, inclusive = false)) {
+                  navController.popBackStack()
+                }
               }
               val mainViewNav =
                   MainViewNavigation(
                       onNavigateToSettings = { navController.navigate("settings") },
-                      onNavigateToPeerDetails = {
-                        navController.navigate("peerDetails/${it.StableID}")
-                      },
+                      onNavigateToPeerDetails = { navController.navigate("peerDetails/$it") },
                       onNavigateToExitNodes = { navController.navigate("exitNodes") },
                       onNavigateToHealth = { navController.navigate("health") },
                       onNavigateToSearch = {
@@ -374,6 +381,16 @@ class MainActivity : ComponentActivity() {
                     loginAtUrl = ::login,
                     navigation = mainViewNav,
                     viewModel = viewModel,
+                    settingsPane = {
+                      SettingsView(
+                          settingsNav = settingsNav,
+                          appViewModel = appViewModel,
+                          showBack = false,
+                      )
+                    },
+                    exitNodePane = {
+                      ExitNodePickerContent(nav = exitNodePickerNav, showBack = false)
+                    },
                 )
               }
               composable("search") {
@@ -386,9 +403,19 @@ class MainActivity : ComponentActivity() {
                 )
               }
               composable("settings") {
-                SettingsView(settingsNav = settingsNav, appViewModel = appViewModel)
+                if (isTwoPaneWindow()) {
+                  ShowInDetailPane(DetailPane.Settings, viewModel, navController)
+                } else {
+                  SettingsView(settingsNav = settingsNav, appViewModel = appViewModel)
+                }
               }
-              composable("exitNodes") { ExitNodePicker(exitNodePickerNav) }
+              composable("exitNodes") {
+                if (isTwoPaneWindow()) {
+                  ShowInDetailPane(DetailPane.ExitNodes, viewModel, navController)
+                } else {
+                  ExitNodePicker(exitNodePickerNav)
+                }
+              }
               composable("health") { HealthView(backTo("main")) }
               composable("mullvad") { MullvadExitNodePickerList(exitNodePickerNav) }
               composable("mullvad_info") { MullvadInfoView(exitNodePickerNav) }
@@ -406,11 +433,12 @@ class MainActivity : ComponentActivity() {
                   "peerDetails/{nodeId}",
                   arguments = listOf(navArgument("nodeId") { type = NavType.StringType }),
               ) {
-                PeerDetails(
-                    { navController.popBackStack() },
-                    it.arguments?.getString("nodeId") ?: "",
-                    PingViewModel(),
-                )
+                val nodeId = it.arguments?.getString("nodeId") ?: ""
+                if (isTwoPaneWindow()) {
+                  ShowInDetailPane(DetailPane.Node(nodeId), viewModel, navController)
+                } else {
+                  PeerDetails({ navController.popBackStack() }, nodeId, PingViewModel())
+                }
               }
               composable("bugReport") { BugReportView(backTo("settings")) }
               composable("dnsSettings") { DNSSettingsView(backTo("settings")) }
@@ -627,6 +655,25 @@ class MainActivity : ComponentActivity() {
         .edit()
         .putBoolean("seen", seen)
         .apply()
+  }
+}
+
+/**
+ * Hands [pane] to the detail pane of the list-detail layout and returns to the node list, so that a
+ * full screen route lands in the pane instead of covering the list. This is how a deep link, a
+ * search result, or a screen that was already open when the window grew ends up beside the list.
+ */
+@Composable
+private fun ShowInDetailPane(
+    pane: DetailPane,
+    viewModel: MainViewModel,
+    navController: NavHostController,
+) {
+  LaunchedEffect(pane) {
+    viewModel.showInDetailPane(pane)
+    if (!navController.popBackStack(route = "main", inclusive = false)) {
+      navController.popBackStack()
+    }
   }
 }
 

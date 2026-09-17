@@ -63,12 +63,17 @@ fun UserView(
           },
           supportingContent = {
             Column {
-              AutoResizingText(
-                  text = profile.NetworkProfile?.tailnetNameForDisplay() ?: "",
-                  style = MaterialTheme.typography.bodyMedium.short,
-                  minFontSize = MaterialTheme.typography.minTextSize,
-                  overflow = TextOverflow.Ellipsis,
-              )
+              // A personal tailnet is named after the account that owns it, in which case the
+              // name is already the headline and repeating it says nothing.
+              val tailnetName = profile.NetworkProfile?.tailnetNameForDisplay()
+              if (!tailnetName.isNullOrEmpty() && tailnetName != profile.UserProfile.LoginName) {
+                AutoResizingText(
+                    text = tailnetName,
+                    style = MaterialTheme.typography.bodyMedium.short,
+                    minFontSize = MaterialTheme.typography.minTextSize,
+                    overflow = TextOverflow.Ellipsis,
+                )
+              }
 
               profile.customControlServerHostname()?.let {
                 AutoResizingText(

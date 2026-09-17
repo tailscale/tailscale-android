@@ -42,85 +42,101 @@ fun ExitNodePicker(
     nav: ExitNodePickerNav,
     model: ExitNodePickerViewModel = viewModel(factory = ExitNodePickerViewModelFactory(nav)),
 ) {
-  LoadingIndicator.Wrap {
-    Scaffold(topBar = { Header(R.string.choose_exit_node, onBack = nav.onNavigateBackHome) }) {
-        innerPadding ->
-      val tailnetExitNodes by model.tailnetExitNodes.collectAsState()
-      val mullvadExitNodesByCountryCode by model.mullvadExitNodesByCountryCode.collectAsState()
-      val mullvadExitNodeCount by model.mullvadExitNodeCount.collectAsState()
-      val anyActive by model.anyActive.collectAsState()
-      val shouldShowMullvadInfo by model.shouldShowMullvadInfo.collectAsState()
-      val allowLANAccess = Notifier.prefs.collectAsState().value?.ExitNodeAllowLANAccess == true
-      val showRunAsExitNode by MDMSettings.runExitNode.flow.collectAsState()
-      val allowLanAccessMDMDisposition by MDMSettings.exitNodeAllowLANAccess.flow.collectAsState()
-      val managedByOrganization by model.managedByOrganization.collectAsState()
-      val forcedExitNodeId = MDMSettings.exitNodeID.flow.collectAsState().value.value
+  LoadingIndicator.Wrap { ExitNodePickerContent(nav = nav, model = model) }
+}
 
-      val duplicateExitNodeIDs = tailnetExitNodes.groupBy { it.id }.filterValues { it.size > 1 }
+/**
+ * The exit node picker without its own loading overlay, so that it can also be rendered in the
+ * detail pane of the list-detail layout, inside the overlay the main view already provides.
+ */
+@Composable
+fun ExitNodePickerContent(
+    nav: ExitNodePickerNav,
+    model: ExitNodePickerViewModel = viewModel(factory = ExitNodePickerViewModelFactory(nav)),
+    // False in the detail pane, where the list stays visible alongside and there is nothing to
+    // go back to.
+    showBack: Boolean = true,
+) {
+  Scaffold(
+      topBar = {
+        Header(R.string.choose_exit_node, onBack = nav.onNavigateBackHome.takeIf { showBack })
+      }
+  ) { innerPadding ->
+    val tailnetExitNodes by model.tailnetExitNodes.collectAsState()
+    val mullvadExitNodesByCountryCode by model.mullvadExitNodesByCountryCode.collectAsState()
+    val mullvadExitNodeCount by model.mullvadExitNodeCount.collectAsState()
+    val anyActive by model.anyActive.collectAsState()
+    val shouldShowMullvadInfo by model.shouldShowMullvadInfo.collectAsState()
+    val allowLANAccess = Notifier.prefs.collectAsState().value?.ExitNodeAllowLANAccess == true
+    val showRunAsExitNode by MDMSettings.runExitNode.flow.collectAsState()
+    val allowLanAccessMDMDisposition by MDMSettings.exitNodeAllowLANAccess.flow.collectAsState()
+    val managedByOrganization by model.managedByOrganization.collectAsState()
+    val forcedExitNodeId = MDMSettings.exitNodeID.flow.collectAsState().value.value
 
-      check(duplicateExitNodeIDs.isEmpty()) {
-        "Duplicate exit node IDs in ExitNodePicker: " +
-            duplicateExitNodeIDs.entries.joinToString("; ") { (id, nodes) ->
-              "$id(count=${nodes.size})"
-            }
+    val duplicateExitNodeIDs = tailnetExitNodes.groupBy { it.id }.filterValues { it.size > 1 }
+
+    check(duplicateExitNodeIDs.isEmpty()) {
+      "Duplicate exit node IDs in ExitNodePicker: " +
+          duplicateExitNodeIDs.entries.joinToString("; ") { (id, nodes) ->
+            "$id(count=${nodes.size})"
+          }
+    }
+
+    LazyColumn(modifier = Modifier.padding(innerPadding)) {
+      item(key = "header") {
+        if (forcedExitNodeId != null) {
+          Text(
+              text =
+                  managedByOrganization.value?.let {
+                    stringResource(R.string.exit_node_mdm_orgname, it)
+                  } ?: stringResource(R.string.exit_node_mdm),
+              style = MaterialTheme.typography.bodyMedium,
+              color = MaterialTheme.colorScheme.onSurfaceVariant,
+              modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),
+          )
+        } else {
+          ExitNodeItem(
+              model,
+              ExitNodePickerViewModel.ExitNode(
+                  label = stringResource(R.string.none),
+                  online = MutableStateFlow(true),
+                  selected = !anyActive,
+              ),
+          )
+        }
+        if (showRunAsExitNode.value == ShowHide.Show) {
+          Lists.ItemDivider()
+          RunAsExitNodeItem(nav = nav, viewModel = model, anyActive)
+        }
       }
 
-      LazyColumn(modifier = Modifier.padding(innerPadding)) {
-        item(key = "header") {
-          if (forcedExitNodeId != null) {
-            Text(
-                text =
-                    managedByOrganization.value?.let {
-                      stringResource(R.string.exit_node_mdm_orgname, it)
-                    } ?: stringResource(R.string.exit_node_mdm),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),
-            )
-          } else {
-            ExitNodeItem(
-                model,
-                ExitNodePickerViewModel.ExitNode(
-                    label = stringResource(R.string.none),
-                    online = MutableStateFlow(true),
-                    selected = !anyActive,
-                ),
-            )
-          }
-          if (showRunAsExitNode.value == ShowHide.Show) {
-            Lists.ItemDivider()
-            RunAsExitNodeItem(nav = nav, viewModel = model, anyActive)
-          }
+      item(key = "divider1") { Lists.SectionDivider() }
+
+      itemsWithDividers(tailnetExitNodes, key = { it.id!! }) { node -> ExitNodeItem(model, node) }
+
+      if (mullvadExitNodeCount > 0) {
+        item(key = "mullvad") {
+          Lists.SectionDivider()
+          MullvadItem(
+              nav,
+              mullvadExitNodesByCountryCode.size,
+              mullvadExitNodesByCountryCode.selected,
+          )
         }
-
-        item(key = "divider1") { Lists.SectionDivider() }
-
-        itemsWithDividers(tailnetExitNodes, key = { it.id!! }) { node -> ExitNodeItem(model, node) }
-
-        if (mullvadExitNodeCount > 0) {
-          item(key = "mullvad") {
-            Lists.SectionDivider()
-            MullvadItem(
-                nav,
-                mullvadExitNodesByCountryCode.size,
-                mullvadExitNodesByCountryCode.selected,
-            )
-          }
-        } else if (shouldShowMullvadInfo) {
-          item(key = "mullvad_info") {
-            Lists.SectionDivider()
-            MullvadInfoItem(nav)
-          }
+      } else if (shouldShowMullvadInfo) {
+        item(key = "mullvad_info") {
+          Lists.SectionDivider()
+          MullvadInfoItem(nav)
         }
+      }
 
-        if (!allowLanAccessMDMDisposition.value.hiddenFromUser) {
-          item(key = "allowLANAccess") {
-            Lists.SectionDivider()
+      if (!allowLanAccessMDMDisposition.value.hiddenFromUser) {
+        item(key = "allowLANAccess") {
+          Lists.SectionDivider()
 
-            Setting.Switch(R.string.allow_lan_access, isOn = allowLANAccess) {
-              LoadingIndicator.start()
-              model.toggleAllowLANAccess { LoadingIndicator.stop() }
-            }
+          Setting.Switch(R.string.allow_lan_access, isOn = allowLANAccess) {
+            LoadingIndicator.start()
+            model.toggleAllowLANAccess { LoadingIndicator.stop() }
           }
         }
       }
