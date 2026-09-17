@@ -43,9 +43,9 @@ import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.theme.listItem
 import com.tailscale.ipn.ui.theme.short
 import com.tailscale.ipn.ui.util.AndroidTVUtil.isAndroidTV
+import com.tailscale.ipn.ui.util.ListGroup
 import com.tailscale.ipn.ui.util.ListRow
 import com.tailscale.ipn.ui.util.Lists
-import com.tailscale.ipn.ui.util.itemsWithDividers
 import com.tailscale.ipn.ui.viewModel.MainViewModel
 import com.tailscale.ipn.ui.viewModel.PeerDetailsViewModel
 import com.tailscale.ipn.ui.viewModel.PeerDetailsViewModelFactory
@@ -161,14 +161,24 @@ private fun PeerDetailsContent(
         Lists.MutedHeader(stringResource(R.string.tailscale_addresses))
       }
 
-      itemsWithDividers(node.displayAddresses, key = { it.address }) {
-        AddressRow(address = it.address, type = it.typeString)
+      item(key = "addresses") {
+        ListGroup {
+          node.displayAddresses.forEachIndexed { index, address ->
+            if (index > 0) Lists.ItemDivider()
+            AddressRow(address = address.address, type = address.typeString)
+          }
+        }
       }
 
       item(key = "infoDivider") { Lists.SectionDivider() }
 
-      itemsWithDividers(node.info, key = { "info_${it.titleRes}" }) {
-        ValueRow(title = stringResource(id = it.titleRes), value = it.value.getString())
+      item(key = "info") {
+        ListGroup {
+          node.info.forEachIndexed { index, info ->
+            if (index > 0) Lists.ItemDivider()
+            ValueRow(title = stringResource(id = info.titleRes), value = info.value.getString())
+          }
+        }
       }
     }
   }

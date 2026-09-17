@@ -7,6 +7,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -19,6 +21,8 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -29,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.tailscale.ipn.ui.theme.listItem
+import com.tailscale.ipn.ui.theme.selectedListItem
 
 object Lists {
   @Composable
@@ -133,9 +138,74 @@ object Lists {
 val listCardShape = RoundedCornerShape(24.dp)
 
 /**
- * A row in one of this app's lists, drawn as a rounded card over the list background with the
- * gutter and gaps the platform uses. Takes the same arguments as a Material [ListItem]; [modifier]
- * is applied inside the card, so a clickable passed here covers the card and clips its ripple.
+ * Where a row sits in a run of related rows. A lazy list cannot hold a run in one [ListGroup]
+ * without composing all of it, so its rows carry their place in the run instead and round only the
+ * corners at the ends of it.
+ */
+enum class RowPosition {
+  /** The only row in its run, rounded like a card of its own. */
+  Single,
+  First,
+  Middle,
+  Last,
+}
+
+private val innerCorner = 6.dp
+
+private fun RowPosition.shape() =
+    when (this) {
+      RowPosition.Single -> listCardShape
+      RowPosition.First ->
+          RoundedCornerShape(
+              topStart = 24.dp,
+              topEnd = 24.dp,
+              bottomStart = innerCorner,
+              bottomEnd = innerCorner,
+          )
+      RowPosition.Middle -> RoundedCornerShape(innerCorner)
+      RowPosition.Last ->
+          RoundedCornerShape(
+              topStart = innerCorner,
+              topEnd = innerCorner,
+              bottomStart = 24.dp,
+              bottomEnd = 24.dp,
+          )
+    }
+
+/** The place of [item] in this run of rows, for [ListRow]'s position argument. */
+fun <T> List<T>.rowPosition(item: T): RowPosition {
+  val index = indexOf(item)
+  return when {
+    size <= 1 -> RowPosition.Single
+    index == 0 -> RowPosition.First
+    index == size - 1 -> RowPosition.Last
+    else -> RowPosition.Middle
+  }
+}
+
+/** True for the rows inside a [ListGroup], which draws the card that holds them. */
+private val LocalGroupedRows = compositionLocalOf { false }
+
+/**
+ * Holds a run of related rows in one card, rounded at the top and bottom of the run the way the
+ * system settings app groups its entries. Rows inside are flush with the card and separated by the
+ * gap [Lists.ItemDivider] leaves; a selected row still draws a pill of its own.
+ */
+@Composable
+fun ListGroup(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+  CompositionLocalProvider(LocalGroupedRows provides true) {
+    Column(modifier = modifier.listCard(), content = content)
+  }
+}
+
+/**
+ * A row in one of this app's lists. On its own it is a rounded card over the list background with
+ * the gutter and gaps the platform uses; inside a [ListGroup] it is flush with the group's card
+ * instead. A [selected] row is always a fully rounded pill, so the row whose detail is on screen
+ * reads as picked out of its group.
+ *
+ * Takes the same arguments as a Material [ListItem]; [modifier] is applied inside the card, so a
+ * clickable passed here covers the card and clips its ripple.
  */
 @Composable
 fun ListRow(
@@ -146,15 +216,27 @@ fun ListRow(
     leadingContent: @Composable (() -> Unit)? = null,
     trailingContent: @Composable (() -> Unit)? = null,
     colors: ListItemColors = MaterialTheme.colorScheme.listItem,
+    selected: Boolean = false,
+    position: RowPosition = RowPosition.Single,
 ) {
+  val grouped = LocalGroupedRows.current
+  val card =
+      when {
+        // A group already provides the gutter, so a pill inside one only needs its corners.
+        selected && grouped -> Modifier.clip(listCardShape)
+        grouped -> Modifier
+        // A selected row is a pill, whatever its place in the run.
+        selected || position == RowPosition.Single -> Modifier.listCard()
+        else -> Modifier.padding(horizontal = 16.dp, vertical = 1.dp).clip(position.shape())
+      }
   ListItem(
-      modifier = Modifier.listCard().then(modifier),
+      modifier = card.then(modifier),
       headlineContent = headlineContent,
       overlineContent = overlineContent,
       supportingContent = supportingContent,
       leadingContent = leadingContent,
       trailingContent = trailingContent,
-      colors = colors,
+      colors = if (selected) MaterialTheme.colorScheme.selectedListItem else colors,
   )
 }
 

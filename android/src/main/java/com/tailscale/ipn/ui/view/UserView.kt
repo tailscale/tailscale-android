@@ -44,6 +44,7 @@ fun UserView(
     onClick: (() -> Unit)? = null,
     colors: ListItemColors = ListItemDefaults.colors(),
     actionState: UserActionState = UserActionState.NONE,
+    selected: Boolean = false,
 ) {
   Box {
     var modifier: Modifier = Modifier
@@ -52,6 +53,7 @@ fun UserView(
       ListRow(
           modifier = modifier,
           colors = colors,
+          selected = selected,
           leadingContent = { Avatar(profile = profile, size = 36) },
           headlineContent = {
             AutoResizingText(

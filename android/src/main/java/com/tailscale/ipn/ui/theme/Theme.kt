@@ -224,9 +224,9 @@ val ColorScheme.selectedListItem: ListItemColors
     return ListItemColors(
         containerColor =
             if (isSystemInDarkTheme()) {
-              Color(0xFF2e2d2d) // gray-700
+              Color(0xFF444342) // gray-600
             } else {
-              Color(0xFFF0F5FF) // blue-0
+              Color(0xFFE0E8FA) // blue-50
             },
         headlineColor = default.headlineColor,
         leadingIconColor = default.leadingIconColor,

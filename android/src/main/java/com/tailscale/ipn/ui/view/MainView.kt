@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowDropDown
@@ -102,7 +103,6 @@ import com.tailscale.ipn.ui.theme.minTextSize
 import com.tailscale.ipn.ui.theme.primaryListItem
 import com.tailscale.ipn.ui.theme.searchBarColors
 import com.tailscale.ipn.ui.theme.secondaryButton
-import com.tailscale.ipn.ui.theme.selectedListItem
 import com.tailscale.ipn.ui.theme.short
 import com.tailscale.ipn.ui.theme.surfaceContainerListItem
 import com.tailscale.ipn.ui.theme.warningButton
@@ -114,9 +114,9 @@ import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.PeerSet
 import com.tailscale.ipn.ui.util.isTwoPaneWindow
-import com.tailscale.ipn.ui.util.itemsWithDividers
 import com.tailscale.ipn.ui.util.listCard
 import com.tailscale.ipn.ui.util.listCardShape
+import com.tailscale.ipn.ui.util.rowPosition
 import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.viewModel.AppViewModel
 import com.tailscale.ipn.ui.viewModel.DetailPane
@@ -797,16 +797,16 @@ fun PeerList(
         } else {
           stickyHeader { NodesSectionHeader(peerSet = peerSet) }
         }
-        itemsWithDividers(peerSet.peers, key = { it.StableID }) { peer ->
+        // The rows round the ends of the run themselves, so they need no gap beyond their own.
+        items(peerSet.peers, key = { it.StableID }) { peer ->
           ListRow(
               modifier =
                   Modifier.combinedClickable(
                       onClick = { onNavigateToPeerDetails(peer.StableID) },
                       onLongClick = { viewModel.expandedMenuPeer.set(peer) },
                   ),
-              colors =
-                  if (peer.StableID == selectedPeerId) MaterialTheme.colorScheme.selectedListItem
-                  else MaterialTheme.colorScheme.listItem,
+              selected = peer.StableID == selectedPeerId,
+              position = peerSet.peers.rowPosition(peer),
               headlineContent = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                   Box(
@@ -909,9 +909,7 @@ fun NodeListDetail(
         UserView(
             profile = user,
             actionState = UserActionState.NAV,
-            colors =
-                if (detailPane == DetailPane.Settings) MaterialTheme.colorScheme.selectedListItem
-                else MaterialTheme.colorScheme.listItem,
+            selected = detailPane == DetailPane.Settings,
             onClick = { viewModel.showInDetailPane(DetailPane.Settings) },
         )
       }
