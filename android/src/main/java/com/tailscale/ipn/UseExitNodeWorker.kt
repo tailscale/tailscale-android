@@ -8,6 +8,7 @@ import android.content.Intent
 import androidx.core.app.NotificationCompat
 import androidx.work.CoroutineWorker
 import androidx.work.Data
+import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import com.tailscale.ipn.UninitializedApp.Companion.STATUS_CHANNEL_ID
 import com.tailscale.ipn.ui.localapi.Client
@@ -19,6 +20,8 @@ import kotlinx.coroutines.Job
 
 class UseExitNodeWorker(appContext: Context, workerParams: WorkerParameters) :
     CoroutineWorker(appContext, workerParams) {
+  override suspend fun getForegroundInfo(): ForegroundInfo = workerForegroundInfo()
+
   override suspend fun doWork(): Result {
     val app = UninitializedApp.get()
     suspend fun runAndGetResult(): String? {
