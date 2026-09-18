@@ -150,6 +150,7 @@ fun MainView(
         val stateStr = stringResource(id = stateVal)
         val netmap by viewModel.netmap.collectAsState(initial = null)
         val showExitNodePicker by MDMSettings.exitNodesPicker.flow.collectAsState()
+        val showPreferencesMenu by MDMSettings.preferencesMenu.flow.collectAsState()
         val disableToggle by MDMSettings.forceEnabled.flow.collectAsState()
         val showKeyExpiry by viewModel.showExpiry.collectAsState(initial = false)
 
@@ -201,15 +202,19 @@ fun MainView(
               }
             },
             trailingContent = {
+              val canOpenSettings = showPreferencesMenu.value == ShowHide.Show
               Box(modifier = Modifier.padding(8.dp), contentAlignment = Alignment.CenterEnd) {
                 when (user) {
-                  null -> SettingsButton { navigation.onNavigateToSettings() }
+                  null ->
+                      if (canOpenSettings) {
+                        SettingsButton { navigation.onNavigateToSettings() }
+                      }
                   else -> {
                     Avatar(
                         profile = user,
                         size = 36,
-                        { navigation.onNavigateToSettings() },
-                        isFocusable = true,
+                        action = if (canOpenSettings) navigation.onNavigateToSettings else null,
+                        isFocusable = canOpenSettings,
                     )
                   }
                 }
