@@ -86,9 +86,13 @@ object MDMSettings {
   val useTailscaleSubnets =
       AlwaysNeverUserDecidesMDMSetting("UseTailscaleSubnets", "Use Tailscale Subnets")
 
+  val adminConsole = ShowHideMDMSetting("AdminConsole", "“Admin console” link")
+
   val exitNodesPicker = ShowHideMDMSetting("ExitNodesPicker", "Exit Nodes Picker")
 
   val manageTailnetLock = ShowHideMDMSetting("ManageTailnetLock", "“Manage Tailnet lock” menu item")
+
+  val preferencesMenu = ShowHideMDMSetting("PreferencesMenu", "Settings screen")
 
   // Unused on Android
   val resetToDefaults = ShowHideMDMSetting("ResetToDefaults", "“Reset to Defaults” menu item")
