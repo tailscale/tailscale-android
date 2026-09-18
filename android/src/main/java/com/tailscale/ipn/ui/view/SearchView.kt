@@ -28,7 +28,6 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SearchBarDefaults
@@ -57,7 +56,9 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.theme.listItem
+import com.tailscale.ipn.ui.util.ListRow
 import com.tailscale.ipn.ui.util.Lists
+import com.tailscale.ipn.ui.util.isTwoPaneWindow
 import com.tailscale.ipn.ui.viewModel.MainViewModel
 import kotlinx.coroutines.delay
 
@@ -83,6 +84,9 @@ fun SearchView(
   var expanded by rememberSaveable { mutableStateOf(true) }
   val context = LocalContext.current as Activity
   val listState = rememberLazyListState()
+  // On a wide window the node list and detail are shown side by side, so a result opens in the
+  // detail pane rather than in a screen of its own.
+  val twoPane = isTwoPaneWindow()
 
   val noResultsBackground =
       if (isSystemInDarkTheme()) {
@@ -210,7 +214,7 @@ fun SearchView(
                   item(key = "divider_${peer.StableID}") { Lists.ItemDivider() }
                 }
                 item(key = "peer_${peer.StableID}") {
-                  ListItem(
+                  ListRow(
                       colors = MaterialTheme.colorScheme.listItem,
                       headlineContent = {
                         Column {
@@ -237,7 +241,15 @@ fun SearchView(
                               .padding(horizontal = 4.dp, vertical = 0.dp)
                               .clickable {
                                 viewModel.disableSearchAutoFocus()
-                                navController.navigate("peerDetails/${peer.StableID}")
+                                if (twoPane) {
+                                  focusManager.clearFocus()
+                                  keyboardController?.hide()
+                                  viewModel.selectPeer(peer.StableID)
+                                  viewModel.updateSearchTerm("")
+                                  onNavigateBack()
+                                } else {
+                                  navController.navigate("peerDetails/${peer.StableID}")
+                                }
                               },
                   )
                 }

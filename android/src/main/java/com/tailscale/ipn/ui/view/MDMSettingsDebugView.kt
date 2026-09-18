@@ -6,7 +6,6 @@ package com.tailscale.ipn.ui.view
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -20,6 +19,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
 import com.tailscale.ipn.mdm.MDMSetting
 import com.tailscale.ipn.mdm.MDMSettings
+import com.tailscale.ipn.ui.util.ListRow
 import com.tailscale.ipn.ui.util.itemsWithDividers
 import com.tailscale.ipn.ui.viewModel.IpnViewModel
 
@@ -43,7 +43,7 @@ fun MDMSettingsDebugView(
 @Composable
 fun MDMSettingView(setting: MDMSetting<*>) {
   val value by setting.flow.collectAsState()
-  ListItem(
+  ListRow(
       headlineContent = { Text(setting.localizedTitle, maxLines = 3) },
       supportingContent = {
         Text(

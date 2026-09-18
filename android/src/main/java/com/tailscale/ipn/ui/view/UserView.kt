@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemColors
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -25,6 +24,7 @@ import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.theme.minTextSize
 import com.tailscale.ipn.ui.theme.short
 import com.tailscale.ipn.ui.util.AutoResizingText
+import com.tailscale.ipn.ui.util.ListRow
 
 // Used to decorate UserViews.
 // NONE indicates no decoration
@@ -44,14 +44,16 @@ fun UserView(
     onClick: (() -> Unit)? = null,
     colors: ListItemColors = ListItemDefaults.colors(),
     actionState: UserActionState = UserActionState.NONE,
+    selected: Boolean = false,
 ) {
   Box {
     var modifier: Modifier = Modifier
     onClick?.let { modifier = modifier.clickable { it() } }
     profile?.let {
-      ListItem(
+      ListRow(
           modifier = modifier,
           colors = colors,
+          selected = selected,
           leadingContent = { Avatar(profile = profile, size = 36) },
           headlineContent = {
             AutoResizingText(
@@ -63,12 +65,17 @@ fun UserView(
           },
           supportingContent = {
             Column {
-              AutoResizingText(
-                  text = profile.NetworkProfile?.tailnetNameForDisplay() ?: "",
-                  style = MaterialTheme.typography.bodyMedium.short,
-                  minFontSize = MaterialTheme.typography.minTextSize,
-                  overflow = TextOverflow.Ellipsis,
-              )
+              // A personal tailnet is named after the account that owns it, in which case the
+              // name is already the headline and repeating it says nothing.
+              val tailnetName = profile.NetworkProfile?.tailnetNameForDisplay()
+              if (!tailnetName.isNullOrEmpty() && tailnetName != profile.UserProfile.LoginName) {
+                AutoResizingText(
+                    text = tailnetName,
+                    style = MaterialTheme.typography.bodyMedium.short,
+                    minFontSize = MaterialTheme.typography.minTextSize,
+                    overflow = TextOverflow.Ellipsis,
+                )
+              }
 
               profile.customControlServerHostname()?.let {
                 AutoResizingText(
@@ -96,7 +103,7 @@ fun UserView(
       )
     }
         ?: run {
-          ListItem(
+          ListRow(
               modifier = modifier,
               colors = colors,
               headlineContent = {

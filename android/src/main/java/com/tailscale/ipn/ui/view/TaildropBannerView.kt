@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
@@ -41,6 +40,7 @@ import androidx.compose.ui.unit.sp
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.theme.onWarning
 import com.tailscale.ipn.ui.theme.warning
+import com.tailscale.ipn.ui.util.listCardShape
 import com.tailscale.ipn.ui.viewModel.PendingTaildropViewModel
 import com.tailscale.ipn.util.InlineShare
 import kotlin.math.abs
@@ -89,7 +89,7 @@ fun TaildropBannerView(viewModel: PendingTaildropViewModel) {
                     onHorizontalDrag = { _, dragAmount -> dragOffsetPx += dragAmount },
                 )
               },
-      shape = RoundedCornerShape(10.dp),
+      shape = listCardShape,
       color = MaterialTheme.colorScheme.warning,
       contentColor = MaterialTheme.colorScheme.onWarning,
   ) {

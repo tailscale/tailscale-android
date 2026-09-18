@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -21,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.model.Permissions
+import com.tailscale.ipn.ui.util.ListRow
 import com.tailscale.ipn.ui.util.friendlyDirName
 import com.tailscale.ipn.ui.util.itemsWithDividers
 import com.tailscale.ipn.ui.viewModel.PermissionsViewModel
@@ -39,7 +39,7 @@ fun PermissionsView(
     LazyColumn(modifier = Modifier.padding(innerPadding)) {
       // Existing Android runtime permissions
       itemsWithDividers(permissions) { (permission, granted) ->
-        ListItem(
+        ListRow(
             modifier = Modifier.clickable { navToNotificationsView() },
             leadingContent = {
               Icon(
@@ -60,7 +60,7 @@ fun PermissionsView(
       }
 
       item {
-        ListItem(
+        ListRow(
             modifier = Modifier.clickable { navToTaildropDirView() },
             leadingContent = {
               Icon(

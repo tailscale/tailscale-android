@@ -4,6 +4,8 @@
     <!-- Generic Strings -->
     <string name="log_in">Log in</string>
     <string name="log_out">Log out</string>
+    <string name="log_out_confirm">Log out of %s? You will have to sign in again to use Tailscale on this device.</string>
+    <string name="log_out_confirm_no_account">You will have to sign in again to use Tailscale on this device.</string>
     <string name="none">None</string>
     <string name="connect">Connect</string>
     <string name="disconnect">Disconnect</string>
@@ -22,6 +24,7 @@
     <string name="search_ellipsis">Search...</string>
     <string name="dismiss">Dismiss</string>
     <string name="no_results">No results</string>
+    <string name="no_node_selected">Select a device to see its details</string>
     <string name="back">Back</string>
     <string name="clear_search">Clear search</string>
     <string name="off">Off</string>
