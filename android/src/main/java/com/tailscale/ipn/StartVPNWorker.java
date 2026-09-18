@@ -12,6 +12,7 @@ import android.net.VpnService;
 import android.os.Build;
 
 import androidx.annotation.NonNull;
+import androidx.work.ForegroundInfo;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
@@ -24,6 +25,12 @@ public final class StartVPNWorker extends Worker {
 
     public StartVPNWorker(Context appContext, WorkerParameters workerParams) {
         super(appContext, workerParams);
+    }
+
+    @NonNull
+    @Override
+    public ForegroundInfo getForegroundInfo() {
+        return WorkerForegroundInfoKt.workerForegroundInfo();
     }
 
     @NonNull

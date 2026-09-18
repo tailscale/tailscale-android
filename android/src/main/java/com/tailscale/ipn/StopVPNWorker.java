@@ -6,6 +6,7 @@ package com.tailscale.ipn;
 import android.content.Context;
 
 import androidx.annotation.NonNull;
+import androidx.work.ForegroundInfo;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
@@ -18,6 +19,12 @@ public final class StopVPNWorker extends Worker {
             Context appContext,
             WorkerParameters workerParams) {
         super(appContext, workerParams);
+    }
+
+    @NonNull
+    @Override
+    public ForegroundInfo getForegroundInfo() {
+        return WorkerForegroundInfoKt.workerForegroundInfo();
     }
 
     @NonNull

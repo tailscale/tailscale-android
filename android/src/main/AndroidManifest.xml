@@ -130,6 +130,10 @@
             </intent-filter>
         </service>
         <service
+            android:name="androidx.work.impl.foreground.SystemForegroundService"
+            android:foregroundServiceType="systemExempted"
+            tools:node="merge" />
+        <service
             android:name=".QuickToggleService"
             android:exported="true"
             android:icon="@drawable/ic_tile"
