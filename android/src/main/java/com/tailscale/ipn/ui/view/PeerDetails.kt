@@ -91,8 +91,22 @@ fun PeerDetails(
                 actions = {
                   IconButton(onClick = { model.startPing() }) {
                     Icon(
-                        painter = painterResource(R.drawable.timer),
+                        painter = painterResource(R.drawable.sensors_24),
                         contentDescription = "Ping device",
+                    )
+                  }
+
+                  val favorites by model.favorites.collectAsState()
+                  val isWriting by model.isWritingFavorites.collectAsState()
+                  val isPinned = favorites?.isFavoriteDevice(node.StableID) == true
+
+                  IconButton(enabled = !isWriting, onClick = { model.togglePin() }) {
+                    Icon(
+                        painterResource(if (isPinned) R.drawable.unpin_24 else R.drawable.pin_24),
+                        contentDescription =
+                            stringResource(
+                                if (isPinned) R.string.unpin_device else R.string.pin_device
+                            ),
                     )
                   }
                 },

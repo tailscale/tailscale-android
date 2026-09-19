@@ -101,6 +101,9 @@ class Tailcfg {
     val primaryIPv6Address: String?
       get() = displayAddresses.firstOrNull { it.type == DisplayAddress.addrType.V6 }?.address
 
+    val magicDNSAddress: String?
+      get() = displayAddresses.firstOrNull { it.type == DisplayAddress.addrType.MagicDNS }?.address
+
     // isExitNode reproduces the Go logic in local.go peerStatusFromNode
     val isExitNode: Boolean =
         (AllowedIPs?.contains("0.0.0.0/0") ?: false) && (AllowedIPs?.contains("::/0") ?: false)
@@ -148,7 +151,7 @@ class Tailcfg {
 
     val displayAddresses: List<DisplayAddress>
       get() {
-        var addresses = mutableListOf<DisplayAddress>()
+        val addresses = mutableListOf<DisplayAddress>()
         addresses.add(DisplayAddress(nameWithoutTrailingDot))
         Addresses?.let { addresses.addAll(it.map { addr -> DisplayAddress(addr) }) }
         return addresses
@@ -162,16 +165,12 @@ class Tailcfg {
               PeerSettingInfo(R.string.os, ComposableStringFormatter(Hostinfo.OS!!)),
           )
         }
-        if (keyDoesNotExpire) {
-          result.add(
-              PeerSettingInfo(
-                  R.string.key_expiry,
-                  ComposableStringFormatter(R.string.deviceKeyNeverExpires),
-              )
-          )
-        } else {
-          result.add(PeerSettingInfo(R.string.key_expiry, TimeUtil.keyExpiryFromGoTime(KeyExpiry)))
-        }
+        val settingValue =
+            if (keyDoesNotExpire) ComposableStringFormatter(R.string.deviceKeyNeverExpires)
+            else TimeUtil.keyExpiryFromGoTime(KeyExpiry)
+
+        result.add(PeerSettingInfo(R.string.key_expiry, settingValue))
+
         return result
       }
 
@@ -191,7 +190,11 @@ class Tailcfg {
   }
 
   @Serializable
-  data class Service(var Proto: String, var Port: Int, var Description: String? = null)
+  data class Service(
+      var Proto: String,
+      var Port: Int,
+      var Description: String? = null,
+  )
 
   @Serializable
   data class NetworkProfile(
