@@ -315,7 +315,18 @@ bump-version-code: tailscale.version
 update-oss:
 	curl -f https://raw.githubusercontent.com/tailscale/tailscale/refs/heads/main/go.toolchain.rev > go.toolchain.rev.new
 	mv go.toolchain.rev.new go.toolchain.rev
-	GOPROXY=direct ./tool/go get tailscale.com@main
+# Resolve main to a commit ourselves rather than asking the Go module
+# proxy for tailscale.com@main, because the proxy caches branch
+# resolution and often returns a stale commit. With an explicit commit
+# the proxy fetches it on demand, so both tailscale.com and all of its
+# dependencies come from the proxy rather than slow direct git clones.
+# If the proxy fails for some reason, fall back to fetching just
+# tailscale.com directly while still using the proxy for everything else.
+	REV=$$(git ls-remote https://github.com/tailscale/tailscale.git refs/heads/main | cut -f1) && \
+		test -n "$$REV" && \
+		echo "Updating tailscale.com to $$REV" && \
+		(./tool/go get tailscale.com@$$REV || \
+			GONOPROXY=tailscale.com ./tool/go get tailscale.com@$$REV)
 	./tool/go mod tidy -compat=1.24
 
 # Get the commandline tools package, this provides (among other things) the sdkmanager binary.
