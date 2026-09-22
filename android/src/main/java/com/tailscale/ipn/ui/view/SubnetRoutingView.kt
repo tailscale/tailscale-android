@@ -13,7 +13,6 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,6 +27,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.Links.SUBNET_ROUTERS_KB_URL
+import com.tailscale.ipn.ui.util.ListRow
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.itemsWithDividers
@@ -80,7 +80,7 @@ fun SubnetRoutingView(backToSettings: BackNavigation, model: SubnetRoutingViewMo
           )
         }
         item("subtitle") {
-          ListItem(
+          ListRow(
               headlineContent = {
                 Text(
                     stringResource(R.string.use_tailscale_subnets_subtitle),
@@ -92,7 +92,7 @@ fun SubnetRoutingView(backToSettings: BackNavigation, model: SubnetRoutingViewMo
         item("divider0") { Lists.SectionDivider() }
         item(key = "header") {
           Lists.MutedHeader(stringResource(R.string.advertised_routes))
-          ListItem(
+          ListRow(
               headlineContent = {
                 Text(
                     stringResource(R.string.run_as_subnet_router_header),
@@ -113,7 +113,7 @@ fun SubnetRoutingView(backToSettings: BackNavigation, model: SubnetRoutingViewMo
 
         item("addNewRoute") {
           Lists.ItemDivider()
-          ListItem(
+          ListRow(
               headlineContent = {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                   Icon(Icons.Outlined.Add, contentDescription = null)

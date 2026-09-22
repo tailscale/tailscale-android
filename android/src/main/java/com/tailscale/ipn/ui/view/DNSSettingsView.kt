@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -26,6 +25,7 @@ import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.model.DnsType
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.util.ClipboardValueView
+import com.tailscale.ipn.ui.util.ListRow
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.itemsWithDividers
@@ -56,7 +56,7 @@ fun DNSSettingsView(
     LoadingIndicator.Wrap {
       LazyColumn(Modifier.padding(innerPadding)) {
         item("state") {
-          ListItem(
+          ListRow(
               leadingContent = {
                 Icon(
                     painter = painterResource(state.symbolDrawable),

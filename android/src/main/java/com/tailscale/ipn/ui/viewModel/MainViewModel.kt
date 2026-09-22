@@ -19,6 +19,7 @@ import com.tailscale.ipn.R
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.Ipn.State
+import com.tailscale.ipn.ui.model.StableNodeID
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.util.PeerCategorizer
@@ -35,6 +36,21 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
+
+/**
+ * What the detail pane of the list-detail layout is showing. Each of these corresponds to a row in
+ * the list pane; on a single pane window they are separate screens instead.
+ */
+sealed interface DetailPane {
+  /** The tailnet and app settings, reached from the user row. */
+  data object Settings : DetailPane
+
+  /** The exit node picker, reached from the exit node row. */
+  data object ExitNodes : DetailPane
+
+  /** A node from the tailnet. */
+  data class Node(val id: StableNodeID) : DetailPane
+}
 
 class MainViewModelFactory(private val appViewModel: AppViewModel) : ViewModelProvider.Factory {
   @Suppress("UNCHECKED_CAST")
@@ -70,6 +86,10 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
   val searchViewPeers: StateFlow<List<PeerSet>> = _searchViewPeers
   // The current state of the IPN for determining view visibility
   val ipnState = Notifier.state
+  // What the detail pane of the list-detail layout is showing, or null if nothing is selected
+  // yet. Only used when the window is wide enough for two panes.
+  private val _detailPane = MutableStateFlow<DetailPane?>(null)
+  val detailPane: StateFlow<DetailPane?> = _detailPane
   // The active search term for filtering peers
   private val _searchTerm = MutableStateFlow("")
   val searchTerm: StateFlow<String> = _searchTerm
@@ -97,6 +117,14 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
 
   fun updateSearchTerm(term: String) {
     _searchTerm.value = term
+  }
+
+  fun showInDetailPane(pane: DetailPane?) {
+    _detailPane.value = pane
+  }
+
+  fun selectPeer(nodeId: StableNodeID?) {
+    _detailPane.value = nodeId?.let { DetailPane.Node(it) }
   }
 
   fun hidePeerDropdownMenu() {
@@ -165,6 +193,10 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
             val filteredPeers = peerCategorizer.groupedAndFilteredPeers(searchTerm.value)
             _peers.value = peerCategorizer.peerSets
             _searchViewPeers.value = filteredPeers
+          }
+          // Drop the detail pane selection if that node is no longer in the netmap.
+          (_detailPane.value as? DetailPane.Node)?.let {
+            if (netmap.getPeer(it.id) == null) _detailPane.value = null
           }
           if (netmap.SelfNode.keyDoesNotExpire) {
             showExpiry.set(false)

@@ -3,6 +3,7 @@
 package com.tailscale.ipn.ui.view
 
 import android.os.Build
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -25,6 +27,8 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowDropDown
@@ -46,6 +50,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -86,6 +91,7 @@ import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.Netmap
 import com.tailscale.ipn.ui.model.Permissions
+import com.tailscale.ipn.ui.model.StableNodeID
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.theme.customErrorContainer
 import com.tailscale.ipn.ui.theme.disabled
@@ -103,12 +109,17 @@ import com.tailscale.ipn.ui.theme.warningButton
 import com.tailscale.ipn.ui.theme.warningListItem
 import com.tailscale.ipn.ui.util.AndroidTVUtil.isAndroidTV
 import com.tailscale.ipn.ui.util.AutoResizingText
+import com.tailscale.ipn.ui.util.ListRow
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.PeerSet
-import com.tailscale.ipn.ui.util.itemsWithDividers
+import com.tailscale.ipn.ui.util.isTwoPaneWindow
+import com.tailscale.ipn.ui.util.listCard
+import com.tailscale.ipn.ui.util.listCardShape
+import com.tailscale.ipn.ui.util.rowPosition
 import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.viewModel.AppViewModel
+import com.tailscale.ipn.ui.viewModel.DetailPane
 import com.tailscale.ipn.ui.viewModel.IpnViewModel.NodeState
 import com.tailscale.ipn.ui.viewModel.MainViewModel
 import com.tailscale.ipn.util.FeatureFlags
@@ -117,7 +128,7 @@ import kotlinx.coroutines.flow.emptyFlow
 // Navigation actions for the MainView
 data class MainViewNavigation(
     val onNavigateToSettings: () -> Unit,
-    val onNavigateToPeerDetails: (Tailcfg.Node) -> Unit,
+    val onNavigateToPeerDetails: (StableNodeID) -> Unit,
     val onNavigateToExitNodes: () -> Unit,
     val onNavigateToHealth: () -> Unit,
     val onNavigateToSearch: () -> Unit,
@@ -129,9 +140,34 @@ fun MainView(
     loginAtUrl: (String) -> Unit,
     navigation: MainViewNavigation,
     viewModel: MainViewModel,
+    // Rendered in the detail pane of the list-detail layout. They are passed in because they need
+    // app scoped state that the main view has no business knowing about.
+    settingsPane: @Composable () -> Unit = {},
+    exitNodePane: @Composable () -> Unit = {},
 ) {
   val currentPingDevice by viewModel.pingViewModel.peer.collectAsState()
   val healthIcon by viewModel.healthIcon.collectAsState()
+  // Wide windows (tablets, unfolded foldables) show the node list and the detail of the selected
+  // node side by side. Everything else keeps the single pane layout and navigates to the detail.
+  val twoPane = isTwoPaneWindow()
+  val detailPane by viewModel.detailPane.collectAsState()
+
+  // Back dismisses the detail pane, leaving the node list in place.
+  BackHandler(enabled = twoPane && detailPane != null) { viewModel.showInDetailPane(null) }
+
+  // Folding the device (or otherwise shrinking the window) collapses the two panes into one.
+  // Carry whatever the pane was showing over to its full screen equivalent so the user keeps
+  // their place.
+  LaunchedEffect(twoPane, detailPane) {
+    if (twoPane) return@LaunchedEffect
+    val pane = detailPane ?: return@LaunchedEffect
+    viewModel.showInDetailPane(null)
+    when (pane) {
+      DetailPane.Settings -> navigation.onNavigateToSettings()
+      DetailPane.ExitNodes -> navigation.onNavigateToExitNodes()
+      is DetailPane.Node -> navigation.onNavigateToPeerDetails(pane.id)
+    }
+  }
 
   LoadingIndicator.Wrap {
     Scaffold(contentWindowInsets = WindowInsets.Companion.statusBars) { paddingInsets ->
@@ -153,94 +189,109 @@ fun MainView(
         val disableToggle by MDMSettings.forceEnabled.flow.collectAsState()
         val showKeyExpiry by viewModel.showExpiry.collectAsState(initial = false)
 
-        // Hide the header only on Android TV when the user needs to login
-        val hideHeader = (isAndroidTV() && state == Ipn.State.NeedsLogin)
-        ListItem(
-            colors = MaterialTheme.colorScheme.surfaceContainerListItem,
-            leadingContent = {
-              if (!hideHeader) {
-                TintedSwitch(
-                    checked = isOn,
-                    enabled =
-                        !disableToggle.value &&
-                            !viewModel.isToggleInProgress
-                                .value, // Disable switch if toggle is in progress
-                    onCheckedChange = { desiredState -> viewModel.toggleVpn(desiredState) },
-                )
-              }
-            },
-            headlineContent = {
-              user?.NetworkProfile?.tailnetNameForDisplay()?.let { domain ->
-                AutoResizingText(
-                    text = domain,
-                    style = MaterialTheme.typography.titleMedium.short,
-                    minFontSize = MaterialTheme.typography.minTextSize,
-                    overflow = TextOverflow.Ellipsis,
-                )
-              }
-            },
-            supportingContent = {
-              if (!hideHeader) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                  Text(text = stateStr, style = MaterialTheme.typography.bodyMedium.short)
-                  healthIcon?.let {
-                    Spacer(modifier = Modifier.size(4.dp))
-                    IconButton(
-                        onClick = { navigation.onNavigateToHealth() },
-                        modifier = Modifier.size(16.dp),
-                    ) {
-                      Icon(
-                          painterResource(id = it),
-                          contentDescription = null,
+        // Once the tailnet is running these controls live in the list, next to the nodes they
+        // act on, whether or not there is room for a detail pane beside it. The states that are
+        // not yet a running tailnet keep the full width header.
+        if (state != Ipn.State.Running) {
+          // Hide the header only on Android TV when the user needs to login
+          val hideHeader = (isAndroidTV() && state == Ipn.State.NeedsLogin)
+          ListItem(
+              colors = MaterialTheme.colorScheme.surfaceContainerListItem,
+              leadingContent = {
+                if (!hideHeader) {
+                  TintedSwitch(
+                      checked = isOn,
+                      enabled =
+                          !disableToggle.value &&
+                              !viewModel.isToggleInProgress
+                                  .value, // Disable switch if toggle is in progress
+                      onCheckedChange = { desiredState -> viewModel.toggleVpn(desiredState) },
+                  )
+                }
+              },
+              headlineContent = {
+                user?.NetworkProfile?.tailnetNameForDisplay()?.let { domain ->
+                  AutoResizingText(
+                      text = domain,
+                      style = MaterialTheme.typography.titleMedium.short,
+                      minFontSize = MaterialTheme.typography.minTextSize,
+                      overflow = TextOverflow.Ellipsis,
+                  )
+                }
+              },
+              supportingContent = {
+                if (!hideHeader) {
+                  Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = stateStr, style = MaterialTheme.typography.bodyMedium.short)
+                    healthIcon?.let {
+                      Spacer(modifier = Modifier.size(4.dp))
+                      IconButton(
+                          onClick = { navigation.onNavigateToHealth() },
                           modifier = Modifier.size(16.dp),
-                          tint = MaterialTheme.colorScheme.error,
+                      ) {
+                        Icon(
+                            painterResource(id = it),
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.error,
+                        )
+                      }
+                    }
+                  }
+                }
+              },
+              trailingContent = {
+                Box(modifier = Modifier.padding(8.dp), contentAlignment = Alignment.CenterEnd) {
+                  when (user) {
+                    null -> SettingsButton { navigation.onNavigateToSettings() }
+                    else -> {
+                      Avatar(
+                          profile = user,
+                          size = 36,
+                          { navigation.onNavigateToSettings() },
+                          isFocusable = true,
                       )
                     }
                   }
                 }
-              }
-            },
-            trailingContent = {
-              Box(modifier = Modifier.padding(8.dp), contentAlignment = Alignment.CenterEnd) {
-                when (user) {
-                  null -> SettingsButton { navigation.onNavigateToSettings() }
-                  else -> {
-                    Avatar(
-                        profile = user,
-                        size = 36,
-                        { navigation.onNavigateToSettings() },
-                        isFocusable = true,
-                    )
-                  }
-                }
-              }
-            },
-        )
+              },
+          )
+        }
+
         when (state) {
           Ipn.State.Running -> {
             viewModel.maybeRequestVpnPermission()
             LaunchVpnPermissionIfNeeded(viewModel)
             PromptForMissingPermissions(viewModel)
 
-            if (showKeyExpiry) {
-              ExpiryNotification(netmap = netmap, action = { viewModel.login() })
-            }
-            if (showExitNodePicker.value == ShowHide.Show) {
-              ExitNodeStatus(
-                  navAction = navigation.onNavigateToExitNodes,
+            val pending by viewModel.pendingTaildrop.pendingItems.collectAsState()
+            if (twoPane) {
+              NodeListDetail(
                   viewModel = viewModel,
+                  detailPane = detailPane,
+                  navigation = navigation,
+                  showExitNodeRow = showExitNodePicker.value == ShowHide.Show,
+                  showKeyExpiry = showKeyExpiry,
+                  showTaildropBanner = pending.isNotEmpty(),
+                  settingsPane = settingsPane,
+                  exitNodePane = exitNodePane,
+                  modifier = Modifier.weight(1f),
+              )
+            } else {
+              // The same list, with each row opening a screen of its own rather than a pane.
+              TailnetList(
+                  viewModel = viewModel,
+                  onNavigateToSearch = navigation.onNavigateToSearch,
+                  onShowSettings = navigation.onNavigateToSettings,
+                  onShowExitNodes = navigation.onNavigateToExitNodes,
+                  onShowNode = navigation.onNavigateToPeerDetails,
+                  onShowHealth = navigation.onNavigateToHealth,
+                  showExitNodeRow = showExitNodePicker.value == ShowHide.Show,
+                  showKeyExpiry = showKeyExpiry,
+                  showTaildropBanner = pending.isNotEmpty(),
+                  modifier = Modifier.weight(1f),
               )
             }
-            val pending by viewModel.pendingTaildrop.pendingItems.collectAsState()
-            if (pending.isNotEmpty()) {
-              TaildropBannerView(viewModel = viewModel.pendingTaildrop)
-            }
-            PeerList(
-                viewModel = viewModel,
-                onNavigateToPeerDetails = navigation.onNavigateToPeerDetails,
-                onSearchBarClick = navigation.onNavigateToSearch,
-                onSearch = { viewModel.searchPeers(it) },
-            )
           }
           Ipn.State.NoState,
           Ipn.State.Starting -> StartingView()
@@ -321,15 +372,12 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
   val exitNodePeer = chosenExitNodeId?.let { id -> netmap?.Peers?.find { it.StableID == id } }
   val name = exitNodePeer?.exitNodeName
   val managedByOrganization by viewModel.managedByOrganization.collectAsState()
-  Box(
-      modifier =
-          Modifier.fillMaxWidth().background(color = MaterialTheme.colorScheme.surfaceContainer)
-  ) {
+  Box(modifier = Modifier.fillMaxWidth()) {
     if (nodeState == NodeState.OFFLINE_MDM) {
       Box(
           modifier =
               Modifier.padding(start = 16.dp, end = 16.dp, top = 56.dp, bottom = 16.dp)
-                  .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
+                  .clip(shape = listCardShape)
                   .background(MaterialTheme.colorScheme.customErrorContainer)
                   .fillMaxWidth()
                   .align(Alignment.TopCenter)
@@ -348,12 +396,7 @@ fun ExitNodeStatus(navAction: () -> Unit, viewModel: MainViewModel) {
         }
       }
     }
-    Box(
-        modifier =
-            Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp)
-                .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
-                .fillMaxWidth()
-    ) {
+    Box(modifier = Modifier.listCard().fillMaxWidth()) {
       ListItem(
           modifier = Modifier.clickable { navAction() },
           colors =
@@ -596,9 +639,14 @@ fun ConnectView(
 @Composable
 fun PeerList(
     viewModel: MainViewModel,
-    onNavigateToPeerDetails: (Tailcfg.Node) -> Unit,
+    onNavigateToPeerDetails: (StableNodeID) -> Unit,
     onSearchBarClick: () -> Unit,
     onSearch: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    // The node shown in the detail pane, highlighted in the list. Always null in a single pane.
+    selectedPeerId: StableNodeID? = null,
+    // Rows rendered above the node sections, scrolling with them.
+    leadingContent: LazyListScope.() -> Unit = {},
 ) {
   val peerList by viewModel.peers.collectAsState(initial = emptyList<PeerSet>())
   val searchTermStr by viewModel.searchTerm.collectAsState(initial = "")
@@ -661,7 +709,7 @@ fun PeerList(
     }
   }
 
-  Column(modifier = Modifier.fillMaxSize()) {
+  Column(modifier = modifier.fillMaxSize()) {
     if (enableSearch && FeatureFlags.isEnabled("enable_new_search")) {
       Search(onSearchBarClick)
     } else {
@@ -717,18 +765,14 @@ fun PeerList(
             Modifier.fillMaxWidth()
                 .weight(1f) // LazyColumn gets the remaining vertical space
                 .onFocusChanged { isListFocussed = it.isFocused }
-                .background(color = MaterialTheme.colorScheme.surface)
+                .background(color = MaterialTheme.colorScheme.background)
                 .windowInsetsPadding(WindowInsets.navigationBars)
     ) {
+      leadingContent()
       // Handle case when no results are found
       if (showNoResults) {
         item {
-          Spacer(
-              Modifier.height(16.dp)
-                  .fillMaxSize()
-                  .focusable(false)
-                  .background(color = MaterialTheme.colorScheme.surface)
-          )
+          Spacer(Modifier.height(16.dp).fillMaxSize().focusable(false))
           Lists.LargeTitle(
               stringResource(id = R.string.no_results),
               bottomPadding = 8.dp,
@@ -749,14 +793,16 @@ fun PeerList(
         } else {
           stickyHeader { NodesSectionHeader(peerSet = peerSet) }
         }
-        itemsWithDividers(peerSet.peers, key = { it.StableID }) { peer ->
-          ListItem(
+        // The rows round the ends of the run themselves, so they need no gap beyond their own.
+        items(peerSet.peers, key = { it.StableID }) { peer ->
+          ListRow(
               modifier =
                   Modifier.combinedClickable(
-                      onClick = { onNavigateToPeerDetails(peer) },
+                      onClick = { onNavigateToPeerDetails(peer.StableID) },
                       onLongClick = { viewModel.expandedMenuPeer.set(peer) },
                   ),
-              colors = MaterialTheme.colorScheme.listItem,
+              selected = peer.StableID == selectedPeerId,
+              position = peerSet.peers.rowPosition(peer),
               headlineContent = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                   Box(
@@ -823,12 +869,189 @@ fun PeerList(
   }
 }
 
+/**
+ * Renders the node list and the detail of the selected item side by side, splitting the width
+ * evenly. Used on windows wide enough for two panes; see [isTwoPaneWindow].
+ */
+@Composable
+fun NodeListDetail(
+    viewModel: MainViewModel,
+    detailPane: DetailPane?,
+    navigation: MainViewNavigation,
+    showExitNodeRow: Boolean,
+    showKeyExpiry: Boolean,
+    showTaildropBanner: Boolean,
+    settingsPane: @Composable () -> Unit,
+    exitNodePane: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+  Row(modifier = modifier.fillMaxSize()) {
+    TailnetList(
+        viewModel = viewModel,
+        onNavigateToSearch = navigation.onNavigateToSearch,
+        onShowSettings = { viewModel.showInDetailPane(DetailPane.Settings) },
+        onShowExitNodes = { viewModel.showInDetailPane(DetailPane.ExitNodes) },
+        onShowNode = { viewModel.selectPeer(it) },
+        onShowHealth = navigation.onNavigateToHealth,
+        showExitNodeRow = showExitNodeRow,
+        showKeyExpiry = showKeyExpiry,
+        showTaildropBanner = showTaildropBanner,
+        detailPane = detailPane,
+        modifier = Modifier.weight(1f),
+    )
+    VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+    Box(
+        modifier =
+            Modifier.weight(1f)
+                .fillMaxHeight()
+                // The enclosing scaffold already pads for the status bar. The views rendered in
+                // the pane bring their own scaffolds, which would otherwise pad for it again.
+                .consumeWindowInsets(WindowInsets.statusBars)
+                .background(color = MaterialTheme.colorScheme.background)
+    ) {
+      when (detailPane) {
+        null -> NoNodeSelected()
+        DetailPane.Settings -> settingsPane()
+        DetailPane.ExitNodes -> exitNodePane()
+        is DetailPane.Node -> PeerDetailsPane(viewModel = viewModel, nodeId = detailPane.id)
+      }
+    }
+  }
+}
+
+/**
+ * The tailnet as a list: search, the tailnet row, the VPN toggle, the exit node row, and then the
+ * nodes themselves. This is the whole screen on a narrow window and the list pane on a wide one, so
+ * that folding a device changes how much fits beside the list rather than what the list is.
+ *
+ * [detailPane] is what the pane beside it is showing, which is the row to mark as selected; it is
+ * null when the list is the whole screen and each row opens a screen of its own instead.
+ */
+@Composable
+fun TailnetList(
+    viewModel: MainViewModel,
+    onNavigateToSearch: () -> Unit,
+    onShowSettings: () -> Unit,
+    onShowExitNodes: () -> Unit,
+    onShowNode: (StableNodeID) -> Unit,
+    onShowHealth: () -> Unit,
+    showExitNodeRow: Boolean,
+    showKeyExpiry: Boolean,
+    showTaildropBanner: Boolean,
+    detailPane: DetailPane? = null,
+    modifier: Modifier = Modifier,
+) {
+  val user by viewModel.loggedInUser.collectAsState(initial = null)
+  val netmap by viewModel.netmap.collectAsState(initial = null)
+
+  PeerList(
+      viewModel = viewModel,
+      onNavigateToPeerDetails = onShowNode,
+      onSearchBarClick = onNavigateToSearch,
+      onSearch = { viewModel.searchPeers(it) },
+      modifier = modifier,
+      selectedPeerId = (detailPane as? DetailPane.Node)?.id,
+  ) {
+    item(key = "tailnet") {
+      UserView(
+          profile = user,
+          actionState = UserActionState.NAV,
+          selected = detailPane == DetailPane.Settings,
+          onClick = onShowSettings,
+      )
+    }
+    item(key = "vpnToggle") {
+      VpnToggleRow(viewModel = viewModel, onNavigateToHealth = onShowHealth)
+    }
+    if (showKeyExpiry) {
+      item(key = "keyExpiry") {
+        ExpiryNotification(netmap = netmap, action = { viewModel.login() })
+      }
+    }
+    if (showExitNodeRow) {
+      item(key = "exitNode") { ExitNodeStatus(navAction = onShowExitNodes, viewModel = viewModel) }
+    }
+    if (showTaildropBanner) {
+      item(key = "taildrop") { TaildropBannerView(viewModel = viewModel.pendingTaildrop) }
+    }
+    item(key = "nodesDivider") { Lists.ItemDivider() }
+  }
+}
+
+/** The row in the list pane that turns Tailscale on and off, and reports the current state. */
+@Composable
+fun VpnToggleRow(viewModel: MainViewModel, onNavigateToHealth: () -> Unit) {
+  val isOn by viewModel.vpnToggleState.collectAsState(initial = false)
+  val stateVal by viewModel.stateRes.collectAsState(initial = R.string.placeholder)
+  val healthIcon by viewModel.healthIcon.collectAsState()
+  val disableToggle by MDMSettings.forceEnabled.flow.collectAsState()
+
+  ListRow(
+      headlineContent = {
+        Text(
+            text = stringResource(id = R.string.app_name),
+            style = MaterialTheme.typography.titleMedium.short,
+        )
+      },
+      supportingContent = {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+          Text(
+              text = stringResource(id = stateVal),
+              style = MaterialTheme.typography.bodyMedium.short,
+          )
+          healthIcon?.let {
+            Spacer(modifier = Modifier.size(4.dp))
+            IconButton(onClick = onNavigateToHealth, modifier = Modifier.size(16.dp)) {
+              Icon(
+                  painterResource(id = it),
+                  contentDescription = null,
+                  modifier = Modifier.size(16.dp),
+                  tint = MaterialTheme.colorScheme.error,
+              )
+            }
+          }
+        }
+      },
+      trailingContent = {
+        TintedSwitch(
+            checked = isOn,
+            // Disable the switch while a toggle is already in progress.
+            enabled = !disableToggle.value && !viewModel.isToggleInProgress.value,
+            onCheckedChange = { desiredState -> viewModel.toggleVpn(desiredState) },
+        )
+      },
+  )
+}
+
+/** Placeholder shown in the detail pane until the user picks a node from the list. */
+@Composable
+fun NoNodeSelected() {
+  Column(
+      modifier = Modifier.fillMaxSize().padding(32.dp),
+      verticalArrangement = Arrangement.Center,
+      horizontalAlignment = Alignment.CenterHorizontally,
+  ) {
+    TailscaleLogoView(modifier = Modifier.size(40.dp).alpha(0.3f))
+    Spacer(modifier = Modifier.size(16.dp))
+    Text(
+        text = stringResource(id = R.string.no_node_selected),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+    )
+  }
+}
+
 @Composable
 fun NodesSectionHeader(peerSet: PeerSet) {
-  Spacer(Modifier.height(16.dp).fillMaxSize().background(color = MaterialTheme.colorScheme.surface))
+  Spacer(
+      Modifier.height(16.dp).fillMaxSize().background(color = MaterialTheme.colorScheme.background)
+  )
   Lists.LargeTitle(
       peerSet.user?.DisplayName ?: stringResource(id = R.string.unknown_user),
       bottomPadding = 8.dp,
+      // The header sticks to the top of the list, so it has to hide the rows passing under it.
+      backgroundColor = MaterialTheme.colorScheme.background,
       focusable = isAndroidTV(),
       style = MaterialTheme.typography.titleLarge,
       fontWeight = FontWeight.SemiBold,
@@ -838,13 +1061,8 @@ fun NodesSectionHeader(peerSet: PeerSet) {
 @Composable
 fun ExpiryNotification(netmap: Netmap.NetworkMap?, action: () -> Unit = {}) {
   if (netmap == null) return
-  Box(modifier = Modifier.background(color = MaterialTheme.colorScheme.surfaceContainer)) {
-    Box(
-        modifier =
-            Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp)
-                .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
-                .fillMaxWidth()
-    ) {
+  Box {
+    Box(modifier = Modifier.listCard().fillMaxWidth()) {
       ListItem(
           modifier = Modifier.clickable { action() },
           colors = MaterialTheme.colorScheme.warningListItem,
@@ -886,18 +1104,18 @@ fun PromptForMissingPermissions(viewModel: MainViewModel) {
 @Composable
 fun Search(
     onSearchBarClick: () -> Unit, // Callback for navigating to SearchView
-    backgroundColor: Color = MaterialTheme.colorScheme.background, // Default background color
+    // The search field is a card over the list background, like the rows below it.
+    backgroundColor: Color = MaterialTheme.colorScheme.surface,
 ) {
   // Prevent multiple taps
   var isNavigating by remember { mutableStateOf(false) }
-  Box(
-      modifier =
-          Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface).padding(top = 8.dp)
-  ) {
+  Box(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
     Box(
         modifier =
             Modifier.fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp, top = 16.dp)
+                // The gap below the field separates it from the list, so it matches the space
+                // that separates one group of rows from the next.
+                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 14.dp)
                 .height(56.dp)
                 .clip(MaterialTheme.shapes.extraLarge) // Rounded corners for search bar
                 .background(backgroundColor) // Search bar background
