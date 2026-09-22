@@ -69,6 +69,7 @@ android {
 
 dependencies {
   // Android dependencies.
+  implementation(libs.androidx.fragment)
   implementation(libs.androidx.core)
   implementation(libs.androidx.coreKtx)
   implementation(libs.androidx.browser)
