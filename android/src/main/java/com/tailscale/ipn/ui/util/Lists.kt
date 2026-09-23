@@ -6,7 +6,9 @@ package com.tailscale.ipn.ui.util
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -17,6 +19,7 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
@@ -50,29 +53,25 @@ object Lists {
       focusable: Boolean = false,
       backgroundColor: Color = MaterialTheme.colorScheme.surface,
       fontColor: Color? = null,
+      leadingIcon: (@Composable () -> Unit)? = null,
   ) {
     Box(
         modifier =
             Modifier.fillMaxWidth().background(color = backgroundColor, shape = RectangleShape)
     ) {
-      if (fontColor != null) {
+      Row(
+          modifier =
+              Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = bottomPadding)
+                  .focusable(focusable),
+          verticalAlignment = Alignment.CenterVertically,
+          horizontalArrangement = Arrangement.spacedBy(4.dp),
+      ) {
+        leadingIcon?.invoke()
         Text(
             text = title,
-            modifier =
-                Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = bottomPadding)
-                    .focusable(focusable),
             style = style,
             fontWeight = fontWeight,
-            color = fontColor,
-        )
-      } else {
-        Text(
-            text = title,
-            modifier =
-                Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = bottomPadding)
-                    .focusable(focusable),
-            style = style,
-            fontWeight = fontWeight,
+            color = fontColor ?: Color.Unspecified,
         )
       }
     }

@@ -6,6 +6,8 @@ package com.tailscale.ipn.ui.viewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.tailscale.ipn.App
+import com.tailscale.ipn.ui.model.Favorites
 import com.tailscale.ipn.ui.model.StableNodeID
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.notifier.Notifier
@@ -37,6 +39,10 @@ class PeerDetailsViewModel(
   val node: StateFlow<Tailcfg.Node?> = MutableStateFlow(null)
   val isPinging: StateFlow<Boolean> = MutableStateFlow(false)
 
+  private val favoritesManager = App.get().favoritesManager
+  val favorites: StateFlow<Favorites?> = favoritesManager.favorites
+  val isWritingFavorites: StateFlow<Boolean> = favoritesManager.writing
+
   init {
     viewModelScope.launch {
       Notifier.netmap.collect { nm ->
@@ -54,5 +60,9 @@ class PeerDetailsViewModel(
   fun onPingDismissal() {
     isPinging.set(false)
     this.pingViewModel.handleDismissal()
+  }
+
+  fun togglePin() {
+    node.value?.let { favoritesManager.toggleDevice(it.StableID) }
   }
 }
