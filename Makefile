@@ -370,6 +370,10 @@ checkandroidsdk: ## Check that Android SDK is installed
 test: gradle-dependencies ## Run the Android tests
 	(cd android && ./gradlew test)
 
+.PHONY: release-lint
+release-lint: gradle-dependencies ## Run release lint checks
+	(cd android && ./gradlew --no-daemon lintVitalRelease)
+
 .PHONY: fmt
 fmt: gradle-dependencies ## Format the Android code
 	(cd android && ./gradlew ktfmtFormat)

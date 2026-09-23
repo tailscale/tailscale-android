@@ -41,3 +41,6 @@ jobs:
 
       - name: Run tests
         run: make test
+
+      - name: Run release lint
+        run: make release-lint
