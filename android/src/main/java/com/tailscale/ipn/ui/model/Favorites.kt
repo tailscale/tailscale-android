@@ -3,44 +3,31 @@
 
 package com.tailscale.ipn.ui.model
 
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
+import com.tailscale.localapi.PintypeItem
+import com.tailscale.localapi.PintypeSet
+import com.tailscale.localapi.SetPinsRequest
 
-@Serializable
-data class FavoriteItem(
-    @SerialName("ID") var id: String? = null,
-    @SerialName("Name") var name: String? = null,
-)
+typealias FavoriteItem = PintypeItem
 
-@Serializable
-data class Favorites(
-    @SerialName("Devices") val devices: List<FavoriteItem>? = null,
-    @SerialName("ExitNodes") val exitNodes: List<FavoriteItem>? = null,
-    @SerialName("Services") val services: List<FavoriteItem>? = null,
-) {
-  val deviceIds: List<StableNodeID> by lazy { devices.orEmpty().mapNotNull { it.id } }
+typealias Favorites = PintypeSet
 
-  fun isFavoriteDevice(id: StableNodeID): Boolean = id in deviceIds
+typealias FavoritesRequest = SetPinsRequest
 
-  fun withToggledDevice(id: StableNodeID): FavoritesRequest {
-    val current = devices.orEmpty()
-    val updated =
-        if (isFavoriteDevice(id)) {
-          current.filterNot { it.id == id }
-        } else {
-          current + FavoriteItem(id = id)
-        }
-    return FavoritesRequest(
-        pins = copy(devices = updated),
-        devicesSet = true,
-    )
-  }
+val Favorites.deviceIds: List<StableNodeID>
+  get() = devices.orEmpty().mapNotNull { it.ID }
+
+fun Favorites.isFavoriteDevice(id: StableNodeID): Boolean = id in deviceIds
+
+fun Favorites.withToggledDevice(id: StableNodeID): FavoritesRequest {
+  val current = devices.orEmpty()
+  val updated =
+      if (isFavoriteDevice(id)) {
+        current.filterNot { it.ID == id }
+      } else {
+        current + FavoriteItem(ID = id)
+      }
+  return FavoritesRequest(
+      pins = copy(devices = updated),
+      devicesSet = true,
+  )
 }
-
-@Serializable
-data class FavoritesRequest(
-    @SerialName("Pins") val pins: Favorites,
-    @SerialName("DevicesSet") val devicesSet: Boolean? = null,
-    @SerialName("ExitNodesSet") val exitNodesSet: Boolean? = null,
-    @SerialName("ServicesSet") val servicesSet: Boolean? = null,
-)
