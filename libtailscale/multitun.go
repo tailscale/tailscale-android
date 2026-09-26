@@ -50,11 +50,39 @@ type multiTUN struct {
 // tunDevice wraps and drives a single tun.Device.
 type tunDevice struct {
 	dev tun.Device
-	// close closes the device.
-	close     chan struct{}
+	// close is closed by stop to ask the goroutines to exit.
+	close chan struct{}
+	// closeDone is written by runDevice when it exits, carrying the
+	// result of closing the underlying device.
 	closeDone chan error
 	// readDone is notified when the read goroutine is done.
 	readDone chan struct{}
+	// closeOnce guards close, which is closed both when the device is
+	// superseded by a newer one and again during shutdown.
+	closeOnce sync.Once
+	// reading reports whether readFrom is running for this device.
+	reading bool
+	// writing reports whether runDevice is running for this device.
+	writing bool
+}
+
+func (t *tunDevice) stop() {
+	t.closeOnce.Do(func() { close(t.close) })
+}
+
+// stopped reports whether stop has been called.
+func (t *tunDevice) stopped() bool {
+	select {
+	case <-t.close:
+		return true
+	default:
+		return false
+	}
+}
+
+// idle reports whether no goroutine is attached to the device.
+func (t *tunDevice) idle() bool {
+	return !t.reading && !t.writing
 }
 
 type readRequest struct {
@@ -113,53 +141,137 @@ func (d *multiTUN) run() {
 		}
 	}()
 
+	// devices is the queue of underlying devices, oldest first. The last
+	// element is the live device.
 	var devices []*tunDevice
-	// readDone is the readDone channel of the device being read from.
-	var readDone chan struct{}
-	// runDone is the closeDone channel of the device being written to.
-	var runDone chan error
+	// reader and writer are the devices with a readFrom and a runDevice
+	// goroutine attached; readDone and runDone are their completion
+	// channels. Either may be nil while a goroutine is being replaced.
+	var (
+		reader   *tunDevice
+		readDone chan struct{}
+		writer   *tunDevice
+		runDone  chan error
+	)
+
+	// newest returns the live device, or nil if there is none.
+	newest := func() *tunDevice {
+		if len(devices) == 0 {
+			return nil
+		}
+		return devices[len(devices)-1]
+	}
+	startRead := func(dev *tunDevice) {
+		dev.reading = true
+		reader = dev
+		readDone = dev.readDone
+		go d.readFrom(dev)
+	}
+	startWrite := func(dev *tunDevice) {
+		dev.writing = true
+		writer = dev
+		runDone = dev.closeDone
+		go d.runDevice(dev)
+	}
+	// prune drops every superseded device that has no goroutine left,
+	// closing its underlying device so the kernel interface goes away.
+	// Closing is idempotent, so a device already closed by runDevice is
+	// fine to close again.
+	prune := func() {
+		kept := devices[:0]
+		for _, dev := range devices {
+			if dev.stopped() && dev.idle() {
+				dev.dev.Close()
+				continue
+			}
+			kept = append(kept, dev)
+		}
+		for i := len(kept); i < len(devices); i++ {
+			devices[i] = nil
+		}
+		devices = kept
+	}
+	// release stops dev and, if no writer will do it on exit, closes the
+	// underlying device now. Closing unblocks a reader parked in Read,
+	// which is the only way out of a Read on a DOWN interface.
+	release := func(dev *tunDevice) {
+		dev.stop()
+		if !dev.writing {
+			dev.dev.Close()
+		}
+	}
+
 	for {
 		select {
 		case <-readDone:
-			// The oldest device has reached EOF, replace it.
-			n := copy(devices, devices[1:])
-			devices = devices[:n]
-			if len(devices) > 0 {
-				// Start reading from the next device.
-				dev := devices[0]
-				readDone = dev.readDone
-				go d.readFrom(dev)
+			// The reader's device is done: it was superseded and its
+			// underlying device was closed. Move reading to the live
+			// device, skipping anything superseded in between.
+			reader.reading = false
+			reader, readDone = nil, nil
+			prune()
+			if dev := newest(); dev != nil {
+				startRead(dev)
+
 			}
 		case <-runDone:
-			// A device completed runDevice, replace it.
-			if len(devices) > 0 {
-				dev := devices[len(devices)-1]
-				runDone = dev.closeDone
-				go d.runDevice(dev)
+			// The writer's device is done and runDevice has closed it.
+			// Move writing to the live device.
+			writer.writing = false
+			writer, runDone = nil, nil
+			prune()
+			if dev := newest(); dev != nil {
+				startWrite(dev)
 			}
 		case <-d.shutdowns:
 			// Shut down all devices.
 			for _, dev := range devices {
-				close(dev.close)
-				<-dev.closeDone
-				<-dev.readDone
+				release(dev)
+				if dev.writing {
+					<-dev.closeDone
+					dev.writing = false
+				}
+				if dev.reading {
+					<-dev.readDone
+					dev.reading = false
+				}
+
+
 			}
 			devices = nil
+			reader, readDone = nil, nil
+			writer, runDone = nil, nil
 			d.shutdownDone <- struct{}{}
 		case <-d.close:
 			var derr error
 			for _, dev := range devices {
-				if err := <-dev.closeDone; err != nil {
+				release(dev)
+				if dev.writing {
+					if err := <-dev.closeDone; err != nil {
+						derr = err
+					}
+					continue
+				}
+				if err := dev.dev.Close(); err != nil {
 					derr = err
 				}
 			}
 			d.closeErr <- derr
 			return
 		case dev := <-d.devices:
-			if len(devices) > 0 {
-				// Ask the most recent device to stop.
-				prev := devices[len(devices)-1]
-				close(prev.close)
+			// Android has already reset the previous interface; it will
+			// never carry traffic again. Ask its goroutines to stop and
+			// make sure it gets closed even if none were ever attached.
+			if prev := newest(); prev != nil {
+				release(prev)
+
+
+
+
+
+
+
+
 			}
 			wrap := &tunDevice{
 				dev:       dev,
@@ -167,25 +279,33 @@ func (d *multiTUN) run() {
 				closeDone: make(chan error),
 				readDone:  make(chan struct{}, 1),
 			}
-			if len(devices) == 0 {
-				// Start using this first device.
-				readDone = wrap.readDone
-				go d.readFrom(wrap)
-				runDone = wrap.closeDone
-				go d.runDevice(wrap)
-			}
+
+
+
+
+
+
+
+
 			devices = append(devices, wrap)
+			prune()
+			if reader == nil {
+				startRead(wrap)
+			}
+			if writer == nil {
+				startWrite(wrap)
+			}
 		case m := <-d.mtus:
 			r := mtuReply{mtu: defaultMTU}
-			if len(devices) > 0 {
-				dev := devices[len(devices)-1]
+			if dev := newest(); dev != nil {
+
 				r.mtu, r.err = dev.dev.MTU()
 			}
 			m <- r
 		case n := <-d.names:
 			var r nameReply
-			if len(devices) > 0 {
-				dev := devices[len(devices)-1]
+			if dev := newest(); dev != nil {
+
 				r.name, r.err = dev.dev.Name()
 			}
 			n <- r
@@ -209,18 +329,22 @@ func (d *multiTUN) readFrom(dev *tunDevice) {
 		case r := <-d.reads:
 			n, err := dev.dev.Read(r.slab, r.packets)
 			stop := false
-			if err != nil {
-				select {
-				case <-dev.close:
-					stop = true
-					err = nil
-				default:
-				}
+			if err != nil && dev.stopped() {
+				// The device was superseded and closed under us; this is
+				// not an error of the multiTUN, just the end of this
+				// device. Report an empty read and hand over.
+				stop = true
+				err = nil
+
 			}
 			r.reply <- ioReply{n, err}
 			if stop {
 				return
 			}
+		case <-dev.close:
+			// Superseded while idle: leave without touching the device so
+			// the request goes to the reader of the live device.
+			return
 		case <-d.close:
 			return
 		}
@@ -254,17 +378,29 @@ func (d *multiTUN) runDevice(dev *tunDevice) {
 		}()
 		for {
 			select {
-			case e := <-dev.dev.Events():
+			case e, ok := <-dev.dev.Events():
+				if !ok {
+					return
+				}
 				d.events <- e
 			case <-dev.close:
 				return
 			}
 		}
 	}()
+	warned := false
 	for {
 		select {
 		case w := <-d.writes:
 			n, err := dev.dev.Write(w.data, w.offset)
+			if err != nil {
+				if !warned {
+					warned = true
+					name, _ := dev.dev.Name()
+					log.Printf("multiTUN: write to %s failed: %v; dropping (interface reset or superseded)", name, err)
+				}
+				n, err = 0, nil
+			}
 			w.reply <- ioReply{n, err}
 		case <-dev.close:
 			// Device closed.
