@@ -120,8 +120,6 @@ func (d *Device) run() {
 	var devices []*tunDevice
 	// readDone is the readDone channel of the device being read from.
 	var readDone chan struct{}
-	// runDone is the closeDone channel of the device being written to.
-	var runDone chan error
 	for {
 		select {
 		case <-readDone:
@@ -134,19 +132,16 @@ func (d *Device) run() {
 				readDone = dev.readDone
 				go d.readFrom(dev)
 			}
-		case <-runDone:
-			// A device completed runDevice, replace it.
-			if len(devices) > 0 {
-				dev := devices[len(devices)-1]
-				runDone = dev.closeDone
-				go d.runDevice(dev)
-			}
 		case <-d.shutdowns:
-			// Shut down all devices.
-			for _, dev := range devices {
-				close(dev.close)
-				<-dev.closeDone
-				<-dev.readDone
+			// Shut down all devices. Only the newest is still open;
+			// older ones were asked to stop when superseded, and only
+			// the oldest is being read from.
+			if len(devices) > 0 {
+				close(devices[len(devices)-1].close)
+				for _, dev := range devices {
+					<-dev.closeDone
+				}
+				<-devices[0].readDone
 			}
 			devices = nil
 			d.shutdownDone <- struct{}{}
@@ -168,16 +163,19 @@ func (d *Device) run() {
 			wrap := &tunDevice{
 				dev:       dev,
 				close:     make(chan struct{}),
-				closeDone: make(chan error),
+				closeDone: make(chan error, 1),
 				readDone:  make(chan struct{}, 1),
 			}
 			if len(devices) == 0 {
-				// Start using this first device.
+				// Start reading from this first device.
 				readDone = wrap.readDone
 				go d.readFrom(wrap)
-				runDone = wrap.closeDone
-				go d.runDevice(wrap)
 			}
+			// Write to the new device right away rather than after prev
+			// finishes closing: closing a TUN can block in the kernel, and
+			// another device may be added meanwhile, which would then never
+			// be run or closed, leaving reads stuck on it.
+			go d.runDevice(wrap)
 			devices = append(devices, wrap)
 		case m := <-d.mtus:
 			r := mtuReply{mtu: d.mtu}
