@@ -213,10 +213,10 @@ class MainActivity : ComponentActivity() {
 
               lifecycleScope.launch(Dispatchers.IO) {
                 try {
+                  // Wake any waiting transfer first, so a prefs failure below can't strand it.
+                  ShareFileHelper.setUri(uri.toString())
                   TaildropDirectoryStore.saveFileDirectory(uri)
                   permissionsViewModel.refreshCurrentDir()
-                  ShareFileHelper.notifyDirectoryReady()
-                  ShareFileHelper.setUri(uri.toString())
                 } catch (e: Exception) {
                   TSLog.e("MainActivity", "Failed to set Taildrop root: $e")
                 }
