@@ -10,6 +10,7 @@ import com.tailscale.ipn.ui.model.Health.UnhealthyState
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.util.TSLog
 import com.tailscale.ipn.util.TSLog.LibtailscaleWrapper
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -131,15 +132,20 @@ class HealthNotifierTest {
    * immediately calls dropAllWarnings() (reading currentWarnings) when the initial ipn state is not
    * Running. If currentWarnings/currentIcon are declared after the init block, that read hits a
    * null StateFlow and NPEs. Using Dispatchers.Unconfined runs the launched coroutine eagerly
-   * inside the constructor, deterministically reproducing the race on the old ordering.
+   * inside the constructor, deterministically reproducing the race on the old ordering. The NPE
+   * surfaces as an uncaught coroutine exception, which kills the process on Android but only gets
+   * printed on the JVM, so it must be captured explicitly for the test to fail.
    */
   @Test
   fun constructionWithNonRunningStateDoesNotCrash() {
-    val scope = CoroutineScope(Dispatchers.Unconfined)
+    var uncaught: Throwable? = null
+    val scope =
+        CoroutineScope(Dispatchers.Unconfined + CoroutineExceptionHandler { _, e -> uncaught = e })
     try {
       val healthFlow = MutableStateFlow<Health.State?>(healthState(derpWarning()))
       val ipnFlow = MutableStateFlow(Ipn.State.Stopped)
       val notifier = HealthNotifier(healthFlow, ipnFlow, scope)
+      uncaught?.let { throw it }
       assertTrue(notifier.currentWarnings.value.isEmpty())
       assertNull(notifier.currentIcon.value)
     } finally {
