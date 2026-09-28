@@ -215,7 +215,6 @@ class MainActivity : ComponentActivity() {
                 try {
                   TaildropDirectoryStore.saveFileDirectory(uri)
                   permissionsViewModel.refreshCurrentDir()
-                  ShareFileHelper.notifyDirectoryReady()
                   ShareFileHelper.setUri(uri.toString())
                 } catch (e: Exception) {
                   TSLog.e("MainActivity", "Failed to set Taildrop root: $e")
