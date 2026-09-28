@@ -3,6 +3,7 @@
 
 package com.tailscale.ipn.ui.notifier
 
+import androidx.annotation.VisibleForTesting
 import com.tailscale.ipn.App
 import com.tailscale.ipn.BuildConfig
 import com.tailscale.ipn.ui.model.Empty
@@ -177,7 +178,8 @@ object Notifier {
   }
 
   @Synchronized
-  private fun updateNetworkMap(notify: Notify) {
+  @VisibleForTesting
+  internal fun updateNetworkMap(notify: Notify) {
     val initial = notify.InitialStatus
     if (initial != null) {
       userProfiles.clear()
