@@ -43,6 +43,9 @@ android {
 
   lint { warningsAsErrors = true }
 
+  // Robolectric needs merged resources.
+  testOptions { unitTests { isIncludeAndroidResources = true } }
+
   buildFeatures {
     buildConfig = true
     compose = true
@@ -131,6 +134,8 @@ dependencies {
   testImplementation(libs.mockito.inline)
   testImplementation(libs.mockito.kotlin)
   testImplementation(libs.kotlinx.coroutines.test)
+  testImplementation(libs.robolectric)
+  testImplementation(libs.androidx.work.testing)
 }
 
 fun getLocalProperty(key: String, defaultValue: String): String {
