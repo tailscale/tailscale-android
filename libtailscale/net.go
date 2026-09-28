@@ -85,16 +85,16 @@ func (b *backend) updateTUN(rcfg *router.Config, dcfg *dns.OSConfig) (err error)
 		b.CloseTUNs()
 		b.logger.Logf("updateTUN: closed old TUNs")
 
-		// Since the previous tunnel(s) are closed, the [multiTUN] device is
+		// Since the previous tunnel(s) are closed, the [multitun.Device] is
 		// not operational until a new underlying tunnel is created and added,
 		// which may never happen in case of an error or an empty [router.Config].
 		//
-		// Therefore, to prevent deadlocks where a [multiTUN.Write] would
-		// block waiting for a new tunnel to be added, we bring the multiTUN
+		// Therefore, to prevent deadlocks where a [multitun.Device.Write] would
+		// block waiting for a new tunnel to be added, we bring the multitun
 		// device down on exit unless a new [tun.Device] is created and added
 		// successfully. See tailscale/tailscale#18679.
 		//
-		// TODO(nickkhyl): revisit and simplify the [multiTUN] implementation?
+		// TODO(nickkhyl): revisit and simplify the [multitun.Device] implementation?
 		if b.devices.Down() {
 			b.logger.Logf("updateTUN: tunnel brought down: %v", err)
 		}
@@ -234,7 +234,7 @@ func (b *backend) updateTUN(rcfg *router.Config, dcfg *dns.OSConfig) (err error)
 	}
 	b.logger.Logf("updateTUN: created TUN device")
 
-	b.devices.add(tunDev)
+	b.devices.Add(tunDev)
 	b.logger.Logf("updateTUN: added TUN device")
 
 	if b.devices.Up() {

@@ -17,6 +17,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/tailscale/tailscale-android/libtailscale/multitun"
 	"tailscale.com/drive/driveimpl"
 	_ "tailscale.com/feature/condregister"
 	"tailscale.com/feature/taildrop"
@@ -96,7 +97,7 @@ type backend struct {
 	engine     wgengine.Engine
 	backend    *ipnlocal.LocalBackend
 	sys        *tsd.System
-	devices    *multiTUN
+	devices    *multitun.Device
 	settings   settingsFunc
 	lastCfg    *router.Config
 	lastDNSCfg *dns.OSConfig
@@ -295,7 +296,7 @@ func (a *App) newBackend(dataDir string, appCtx AppContext, store *stateStore,
 
 	logf := logger.Logf(log.Printf)
 	b := &backend{
-		devices:  newTUNDevices(),
+		devices:  multitun.New(defaultMTU),
 		settings: settings,
 		appCtx:   appCtx,
 		bus:      sys.Bus.Get(),

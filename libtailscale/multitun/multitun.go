@@ -1,7 +1,7 @@
 // Copyright (c) Tailscale Inc & AUTHORS
 // SPDX-License-Identifier: BSD-3-Clause
 
-package libtailscale
+package multitun
 
 import (
 	"log"
@@ -13,15 +13,17 @@ import (
 	"tailscale.com/syncs"
 )
 
-// multiTUN implements a tun.Device that supports multiple
+// Device implements a tun.Device that supports multiple
 // underlying devices. This is necessary because Android VPN devices
 // have static configurations and wgengine.NewUserspaceEngine
 // assumes a single static tun.Device.
-type multiTUN struct {
+type Device struct {
 	// devices is for adding new devices.
 	devices chan tun.Device
 	// event is the combined event channel from all active devices.
 	events chan tun.Event
+	// mtu is reported while there is no underlying device.
+	mtu int
 
 	close    chan struct{}
 	closeErr chan error
@@ -37,8 +39,8 @@ type multiTUN struct {
 	// downCh is closed when the multiTUN is brought down,
 	// such as when Tailscale transitions to the Stopped state.
 	// This indicates that all outgoing packets should be dropped,
-	// and [multiTUN.Write] should return immediately without blocking
-	// until [multiTUN.Up] is called. See [multiTUN.Down]
+	// and [Device.Write] should return immediately without blocking
+	// until [Device.Up] is called. See [Device.Down]
 	// and tailscale/tailscale#18679 for more details.
 	//
 	// It can be read without holding downMu, but the mutex
@@ -84,10 +86,12 @@ type nameReply struct {
 	err  error
 }
 
-func newTUNDevices() *multiTUN {
-	d := &multiTUN{
+// New returns a Device with no underlying devices, initially down.
+func New(mtu int) *Device {
+	d := &Device{
 		devices:      make(chan tun.Device),
 		events:       make(chan tun.Event),
+		mtu:          mtu,
 		close:        make(chan struct{}),
 		closeErr:     make(chan error),
 		reads:        make(chan readRequest),
@@ -105,7 +109,7 @@ func newTUNDevices() *multiTUN {
 	return d
 }
 
-func (d *multiTUN) run() {
+func (d *Device) run() {
 	defer func() {
 		if p := recover(); p != nil {
 			log.Printf("panic in multiTUN.run %s: %s", p, debug.Stack())
@@ -176,7 +180,7 @@ func (d *multiTUN) run() {
 			}
 			devices = append(devices, wrap)
 		case m := <-d.mtus:
-			r := mtuReply{mtu: defaultMTU}
+			r := mtuReply{mtu: d.mtu}
 			if len(devices) > 0 {
 				dev := devices[len(devices)-1]
 				r.mtu, r.err = dev.dev.MTU()
@@ -193,7 +197,7 @@ func (d *multiTUN) run() {
 	}
 }
 
-func (d *multiTUN) readFrom(dev *tunDevice) {
+func (d *Device) readFrom(dev *tunDevice) {
 	defer func() {
 		if p := recover(); p != nil {
 			log.Printf("panic in multiTUN.readFrom %s: %s", p, debug.Stack())
@@ -227,7 +231,7 @@ func (d *multiTUN) readFrom(dev *tunDevice) {
 	}
 }
 
-func (d *multiTUN) runDevice(dev *tunDevice) {
+func (d *Device) runDevice(dev *tunDevice) {
 	defer func() {
 		if p := recover(); p != nil {
 			log.Printf("panic in multiTUN.runDevice %s: %s", p, debug.Stack())
@@ -276,17 +280,17 @@ func (d *multiTUN) runDevice(dev *tunDevice) {
 	}
 }
 
-func (d *multiTUN) add(dev tun.Device) {
+func (d *Device) Add(dev tun.Device) {
 	d.devices <- dev
 }
 
 // Up brings the multiTUN up, allowing it to write packets
 // to the underlying tunnel device. If there is no underlying
 // device yet, write operations are pended until a new device
-// is added with [multiTUN.add].
+// is added with [Device.Add].
 //
 // It reports whether this call brought the device up.
-func (d *multiTUN) Up() bool {
+func (d *Device) Up() bool {
 	d.downMu.Lock()
 	defer d.downMu.Unlock()
 	if !d.down {
@@ -299,8 +303,8 @@ func (d *multiTUN) Up() bool {
 
 // Down brings the multiTUN down, causing all outgoing packets
 // to be dropped without waiting for the underlying tunnel device,
-// and makes all [multiTUN.Write] calls return immediately
-// until [multiTUN.Up] is called.
+// and makes all [Device.Write] calls return immediately
+// until [Device.Up] is called.
 //
 // It mainly exists to distinguish between cases where the underlying
 // device is temporarily unavailable due to VPN reconfiguration,
@@ -310,7 +314,7 @@ func (d *multiTUN) Up() bool {
 // See tailscale/tailscale#18679.
 //
 // It reports whether this call brought the device down.
-func (d *multiTUN) Down() bool {
+func (d *Device) Down() bool {
 	d.downMu.Lock()
 	defer d.downMu.Unlock()
 	if d.down {
@@ -321,13 +325,13 @@ func (d *multiTUN) Down() bool {
 	return true
 }
 
-func (d *multiTUN) File() *os.File {
+func (d *Device) File() *os.File {
 	// The underlying file descriptor is not constant on Android.
 	// Let's hope no-one uses it.
 	panic("not available on Android")
 }
 
-func (d *multiTUN) Read(slab []byte, packets []tun.ReadPacket) (int, error) {
+func (d *Device) Read(slab []byte, packets []tun.ReadPacket) (int, error) {
 	r := make(chan ioReply)
 	select {
 	// We don't care about d.downCh here, as it's fine
@@ -347,7 +351,7 @@ func (d *multiTUN) Read(slab []byte, packets []tun.ReadPacket) (int, error) {
 	}
 }
 
-func (d *multiTUN) Write(data [][]byte, offset int) (int, error) {
+func (d *Device) Write(data [][]byte, offset int) (int, error) {
 	r := make(chan ioReply)
 	select {
 	case d.writes <- writeRequest{
@@ -363,7 +367,7 @@ func (d *multiTUN) Write(data [][]byte, offset int) (int, error) {
 		// and result in a deadlock, since a wireguard-go/device.Peer
 		// cannot be removed until its RoutineSequentialReceiver
 		// returns, and it will not return if it is blocked in
-		// (*multiTUN).Write while sending to d.writes without
+		// (*Device).Write while sending to d.writes without
 		// a receiver on the other side of the pipe.
 		return 0, nil
 	case <-d.close:
@@ -372,35 +376,35 @@ func (d *multiTUN) Write(data [][]byte, offset int) (int, error) {
 	}
 }
 
-func (d *multiTUN) MTU() (int, error) {
+func (d *Device) MTU() (int, error) {
 	r := make(chan mtuReply)
 	d.mtus <- r
 	rep := <-r
 	return rep.mtu, rep.err
 }
 
-func (d *multiTUN) Name() (string, error) {
+func (d *Device) Name() (string, error) {
 	r := make(chan nameReply)
 	d.names <- r
 	rep := <-r
 	return rep.name, rep.err
 }
 
-func (d *multiTUN) Events() <-chan tun.Event {
+func (d *Device) Events() <-chan tun.Event {
 	return d.events
 }
 
-func (d *multiTUN) Shutdown() {
+func (d *Device) Shutdown() {
 	d.shutdowns <- struct{}{}
 	<-d.shutdownDone
 }
 
-func (d *multiTUN) Close() error {
+func (d *Device) Close() error {
 	close(d.close)
 	return <-d.closeErr
 }
 
-func (d *multiTUN) BatchSize() int {
+func (d *Device) BatchSize() int {
 	// TODO(raggi): currently Android disallows the necessary ioctls to enable
 	// batching. File a bug.
 	return 1
