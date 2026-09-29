@@ -55,8 +55,6 @@ type tunDevice struct {
 	// close closes the device.
 	close     chan struct{}
 	closeDone chan error
-	// readDone is notified when the read goroutine is done.
-	readDone chan struct{}
 }
 
 type readRequest struct {
@@ -117,84 +115,61 @@ func (d *Device) run() {
 		}
 	}()
 
-	var devices []*tunDevice
-	// readDone is the readDone channel of the device being read from.
-	var readDone chan struct{}
+	// cur is the newest device, the only one Android routes to. Older
+	// devices close themselves and their goroutines exit once superseded.
+	var cur *tunDevice
 	for {
 		select {
-		case <-readDone:
-			// The oldest device has reached EOF, replace it.
-			n := copy(devices, devices[1:])
-			devices = devices[:n]
-			if len(devices) > 0 {
-				// Start reading from the next device.
-				dev := devices[0]
-				readDone = dev.readDone
-				go d.readFrom(dev)
-			}
 		case <-d.shutdowns:
-			// Shut down all devices. Only the newest is still open;
-			// older ones were asked to stop when superseded, and only
-			// the oldest is being read from.
-			if len(devices) > 0 {
-				close(devices[len(devices)-1].close)
-				for _, dev := range devices {
-					<-dev.closeDone
-				}
-				<-devices[0].readDone
+			if cur != nil {
+				close(cur.close)
+				<-cur.closeDone
+				cur = nil
 			}
-			devices = nil
 			d.shutdownDone <- struct{}{}
 		case <-d.close:
-			var derr error
-			for _, dev := range devices {
-				if err := <-dev.closeDone; err != nil {
-					derr = err
-				}
+			var err error
+			if cur != nil {
+				err = <-cur.closeDone
 			}
-			d.closeErr <- derr
+			d.closeErr <- err
 			return
 		case dev := <-d.devices:
-			if len(devices) > 0 {
-				// Ask the most recent device to stop.
-				prev := devices[len(devices)-1]
-				close(prev.close)
+			if cur != nil {
+				close(cur.close)
 			}
-			wrap := &tunDevice{
+			cur = &tunDevice{
 				dev:       dev,
 				close:     make(chan struct{}),
 				closeDone: make(chan error, 1),
-				readDone:  make(chan struct{}, 1),
 			}
-			if len(devices) == 0 {
-				// Start reading from this first device.
-				readDone = wrap.readDone
-				go d.readFrom(wrap)
-			}
-			// Write to the new device right away rather than after prev
-			// finishes closing: closing a TUN can block in the kernel, and
-			// another device may be added meanwhile, which would then never
-			// be run or closed, leaving reads stuck on it.
-			go d.runDevice(wrap)
-			devices = append(devices, wrap)
+			// Use the new device right away rather than after the old one
+			// finishes closing, which can block in the kernel.
+			go d.readFrom(cur)
+			go d.runDevice(cur)
 		case m := <-d.mtus:
 			r := mtuReply{mtu: d.mtu}
-			if len(devices) > 0 {
-				dev := devices[len(devices)-1]
-				r.mtu, r.err = dev.dev.MTU()
+			if cur != nil {
+				r.mtu, r.err = cur.dev.MTU()
 			}
 			m <- r
 		case n := <-d.names:
 			var r nameReply
-			if len(devices) > 0 {
-				dev := devices[len(devices)-1]
-				r.name, r.err = dev.dev.Name()
+			if cur != nil {
+				r.name, r.err = cur.dev.Name()
 			}
 			n <- r
 		}
 	}
 }
 
+// readBufSize fits any IP packet plus the spacing tun.Device.Read reserves.
+const readBufSize = 1<<16 + 2*tun.ReadPacketSpacing
+
+// readFrom reads dev into its own buffer and hands each result to a pending
+// [Device.Read]. Reading into the caller's slab instead would let a closing
+// device hold the caller's only Read: a Read pending when the fd is closed
+// runs close(2) itself, which can block in the kernel.
 func (d *Device) readFrom(dev *tunDevice) {
 	defer func() {
 		if p := recover(); p != nil {
@@ -203,30 +178,39 @@ func (d *Device) readFrom(dev *tunDevice) {
 		}
 	}()
 
-	defer func() {
-		dev.readDone <- struct{}{}
-	}()
+	slab := make([]byte, readBufSize)
+	packets := make([]tun.ReadPacket, 1)
 	for {
+		n, err := dev.dev.Read(slab, packets)
+		if err != nil {
+			select {
+			case <-dev.close:
+				// Closed after being superseded or shut down.
+				return
+			default:
+			}
+		}
 		select {
 		case r := <-d.reads:
-			n, err := dev.dev.Read(r.slab, r.packets)
-			stop := false
-			if err != nil {
-				select {
-				case <-dev.close:
-					stop = true
-					err = nil
-				default:
-				}
-			}
-			r.reply <- ioReply{n, err}
-			if stop {
-				return
-			}
+			r.reply <- copyRead(r, slab, packets[:n], err)
 		case <-d.close:
 			return
 		}
 	}
+}
+
+// copyRead copies packets read into slab over to r.
+func copyRead(r readRequest, slab []byte, packets []tun.ReadPacket, err error) ioReply {
+	off := tun.ReadPacketSpacing
+	for i, p := range packets {
+		if i == len(r.packets) || off+p.Size+tun.ReadPacketSpacing > len(r.slab) {
+			return ioReply{i, tun.ErrTooManySegments}
+		}
+		copy(r.slab[off:], slab[p.Offset:p.Offset+p.Size])
+		r.packets[i] = tun.ReadPacket{Offset: off, Size: p.Size}
+		off += p.Size + tun.ReadPacketSpacing
+	}
+	return ioReply{len(packets), err}
 }
 
 func (d *Device) runDevice(dev *tunDevice) {
