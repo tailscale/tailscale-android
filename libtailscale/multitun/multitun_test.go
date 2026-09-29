@@ -153,11 +153,11 @@ func TestMultiTUNReplaceWhileOldTUNClosing(t *testing.T) {
 	waitClosed(t, c)
 }
 
-// Inbound packets must reach the new TUN while the old one is still
-// closing. Outbound still stalls: wireguard-go's pending Read sits in the
-// old TUN until its close(2) returns.
-func TestMultiTUNWriteWhileOldTUNClosing(t *testing.T) {
+// Traffic must flow on the new TUN while the old one is still closing,
+// even though a Read pending on the old one only returns once it is closed.
+func TestMultiTUNReplaceWhileOldTUNClosingForever(t *testing.T) {
 	d := New(1280)
+	reads := readLoop(d)
 	a, b := newFakeTUN("a"), newFakeTUN("b")
 	a.release = make(chan struct{})
 	defer close(a.release)
@@ -175,5 +175,15 @@ func TestMultiTUNWriteWhileOldTUNClosing(t *testing.T) {
 		}
 	case <-time.After(testTimeout):
 		t.Fatal("write did not reach b")
+	}
+
+	b.in <- []byte("outbound")
+	select {
+	case got := <-reads:
+		if got != "outbound" {
+			t.Fatalf("Read = %q, want %q", got, "outbound")
+		}
+	case <-time.After(testTimeout):
+		t.Fatal("Read returned no packet from b")
 	}
 }
