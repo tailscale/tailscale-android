@@ -5,6 +5,9 @@ package com.tailscale.ipn.ui.util
 
 import com.tailscale.ipn.ui.model.FavoriteItem
 import com.tailscale.ipn.ui.model.Favorites
+import com.tailscale.ipn.ui.model.deviceIds
+import com.tailscale.ipn.ui.model.isFavoriteDevice
+import com.tailscale.ipn.ui.model.withToggledDevice
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
@@ -15,7 +18,7 @@ import org.junit.Test
 
 class FavoritesTest {
 
-  private fun ids(favorites: Favorites) = favorites.devices?.mapNotNull { it.id }
+  private fun ids(favorites: Favorites) = favorites.devices?.mapNotNull { it.ID }
 
   @Test
   fun emptyFavoritesHasNoPinnedDevices() {
@@ -31,9 +34,9 @@ class FavoritesTest {
         Favorites(
             devices =
                 listOf(
-                    FavoriteItem(id = "n1"),
+                    FavoriteItem(ID = "n1"),
                     FavoriteItem(name = "no id"),
-                    FavoriteItem(id = "n2"),
+                    FavoriteItem(ID = "n2"),
                 )
         )
 
@@ -42,14 +45,14 @@ class FavoritesTest {
 
   @Test
   fun togglingAnUnpinnedDeviceAddsIt() {
-    val request = Favorites(devices = listOf(FavoriteItem(id = "n1"))).withToggledDevice("n2")
+    val request = Favorites(devices = listOf(FavoriteItem(ID = "n1"))).withToggledDevice("n2")
 
     assertEquals(listOf("n1", "n2"), ids(request.pins))
   }
 
   @Test
   fun togglingAPinnedDeviceRemovesIt() {
-    val favorites = Favorites(devices = listOf(FavoriteItem(id = "n1"), FavoriteItem(id = "n2")))
+    val favorites = Favorites(devices = listOf(FavoriteItem(ID = "n1"), FavoriteItem(ID = "n2")))
 
     assertEquals(listOf("n2"), ids(favorites.withToggledDevice("n1").pins))
   }
@@ -67,15 +70,15 @@ class FavoritesTest {
   fun togglePreservesExitNodesAndServices() {
     val favorites =
         Favorites(
-            devices = listOf(FavoriteItem(id = "n1")),
-            exitNodes = listOf(FavoriteItem(id = "x1")),
-            services = listOf(FavoriteItem(id = "s1")),
+            devices = listOf(FavoriteItem(ID = "n1")),
+            exitNodes = listOf(FavoriteItem(ID = "x1")),
+            services = listOf(FavoriteItem(ID = "s1")),
         )
 
     val request = favorites.withToggledDevice("n1")
 
-    assertEquals(listOf("x1"), request.pins.exitNodes?.map { it.id })
-    assertEquals(listOf("s1"), request.pins.services?.map { it.id })
+    assertEquals(listOf("x1"), request.pins.exitNodes?.map { it.ID })
+    assertEquals(listOf("s1"), request.pins.services?.map { it.ID })
   }
 
   @Test
@@ -91,7 +94,7 @@ class FavoritesTest {
   @Test
   fun unpinningTheLastDeviceSendsAnExplicitEmptyList() {
     // An omitted Devices key would mean "no change" to the backend
-    val request = Favorites(devices = listOf(FavoriteItem(id = "nodeA"))).withToggledDevice("nodeA")
+    val request = Favorites(devices = listOf(FavoriteItem(ID = "nodeA"))).withToggledDevice("nodeA")
 
     assertEquals("""{"Pins":{"Devices":[]},"DevicesSet":true}""", Json.encodeToString(request))
   }
@@ -104,7 +107,7 @@ class FavoritesTest {
     val favorites = Json { ignoreUnknownKeys = true }.decodeFromString<Favorites>(json)
 
     assertTrue(favorites.isFavoriteDevice("nodeA"))
-    assertEquals("nodeA", favorites.devices?.single()?.id)
+    assertEquals("nodeA", favorites.devices?.single()?.ID)
     assertNull(favorites.exitNodes)
     assertEquals(emptyList<FavoriteItem>(), favorites.services)
   }
