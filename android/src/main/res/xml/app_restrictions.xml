@@ -94,6 +94,14 @@
         android:title="@string/allow_incoming_connections" />
 
     <restriction
+        android:description="@string/shows_or_hides_the_admin_console_link_in_the_settings_screen"
+        android:entries="@array/show_hide_labels"
+        android:entryValues="@array/show_hide"
+        android:key="AdminConsole"
+        android:restrictionType="choice"
+        android:title="@string/admin_console_visibility" />
+
+    <restriction
         android:description="@string/shows_or_hides_the_exit_node_picker_in_the_main_view_of_the_app"
         android:entries="@array/show_hide_labels"
         android:entryValues="@array/show_hide"
@@ -108,6 +116,14 @@
         android:key="ManageTailnetLock"
         android:restrictionType="choice"
         android:title="@string/manage_tailnet_lock_visibility" />
+
+    <restriction
+        android:description="@string/shows_or_hides_the_settings_screen_and_its_entry_point_in_the_main_view"
+        android:entries="@array/show_hide_labels"
+        android:entryValues="@array/show_hide"
+        android:key="PreferencesMenu"
+        android:restrictionType="choice"
+        android:title="@string/preferences_menu_visibility" />
 
     <restriction
         android:description="@string/shows_or_hides_the_ui_to_run_the_android_device_as_an_exit_node"

@@ -46,6 +46,7 @@ fun Avatar(
   val isFocused = remember { mutableStateOf(false) }
   val focusManager = LocalFocusManager.current
   val isIconLoaded = remember { mutableStateOf(false) }
+  val interactionSource = remember { MutableInteractionSource() }
 
   // Outer Box for the larger focusable and clickable area
   Box(
@@ -63,13 +64,19 @@ fun Avatar(
                   if (isFocused.value) MaterialTheme.colorScheme.surface else Color.Transparent,
               )
               .onFocusChanged { focusState -> isFocused.value = focusState.isFocused }
-              .focusable() // Make this outer Box focusable (after onFocusChanged)
-              .clickable(
-                  interactionSource = remember { MutableInteractionSource() },
-                  indication = ripple(bounded = true), // Apply ripple effect inside circular bounds
-                  onClick = {
-                    action?.invoke()
-                    focusManager.clearFocus() // Clear focus after clicking the avatar
+              .conditional(action != null, { focusable() })
+              .conditional(
+                  action != null,
+                  {
+                    clickable(
+                        interactionSource = interactionSource,
+                        // Apply ripple effect inside circular bounds
+                        indication = ripple(bounded = true),
+                        onClick = {
+                          action?.invoke()
+                          focusManager.clearFocus() // Clear focus after clicking the avatar
+                        },
+                    )
                   },
               ),
   ) {

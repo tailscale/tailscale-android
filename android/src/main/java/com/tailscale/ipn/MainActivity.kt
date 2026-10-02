@@ -386,7 +386,16 @@ class MainActivity : ComponentActivity() {
                 )
               }
               composable("settings") {
-                SettingsView(settingsNav = settingsNav, appViewModel = appViewModel)
+                val showPreferencesMenu by MDMSettings.preferencesMenu.flow.collectAsState()
+                // The route is also reachable through a deep link, so the policy is enforced
+                // here and not only where the entry point is rendered.
+                if (showPreferencesMenu.value == ShowHide.Hide) {
+                  LaunchedEffect(Unit) {
+                    navController.popBackStack(route = "main", inclusive = false)
+                  }
+                } else {
+                  SettingsView(settingsNav = settingsNav, appViewModel = appViewModel)
+                }
               }
               composable("exitNodes") { ExitNodePicker(exitNodePickerNav) }
               composable("health") { HealthView(backTo("main")) }
