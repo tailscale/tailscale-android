@@ -243,6 +243,12 @@ func (b *backend) updateTUN(rcfg *router.Config, dcfg *dns.OSConfig) (err error)
 
 	b.lastCfg = rcfg
 	b.lastDNSCfg = dcfg
+
+	// Record the underlying interface that was applied.
+	b.mu.Lock()
+	b.appliedUnderlyingIface = b.lastUnderlyingIface
+	b.mu.Unlock()
+
 	return nil
 }
 
@@ -260,6 +266,11 @@ func closeFileDescriptor() error {
 func (b *backend) CloseTUNs() {
 	b.lastCfg = nil
 	b.devices.Shutdown()
+
+	b.mu.Lock()
+	b.lastUnderlyingIface = ""
+	b.appliedUnderlyingIface = ""
+	b.mu.Unlock()
 }
 
 // ifname is the interface name retrieved from LinkProperties on network change. If a network is lost, an empty string is passed in.
@@ -270,6 +281,11 @@ func (b *backend) NetworkChanged(ifname string) {
 			panic(p)
 		}
 	}()
+
+	// Update the last known underlying interface.
+	b.mu.Lock()
+	b.lastUnderlyingIface = ifname
+	b.mu.Unlock()
 
 	// Set the interface name and alert the monitor.
 	netmon.UpdateLastKnownDefaultRouteInterface(ifname)
