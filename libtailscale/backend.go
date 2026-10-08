@@ -356,6 +356,14 @@ func (a *App) newBackend(dataDir string, appCtx AppContext, store *stateStore,
 	sys.Set(ns)
 	ns.ProcessLocalIPs = false // let Android kernel handle it; VpnBuilder sets this up
 	ns.ProcessSubnets = true   // for Android-being-an-exit-node support
+	// Because ProcessLocalIPs is false, inbound packets destined to our own
+	// Tailscale IPs are handed to the Android kernel instead of netstack. That
+	// breaks replies to connections netstack dialed itself (notably the DNS
+	// forwarder's upstream sockets to tailnet-IP resolvers), which have no
+	// kernel socket to receive them. Ask netstack to intercept packets that
+	// match one of its own transport endpoints first. See
+	// tailscale/tailscale#20983 and the equivalent setting in tsnet.
+	ns.CheckLocalTransportEndpoints = true
 	sys.NetstackRouter.Set(true)
 	if w, ok := sys.Tun.GetOK(); ok {
 		w.Start()
@@ -369,6 +377,7 @@ func (a *App) newBackend(dataDir string, appCtx AppContext, store *stateStore,
 		engine.Close()
 		return nil, fmt.Errorf("runBackend: NewLocalBackend: %v", err)
 	}
+	configureNetstackDialer(dialer, lb.PeerForIP, ns.DialContextTCP, ns.DialContextUDP)
 	if err := ns.Start(lb); err != nil {
 		return nil, fmt.Errorf("startNetstack: %w", err)
 	}
