@@ -9,17 +9,31 @@ import (
 	"log"
 	"net/netip"
 	"runtime/debug"
+	"strconv"
 	"strings"
 	"syscall"
 
 	"github.com/tailscale/tailscale-android/libtailscale/ifaceparse"
 	rangescalc "github.com/tailscale/tailscale-android/libtailscale/ranges_calc"
 	"github.com/tailscale/wireguard-go/tun"
+	"tailscale.com/health"
 	"tailscale.com/net/dns"
 	"tailscale.com/net/netmon"
 	"tailscale.com/util/dnsname"
 	"tailscale.com/wgengine/router"
 )
+
+// routeLimitWarnable remains unhealthy across disconnects and failed retries until
+// a new tunnel is successfully configured. Keep its code in sync with HealthNotifier.
+var routeLimitWarnable = health.Register(&health.Warnable{
+	Code:                "android-route-limit",
+	Title:               "VPN update failed",
+	Severity:            health.SeverityMedium,
+	ImpactsConnectivity: true,
+	Text: func(args health.Args) string {
+		return fmt.Sprintf("The number of routes provisioned for this device (%s) exceeds the set limit (%s). Modify your tailnet ACLs to exclude this device from app connectors, then reconnect.", args["count"], args["limit"])
+	},
+})
 
 // errVPNNotPrepared is used when VPNService.Builder.establish returns
 // null, either because the VPNService is not yet prepared or because
@@ -160,6 +174,13 @@ func (b *backend) updateTUN(rcfg *router.Config, dcfg *dns.OSConfig) (err error)
 		prefixesV4, prefixesV6, err := rangescalc.Calculate(rcfg.Routes, rcfg.LocalRoutes)
 		if err != nil {
 			b.logger.Logf("updateTUN: route calculation error: %v", err)
+			var limitErr *rangescalc.RouteLimitError
+			if errors.As(err, &limitErr) {
+				b.sys.HealthTracker.Get().SetUnhealthy(routeLimitWarnable, health.Args{
+					"count": strconv.Itoa(limitErr.Count),
+					"limit": strconv.Itoa(limitErr.Limit),
+				})
+			}
 			return err
 		}
 
@@ -243,6 +264,8 @@ func (b *backend) updateTUN(rcfg *router.Config, dcfg *dns.OSConfig) (err error)
 
 	b.lastCfg = rcfg
 	b.lastDNSCfg = dcfg
+	// Do not clear on disconnect or a failed retry, even if route calculation succeeded.
+	b.sys.HealthTracker.Get().SetHealthy(routeLimitWarnable)
 	return nil
 }
 

@@ -44,6 +44,59 @@ class HealthNotifierTest {
           DependsOn = listOf("network-status", "no-derp-home", "warming-up"),
       )
 
+  private fun routeLimitWarning() =
+      UnhealthyState(
+          WarnableCode = HealthNotifier.ROUTE_LIMIT_CODE,
+          Severity = Health.Severity.medium,
+          Title = "VPN update failed",
+          Text = "Too many routes. Modify your tailnet ACLs, then reconnect.",
+          ImpactsConnectivity = true,
+      )
+
+  @Test
+  fun routeLimitWarningAppearsWhileStoppedAndSurvivesRetries() = runTest {
+    val healthFlow = MutableStateFlow<Health.State?>(null)
+    val ipnFlow = MutableStateFlow(Ipn.State.Stopped)
+    val notifier = HealthNotifier(healthFlow, ipnFlow, backgroundScope)
+    val warning = routeLimitWarning()
+    runCurrent()
+
+    healthFlow.value = healthState(warning, derpWarning(), warmingUpWarning())
+    settle()
+    assertEquals(setOf(warning), notifier.currentWarnings.value)
+    assertTrue(notifier.currentIcon.value != null)
+
+    for (state in listOf(Ipn.State.Starting, Ipn.State.Stopped, Ipn.State.Starting)) {
+      ipnFlow.value = state
+      settle()
+      assertEquals(setOf(warning), notifier.currentWarnings.value)
+    }
+
+    // The backend clears the warning only after successfully configuring a tunnel.
+    healthFlow.value = emptyHealth()
+    ipnFlow.value = Ipn.State.Running
+    settle()
+    assertTrue(notifier.currentWarnings.value.isEmpty())
+    assertNull(notifier.currentIcon.value)
+
+    ipnFlow.value = Ipn.State.Stopped
+    settle()
+    assertTrue(notifier.currentWarnings.value.isEmpty())
+  }
+
+  @Test
+  fun routeLimitWarningSurvivesDisconnectAndBypassesWarmup() = runTest {
+    val (healthFlow, ipnFlow, notifier) = createRunningNotifier()
+    val warning = routeLimitWarning()
+    healthFlow.value = healthState(warning, warmingUpWarning(), derpWarning())
+    settle()
+    assertEquals(setOf(warning), notifier.currentWarnings.value)
+
+    ipnFlow.value = Ipn.State.Stopped
+    runCurrent()
+    assertEquals(setOf(warning), notifier.currentWarnings.value)
+  }
+
   private fun warmingUpWarning() =
       UnhealthyState(
           WarnableCode = "warming-up",
@@ -129,8 +182,8 @@ class HealthNotifierTest {
 
   /**
    * Regression test for a startup init-order race: the init block launches a collector that
-   * immediately calls dropAllWarnings() (reading currentWarnings) when the initial ipn state is not
-   * Running. If currentWarnings/currentIcon are declared after the init block, that read hits a
+   * immediately calls notifyHealthUpdated() (reading currentWarnings) when the initial ipn state is
+   * not Running. If currentWarnings/currentIcon are declared after the init block, that read hits a
    * null StateFlow and NPEs. Using Dispatchers.Unconfined runs the launched coroutine eagerly
    * inside the constructor, deterministically reproducing the race on the old ordering. The NPE
    * surfaces as an uncaught coroutine exception, which kills the process on Android but only gets
