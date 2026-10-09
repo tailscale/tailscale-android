@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.tailscale.ipn.UninitializedApp
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.localapi.Client
+import com.tailscale.ipn.ui.model.DisconnectReason
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.UserID
@@ -235,6 +236,7 @@ open class IpnViewModel : ViewModel() {
   }
 
   fun logout(completionHandler: (Result<String>) -> Unit = {}) {
+    Notifier.setDisconnectReason(DisconnectReason.UserRequested)
     Client(viewModelScope).logout { result ->
       result
           .onSuccess { TSLog.d(TAG, "Logout started: $it") }
@@ -266,6 +268,7 @@ open class IpnViewModel : ViewModel() {
         completionHandler(it)
       }
     }
+    Notifier.setDisconnectReason(DisconnectReason.UserRequested)
     Client(viewModelScope).editPrefs(Ipn.MaskedPrefs().apply { WantRunning = false }) { result ->
       result
           .onSuccess { switchProfile() }

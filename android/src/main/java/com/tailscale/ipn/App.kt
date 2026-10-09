@@ -28,6 +28,7 @@ import androidx.security.crypto.MasterKey
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.mdm.MDMSettingsChangedReceiver
 import com.tailscale.ipn.ui.localapi.Client
+import com.tailscale.ipn.ui.model.DisconnectReason
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.Netmap
 import com.tailscale.ipn.ui.notifier.FavoritesManager
@@ -182,7 +183,8 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     } else {
       startLibtailscale(this.filesDir.absolutePath, hardwareAttestation)
     }
-    healthNotifier = HealthNotifier(Notifier.health, Notifier.state, applicationScope)
+    healthNotifier =
+        HealthNotifier(Notifier.health, Notifier.state, Notifier.disconnectReason, applicationScope)
     favoritesManager = FavoritesManager(Notifier.state, Notifier.netmap, applicationScope)
     connectivityManager = this.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     NetworkChangeCallback.monitorDnsChanges(connectivityManager, dns)
@@ -265,6 +267,9 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
   }
 
   fun setWantRunning(wantRunning: Boolean, onSuccess: (() -> Unit)? = null) {
+    if (!wantRunning) {
+      Notifier.setDisconnectReason(DisconnectReason.UserRequested)
+    }
     val callback: (Result<Ipn.Prefs>) -> Unit = { result ->
       result.fold(
           onSuccess = { onSuccess?.invoke() },
