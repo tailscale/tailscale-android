@@ -3,8 +3,12 @@
 
 package com.tailscale.ipn.ui.viewModel
 
+import android.widget.Toast
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tailscale.ipn.App
+import com.tailscale.ipn.R
 import com.tailscale.ipn.UninitializedApp
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.localapi.Client
@@ -17,10 +21,19 @@ import com.tailscale.ipn.ui.util.AdvertisedRoutesHelper
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.util.TSLog
+import java.util.concurrent.atomic.AtomicReference
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Base model for most models in this application. Provides common facilities for watching IPN
@@ -163,12 +176,50 @@ open class IpnViewModel : ViewModel() {
    *    (using auth key) login
    *
    * Any failure short‑circuits the chain and invokes completionHandler once.
+   *
+   * start() always tears down the current control client (and with it any in-flight register
+   * request and cached auth URL). To avoid repeated taps on "Log in" / "Reauthenticate" cancelling
+   * each other, a plain interactive login (no maskedPrefs, no authKey) that arrives while another
+   * login is in progress does not call editPrefs()/start() again: if start() already completed it
+   * only re-requests the auth URL via startLoginInteractive(), otherwise it is ignored. Interactive
+   * login failures, and not receiving an auth URL within [LOGIN_URL_TIMEOUT_MS], are shown to the
+   * user instead of failing silently. See tailscale/tailscale#18304.
    */
   fun login(
       maskedPrefs: Ipn.MaskedPrefs? = null,
       authKey: String? = null,
       completionHandler: (Result<Unit>) -> Unit = {},
   ) {
+    val interactiveOnly = maskedPrefs == null && authKey == null
+    if (interactiveOnly) {
+      when (loginPhase.get()) {
+        LoginPhase.STARTING -> {
+          TSLog.d(TAG, "login(): already starting, ignoring repeated request")
+          completionHandler(Result.success(Unit))
+          return
+        }
+        LoginPhase.AWAITING_URL -> {
+          TSLog.d(TAG, "login(): login in progress, re-requesting auth URL without restarting")
+          // Clear the last URL so that the same URL being sent again is delivered to the
+          // browseToURL collector.
+          Notifier.browseToURL.set(null)
+          armLoginWatchdog()
+          Client(viewModelScope).startLoginInteractive { loginResult ->
+            loginResult.onFailure {
+              TSLog.e(TAG, "startLoginInteractive() failed: ${it.message}")
+              onLoginFailed(showError = true)
+            }
+            completionHandler(loginResult)
+          }
+          return
+        }
+        LoginPhase.IDLE -> {}
+      }
+    }
+    loginPhase.set(LoginPhase.STARTING)
+    Notifier.browseToURL.set(null)
+    armLoginWatchdog()
+
     // Start the IPNService foreground notification so that Android
     // does not freeze the process or cut network access while the user is in the browser
     // completing auth. The foreground service transitions to a full VPN service later when
@@ -192,6 +243,7 @@ open class IpnViewModel : ViewModel() {
       editResult
           .onFailure {
             TSLog.e(TAG, "editPrefs() failed: ${it.message}")
+            onLoginFailed(showError = interactiveOnly)
             completionHandler(Result.failure(it))
           }
           .onSuccess { success ->
@@ -201,9 +253,13 @@ open class IpnViewModel : ViewModel() {
               startResult
                   .onFailure {
                     TSLog.e(TAG, "start() failed: ${it.message}")
+                    onLoginFailed(showError = interactiveOnly)
                     completionHandler(Result.failure(it))
                   }
                   .onSuccess {
+                    // start() has replaced the control client; from here on a repeated login
+                    // request only needs startLoginInteractive().
+                    loginPhase.compareAndSet(LoginPhase.STARTING, LoginPhase.AWAITING_URL)
                     client.startLoginInteractive { loginResult ->
                       loginResult
                           .onFailure {
@@ -211,6 +267,7 @@ open class IpnViewModel : ViewModel() {
                                 TAG,
                                 "startLoginInteractive() failed: ${it.message}",
                             )
+                            onLoginFailed(showError = interactiveOnly)
                             completionHandler(Result.failure(it))
                           }
                           .onSuccess { completionHandler(Result.success(Unit)) }
@@ -218,6 +275,14 @@ open class IpnViewModel : ViewModel() {
                   }
             }
           }
+    }
+  }
+
+  private fun onLoginFailed(showError: Boolean) {
+    loginWatchdog?.cancel()
+    loginPhase.set(LoginPhase.IDLE)
+    if (showError) {
+      showLoginError(R.string.login_failed)
     }
   }
 
@@ -345,5 +410,80 @@ open class IpnViewModel : ViewModel() {
     val newPrefs = Ipn.MaskedPrefs()
     newPrefs.AdvertiseRoutes = newRoutes
     return newPrefs
+  }
+
+  companion object {
+    /** How long to wait for an auth URL (or login completion) before telling the user. */
+    const val LOGIN_URL_TIMEOUT_MS = 30_000L
+
+    /** How long a login whose auth URL was delivered is still considered in progress. */
+    private const val LOGIN_IN_PROGRESS_MAX_MS = 10 * 60_000L
+
+    private enum class LoginPhase {
+      IDLE,
+      // editPrefs()/start() in flight.
+      STARTING,
+      // start() done; waiting for the auth URL or for the user to finish in the browser.
+      AWAITING_URL,
+    }
+
+    // Shared by all IpnViewModel instances, since login can be triggered from several screens.
+    private val loginPhase = AtomicReference(LoginPhase.IDLE)
+    @Volatile private var loginWatchdog: Job? = null
+
+    /**
+     * Waits for an auth URL or for login to complete. If neither happens within
+     * [LOGIN_URL_TIMEOUT_MS] the login is considered stuck: the phase is reset so the next tap
+     * restarts the flow, and the user is told. Runs in the application scope so it outlives the
+     * screen that started the login.
+     */
+    private fun armLoginWatchdog() {
+      val tag = "IpnViewModel"
+      // Compare against the values at the time of the request (rather than skipping the first
+      // emission) so that a change which happens before the coroutine subscribes is not missed.
+      val startCount = Notifier.browseToURLCount.value
+      val startState = Notifier.state.value
+      loginWatchdog?.cancel()
+      loginWatchdog =
+          App.get().applicationScope.launch {
+            val loginDone =
+                Notifier.state.filter {
+                  it != startState && (it == Ipn.State.Running || it == Ipn.State.NeedsMachineAuth)
+                }
+            val finished =
+                withTimeoutOrNull(LOGIN_URL_TIMEOUT_MS) {
+                  merge(
+                          Notifier.browseToURLCount.filter { it != startCount }.map { false },
+                          loginDone.map { true },
+                      )
+                      .first()
+                }
+            when (finished) {
+              null -> {
+                TSLog.w(tag, "login: no auth URL received after ${LOGIN_URL_TIMEOUT_MS}ms")
+                loginPhase.set(LoginPhase.IDLE)
+                showLoginError(R.string.login_timeout)
+              }
+              true -> loginPhase.set(LoginPhase.IDLE)
+              false -> {
+                // Auth URL delivered. Keep treating repeated taps as "show the URL again" until
+                // the user finishes (or abandons) the login.
+                val urlState = Notifier.state.value
+                withTimeoutOrNull(LOGIN_IN_PROGRESS_MAX_MS) {
+                  Notifier.state.first { it != urlState && it != Ipn.State.NeedsLogin }
+                }
+                loginPhase.set(LoginPhase.IDLE)
+              }
+            }
+          }
+    }
+
+    private fun showLoginError(@StringRes message: Int) {
+      App.get().applicationScope.launch {
+        withContext(Dispatchers.Main) {
+          Toast.makeText(App.get(), message, Toast.LENGTH_LONG).show()
+        }
+      }
+    }
   }
 }
