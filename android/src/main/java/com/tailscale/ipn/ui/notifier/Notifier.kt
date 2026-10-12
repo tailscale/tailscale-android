@@ -56,6 +56,10 @@ object Notifier {
   private val _browseToURLCount = MutableStateFlow(0L)
   val browseToURLCount: StateFlow<Long> = _browseToURLCount
   val loginFinished: StateFlow<String?> = MutableStateFlow(null)
+  // Incremented for every LoginFinished notification, so that observers can tell that a login
+  // completed even if the IPN state does not change (e.g. reauthenticating while Running).
+  private val _loginFinishedCount = MutableStateFlow(0L)
+  val loginFinishedCount: StateFlow<Long> = _loginFinishedCount
   val version: StateFlow<String?> = MutableStateFlow(null)
   val health: StateFlow<Health.State?> = MutableStateFlow(null)
 
@@ -138,7 +142,10 @@ object Notifier {
                 browseToURL.set(it)
                 _browseToURLCount.update { count -> count + 1 }
               }
-              notify.LoginFinished?.let { loginFinished.set(it.property) }
+              notify.LoginFinished?.let {
+                loginFinished.set(it.property)
+                _loginFinishedCount.update { count -> count + 1 }
+              }
               notify.Version?.let(version::set)
               notify.OutgoingFiles?.let(outgoingFiles::set)
               notify.FilesWaiting?.let(filesWaiting::set)
