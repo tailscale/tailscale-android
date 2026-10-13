@@ -3,8 +3,11 @@
 
 package com.tailscale.ipn.ui.viewModel
 
+import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tailscale.ipn.App
+import com.tailscale.ipn.R
 import com.tailscale.ipn.UninitializedApp
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.localapi.Client
@@ -17,10 +20,14 @@ import com.tailscale.ipn.ui.util.AdvertisedRoutesHelper
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.util.TSLog
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Base model for most models in this application. Provides common facilities for watching IPN
@@ -31,6 +38,20 @@ open class IpnViewModel : ViewModel() {
 
   val loggedInUser: StateFlow<IpnLocal.LoginProfile?> = MutableStateFlow(null)
   val loginProfiles: StateFlow<List<IpnLocal.LoginProfile>?> = MutableStateFlow(null)
+
+  /**
+   * The current phase of the app-wide interactive login, for UIs to disable login controls while a
+   * login is in flight and to communicate what the login is currently waiting for. See [LoginFlow].
+   */
+  val loginPhase: StateFlow<LoginPhase>
+    get() = loginFlow.phase
+
+  /**
+   * The last login error reported by the backend's health subsystem (the login-state warnable), for
+   * UIs to explain why a login is not progressing. Null if the backend reported no login error.
+   */
+  val loginError: StateFlow<String?>
+    get() = loginFlow.loginError
 
   private val _vpnPrepared = MutableStateFlow(false)
   val vpnPrepared: StateFlow<Boolean> = _vpnPrepared
@@ -163,12 +184,57 @@ open class IpnViewModel : ViewModel() {
    *    (using auth key) login
    *
    * Any failure short‑circuits the chain and invokes completionHandler once.
+   *
+   * start() always tears down the current control client (and with it any in-flight register
+   * request and cached auth URL). To avoid repeated taps on "Log in" / "Reauthenticate" cancelling
+   * each other, a plain interactive login (no maskedPrefs, no authKey) that arrives while another
+   * login is in progress does not call editPrefs()/start() again: if start() already completed it
+   * only re-requests the auth URL via startLoginInteractive(), otherwise it is ignored. The
+   * progress of the login is tracked by the shared [LoginFlow] state machine, which observes the
+   * IPN bus (including the backend's health subsystem) and drives [loginPhase]; login failures and
+   * a login that makes no progress within [LoginFlow.AWAIT_URL_TIMEOUT_MS] offers to keep waiting
+   * or to retry (see [LoginFlow.LoginPhase.STALLED]) instead of failing silently. See
+   * tailscale/tailscale#18304.
    */
   fun login(
       maskedPrefs: Ipn.MaskedPrefs? = null,
       authKey: String? = null,
       completionHandler: (Result<Unit>) -> Unit = {},
   ) {
+    val interactiveOnly = maskedPrefs == null && authKey == null
+    if (interactiveOnly) {
+      when (loginPhase.value) {
+        LoginPhase.STARTING -> {
+          TSLog.d(TAG, "login(): already starting, ignoring repeated request")
+          completionHandler(Result.success(Unit))
+          return
+        }
+        LoginPhase.AWAITING_URL,
+        LoginPhase.AUTHENTICATING,
+        LoginPhase.STALLED -> {
+          TSLog.d(TAG, "login(): login in progress, re-requesting auth URL without restarting")
+          // Clear the last URL so that the same URL being sent again is delivered to the
+          // browseToURL collector.
+          Notifier.browseToURL.set(null)
+          loginFlow.reRequested()
+          Client(viewModelScope).startLoginInteractive { loginResult ->
+            loginResult.onFailure {
+              TSLog.e(TAG, "startLoginInteractive() failed: ${it.message}")
+              loginFlow.failed()
+              showLoginFailedToast()
+            }
+            completionHandler(loginResult)
+          }
+          return
+        }
+        LoginPhase.IDLE -> {}
+      }
+    }
+    // Timed-out login errors are surfaced for interactive logins only; the screens driving
+    // auth-key or custom-control logins report errors themselves.
+    loginFlow.begin(notifyUser = interactiveOnly)
+    Notifier.browseToURL.set(null)
+
     // Start the IPNService foreground notification so that Android
     // does not freeze the process or cut network access while the user is in the browser
     // completing auth. The foreground service transitions to a full VPN service later when
@@ -192,6 +258,10 @@ open class IpnViewModel : ViewModel() {
       editResult
           .onFailure {
             TSLog.e(TAG, "editPrefs() failed: ${it.message}")
+            loginFlow.failed()
+            if (interactiveOnly) {
+              showLoginFailedToast()
+            }
             completionHandler(Result.failure(it))
           }
           .onSuccess { success ->
@@ -201,9 +271,16 @@ open class IpnViewModel : ViewModel() {
               startResult
                   .onFailure {
                     TSLog.e(TAG, "start() failed: ${it.message}")
+                    loginFlow.failed()
+                    if (interactiveOnly) {
+                      showLoginFailedToast()
+                    }
                     completionHandler(Result.failure(it))
                   }
                   .onSuccess {
+                    // start() has replaced the control client; from here on a repeated login
+                    // request only needs startLoginInteractive().
+                    loginFlow.startCompleted()
                     client.startLoginInteractive { loginResult ->
                       loginResult
                           .onFailure {
@@ -211,6 +288,10 @@ open class IpnViewModel : ViewModel() {
                                 TAG,
                                 "startLoginInteractive() failed: ${it.message}",
                             )
+                            loginFlow.failed()
+                            if (interactiveOnly) {
+                              showLoginFailedToast()
+                            }
                             completionHandler(Result.failure(it))
                           }
                           .onSuccess { completionHandler(Result.success(Unit)) }
@@ -218,6 +299,19 @@ open class IpnViewModel : ViewModel() {
                   }
             }
           }
+    }
+  }
+
+  /**
+   * Shows the generic login-failure toast. Failures with a backend-provided reason are shown by the
+   * login watchdog via the health subsystem; see [LoginFlow].
+   */
+  private fun showLoginFailedToast() {
+    val app = App.get()
+    app.applicationScope.launch {
+      withContext(Dispatchers.Main) {
+        Toast.makeText(app, R.string.login_failed, Toast.LENGTH_LONG).show()
+      }
     }
   }
 
@@ -236,8 +330,24 @@ open class IpnViewModel : ViewModel() {
     login(prefs, completionHandler = completionHandler)
   }
 
+  /**
+   * Logs out. Repeated requests while a logout is in flight are ignored (they would otherwise race
+   * each other against the backend, like repeated login taps do; see tailscale/tailscale#18304). A
+   * stuck request re-enables logout after [LOGOUT_TIMEOUT_MS].
+   */
   fun logout(completionHandler: (Result<String>) -> Unit = {}) {
+    if (!logoutInFlight.compareAndSet(false, true)) {
+      TSLog.d(TAG, "logout(): already in progress, ignoring repeated request")
+      return
+    }
+    // Safety net: if the request never completes (e.g. its scope is cancelled with the screen),
+    // re-enable logout rather than leaving the button permanently inert.
+    App.get().applicationScope.launch {
+      delay(LOGOUT_TIMEOUT_MS)
+      logoutInFlight.set(false)
+    }
     Client(viewModelScope).logout { result ->
+      logoutInFlight.set(false)
       result
           .onSuccess { TSLog.d(TAG, "Logout started: $it") }
           .onFailure { TSLog.e(TAG, "Error starting logout: ${it.message}") }
@@ -345,5 +455,47 @@ open class IpnViewModel : ViewModel() {
     val newPrefs = Ipn.MaskedPrefs()
     newPrefs.AdvertiseRoutes = newRoutes
     return newPrefs
+  }
+
+  companion object {
+    /**
+     * The app-wide interactive login state machine, shared by all IpnViewModel instances since
+     * login can be triggered from several screens. See [LoginFlow].
+     */
+    private val loginFlow: LoginFlow by lazy {
+      LoginFlow(
+          scope = App.get().applicationScope,
+          ipnState = Notifier.state,
+          browseToURLCount = Notifier.browseToURLCount,
+          loginFinishedCount = Notifier.loginFinishedCount,
+          health = Notifier.health,
+          onError = ::showLoginError,
+      )
+    }
+
+    /** Tracks logout requests so that repeated taps can't race each other. */
+    private val logoutInFlight = AtomicBoolean(false)
+
+    /** How long to wait for a logout request before making the button responsive again. */
+    private const val LOGOUT_TIMEOUT_MS = 30_000L
+
+    /**
+     * Shows a login failure reported by the login watchdog to the user. Runs in the application
+     * scope so it outlives the screen that started the login.
+     */
+    private fun showLoginError(error: LoginFlow.LoginError) {
+      val app = App.get()
+      app.applicationScope.launch {
+        withContext(Dispatchers.Main) {
+          val message =
+              when (error) {
+                is LoginFlow.LoginError.BackendError ->
+                    app.getString(R.string.login_failed_with_reason, error.text)
+                LoginFlow.LoginError.Stalled -> app.getString(R.string.login_stalled)
+              }
+          Toast.makeText(app, message, Toast.LENGTH_LONG).show()
+        }
+      }
+    }
   }
 }

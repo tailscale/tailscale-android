@@ -51,7 +51,15 @@ object Notifier {
   val engineStatus: StateFlow<Ipn.EngineStatus?> = MutableStateFlow(null)
   val tailFSShares: StateFlow<Map<String, String>?> = MutableStateFlow(null)
   val browseToURL: StateFlow<String?> = MutableStateFlow(null)
+  // Incremented for every BrowseToURL notification, including repeats of the same URL, so that
+  // observers can tell that a URL arrived even if browseToURL was cleared again in the meantime.
+  private val _browseToURLCount = MutableStateFlow(0L)
+  val browseToURLCount: StateFlow<Long> = _browseToURLCount
   val loginFinished: StateFlow<String?> = MutableStateFlow(null)
+  // Incremented for every LoginFinished notification, so that observers can tell that a login
+  // completed even if the IPN state does not change (e.g. reauthenticating while Running).
+  private val _loginFinishedCount = MutableStateFlow(0L)
+  val loginFinishedCount: StateFlow<Long> = _loginFinishedCount
   val version: StateFlow<String?> = MutableStateFlow(null)
   val health: StateFlow<Health.State?> = MutableStateFlow(null)
 
@@ -130,8 +138,14 @@ object Notifier {
               notify.Prefs?.let(prefs::set)
               notify.Engine?.let(engineStatus::set)
               notify.TailFSShares?.let(tailFSShares::set)
-              notify.BrowseToURL?.let(browseToURL::set)
-              notify.LoginFinished?.let { loginFinished.set(it.property) }
+              notify.BrowseToURL?.let {
+                browseToURL.set(it)
+                _browseToURLCount.update { count -> count + 1 }
+              }
+              notify.LoginFinished?.let {
+                loginFinished.set(it.property)
+                _loginFinishedCount.update { count -> count + 1 }
+              }
               notify.Version?.let(version::set)
               notify.OutgoingFiles?.let(outgoingFiles::set)
               notify.FilesWaiting?.let(filesWaiting::set)
