@@ -61,6 +61,7 @@ fun SettingsView(
   val tailnetLockEnabled by viewModel.tailNetLockEnabled.collectAsState()
   val corpDNSEnabled by viewModel.corpDNSEnabled.collectAsState()
   val isVPNPrepared by appViewModel.vpnPrepared.collectAsState()
+  val showAdminConsole by MDMSettings.adminConsole.flow.collectAsState()
   val showTailnetLock by MDMSettings.manageTailnetLock.flow.collectAsState()
   val useTailscaleSubnets by MDMSettings.useTailscaleSubnets.flow.collectAsState()
   val isClientRemoteLoggingEnabled by viewModel.isClientRemoteLoggingEnabled.collectAsState()
@@ -80,7 +81,7 @@ fun SettingsView(
         )
       }
 
-      if (isAdmin && !isAndroidTV()) {
+      if (isAdmin && !isAndroidTV() && showAdminConsole.value == ShowHide.Show) {
         Lists.ItemDivider()
         AdminTextView { handler.openUri(Links.ADMIN_URL) }
       }
