@@ -30,6 +30,13 @@ import kotlinx.serialization.json.decodeFromStream
 // When set to true, the Notifier will inject fake health warnings for testing purposes
 val INJECT_FAKE_HEALTH_WARNINGS = false
 
+internal fun Notify.hasNetworkMapChanges(): Boolean =
+    InitialStatus != null ||
+        SelfChange != null ||
+        !PeersChanged.isNullOrEmpty() ||
+        !PeersRemoved.isNullOrEmpty() ||
+        !UserProfiles.isNullOrEmpty()
+
 // Notifier is a wrapper around the IPN Bus notifier.  It provides a way to watch
 // for changes in various parts of the Tailscale engine.  You will typically only use
 // a single Notifier per instance of your application which lasts for the lifetime of
@@ -178,6 +185,8 @@ object Notifier {
 
   @Synchronized
   private fun updateNetworkMap(notify: Notify) {
+    if (!notify.hasNetworkMapChanges()) return
+
     val initial = notify.InitialStatus
     if (initial != null) {
       userProfiles.clear()
