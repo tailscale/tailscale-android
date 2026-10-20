@@ -97,8 +97,6 @@ open class IpnViewModel : ViewModel() {
       }
     }
 
-    viewModelScope.launch { loadUserProfiles() }
-
     viewModelScope.launch {
       combine(prefs, netmap, isRunningExitNode) { prefs, netmap, isRunningExitNode ->
             // Handle nullability for prefs and netmap
