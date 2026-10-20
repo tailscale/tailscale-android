@@ -22,8 +22,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
@@ -34,9 +34,16 @@ class HealthNotifier(
 ) {
   companion object {
     const val HEALTH_CHANNEL_ID = "tailscale-health"
+
+    // Keep in sync with routeLimitWarnable in libtailscale/net.go.
+    const val ROUTE_LIMIT_CODE = "android-route-limit"
   }
 
   private val TAG = "health"
+  // These warnings can prevent connection. Show them while disconnected or warming up,
+  // until the backend clears them after the problem is resolved.
+  private val persistentWarnableCodes: Set<String> = setOf(ROUTE_LIMIT_CODE)
+
   private val ignoredWarnableCodes: Set<String> =
       setOf(
           // Ignored on Android because installing unstable takes quite some effort
@@ -48,7 +55,7 @@ class HealthNotifier(
       )
 
   // These must be initialized before the init block below, which launches a coroutine that can
-  // immediately call dropAllWarnings() (reading currentWarnings) on a background dispatcher. If
+  // immediately call notifyHealthUpdated() (reading currentWarnings) on a background dispatcher. If
   // the collector observes the initial non-Running ipn state before these property initializers
   // run, it would read a null StateFlow and crash with an NPE (see startup init-order race).
   val currentWarnings: StateFlow<Set<UnhealthyState>> = MutableStateFlow(setOf())
@@ -67,14 +74,17 @@ class HealthNotifier(
                   }
                   .debounce(3000)
             } else {
-              TSLog.d(TAG, "Ignoring and dropping all health messages in state $ipnState")
-              dropAllWarnings()
-              emptyFlow()
+              // Keep listening for persistent warnings while stopped, including failed retries.
+              healthStateFlow.map { health ->
+                health?.copy(
+                    Warnings = health.Warnings?.filterKeys { it in persistentWarnableCodes }
+                )
+              }
             }
           }
           .collect { health ->
             TSLog.d(TAG, "Health updated: ${health?.Warnings?.keys?.sorted()}")
-            health?.Warnings?.values?.filterNotNull()?.toTypedArray()?.let(::notifyHealthUpdated)
+            notifyHealthUpdated(health?.Warnings?.values.orEmpty().filterNotNull().toTypedArray())
           }
     }
   }
@@ -115,7 +125,7 @@ class HealthNotifier(
         // Ignore this warning because a dependency is also unhealthy
         TSLog.d(TAG, "Ignoring ${warning.WarnableCode} because of dependency")
         continue
-      } else if (!isWarmingUp) {
+      } else if (!isWarmingUp || warning.WarnableCode in persistentWarnableCodes) {
         TSLog.d(TAG, "Adding health warning: ${warning.WarnableCode}")
         this.currentWarnings.set(this.currentWarnings.value + warning)
         dropDependenciesForAddedWarning(warning)
@@ -179,16 +189,6 @@ class HealthNotifier(
       return
     }
     notificationManager.notify(code.hashCode(), notification)
-  }
-
-  /**
-   * Removes all warnings currently displayed, including any system notifications, and updates the
-   * icon (causing it to be set to null since the set of warnings is empty).
-   */
-  private fun dropAllWarnings() {
-    removeNotifications(this.currentWarnings.value)
-    this.currentWarnings.set(emptySet())
-    this.updateIcon()
   }
 
   private fun removeNotifications(warnings: Set<UnhealthyState>) {
