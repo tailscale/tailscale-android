@@ -117,6 +117,7 @@ class MainActivity : ComponentActivity() {
   private lateinit var viewModel: MainViewModel
   private var deepLinkNavigator: DeepLinkNavigator? = null
   private var pendingDeepLink: Uri? = null
+  private var initializationFailed = false
 
   val permissionsViewModel: PermissionsViewModel by viewModels()
 
@@ -143,7 +144,14 @@ class MainActivity : ComponentActivity() {
     pendingDeepLink = deepLinkUri(intent)
 
     // grab app to make sure it initializes
-    App.get()
+    try {
+      App.get()
+    } catch (e: SecureStorageUnavailableException) {
+      initializationFailed = true
+      TSLog.e(TAG, "Unable to access secure storage: $e")
+      showSecureStorageError()
+      return
+    }
     appViewModel = (application as App).getAppScopedViewModel()
     viewModel =
         ViewModelProvider(this, MainViewModelFactory(appViewModel)).get(MainViewModel::class.java)
@@ -483,6 +491,16 @@ class MainActivity : ComponentActivity() {
     lifecycleScope.launch { Notifier.loginFinished.collect { _ -> loginQRCode.set(null) } }
   }
 
+  private fun showSecureStorageError() {
+    AlertDialog.Builder(this)
+        .setTitle(R.string.secure_storage_error_title)
+        .setMessage(R.string.secure_storage_error_message)
+        .setPositiveButton(R.string.try_again) { _, _ -> recreate() }
+        .setNegativeButton(R.string.cancel) { _, _ -> finish() }
+        .setCancelable(false)
+        .show()
+  }
+
   private fun showOtherVPNConflictDialog() {
     AlertDialog.Builder(this)
         .setTitle(R.string.vpn_permission_denied)
@@ -597,6 +615,7 @@ class MainActivity : ComponentActivity() {
 
   override fun onResume() {
     super.onResume()
+    if (initializationFailed) return
     val restrictionsManager =
         this.getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
     lifecycleScope.launch(Dispatchers.IO) { MDMSettings.update(App.get(), restrictionsManager) }
@@ -604,6 +623,7 @@ class MainActivity : ComponentActivity() {
 
   override fun onStop() {
     super.onStop()
+    if (initializationFailed) return
     val restrictionsManager =
         this.getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
     lifecycleScope.launch(Dispatchers.IO) { MDMSettings.update(App.get(), restrictionsManager) }

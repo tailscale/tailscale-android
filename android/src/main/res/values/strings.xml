@@ -263,12 +263,14 @@
     <string name="taildrop_share_failed_short">Failed</string>
 
 
-    <!-- Error Dialog Titles -->
+    <!-- Error Dialogs  -->
     <string name="logout_failed_title">Logout failed</string>
     <string name="switch_user_failed_title">Cannot switch to user</string>
     <string name="add_profile_failed_title">Unable to add profile</string>
     <string name="share_device_not_connected_title">Not connected</string>
     <string name="taildrop_share_failed_title">Taildrop failed</string>
+    <string name="secure_storage_error_title">Unable to start Tailscale</string>
+    <string name="secure_storage_error_message">Android secure storage is temporarily unavailable. Try restarting your device or Android environment. Your Tailscale data has not been cleared.</string>
 
     <!-- Strings for the intro screen -->
     <string name="getStarted">Get Started</string>
