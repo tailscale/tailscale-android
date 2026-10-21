@@ -10,6 +10,7 @@ import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.Netmap
 import com.tailscale.ipn.ui.model.ProfileID
 import com.tailscale.ipn.ui.model.StableNodeID
+import com.tailscale.ipn.ui.model.withToggledDevice
 import com.tailscale.ipn.util.TSLog
 import kotlin.coroutines.resume
 import kotlin.time.Duration
