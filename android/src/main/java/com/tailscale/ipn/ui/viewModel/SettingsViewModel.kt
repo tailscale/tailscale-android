@@ -24,6 +24,7 @@ data class SettingsNav(
     val onNavigateToManagedBy: () -> Unit,
     val onNavigateToUserSwitcher: () -> Unit,
     val onNavigateToPermissions: () -> Unit,
+    val onNavigateToWifiAutoConnect: () -> Unit,
     val onNavigateBackHome: () -> Unit,
     val onBackToSettings: () -> Unit,
 )

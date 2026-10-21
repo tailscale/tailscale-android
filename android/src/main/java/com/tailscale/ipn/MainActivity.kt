@@ -95,6 +95,7 @@ import com.tailscale.ipn.ui.view.TaildropDirectoryPickerPrompt
 import com.tailscale.ipn.ui.view.TailnetLockSetupView
 import com.tailscale.ipn.ui.view.UserSwitcherNav
 import com.tailscale.ipn.ui.view.UserSwitcherView
+import com.tailscale.ipn.ui.view.WifiAutoConnectView
 import com.tailscale.ipn.ui.viewModel.AppViewModel
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerNav
 import com.tailscale.ipn.ui.viewModel.MainViewModel
@@ -344,6 +345,7 @@ class MainActivity : ComponentActivity() {
                       onNavigateToManagedBy = { navController.navigate("managedBy") },
                       onNavigateToUserSwitcher = { navController.navigate("userSwitcher") },
                       onNavigateToPermissions = { navController.navigate("permissions") },
+                      onNavigateToWifiAutoConnect = { navController.navigate("wifiAutoConnect") },
                       onBackToSettings = backTo("settings"),
                       onNavigateBackHome = backTo("main"),
                   )
@@ -417,6 +419,7 @@ class MainActivity : ComponentActivity() {
               composable("splitTunneling") { SplitTunnelAppPickerView(backTo("settings")) }
               composable("tailnetLock") { TailnetLockSetupView(backTo("settings")) }
               composable("subnetRouting") { SubnetRoutingView(backTo("settings")) }
+              composable("wifiAutoConnect") { WifiAutoConnectView(backTo("settings")) }
               composable("about") { AboutView(backTo("settings")) }
               composable("mdmSettings") { MDMSettingsDebugView(backTo("settings")) }
               composable("managedBy") { ManagedByView(backTo("settings")) }
