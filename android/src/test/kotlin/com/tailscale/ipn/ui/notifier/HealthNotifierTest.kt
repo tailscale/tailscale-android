@@ -102,6 +102,24 @@ class HealthNotifierTest {
     assertTrue(notifier.currentWarnings.value.isEmpty())
   }
 
+  /**
+   * The backend reports a fully healthy state as Warnings = null (a nil Go map), not as an empty
+   * map. The warning must still be dropped.
+   */
+  @Test
+  fun warningClearsWhenBackendSendsNullWarnings() = runTest {
+    val (healthFlow, _, notifier) = createRunningNotifier()
+
+    healthFlow.value = healthState(derpWarning())
+    settle()
+    assertEquals(1, notifier.currentWarnings.value.size)
+
+    healthFlow.value = Health.State(Warnings = null)
+    settle()
+    assertTrue(notifier.currentWarnings.value.isEmpty())
+    assertNull(notifier.currentIcon.value)
+  }
+
   @Test
   fun warningsDroppedWhenStateLeavesRunning() = runTest {
     val (healthFlow, ipnFlow, notifier) = createRunningNotifier()
