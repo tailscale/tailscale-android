@@ -9,7 +9,9 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
+	"net/netip"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -356,6 +358,10 @@ func (a *App) newBackend(dataDir string, appCtx AppContext, store *stateStore,
 	sys.Set(ns)
 	ns.ProcessLocalIPs = false // let Android kernel handle it; VpnBuilder sets this up
 	ns.ProcessSubnets = true   // for Android-being-an-exit-node support
+	// Replies to sockets we dial below are destined for this node's Tailscale
+	// IP. ProcessLocalIPs is false, so without this flag those replies are
+	// handed to the kernel and the userspace socket never sees them.
+	ns.CheckLocalTransportEndpoints = true
 	sys.NetstackRouter.Set(true)
 	if w, ok := sys.Tun.GetOK(); ok {
 		w.Start()
@@ -368,6 +374,29 @@ func (a *App) newBackend(dataDir string, appCtx AppContext, store *stateStore,
 	if err != nil {
 		engine.Close()
 		return nil, fmt.Errorf("runBackend: NewLocalBackend: %v", err)
+	}
+	// DNS upstreams on a peer's Tailscale IP are dialed by this process. A
+	// kernel socket to that IP is captured by the VPN service and the reply
+	// is never matched, so lookups time out (tailscale/tailscale#20983).
+	// Dial those addresses through netstack instead. Do not return the
+	// *gonet conn directly: a nil pointer would become a non-nil interface.
+	dialer.NetstackDialTCP = func(ctx context.Context, dst netip.AddrPort) (net.Conn, error) {
+		tcpConn, err := ns.DialContextTCP(ctx, dst)
+		if err != nil {
+			return nil, err
+		}
+		return tcpConn, nil
+	}
+	dialer.NetstackDialUDP = func(ctx context.Context, dst netip.AddrPort) (net.Conn, error) {
+		udpConn, err := ns.DialContextUDP(ctx, dst)
+		if err != nil {
+			return nil, err
+		}
+		return udpConn, nil
+	}
+	dialer.UseNetstackForIP = func(ip netip.Addr) bool {
+		_, ok := lb.PeerForIP(ip)
+		return ok
 	}
 	if err := ns.Start(lb); err != nil {
 		return nil, fmt.Errorf("startNetstack: %w", err)
