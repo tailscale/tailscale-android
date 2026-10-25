@@ -97,7 +97,7 @@ private fun HealthScreen(
             Icon(
                 painter = painterResource(id = R.drawable.check_circle),
                 modifier = Modifier.size(48.dp),
-                contentDescription = "A green checkmark",
+                contentDescription = stringResource(R.string.accessibility_green_checkmark),
                 tint = MaterialTheme.colorScheme.success,
             )
             Column(

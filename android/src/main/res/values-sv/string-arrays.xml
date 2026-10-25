@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="hidden_network_devices_labels">
+        <item>Aktuell användares enheter</item>
+        <item>Andra användares enheter</item>
+        <item>Taggade enheter</item>
+    </string-array>
+    <string-array name="always_never_userdecides_labels">
+        <item>Alltid</item>
+        <item>Aldrig</item>
+        <item>Användaren bestämmer</item>
+    </string-array>
+    <string-array name="show_hide_labels">
+        <item>Visa</item>
+        <item>Dölj</item>
+    </string-array>
+</resources>
