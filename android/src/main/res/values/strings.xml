@@ -1,5 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="no_access">No access</string>
+    <string name="no_ip_address">No IP address</string>
+    <string name="accessibility_arrow_forward">Arrow forward</string>
+    <string name="accessibility_computer">Computer icon</string>
+    <string name="accessibility_android">Android icon</string>
+    <string name="accessibility_globe">Globe icon</string>
+    <string name="accessibility_ping_device">Ping device</string>
+    <string name="accessibility_scan_login">Scan to log in</string>
+    <string name="accessibility_green_checkmark">A green checkmark</string>
+    <string name="accessibility_open_settings">Open settings</string>
+    <string name="accessibility_device_requires_authentication">Device requires authentication</string>
+    <string name="accessibility_single_file">One file</string>
+    <string name="accessibility_files">Files</string>
 
     <!-- Generic Strings -->
     <string name="log_in">Log in</string>

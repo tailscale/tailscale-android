@@ -215,7 +215,7 @@ fun IconForTransfer(transfers: List<Ipn.OutgoingFile>) {
     0 ->
         Icon(
             painter = painterResource(R.drawable.warning),
-            contentDescription = "no files",
+            contentDescription = stringResource(R.string.no_files_to_share),
             modifier = Modifier.size(32.dp),
         )
     1 -> {
@@ -237,7 +237,7 @@ fun IconForTransfer(transfers: List<Ipn.OutgoingFile>) {
         if (it.startsWith("image/")) {
           AsyncImage(
               model = only.uri,
-              contentDescription = "one file",
+              contentDescription = stringResource(R.string.accessibility_single_file),
               modifier = Modifier.size(40.dp),
           )
           return
@@ -245,7 +245,7 @@ fun IconForTransfer(transfers: List<Ipn.OutgoingFile>) {
 
         Icon(
             painter = painterResource(R.drawable.single_file),
-            contentDescription = "files",
+            contentDescription = stringResource(R.string.accessibility_single_file),
             modifier = Modifier.size(40.dp),
         )
       }
@@ -253,7 +253,7 @@ fun IconForTransfer(transfers: List<Ipn.OutgoingFile>) {
     else ->
         Icon(
             painter = painterResource(R.drawable.single_file),
-            contentDescription = "files",
+            contentDescription = stringResource(R.string.accessibility_files),
             modifier = Modifier.size(40.dp),
         )
   }

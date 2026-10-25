@@ -64,7 +64,7 @@ fun LoginQRView(onDismiss: () -> Unit = {}, model: LoginQRViewModel = viewModel(
           image?.let {
             Image(
                 bitmap = it,
-                contentDescription = "Scan to login",
+                contentDescription = stringResource(R.string.accessibility_scan_login),
                 modifier = Modifier.fillMaxSize(),
             )
           }
