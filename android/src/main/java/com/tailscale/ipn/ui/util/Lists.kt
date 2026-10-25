@@ -1,0 +1,152 @@
+// Copyright (c) Tailscale Inc & AUTHORS
+// SPDX-License-Identifier: BSD-3-Clause
+
+package com.tailscale.ipn.ui.util
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyItemScope
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+
+object Lists {
+  @Composable
+  fun SectionDivider(title: String? = null) {
+    Box(Modifier.size(0.dp, 16.dp))
+    title?.let { LargeTitle(title) }
+  }
+
+  @Composable
+  fun ItemDivider() {
+    HorizontalDivider(
+        color = MaterialTheme.colorScheme.outlineVariant,
+        modifier = Modifier.fillMaxWidth(),
+    )
+  }
+
+  @Composable
+  fun LargeTitle(
+      title: String,
+      bottomPadding: Dp = 0.dp,
+      style: TextStyle = MaterialTheme.typography.titleMedium,
+      fontWeight: FontWeight? = null,
+      focusable: Boolean = false,
+      backgroundColor: Color = MaterialTheme.colorScheme.surface,
+      fontColor: Color? = null,
+      leadingIcon: (@Composable () -> Unit)? = null,
+  ) {
+    Box(
+        modifier =
+            Modifier.fillMaxWidth().background(color = backgroundColor, shape = RectangleShape)
+    ) {
+      Row(
+          modifier =
+              Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = bottomPadding)
+                  .focusable(focusable),
+          verticalAlignment = Alignment.CenterVertically,
+          horizontalArrangement = Arrangement.spacedBy(4.dp),
+      ) {
+        leadingIcon?.invoke()
+        Text(
+            text = title,
+            style = style,
+            fontWeight = fontWeight,
+            color = fontColor ?: Color.Unspecified,
+        )
+      }
+    }
+  }
+
+  @Composable
+  fun MutedHeader(text: String) {
+    Box(
+        modifier =
+            Modifier.fillMaxWidth()
+                .background(color = MaterialTheme.colorScheme.surface, shape = RectangleShape)
+    ) {
+      Text(
+          modifier = Modifier.padding(start = 16.dp, top = 16.dp),
+          text = text,
+          style = MaterialTheme.typography.titleSmall,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+      )
+    }
+  }
+
+  @Composable
+  fun InfoItem(text: CharSequence, onClick: (() -> Unit)? = null) {
+    val style =
+        MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+    ListItem(
+        headlineContent = {
+          Box(modifier = Modifier.padding(vertical = 4.dp)) {
+            onClick?.let {
+              Text(
+                  text = text as AnnotatedString,
+                  style = style,
+                  modifier = Modifier.clickable { onClick() },
+              )
+            } ?: run { Text(text as String, style = style) }
+          }
+        }
+    )
+  }
+
+  @Composable
+  fun MultilineDescription(headlineContent: @Composable () -> Unit) {
+    ListItem(
+        headlineContent = {
+          Box(modifier = Modifier.padding(vertical = 8.dp)) { headlineContent() }
+        }
+    )
+  }
+}
+
+/** Similar to items() but includes a horizontal divider between items. */
+
+/** Similar to items() but includes a horizontal divider between items. */
+inline fun <T> LazyListScope.itemsWithDividers(
+    items: List<T>,
+    noinline key: ((item: T) -> Any)? = null,
+    forceLeading: Boolean = false,
+    crossinline contentType: (item: T) -> Any? = { _ -> null },
+    crossinline itemContent: @Composable LazyItemScope.(item: T) -> Unit,
+) =
+    items(
+        count = items.size,
+        key = if (key != null) { index: Int -> key(items[index]) } else null,
+        contentType = { index -> contentType(items[index]) },
+    ) {
+      if (forceLeading && it == 0 || it > 0 && it < items.size) {
+        Lists.ItemDivider()
+      }
+      itemContent(items[it])
+    }
+
+inline fun <T> LazyListScope.itemsWithDividers(
+    items: Array<T>,
+    noinline key: ((item: T) -> Any)? = null,
+    forceLeading: Boolean = false,
+    crossinline contentType: (item: T) -> Any? = { _ -> null },
+    crossinline itemContent: @Composable LazyItemScope.(item: T) -> Unit,
+) = itemsWithDividers(items.toList(), key, forceLeading, contentType, itemContent)

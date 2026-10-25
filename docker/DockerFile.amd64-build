@@ -1,0 +1,47 @@
+# This is a Dockerfile for creating a build environment for
+# tailscale-android.
+
+FROM --platform=linux/amd64 eclipse-temurin:21-jdk-jammy
+
+ENV HOME /build
+ENV ANDROID_HOME $HOME/android-sdk
+ENV ANDROID_SDK_ROOT $ANDROID_HOME
+ENV PATH $PATH:$HOME/bin:$ANDROID_HOME/platform-tools
+
+RUN mkdir -p \
+    ${HOME} \
+    /android-sdk \
+    ${ANDROID_HOME} \
+    $HOME/tailscale-android
+
+# To enable running android tools such as aapt
+COPY scripts/docker-build-apt-get.sh /tmp
+RUN chmod 755 /tmp/docker-build-apt-get.sh && \
+    /tmp/docker-build-apt-get.sh && \
+    rm -f /tmp/docker-build-apt-get.sh
+
+# We need some version of Go new enough to support the "embed" package
+# to run "go run tailscale.com/cmd/printdep" to figure out which Tailscale Go
+# version we need later, but otherwise this toolchain isn't used:
+RUN \
+    curl -L https://go.dev/dl/go1.26.5.linux-amd64.tar.gz | tar -C /usr/local -zxv && \
+    ln -s /usr/local/go/bin/go /usr/bin
+
+RUN git config --global --add safe.directory $HOME/tailscale-android
+WORKDIR $HOME/tailscale-android
+
+COPY Makefile Makefile
+COPY android/gradle.properties android/gradle.properties
+
+# Get android sdk, ndk, and rest of the stuff needed to build the android app.
+RUN make androidsdk
+
+# Preload Gradle
+COPY android/gradlew android/build.gradle.kts android/
+COPY android/gradle android/gradle
+
+RUN chmod 755 android/gradlew && \
+    ./android/gradlew
+
+# Build the android app, bump the playstore version code, and make the tv release
+CMD make clean && make release && make release-tv

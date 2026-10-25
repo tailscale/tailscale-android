@@ -1,0 +1,419 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="no_access">No access</string>
+    <string name="no_ip_address">No IP address</string>
+    <string name="accessibility_arrow_forward">Arrow forward</string>
+    <string name="accessibility_computer">Computer icon</string>
+    <string name="accessibility_android">Android icon</string>
+    <string name="accessibility_globe">Globe icon</string>
+    <string name="accessibility_ping_device">Ping device</string>
+    <string name="accessibility_scan_login">Scan to log in</string>
+    <string name="accessibility_green_checkmark">A green checkmark</string>
+    <string name="accessibility_open_settings">Open settings</string>
+    <string name="accessibility_device_requires_authentication">Device requires authentication</string>
+    <string name="accessibility_single_file">One file</string>
+    <string name="accessibility_files">Files</string>
+
+    <!-- Generic Strings -->
+    <string name="log_in">Log in</string>
+    <string name="log_out">Log out</string>
+    <string name="none">None</string>
+    <string name="connect">Connect</string>
+    <string name="disconnect">Disconnect</string>
+    <string name="unknown_user">Unknown user</string>
+    <string name="connected">Connected</string>
+    <string name="using_exit_node">Using exit node (%s)</string>
+    <string name="not_connected">Not connected</string>
+    <string name="empty" translatable="false"> </string>
+    <string name="template" translatable="false">%s</string>
+    <string name="selected">Selected</string>
+    <string name="offline">Offline</string>
+    <string name="ok">OK</string>
+    <string name="_continue">Continue</string>
+    <string name="warning">Warning</string>
+    <string name="search">Search</string>
+    <string name="search_ellipsis">Search...</string>
+    <string name="dismiss">Dismiss</string>
+    <string name="no_results">No results</string>
+    <string name="back">Back</string>
+    <string name="clear_search">Clear search</string>
+    <string name="off">Off</string>
+    <string name="on">On</string>
+    <string name="try_again">Try again</string>
+    <string name="cancel">Cancel</string>
+
+    <!-- Strings for the about screen -->
+    <string name="app_name" translatable="false">Tailscale</string>
+    <string name="tile_name" translatable="false">Tailscale</string>
+    <string name="version">Version</string>
+    <string name="about_view_header">About Tailscale</string>
+    <string name="about_view_title">Tailscale for Android</string>
+    <string name="acknowledgements">Acknowledgements</string>
+    <string name="privacy_policy">Privacy Policy</string>
+    <string name="terms_of_service">Terms of Service</string>
+    <string name="about_view_footnotes">WireGuard is a registered trademark of Jason A. Donenfeld.\n\n© Tailscale Inc. All rights reserved.\nTailscale is a registered trademark of Tailscale Inc.</string>
+    <string name="managed_by">Managed by</string>
+
+    <!-- Strings for the bug reporting screen -->
+    <string name="bug_report_title">Report a bug</string>
+    <string name="bug_report_instructions_prefix">To report a bug,&#160;</string>
+    <string name="bug_report_instructions_linktext">contact our support team&#160;</string>
+    <string name="bug_report_instructions_suffix"> and include the identifier below.</string>
+    <string name="bug_report_id_desc">This ID helps us find the event in our diagnostic logs. This process does not share any of your personally-identifiable information.</string>
+
+    <!-- Strings for the settings screen -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_admin_prefix">"Manage your tailnet settings in the "</string>
+    <string name="settings_admin_link">admin console</string>
+    <string name="about_tailscale">About Tailscale</string>
+    <string name="bug_report">Bug report</string>
+    <string name="use_ts_dns">Use Tailscale DNS</string>
+    <string name="internal_debug_options">Internal debug options</string>
+
+    <!-- Strings for the main screen -->
+    <string name="exit_node">EXIT NODE</string>
+    <string name="exit_node_offline">EXIT NODE OFFLINE</string>
+    <string name="running_exit_node">Running on this device</string>
+    <string name="exit_node_offline_mdm_orgname">The exit node selected by %1$s is currently offline. Internet traffic is blocked. Contact a network administrator for help.</string>
+    <string name="exit_node_offline_mdm">The exit node selected by your organization is currently offline. Internet traffic is blocked. Contact a network administrator for help.</string>
+    <string name="starting">Starting…</string>
+    <string name="connect_to_tailnet_prefix">"Connect again to talk to the other devices in the "</string>
+    <string name="connect_to_tailnet_suffix">" tailnet."</string>
+    <string name="welcome_to_tailscale">Welcome to Tailscale</string>
+    <string name="login_to_join_your_tailnet">Log in to join your tailnet and connect your devices.</string>
+    <string name="give_permissions">Set up a VPN connection so you can start using Tailscale.</string>
+    <string name="keyExpiryExplainer">Reauthenticate to remain connected to Tailscale.</string>
+    <string name="deviceKeyNeverExpires">Device key does not expire</string>
+    <string name="deviceKeyExpires">Device key expires %s</string>
+    <string name="deviceKeyExpired">Device key expired %s</string>
+    <string name="key_expiry_notification_title">Tailscale sign-in expires soon</string>
+    <string name="key_expiry_notification_body">Reauthenticate to keep this device connected to your tailnet.</string>
+    <string name="machine_auth_required">Admin approval required</string>
+    <string name="machine_auth_explainer">This device must be approved by an administrator before it can connect to the tailnet.</string>
+    <string name="open_admin_console">Open admin console</string>
+    <string name="needs_machine_auth">Authorization required</string>
+    <string name="disable">Disable</string>
+    <string name="enable">Enable</string>
+    <string name="stop">Stop</string>
+
+    <!-- Strings for peer details -->
+    <string name="os">OS</string>
+    <string name="key_expiry">Key expiry</string>
+    <string name="tailscale_addresses">Tailscale addresses</string>
+
+    <!-- Strings for MDM settings -->
+    <string name="current_mdm_settings">Current MDM settings</string>
+    <string name="mdm_settings">MDM settings</string>
+    <string name="managed_by_orgName">Managed by %1$s</string>
+    <string name="managed_by_explainer">Your organization is managing Tailscale on this device. Some features might have been customized or hidden by your system administrator.</string>
+    <string name="managed_by_explainer_orgName">%1$s is managing Tailscale on this device. Some features might have been customized or hidden by your system administrator.</string>
+    <string name="open_support">Open support</string>
+
+    <!-- State strings -->
+    <string name="placeholder" translatable="false">--</string>
+    <string name="please_login">Login required</string>
+    <string name="stopped">Not connected</string>
+    <string name="connect_to_vpn">Connect to VPN</string>
+
+    <!-- Time conversion templates -->
+    <string name="under_a_minute">under a minute</string>
+    <string name="in_x_minutes">in %d minutes</string>
+    <string name="in_x_hours">in %d hours</string>
+    <string name="in_x_days">in %d days</string>
+    <string name="in_x_months">in %d months</string>
+    <string name="in_x_years">in %.1f years</string>
+
+    <string name="ago_x_minutes">%d minutes ago</string>
+    <string name="ago_x_hours">%d hours ago</string>
+    <string name="ago_x_days">%d days ago</string>
+    <string name="ago_x_months">%d months ago</string>
+    <string name="ago_x_years">%.1f years ago</string>
+
+    <!-- Strings for the user switcher -->
+    <string name="logout_failed">Unable to logout at this time. Please try again.</string>
+    <string name="error">Error</string>
+    <string name="accounts">Accounts</string>
+    <string name="add_account">Add another account</string>
+    <string name="add_account_short">Add account</string>
+    <string name="reauthenticate">Reauthenticate</string>
+    <string name="switch_user_failed">Unable to switch users. Please try again.</string>
+    <string name="add_profile_failed">Unable to add a new profile. Please try again.</string>
+    <string name="invalidCustomUrl">Please enter a valid URL in the form https://server.com</string>
+    <string name="invalidCustomURLTitle">Invalid URL</string>
+    <string name="custom_control_menu">Use an alternate server</string>
+    <string name="custom_control_menu_desc">Enter the URL of an alternate Tailscale server or your self-hosted Headscale server.</string>
+    <string name="custom_control_placeholder" translatable="false">https://my.custom.server.com</string>
+    <string name="auth_key_menu">Use an auth key</string>
+    <string name="auth_key_title">Add an account using an auth key</string>
+    <string name="auth_key_explanation">Enter a valid auth key generated by the Tailscale admin console</string>
+    <string name="auth_key_placeholder">ie: tskey-auth-mYta1ln3tCNTRL-s3cr3tauthk3yFr0madM1n</string>
+    <string name="invalidAuthKey">The provided auth key is not in the correct format.</string>
+    <string name="invalidAuthKeyTitle">Invalid key</string>
+    <string name="custom_control_url_title">Custom control server URL</string>
+    <string name="auth_key_input_title">Auth key</string>
+    <string name="delete_tailnet">Delete tailnet</string>
+    <string name="contact_support">Contact support</string>
+    <string name="request_deletion_nonowner">All requests related to the removal or deletion of data are handled by our Support team. To open a request, tap the Contact Support button below to be taken to our contact form in the browser. Complete the form, and a Customer Support Engineer will work with you directly to assist.</string>
+    <string name="request_deletion_owner_part1">As the owner of this tailnet, to remove yourself from the tailnet you can either reassign ownership and contact our Support team, or delete the whole tailnet through the admin console. To do the latter, go to</string>
+    <string name="request_deletion_owner_part2a">and look for “Delete tailnet”.</string>
+
+    <string name="request_deletion_owner_part2b">All requests related to the removal or deletion of data are handled by our Support team. To open a request, tap the Contact Support button below to be taken to our contact form in the browser. Complete the form, and a Customer Support Engineer will work with you directly to assist.</string>
+
+    <!-- Strings for ExitNode picker -->
+    <string name="choose_exit_node">Choose exit node</string>
+    <string name="choose_mullvad_exit_node">Mullvad exit nodes</string>
+    <string name="mullvad_exit_nodes" translatable="false">Mullvad VPN</string>
+    <string name="best_available">Best available</string>
+    <string name="run_as_exit_node">Run as exit node</string>
+    <string name="run_this_device_as_an_exit_node">Run as exit node?</string>
+    <string name="run_exit_node_explainer">Other devices in your tailnet will be able to route their internet traffic through this Android device. Make sure to approve this exit node in the admin console in order for other devices to see it.</string>
+    <string name="run_exit_node_caution">Running an exit node will severely impact battery life. On a metered data plan, significant cellular data charges may also apply. Always disable this feature when no longer needed.</string>
+    <string name="stop_running_as_exit_node">Stop running as exit node</string>
+    <string name="start_running_as_exit_node">Run as exit node</string>
+    <string name="running_as_exit_node">Now running as exit node</string>
+    <string name="run_exit_node_explainer_running">Other devices in your tailnet can now route their internet traffic through this Android device. Make sure to approve this exit node in the admin console in order for other devices to see it.</string>
+    <string name="enabled">Enabled</string>
+    <string name="disabled">Disabled</string>
+    <string name="exit_node_mdm_orgname">%1$s requires you to use an exit node.</string>
+    <string name="exit_node_mdm">Your organization requires you to use an exit node.</string>
+
+    <!-- Strings for the tailnet lock screen -->
+    <string name="tailnet_lock">Tailnet lock</string>
+    <string name="tailnet_lock_explainer">"Tailnet lock lets devices in your network verify public keys distributed by the coordination server before trusting them for connectivity. "</string>
+    <string name="tailnet_lock_enabled">Tailnet lock is currently enabled.</string>
+    <string name="tailnet_lock_disabled">Tailnet lock is currently not enabled.</string>
+    <string name="this_node_has_been_signed">This node has been signed by another device.</string>
+    <string name="this_node_has_not_been_signed">This node has not been signed by another device.</string>
+    <string name="this_node_is_trusted">This node is trusted to change the Tailnet lock configuration.</string>
+    <string name="this_node_is_not_trusted">This node is not trusted to change the Tailnet lock configuration.</string>
+    <string name="copy_to_clipboard">Copy to clipboard</string>
+    <string name="copy">Copy</string>
+    <string name="copied">Copied</string>
+    <string name="node_key">Node key</string>
+    <string name="tailnet_lock_key">Tailnet lock key</string>
+    <string name="node_key_explainer">Used to sign this node from another signing device in your tailnet.</string>
+    <string name="tailnet_lock_key_explainer">Used to authorize changes to the Tailnet lock configuration.</string>
+
+    <!-- Strings for the bug report screen -->
+    <string name="bug_report_id">Bug report ID</string>
+    <string name="learn_more">Learn more</string>
+
+    <!-- Strings for DNS settings -->
+    <string name="dns_settings">DNS settings</string>
+    <string name="using_tailscale_dns">Using Tailscale DNS</string>
+    <string name="this_device_is_using_tailscale_to_resolve_dns_names">This device is using Tailscale to resolve DNS names.</string>
+    <string name="resolvers">Resolvers</string>
+    <string name="search_domains">Search domains</string>
+    <string name="not_running">Not running</string>
+    <string name="tailscale_is_not_running_this_device_is_using_the_system_dns_resolver">Tailscale is not running. This device is using the system\'s DNS resolver.</string>
+    <string name="this_device_is_using_the_system_dns_resolver">This device is using the system DNS resolver.</string>
+    <string name="not_using_tailscale_dns">Not using Tailscale DNS</string>
+    <string name="allow_lan_access">Allow LAN access</string>
+    <string name="countries">countries</string>
+    <string name="cities_available">cities available</string>
+
+    <!-- Strings for MDM Settings Manifest (app_restrictions.xml) -->
+    <string name="prevents_the_user_from_disconnecting_tailscale">Prevents the user from disconnecting Tailscale.</string>
+    <string name="force_enabled_connection_toggle">Force enabled connection toggle</string>
+    <string name="exit_node_id">Exit node ID</string>
+    <string name="forces_the_tailscale_client_to_always_use_the_exit_node_with_the_given_id">Forces the Tailscale client to always use the exit node with the given ID.</string>
+    <string name="managed_by_organization_name">Managed by - organization name</string>
+    <string name="managed_by_caption">Managed by - caption</string>
+    <string name="managed_by_url">Managed by - URL</string>
+    <string name="shows_a_button_to_open_support_resources_next_to_the_organization_name">Shows a button to open support resources next to the organization name.</string>
+    <string name="shows_the_given_caption_next_to_the_organization_name_in_the_client">Shows the given caption next to the organization name in the client.</string>
+    <string name="shows_the_given_organization_name_in_the_client">Shows the given organization name in the client.</string>
+    <string name="the_tailnet_policy_allows_the_organization_to_specify_a_tailnet">The Tailnet policy allows the organization to specify a tailnet, its identity provider will be used on the login page. If the policy value is prefixed with required:, Tailscale will force that identity provider to be used and won’t allow logging in with anything else.</string>
+    <string name="required_suggested_tailnet">Required/Suggested Tailnet</string>
+    <string name="custom_control_server_url">Custom control server URL</string>
+    <string name="use_this_field_to_specify_a_custom_coordination_server_url_such_as_a_headscale_instance">Use this field to specify a custom coordination server URL, such as a Headscale instance.</string>
+    <string name="hidden_network_devices">Hidden network devices</string>
+    <string name="hides_the_specified_categories_of_network_devices_from_the_devices_list_in_the_client">Hides the specified categories of network devices from the devices list in the client.</string>
+    <string name="allow_lan_access_when_using_an_exit_node">Allow LAN access when using an exit node</string>
+    <string name="enable_posture_checking">Enable posture checking</string>
+    <string name="device_serial_number">Serial number of the device that is running Tailscale</string>
+    <string name="device_serial_number_descr">Allows administrators to pass the serial number of the device to Tailscale client using MDM.</string>
+    <string name="use_tailscale_dns_settings">Use Tailscale DNS settings</string>
+    <string name="use_tailscale_subnets">Use Tailscale subnets</string>
+    <string name="allow_incoming_connections">Allow incoming connections</string>
+    <string name="exit_node_picker_visibility">Exit node picker visibility</string>
+    <string name="shows_or_hides_the_exit_node_picker_in_the_main_view_of_the_app">Shows or hides the exit node picker in the main view of the app.</string>
+    <string name="shows_or_hides_the_tailnet_lock_configuration_ui">Shows or hides the Tailnet lock configuration UI.</string>
+    <string name="manage_tailnet_lock_visibility">Manage Tailnet lock visibility</string>
+    <string name="shows_or_hides_the_ui_to_run_the_android_device_as_an_exit_node">Shows or hides the UI to run the Android device as an exit node.</string>
+    <string name="run_as_exit_node_visibility">Run as exit node visibility</string>
+    <string name="defines_an_auth_key_that_will_be_used_for_login">Defines an auth key that will be used for login.</string>
+    <string name="auth_key">Auth Key</string>
+    <string name="skips_the_intro_page_shown_to_users_that_open_the_app_for_the_first_time">Skips the intro page shown to users that open the app for the first time</string>
+    <string name="onboarding_flow">Skip the Onboarding Flow</string>
+
+    <!-- Permissions Management -->
+    <string name="permissions">Permissions</string>
+    <string name="permission_write_external_storage">Storage</string>
+    <string name="permission_write_external_storage_needed">We use storage in order to receive files with Taildrop.</string>
+    <string name="permission_post_notifications">Notifications</string>
+    <string name="permission_post_notifications_needed">We use notifications to help you troubleshoot broken connections, or notify you before you need to reauthenticate to your network. Persistent status notifications are off by default and can be enabled in system settings. </string>
+    <string name="open_notification_settings">Go to notification settings</string>
+    <string name="notification_settings_explanation">Persistent status notifications are off by default and can be enabled in system settings.</string>
+    <string name="taildrop_dir">Taildrop directory</string>
+    <string name="taildrop_dir_access">Taildrop directory access</string>
+    <string name="permission_taildrop_dir">Give Tailscale access to a folder in order to be able to download incoming files sent to you via Taildrop.</string>
+    <string name="dir_access">Directory access</string>
+    <string name="pick_dir">Pick a different directory</string>
+
+    <!-- Strings for the share activity -->
+    <string name="share">Send with Taildrop</string>
+    <string name="share_device_not_connected">Unable to share files with this device. This device is not currently connected to the tailnet.</string>
+    <string name="no_files_to_share">No files to share</string>
+    <string name="file_count">%1$s files</string>
+    <string name="connect_to_your_tailnet_to_share_files">Connect to your tailnet to share files.</string>
+    <string name="my_devices">My devices</string>
+    <string name="taildrop_recently_used">Recently used</string>
+    <string name="taildrop_all_devices">All devices</string>
+    <string name="no_devices_to_share_with">There are no devices on your tailnet to share to</string>
+    <string name="taildrop_share_failed">Taildrop failed. Some files were not shared. Please try again.</string>
+    <string name="taildrop_sending">Sending</string>
+    <string name="taildrop_share_failed_short">Failed</string>
+
+
+    <!-- Error Dialog Titles -->
+    <string name="logout_failed_title">Logout failed</string>
+    <string name="switch_user_failed_title">Cannot switch to user</string>
+    <string name="add_profile_failed_title">Unable to add profile</string>
+    <string name="share_device_not_connected_title">Not connected</string>
+    <string name="taildrop_share_failed_title">Taildrop failed</string>
+
+    <!-- Strings for the intro screen -->
+    <string name="getStarted">Get Started</string>
+    <string name="welcome1">Tailscale is a mesh VPN for securely connecting your devices.</string>
+    <string name="welcome2">All connections are device-to-device, so we never see your data. We collect and use your email address and name, as well as your device name, OS version, and IP address in order to help you to connect your devices and manage your settings. We log when you are connected to your network.</string>
+    <string name="scan_to_connect_to_your_tailnet">Scan this QR code to log in to your tailnet</string>
+    <string name="enter_code_to_connect_to_tailnet">or enter this code in the Machines > Add device section of the admin console: </string>
+
+    <!-- Strings for intent handling -->
+    <string name="vpn_is_not_ready_to_start">VPN is not ready to start</string>
+    <string name="tailscale_is_not_setup">Tailscale is not setup</string>
+    <string name="no_peers_found">No peers found</string>
+    <string name="no_peers_with_name_found">No peers with name %1$s found</string>
+    <string name="multiple_peers_with_name_found">Multiple peers with name %1$s found</string>
+    <string name="peer_with_name_is_not_an_exit_node">Peer with name %1$s is not an exit node</string>
+    <string name="use_exit_node_intent_failed">Use Exit Node Intent Failed</string>
+
+    <!-- Strings for the IPNReceiver -->
+    <string name="title_connection_failed">Tailscale Connection Failed</string>
+    <string name="body_open_tailscale">Tap here to open Tailscale.</string>
+
+    <!-- Strings describing notification channels -->
+    <string name="taildrop_file_transfers">Taildrop file transfers</string>
+    <string name="vpn_status">VPN status</string>
+    <string name="vpn_start">VPN start</string>
+    <string name="notifications_delivered_when_user_interaction_is_required_to_establish_the_vpn_tunnel">Notifications delivered when user interaction is required to establish the VPN tunnel.</string>
+    <string name="optional_notifications_which_display_the_status_of_the_vpn_tunnel">Optional notifications which display the status of the VPN tunnel.</string>
+    <string name="notifications_delivered_when_a_file_is_received_using_taildrop">Notifications delivered when a file is received using Taildrop.</string>
+    <string name="health_channel_name">Errors and warnings</string>
+    <string name="health_channel_description">This notification category is used to deliver important status notifications and should be left enabled. For instance, it is used to notify you about errors or warnings that affect Internet connectivity.</string>
+    <string name="key_expiry_channel_name">Key expiry</string>
+    <string name="key_expiry_channel_description">Notifications when your Tailscale device key is about to expire.</string>
+    <string name="copy_ip_address">Copy IP Address</string>
+    <string name="ping">Ping</string>
+    <string name="relayed_connection">Relayed connection (%1$s)</string>
+    <string name="direct_connection">Direct connection</string>
+    <string name="peer_relayed_connection">Peer relayed connection</string>
+    <string name="pinging_node_name">Pinging %1$s</string>
+    <string name="pingFailed">Ping failed</string>
+    <string name="an_unknown_error_occurred_please_try_again">An unknown error occurred. Please try again.</string>
+    <string name="request_timed_out_make_sure_that_is_online">Request timed out. Make sure that \'%1$s\' is online.</string>
+    <string name="split_tunneling">App split tunneling</string>
+    <string name="your_current_selection_will_be_cleared">Your current selection will be cleared.</string>
+    <string name="filter_apps_allowed_to_access_tailscale">Filter what apps are allowed to access Tailscale.</string>
+    <string name="selected_apps_will_access_the_internet_directly_without_using_tailscale">Apps you select will access the internet without using Tailscale.</string>
+    <string name="selected_apps_will_access_tailscale">Only apps you select will be allowed to access Tailscale.</string>
+    <string name="count_excluded_apps">Excluded apps (%1$s)</string>
+    <string name="count_included_apps">Included apps (%1$s)</string>
+    <string name="certain_apps_are_not_routed_via_tailscale">Certain apps are not routed via Tailscale on this device. This setting is managed by your organization and cannot be changed by you. For more information, contact your network administrator.</string>
+    <string name="only_specific_apps_are_routed_via_tailscale">Only specific apps are routed via Tailscale on this device. This setting is managed by your organization and cannot be changed by you. For more information, contact your network administrator.</string>
+    <string name="switch_to_select_to_include">Switch to including</string>
+    <string name="switch_to_select_to_exclude">Switch to excluding</string>
+    <string name="switch_warning_dialog_title">Selected apps will be reset</string>
+    <string name="switch_warning_dialog_description">By switching filters, all your previously selected applications will be reset. Please ensure that this is intended.</string>
+    <string name="specifies_a_list_of_apps_that_will_be_excluded_from_tailscale_routes_and_dns_even_when_tailscale_is_running_all_other_apps_will_use_tailscale">Specifies a list of apps that will be excluded from Tailscale routes and DNS even when Tailscale is running. All other apps will use Tailscale.</string>
+    <string name="specifies_a_list_of_apps_that_will_always_use_tailscale_routes_and_dns_when_tailscale_is_running_all_other_apps_won_t_use_tailscale_if_this_value_is_non_empty">Specifies a list of apps that will always use Tailscale routes and DNS when Tailscale is running. All other apps won\'t use Tailscale if this value is non-empty.</string>
+    <string name="included_packages">Included packages</string>
+    <string name="excluded_packages">Excluded packages</string>
+
+    <!-- Strings for the Mullvad info view -->
+    <string name="enable_in_the_admin_console">Enable in the admin console</string>
+    <string name="mullvad_info_explainer">Once you enable Mullvad VPN on the admin console, you\'ll be able to encrypt and route your traffic using Mullvad’s global network of servers as exit nodes.</string>
+    <string name="mullvad_info_title">Mullvad VPN is not configured</string>
+    <string name="the_mullvad_vpn_logo">The Mullvad VPN logo</string>
+    <string name="health_warnings">Health warnings</string>
+    <string name="no_issues_found">No issues found</string>
+    <string name="tailscale_is_operating_normally">Tailscale is operating normally.</string>
+
+    <!-- Strings for the multiple VPNs dialog -->
+    <string name="vpn_permission_denied">VPN permission denied</string>
+    <string name="multiple_vpn_explainer">Only one VPN can be active, and it appears another is already running. Before starting Tailscale, disable the other VPN.</string>
+    <string name="go_to_settings">Go to Settings</string>
+    <string name="subnet_routes">Subnet routes</string>
+    <string name="run_as_subnet_router_header">Advertise routes to machines that are not running Tailscale to make them available in your tailnet. Routes must be approved in the admin console.</string>
+    <string name="open_kb_article">Open KB Article</string>
+    <string name="delete_route">Delete route</string>
+    <string name="edit_route">Edit route</string>
+    <string name="enter_valid_route">Enter an IPv4 or IPv6 route in CIDR format.</string>
+    <string name="advertised_routes">Advertised routes</string>
+    <string name="no_advertised_routes">No advertised routes</string>
+    <string name="add_new_route">Add route</string>
+    <string name="invalid_route">Invalid route</string>
+    <string name="valid_route">Valid route</string>
+    <string name="route_help_text">e.g. 192.168.1.0/24</string>
+    <string name="run_as_subnet_router">Run as subnet router</string>
+    <string name="use_tailscale_subnets_subtitle">Route traffic according to your network\'s rules. Some networks require this to access IP addresses that don\'t start with 100.x.y.z.</string>
+    <string name="subnet_routing">Subnet routing</string>
+    <string name="client_remote_logging_enabled">Remote client logging</string>
+    <string name="client_remote_logging_enabled_subtitle">Whether debug &amp; opt-in flow logs are uploaded.</string>
+    <string name="client_remote_logging_enabled_subtitle_mdm">Client logging is always enabled for devices under remote management.</string>
+    <string name="client_remote_logging_disable_confirm_title">Disable remote client logging?</string>
+    <string name="client_remote_logging_disable_confirm_message">Disabling remote client logging will break Network Flow Logs if enabled and required by your tailnet admin, and will prevent Tailscale Support from being able to help debug problems with this device.</string>
+    <string name="client_remote_logging_disable_confirm_button">Yes, disable</string>
+    <string name="specifies_a_device_name_to_be_used_instead_of_the_automatic_default">Specifies a device name to be used instead of the automatic default.</string>
+    <string name="hostname">Hostname</string>
+    <string name="failed_to_save">Failed to save</string>
+
+    <!-- Strings for fallback VPN dialog -->
+    <string name="vpn_permission_needed">VPN permission needed</string>
+    <string name="vpn_explainer">Tailscale needs VPN access, but it looks like your device may not show VPN settings. If you are using another VPN app or have work policies, disable them first, then try again.</string>
+
+    <!-- Strings for the taildrop directory picker interstitial -->
+    <string name="taildrop_directory_picker_title">Taildrop Directory</string>
+    <string name="taildrop_directory_picker_body">You have not selected a directory for incoming taildrop transfers. Please select or create a target directory.</string>
+    <string name="taildrop_directory_picker_info">What is taildrop?</string>
+    <string name="taildrop_directory_picker_button">Open Directory Picker</string>
+
+    <!-- Strings for Taildrop receive notifications and in-app banner/sheet -->
+    <string name="taildrop_link_received">Taildrop link received</string>
+    <string name="taildrop_text_received">Taildrop text received</string>
+    <string name="taildrop_file_received">Taildrop file received</string>
+    <string name="taildrop_tap_to_open">Tap to open</string>
+    <string name="taildrop_tap_to_copy">Tap to copy</string>
+    <string name="taildrop_saved_in_directory">Saved in Taildrop directory</string>
+    <string name="taildrop_received_sheet_title">Received via Taildrop</string>
+    <string name="taildrop_pending_count">Received %1$d Taildrop items</string>
+    <string name="taildrop_copied_to_clipboard">Copied to clipboard</string>
+    <string name="taildrop_done">Done</string>
+    <string name="taildrop_dismiss">Dismiss</string>
+    <string name="taildrop_open_folder">Open Taildrop folder</string>
+
+    <!-- Strings for Hardware Attestation MDM setting -->
+    <string name="enable_hardware_attestation">Enable hardware attestation</string>
+    <string name="use_hardware_backed_keys_to_bind_node_identity_to_the_device">Use hardware-backed keys to bind node identity to the device</string>
+
+    <!-- Strings for Pinned Favorites -->
+    <string name="pinned_devices">Pinned Devices</string>
+
+    <!-- Strings for device dropdown menu -->
+    <string name="pin_device">Pin device</string>
+    <string name="unpin_device">Unpin device</string>
+    <string name="copy_magic_dns_address">Copy MagicDNS hostname</string>
+    <string name="copy_ipv4_address">Copy IPv4</string>
+    <string name="copy_ipv6_address">Copy IPv6</string>
+</resources>

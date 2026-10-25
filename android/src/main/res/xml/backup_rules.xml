@@ -1,0 +1,9 @@
+<?kml version="1.0" encoding="utf-8"?>
+<!-- data_extraction_rules but for devices below Android 12 -->
+<full-backup-content>
+    <exclude domain="root"/>
+    <exclude domain="file"/>
+    <exclude domain="database"/>
+    <exclude domain="sharedpref"/>
+    <exclude domain="external"/>
+</full-backup-content>

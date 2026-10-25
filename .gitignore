@@ -1,0 +1,59 @@
+# Ignore Gradle project-specific cache directory
+.gradle
+
+# Ignore Gradle build output directory
+build
+
+# The destination for the Go Android archive.
+android/libs
+android_legacy/libs
+
+# Ignore ABI
+android/src/main/jniLibs/*
+
+# Android Studio files
+android_legacy/.idea
+android_legacy/local.properties
+android/.idea
+android/local.properties
+.idea
+
+# Output files from the Makefile:
+*.apk
+*.aab
+
+# Signing key
+tailscale.jks
+
+# android sdk dir
+/android-sdk/
+
+# Persistent $HOME/.android for `make docker-*` (keeps debug.keystore so
+# the debug signer is stable across container runs).
+.android-docker
+.android-integration-docker
+.cache-docker
+.gradle-docker
+
+# Java profiling output
+*.hprof
+
+#IDE
+.vscode
+.idea
+
+# Native libraries
+*.stripped
+*.unstripped
+
+# Debug symbols
+*.debug
+
+libtailscale.aar
+libtailscale-sources.jar
+.DS_Store
+
+tailscale.version
+
+# local tmp folder
+.tmp/

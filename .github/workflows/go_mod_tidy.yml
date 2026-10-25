@@ -1,0 +1,35 @@
+name: go mod tidy
+
+on:
+  push:
+    branches:
+      - main
+      - "release-branch/*"
+  pull_request:
+    # all PRs on all branches
+
+concurrency:
+  group: ${{ github.workflow }}-$${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  check-go-mod-tidy:
+    runs-on: [ubuntu-latest]
+    timeout-minutes: 8
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Go
+        uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # v5.4.0
+        with:
+          cache: false
+          go-version-file: go.mod
+
+      - name: Check 'go mod tidy' is clean
+        run: |
+          ./tool/go mod tidy
+          echo
+          echo
+          git diff --name-only --exit-code || (echo "The files above need updating. Please run 'go mod tidy'."; exit 1)

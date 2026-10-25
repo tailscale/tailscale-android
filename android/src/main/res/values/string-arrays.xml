@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="hidden_network_devices" translatable="false">
+        <item>current-user</item>
+        <item>other-users</item>
+        <item>tagged-devices</item>
+    </string-array>
+    <string-array name="hidden_network_devices_labels" translatable="true">
+        <item>Current user devices</item>
+        <item>Other users devices</item>
+        <item>Tagged devices</item>
+    </string-array>
+    <string-array name="always_never_userdecides" translatable="false">
+        <item>always</item>
+        <item>never</item>
+        <item>user-decides</item>
+    </string-array>
+    <string-array name="always_never_userdecides_labels" translatable="true">
+        <item>Always</item>
+        <item>Never</item>
+        <item>User Decides</item>
+    </string-array>
+    <string-array name="show_hide" translatable="false">
+        <item>show</item>
+        <item>hide</item>
+    </string-array>
+    <string-array name="show_hide_labels" translatable="true">
+        <item>Show</item>
+        <item>Hide</item>
+    </string-array>
+</resources>
