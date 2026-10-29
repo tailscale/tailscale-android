@@ -215,6 +215,9 @@
     <string name="multiple_peers_with_name_found">Flera motparter med namnet %1$s hittades</string>
     <string name="peer_with_name_is_not_an_exit_node">Motparten %1$s är inte en utgångsnod</string>
     <string name="use_exit_node_intent_failed">Begäran om utgångsnod misslyckades</string>
+    <string name="use_exit_node_intent_timed_out">Tidsgränsen överskreds när utgångsnoden ändrades</string>
+    <string name="use_exit_node_intent_not_applied">Ändringen av utgångsnod tillämpades inte</string>
+    <string name="use_exit_node_intent_unknown_error">Ändringen av utgångsnod misslyckades</string>
     <string name="title_connection_failed">Anslutningen till Tailscale misslyckades</string>
     <string name="body_open_tailscale">Tryck här för att öppna Tailscale.</string>
     <string name="taildrop_file_transfers">Taildrop-filöverföringar</string>
