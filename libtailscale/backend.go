@@ -112,6 +112,15 @@ type backend struct {
 	avoidEmptyDNS bool
 
 	appCtx AppContext
+
+	// mu protects the underlying interface fields.
+	mu sync.Mutex
+	// lastUnderlyingIface is the most recent underlying network interface name
+	// reported via NetworkChanged.
+	lastUnderlyingIface string
+	// appliedUnderlyingIface is the underlying network interface name that was
+	// used in the last successful updateTUN call.
+	appliedUnderlyingIface string
 }
 
 type settingsFunc func(*router.Config, *dns.OSConfig) error
@@ -400,9 +409,17 @@ func (a *App) watchFileOpsChanges() {
 }
 
 func (b *backend) isConfigNonNilAndDifferent(rcfg *router.Config, dcfg *dns.OSConfig) bool {
-	if reflect.DeepEqual(rcfg, b.lastCfg) && reflect.DeepEqual(dcfg, b.lastDNSCfg) {
-		b.logger.Logf("isConfigNonNilAndDifferent: no change to Routes or DNS, ignore")
+	// Check if the underlying network interface has changed.
+	b.mu.Lock()
+	ifaceChanged := b.lastUnderlyingIface != b.appliedUnderlyingIface
+	b.mu.Unlock()
+
+	if reflect.DeepEqual(rcfg, b.lastCfg) && reflect.DeepEqual(dcfg, b.lastDNSCfg) && !ifaceChanged {
+		b.logger.Logf("isConfigNonNilAndDifferent: no change to Routes, DNS, or underlying interface, ignore")
 		return false
+	}
+	if ifaceChanged {
+		b.logger.Logf("isConfigNonNilAndDifferent: underlying interface changed (%q -> %q)", b.appliedUnderlyingIface, b.lastUnderlyingIface)
 	}
 	return rcfg != nil
 }
