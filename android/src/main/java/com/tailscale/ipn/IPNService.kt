@@ -135,7 +135,10 @@ open class IPNService : VpnService(), libtailscale.IPNService {
   }
 
   private fun updateUnderlyingNetwork(network: Network?) {
-    val networks = network?.let { arrayOf(it) } ?: emptyArray()
+    // Passing null (rather than an empty array) tells Android to use all
+    // available networks. An empty array would leave the VPN with no
+    // underlying network, which prevents connectivity entirely (see #850).
+    val networks = network?.let { arrayOf(it) }
     if (!setUnderlyingNetworks(networks)) {
       TSLog.w(TAG, "Failed to set underlying network: $network")
     } else {
@@ -199,7 +202,9 @@ open class IPNService : VpnService(), libtailscale.IPNService {
     }
 
     val underlyingNetwork = NetworkChangeCallback.cachedDefaultNetwork
-    b.setUnderlyingNetworks(underlyingNetwork?.let { arrayOf(it) } ?: emptyArray())
+    // Use null when no specific network is known so Android falls back to all
+    // available networks instead of none.
+    b.setUnderlyingNetworks(underlyingNetwork?.let { arrayOf(it) })
 
     val mdmAllowed =
         MDMSettings.includedPackages.flow.value.value?.split(",")?.map { it.trim() } ?: emptyList()
