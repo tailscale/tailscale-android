@@ -19,9 +19,10 @@ import com.tailscale.ipn.util.PendingInlineShare
 import com.tailscale.ipn.util.TSLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
@@ -67,20 +68,58 @@ object Notifier {
   val incomingFiles: StateFlow<List<Ipn.PartialFile>?> = MutableStateFlow(null)
   val filesWaiting: StateFlow<Empty.Message?> = MutableStateFlow(null)
 
-  // Seeded from disk so pending shares survive process death, e.g. if the app is killed
+  // Saved to disk so pending shares survive process death, e.g. if the app is killed
   // in the background before the user acts on a share that couldn't be surfaced as a
   // notification because POST_NOTIFICATIONS was denied.
-  private val _inlineShareInbox = MutableStateFlow(InlineShareInboxStore.load())
+  private val _inlineShareInbox = MutableStateFlow<List<PendingInlineShare>>(emptyList())
   val inlineShareInbox: StateFlow<List<PendingInlineShare>> = _inlineShareInbox
 
+  private val pendingInboxChanges =
+      mutableListOf<(List<PendingInlineShare>) -> List<PendingInlineShare>>()
+  private val inboxWrites = Channel<Unit>(Channel.CONFLATED)
+  private val inboxScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+  init {
+    inboxScope.launch {
+      inboxWrites.trySend(Unit)
+      for (ignored in inboxWrites) {
+        val stored = InlineShareInboxStore.load() ?: continue
+        val changes = synchronized(this@Notifier) { pendingInboxChanges.toList() }
+        if (changes.isEmpty()) {
+          synchronized(this@Notifier) {
+            _inlineShareInbox.value =
+                pendingInboxChanges.fold(stored) { inbox, change -> change(inbox) }
+          }
+          continue
+        }
+
+        val merged = changes.fold(stored) { inbox, change -> change(inbox) }
+        if (InlineShareInboxStore.save(merged)) {
+          synchronized(this@Notifier) {
+            pendingInboxChanges.subList(0, changes.size).clear()
+            _inlineShareInbox.value =
+                pendingInboxChanges.fold(merged) { inbox, change -> change(inbox) }
+          }
+        }
+      }
+    }
+  }
+
+  @Synchronized
+  private fun changeInlineShareInbox(
+      change: (List<PendingInlineShare>) -> List<PendingInlineShare>
+  ) {
+    pendingInboxChanges.add(change)
+    _inlineShareInbox.value = change(_inlineShareInbox.value)
+    inboxWrites.trySend(Unit)
+  }
+
   fun appendInlineShare(p: PendingInlineShare) {
-    _inlineShareInbox.update { it + p }
-    InlineShareInboxStore.save(_inlineShareInbox.value)
+    changeInlineShareInbox { it + p }
   }
 
   fun removeInlineShare(id: String) {
-    _inlineShareInbox.update { list -> list.filterNot { it.id == id } }
-    InlineShareInboxStore.save(_inlineShareInbox.value)
+    changeInlineShareInbox { list -> list.filterNot { it.id == id } }
   }
 
   private val userProfiles = mutableMapOf<String, Tailcfg.UserProfile>()
