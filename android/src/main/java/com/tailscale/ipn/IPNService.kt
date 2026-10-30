@@ -10,6 +10,7 @@ import android.net.VpnService
 import android.os.Build
 import android.system.OsConstants
 import com.tailscale.ipn.mdm.MDMSettings
+import com.tailscale.ipn.ui.model.DisconnectReason
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.util.TSLog
@@ -32,6 +33,10 @@ open class IPNService : VpnService(), libtailscale.IPNService {
   }
 
   override fun updateVpnStatus(status: Boolean) {
+    TSLog.d(TAG, "VPN service $randomID active=$status, IPN state=${Notifier.state.value}")
+    if (status) {
+      Notifier.setDisconnectReason(null)
+    }
     app.getAppScopedViewModel().setVpnActive(status)
   }
 
@@ -48,11 +53,13 @@ open class IPNService : VpnService(), libtailscale.IPNService {
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int =
       when (intent?.action) {
         ACTION_STOP_VPN -> {
+          Notifier.setState(Ipn.State.Stopping)
           app.setWantRunning(false)
           close()
           START_NOT_STICKY
         }
         ACTION_RESTART_VPN -> {
+          Notifier.setState(Ipn.State.Stopping)
           app.setWantRunning(false) {
             close()
             app.startVPN()
@@ -104,29 +111,30 @@ open class IPNService : VpnService(), libtailscale.IPNService {
   override fun close() {
     if (closed) return
     closed = true
-    Notifier.setState(Ipn.State.Stopping)
-    disconnectVPN()
+    // Teardown can arrive after the backend has already stopped or restarted.
+    // Preserve its latest state and any disconnect reason.
+    stopSelf()
     Libtailscale.serviceDisconnect(this)
   }
 
-  override fun disconnectVPN() {
+  override fun disconnectVPN(error: String) {
+    Notifier.setDisconnectReason(DisconnectReason.BackendFailure(error))
     stopSelf()
   }
 
   override fun onDestroy() {
     NetworkChangeCallback.setUnderlyingNetworkListener(null)
     close()
-    updateVpnStatus(false)
     super.onDestroy()
   }
 
   override fun onRevoke() {
     // VPN permission was granted to another app, so tell the Go backend and then set prepared to be
     // false so that when user attempts to connect again, VpnService.prepare() is called
+    Notifier.setState(Ipn.State.Stopping)
     app.setWantRunning(false)
     setVpnPrepared(false)
     close()
-    updateVpnStatus(false)
     super.onRevoke()
   }
 

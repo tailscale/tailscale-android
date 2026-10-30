@@ -10,6 +10,7 @@ import androidx.core.app.NotificationCompat
 import com.tailscale.ipn.App
 import com.tailscale.ipn.R
 import com.tailscale.ipn.UninitializedApp.Companion.notificationManager
+import com.tailscale.ipn.ui.model.DisconnectReason
 import com.tailscale.ipn.ui.model.Health
 import com.tailscale.ipn.ui.model.Health.UnhealthyState
 import com.tailscale.ipn.ui.model.Ipn
@@ -20,17 +21,20 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 class HealthNotifier(
     healthStateFlow: StateFlow<Health.State?>,
     ipnStateFlow: StateFlow<Ipn.State>,
+    disconnectReasonFlow: StateFlow<DisconnectReason?>,
     scope: CoroutineScope,
+    private val sendNotification: (String, String, String) -> Unit = ::sendHealthNotification,
 ) {
   companion object {
     const val HEALTH_CHANNEL_ID = "tailscale-health"
@@ -48,7 +52,7 @@ class HealthNotifier(
       )
 
   // These must be initialized before the init block below, which launches a coroutine that can
-  // immediately call dropAllWarnings() (reading currentWarnings) on a background dispatcher. If
+  // immediately call notifyHealthUpdated() (reading currentWarnings) on a background dispatcher. If
   // the collector observes the initial non-Running ipn state before these property initializers
   // run, it would read a null StateFlow and crash with an NPE (see startup init-order race).
   val currentWarnings: StateFlow<Set<UnhealthyState>> = MutableStateFlow(setOf())
@@ -58,23 +62,27 @@ class HealthNotifier(
     // This roughly matches the iOS/macOS implementation in terms of debouncing, and ignoring
     // health warnings in various states.
     scope.launch {
-      ipnStateFlow
-          .flatMapLatest { ipnState ->
+      combine(ipnStateFlow, disconnectReasonFlow) { state, reason -> state to reason }
+          .flatMapLatest { (ipnState, disconnectReason) ->
             if (ipnState == Ipn.State.Running) {
               healthStateFlow
                   .distinctUntilChanged { old, new ->
                     old?.Warnings.orEmpty() == new?.Warnings.orEmpty()
                   }
                   .debounce(3000)
+            } else if (
+                disconnectReason is DisconnectReason.BackendFailure &&
+                    ipnState in setOf(Ipn.State.Stopped, Ipn.State.Stopping, Ipn.State.Starting)
+            ) {
+              // Include service teardown and retries after a failed connection.
+              healthStateFlow
             } else {
-              TSLog.d(TAG, "Ignoring and dropping all health messages in state $ipnState")
-              dropAllWarnings()
-              emptyFlow()
+              flowOf(null)
             }
           }
           .collect { health ->
             TSLog.d(TAG, "Health updated: ${health?.Warnings?.keys?.sorted()}")
-            health?.Warnings?.values?.filterNotNull()?.toTypedArray()?.let(::notifyHealthUpdated)
+            notifyHealthUpdated(health?.Warnings?.values.orEmpty().filterNotNull().toTypedArray())
           }
     }
   }
@@ -115,7 +123,7 @@ class HealthNotifier(
         // Ignore this warning because a dependency is also unhealthy
         TSLog.d(TAG, "Ignoring ${warning.WarnableCode} because of dependency")
         continue
-      } else if (!isWarmingUp) {
+      } else if (!isWarmingUp || warning.Severity == Health.Severity.high) {
         TSLog.d(TAG, "Adding health warning: ${warning.WarnableCode}")
         this.currentWarnings.set(this.currentWarnings.value + warning)
         dropDependenciesForAddedWarning(warning)
@@ -159,42 +167,32 @@ class HealthNotifier(
     }
   }
 
-  private fun sendNotification(title: String, text: String, code: String) {
-    TSLog.d(TAG, "Sending notification for $code")
-    val notification =
-        NotificationCompat.Builder(App.get().applicationContext, HEALTH_CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(title)
-            .setContentText(text)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .build()
-    if (
-        ActivityCompat.checkSelfPermission(
-            App.get().applicationContext,
-            Manifest.permission.POST_NOTIFICATIONS,
-        ) != PackageManager.PERMISSION_GRANTED
-    ) {
-      TSLog.d(TAG, "Notification permission not granted")
-      return
-    }
-    notificationManager.notify(code.hashCode(), notification)
-  }
-
-  /**
-   * Removes all warnings currently displayed, including any system notifications, and updates the
-   * icon (causing it to be set to null since the set of warnings is empty).
-   */
-  private fun dropAllWarnings() {
-    removeNotifications(this.currentWarnings.value)
-    this.currentWarnings.set(emptySet())
-    this.updateIcon()
-  }
-
   private fun removeNotifications(warnings: Set<UnhealthyState>) {
     TSLog.d(TAG, "Removing notifications for $warnings")
     for (warning in warnings) {
       notificationManager.cancel(warning.WarnableCode.hashCode())
     }
   }
+}
+
+private fun sendHealthNotification(title: String, text: String, code: String) {
+  TSLog.d("health", "Sending notification for $code")
+  val notification =
+      NotificationCompat.Builder(App.get().applicationContext, HealthNotifier.HEALTH_CHANNEL_ID)
+          .setSmallIcon(R.drawable.ic_notification)
+          .setContentTitle(title)
+          .setContentText(text)
+          .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+          .setPriority(NotificationCompat.PRIORITY_HIGH)
+          .build()
+  if (
+      ActivityCompat.checkSelfPermission(
+          App.get().applicationContext,
+          Manifest.permission.POST_NOTIFICATIONS,
+      ) != PackageManager.PERMISSION_GRANTED
+  ) {
+    TSLog.d("health", "Notification permission not granted")
+    return
+  }
+  notificationManager.notify(code.hashCode(), notification)
 }

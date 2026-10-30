@@ -5,6 +5,7 @@ package com.tailscale.ipn.ui.notifier
 
 import com.tailscale.ipn.App
 import com.tailscale.ipn.BuildConfig
+import com.tailscale.ipn.ui.model.DisconnectReason
 import com.tailscale.ipn.ui.model.Empty
 import com.tailscale.ipn.ui.model.Health
 import com.tailscale.ipn.ui.model.Ipn
@@ -52,6 +53,8 @@ object Notifier {
   // General IPN Bus State
   private val _state = MutableStateFlow(Ipn.State.NoState)
   val state: StateFlow<Ipn.State> = _state
+  private val _disconnectReason = MutableStateFlow<DisconnectReason?>(null)
+  val disconnectReason: StateFlow<DisconnectReason?> = _disconnectReason
   private val _netmap = MutableStateFlow<Netmap.NetworkMap?>(null)
   val netmap: StateFlow<Netmap.NetworkMap?> = _netmap
   val prefs: StateFlow<Ipn.Prefs?> = MutableStateFlow(null)
@@ -113,7 +116,7 @@ object Notifier {
           app.watchNotifications(mask.toLong()) { notification ->
             runCatching {
               val notify = decoder.decodeFromStream<Notify>(notification.inputStream())
-              notify.State?.let { state.set(Ipn.State.fromInt(it)) }
+              notify.State?.let { setState(Ipn.State.fromInt(it)) }
               if (BuildConfig.DEBUG) {
                 notify.InitialStatus?.let {
                   TSLog.d(
@@ -180,7 +183,12 @@ object Notifier {
   }
 
   fun setState(newState: Ipn.State) {
+    TSLog.d(TAG, "IPN state: ${_state.value} -> $newState")
     _state.value = newState
+  }
+
+  fun setDisconnectReason(reason: DisconnectReason?) {
+    _disconnectReason.value = reason
   }
 
   @Synchronized
