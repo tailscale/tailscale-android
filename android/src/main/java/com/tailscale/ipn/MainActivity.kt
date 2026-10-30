@@ -20,6 +20,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Process
 import android.provider.Settings
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
@@ -48,8 +49,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.core.net.toUri
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -468,13 +471,24 @@ class MainActivity : ComponentActivity() {
 
   init {
     // Watch the model's browseToURL and launch the browser when it changes or
-    // pop up a QR code to scan
+    // pop up a QR code to scan.
+    // Only collect while the activity is started: a browser launched while we are in the
+    // background is silently blocked by Android, and the URL would then be lost. A URL that arrives
+    // while we are in the background is opened once the activity is visible again.
     lifecycleScope.launch {
-      Notifier.browseToURL.collect { url ->
-        url?.let {
-          when (useQRCodeLogin()) {
-            false -> Dispatchers.Main.run { login(it) }
-            true -> loginQRCode.set(it)
+      repeatOnLifecycle(Lifecycle.State.STARTED) {
+        Notifier.browseToURL.collect { url ->
+          url?.let {
+            when (useQRCodeLogin()) {
+              false -> {
+                // Consume the URL so it is not reopened when the activity is restarted, and so
+                // that the backend sending the same URL again (e.g. on a repeated "Log in" tap)
+                // is delivered as a new value.
+                Notifier.browseToURL.set(null)
+                login(it)
+              }
+              true -> loginQRCode.set(it)
+            }
           }
         }
       }
@@ -591,6 +605,7 @@ class MainActivity : ComponentActivity() {
         startActivity(fallbackIntent)
       } catch (e: Exception) {
         TSLog.e(TAG, "Login: failed to open browser: $e")
+        Toast.makeText(this, R.string.login_no_browser, Toast.LENGTH_LONG).show()
       }
     }
   }
