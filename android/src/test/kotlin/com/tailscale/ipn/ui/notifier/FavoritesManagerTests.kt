@@ -100,7 +100,7 @@ class FavoritesManagerTest {
     TSLog.libtailscaleWrapper = originalLogWrapper
   }
 
-  private fun favorites(vararg ids: String) = Favorites(devices = ids.map { FavoriteItem(id = it) })
+  private fun favorites(vararg ids: String) = Favorites(devices = ids.map { FavoriteItem(ID = it) })
 
   private fun TestScope.createManager(initial: Favorites = favorites()): FavoritesManager {
     val manager =

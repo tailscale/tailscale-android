@@ -111,6 +111,7 @@ dependencies {
 
   // Tailscale dependencies.
   implementation(files("libs/libtailscale.aar"))
+  implementation(files("LocalAPI.aar"))
 
   // Integration tests.
   androidTestImplementation(platform(libs.androidx.compose.bom))
