@@ -225,6 +225,10 @@
     <string name="allow_incoming_connections">Allow incoming connections</string>
     <string name="exit_node_picker_visibility">Exit node picker visibility</string>
     <string name="shows_or_hides_the_exit_node_picker_in_the_main_view_of_the_app">Shows or hides the exit node picker in the main view of the app.</string>
+    <string name="admin_console_visibility">Admin console link visibility</string>
+    <string name="shows_or_hides_the_admin_console_link_in_the_settings_screen">Shows or hides the admin console link in the settings screen.</string>
+    <string name="preferences_menu_visibility">Settings screen visibility</string>
+    <string name="shows_or_hides_the_settings_screen_and_its_entry_point_in_the_main_view">Shows or hides the settings screen, along with its entry point in the main view of the app.</string>
     <string name="shows_or_hides_the_tailnet_lock_configuration_ui">Shows or hides the Tailnet lock configuration UI.</string>
     <string name="manage_tailnet_lock_visibility">Manage Tailnet lock visibility</string>
     <string name="shows_or_hides_the_ui_to_run_the_android_device_as_an_exit_node">Shows or hides the UI to run the Android device as an exit node.</string>
