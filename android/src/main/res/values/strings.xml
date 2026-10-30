@@ -99,6 +99,15 @@
     <!-- State strings -->
     <string name="placeholder" translatable="false">--</string>
     <string name="please_login">Login required</string>
+    <string name="login_failed">Couldn\'t start login. Check your network connection and try again.</string>
+    <string name="login_failed_with_reason">Couldn\'t start login: %1$s</string>
+    <string name="login_stalled">Login is taking longer than expected. You can keep waiting, or tap Log in to try again.</string>
+    <string name="login_no_browser">Couldn\'t open a web browser to log in. Make sure a browser is installed and enabled.</string>
+    <string name="login_error_banner">Your last login attempt didn\'t complete: %1$s</string>
+    <string name="login_status_starting">Starting login…</string>
+    <string name="login_status_awaiting_url">Contacting Tailscale…</string>
+    <string name="login_status_authenticating">Waiting for you to finish signing in…</string>
+    <string name="login_status_stalled">Still trying to reach Tailscale. Keep waiting, or tap Log in to try again.</string>
     <string name="stopped">Not connected</string>
     <string name="connect_to_vpn">Connect to VPN</string>
 
