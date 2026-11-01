@@ -43,7 +43,7 @@ internal fun buildExitNodePrefs(exitNodeId: String?, allowLanAccess: Boolean): I
 internal fun exitNodePrefsMatch(
     prefs: Ipn.Prefs,
     exitNodeId: String?,
-    allowLanAccess: Boolean
+    allowLanAccess: Boolean,
 ): Boolean = prefs.activeExitNodeID == exitNodeId && prefs.ExitNodeAllowLANAccess == allowLanAccess
 
 class UseExitNodeWorker(appContext: Context, workerParams: WorkerParameters) :
@@ -95,10 +95,9 @@ class UseExitNodeWorker(appContext: Context, workerParams: WorkerParameters) :
             }
           } ?: return app.getString(R.string.use_exit_node_intent_timed_out)
 
-      val appliedPrefs =
-          editResult.getOrElse {
-            return it.message ?: app.getString(R.string.use_exit_node_intent_unknown_error)
-          }
+      val appliedPrefs = editResult.getOrElse {
+        return it.message ?: app.getString(R.string.use_exit_node_intent_unknown_error)
+      }
       if (!exitNodePrefsMatch(appliedPrefs, exitNodeId, allowLanAccess)) {
         return app.getString(R.string.use_exit_node_intent_not_applied)
       }
