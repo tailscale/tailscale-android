@@ -5,6 +5,7 @@ package com.tailscale.ipn.ui.localapi
 
 import android.util.Log
 import com.tailscale.ipn.ui.model.IpnState
+import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.util.TSLog
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.runBlocking
@@ -17,7 +18,10 @@ import org.junit.Before
 import org.junit.Test
 import org.mockito.MockedStatic
 import org.mockito.Mockito
+import org.mockito.kotlin.any
+import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.whenever
 
 class ClientTest {
   private lateinit var androidLog: MockedStatic<Log>
@@ -77,5 +81,34 @@ class ClientTest {
     assertSame(failures[0], request().exceptionOrNull())
     assertSame(failures[1], request().exceptionOrNull())
     assertEquals(2, calls)
+  }
+
+  private fun pingPath(addresses: List<String>): String? = runBlocking {
+    var path: String? = null
+    val app = mock<libtailscale.Application>()
+    whenever(app.callLocalAPI(any(), any(), any(), anyOrNull())).thenAnswer {
+      path = it.getArgument(2)
+      throw IllegalStateException("stop")
+    }
+    val response = CompletableDeferred<Result<IpnState.PingResult>>()
+    Client(this) { app }.ping(Tailcfg.Node(Addresses = addresses)) { response.complete(it) }
+    withTimeout(5_000) { response.await() }
+    path
+  }
+
+  @Test
+  fun pingUsesIPv4WhenAvailable() {
+    assertEquals(
+        "/localapi/v0/ping?ip=100.64.0.1&type=disco",
+        pingPath(listOf("100.64.0.1/32", "fd7a:115c:a1e0::1/128")),
+    )
+  }
+
+  @Test
+  fun pingFallsBackToIPv6() {
+    assertEquals(
+        "/localapi/v0/ping?ip=fd7a:115c:a1e0::1&type=disco",
+        pingPath(listOf("fd7a:115c:a1e0::1/128")),
+    )
   }
 }
