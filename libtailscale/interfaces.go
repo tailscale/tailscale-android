@@ -58,10 +58,6 @@ type AppContext interface {
 	// interfaces.
 	GetInterfacesAsJson() (string, error)
 
-	// GetPlatformDNSConfig gets a string representation of the current DNS
-	// configuration.
-	GetPlatformDNSConfig() string
-
 	// GetSyspolicyStringValue returns the current string value for the given system policy.
 	GetSyspolicyStringValue(key string) (string, error)
 

@@ -41,12 +41,20 @@ object NetworkChangeCallback {
 
   private const val TAG = "NetworkChangeCallback"
 
-  private data class NetworkInfo(var caps: NetworkCapabilities, var linkProps: LinkProperties)
+  private data class NetworkInfo(var caps: NetworkCapabilities, var linkProps: LinkProperties?)
+
+  private data class PublishedNetwork(
+      val network: Network?,
+      val interfaceName: String,
+      val gateway: String,
+      val dnsConfig: String,
+  )
 
   private val lock = ReentrantLock()
 
   // All currently active non-VPN networks we know about.
   private val activeNetworks = mutableMapOf<Network, NetworkInfo>()
+  private var lastPublishedNetwork: PublishedNetwork? = null
 
   // Cached chosen default network for outbound sockets.
   @Volatile
@@ -77,10 +85,8 @@ object NetworkChangeCallback {
             .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
             .build()
 
-    // Use registerNetworkCallback to listen for updates from all networks, and
-    // then update DNS configs for the best network when LinkProperties are changed.
-    // Per
-    // https://developer.android.com/reference/android/net/ConnectivityManager.NetworkCallback#onAvailable(android.net.Network), this happens after all other updates.
+    // Observe all non-VPN networks. Capabilities can make a new network
+    // preferred before its LinkProperties have arrived.
     //
     // Note that we can't use registerDefaultNetworkCallback because the
     // default network used by Tailscale will always show up with capability
@@ -96,7 +102,7 @@ object NetworkChangeCallback {
             TSLog.d(TAG, "onAvailable: network $network")
 
             lock.withLock {
-              activeNetworks[network] = NetworkInfo(NetworkCapabilities(), LinkProperties())
+              activeNetworks[network] = NetworkInfo(NetworkCapabilities(), null)
               recomputeDefaultNetworkLocked("onAvailable")
             }
           }
@@ -164,7 +170,7 @@ object NetworkChangeCallback {
               internet = info.caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET),
               notVpn = info.caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN),
               validated = info.caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED),
-              hasDns = info.linkProps.dnsServers.isNotEmpty(),
+              hasDns = info.linkProps?.dnsServers?.isNotEmpty() == true,
               nonMetered = info.caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED),
           )
         }
@@ -200,39 +206,55 @@ object NetworkChangeCallback {
   // current set of active Networks.
   private fun maybeUpdateDNSConfig(why: String, dns: DnsConfig) {
     val defaultNetwork = cachedDefaultNetwork
-    if (defaultNetwork == null) {
-      TSLog.d(TAG, "$why: no default network available; not updating DNS")
-      return
+    val next =
+        if (defaultNetwork == null) {
+          // The physical network is gone. Clear Go's route hint, but retain the
+          // last DNS configuration until a replacement network has link properties.
+          PublishedNetwork(null, "", "", "")
+        } else {
+          val info = cachedDefaultNetworkInfo
+          if (info == null) {
+            Log.w(TAG, "$why: no info for default network; not updating DNS")
+            return
+          }
+          // Don't publish incomplete properties for a newly selected network.
+          // Retain the previously applied configuration while that network still
+          // exists; otherwise publish an offline snapshot to clear stale routing.
+          val props = info.linkProps
+          if (props == null) {
+            val publishedNetwork = lastPublishedNetwork?.network
+            if (publishedNetwork == null || publishedNetwork in activeNetworks) {
+              TSLog.d(TAG, "$why: link properties pending for $defaultNetwork")
+              return
+            }
+            PublishedNetwork(null, "", "", "")
+          } else {
+            val sb = StringBuilder()
+            for (ip in props.dnsServers) {
+              sb.append(ip.hostAddress).append(" ")
+            }
+            props.domains?.let { sb.append("\n").append(it) }
+
+            val gatewayIP =
+                props.routes
+                    .filter { it.isDefaultRoute && it.gateway != null }
+                    .sortedBy { if (it.gateway is java.net.Inet4Address) 0 else 1 }
+                    .firstNotNullOfOrNull { it.gateway?.hostAddress } ?: ""
+            PublishedNetwork(defaultNetwork, props.interfaceName ?: "", gatewayIP, sb.toString())
+          }
+        }
+
+    if (next == lastPublishedNetwork) return
+    lastPublishedNetwork = next
+    if (next.network != null) {
+      dns.updateDNSFromNetwork(next.dnsConfig)
     }
-
-    val info = cachedDefaultNetworkInfo
-    if (info == null) {
-      Log.w(TAG, "$why: no info for default network; not updating DNS")
-      return
-    }
-
-    val sb = StringBuilder()
-    for (ip in info.linkProps.dnsServers) {
-      sb.append(ip.hostAddress).append(" ")
-    }
-
-    val searchDomains: String? = info.linkProps.domains
-    if (searchDomains != null) {
-      sb.append("\n")
-      sb.append(searchDomains)
-    }
-
-    if (dns.updateDNSFromNetwork(sb.toString())) {
-      TSLog.d(TAG, "$why: updated DNS config for iface=${info.linkProps.interfaceName}")
-
-      val gatewayIP =
-          info.linkProps.routes
-              .filter { it.isDefaultRoute && it.gateway != null }
-              .sortedBy { if (it.gateway is java.net.Inet4Address) 0 else 1 }
-              .firstNotNullOfOrNull { it.gateway?.hostAddress } ?: ""
-
-      Libtailscale.onGatewayChanged(gatewayIP)
-      Libtailscale.onDNSConfigChanged(info.linkProps.interfaceName)
-    }
+    TSLog.d(TAG, "$why: updated network config for iface=${next.interfaceName}")
+    Libtailscale.onAndroidNetworkChanged(
+        next.interfaceName,
+        next.network?.networkHandle ?: 0L,
+        next.gateway,
+        next.dnsConfig,
+    )
   }
 }
