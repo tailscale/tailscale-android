@@ -101,6 +101,7 @@ type backend struct {
 	lastCfg    *router.Config
 	lastDNSCfg *dns.OSConfig
 	netMon     *netmon.Monitor
+	vpnFacade  *VPNFacade
 
 	logIDPublic logid.PublicID
 	logger      *logtail.Logger
@@ -112,6 +113,26 @@ type backend struct {
 	avoidEmptyDNS bool
 
 	appCtx AppContext
+
+	// androidNetwork is the last network snapshot applied by runBackend. DNS
+	// recompilation reads its DNS config rather than Kotlin's newer queued state.
+	androidNetworkMu sync.RWMutex
+	androidNetwork   networkChange
+}
+
+// New function:
+func (b *backend) applyAndroidNetworkChange(change networkChange) {
+	b.androidNetworkMu.Lock()
+	if change.networkHandle == 0 {
+		// Keep the last DNS servers while offline; the new network will replace
+		// them when its LinkProperties arrive.
+		change.dnsConfig = b.androidNetwork.dnsConfig
+	}
+	b.androidNetwork = change
+	b.androidNetworkMu.Unlock()
+
+	netmon.UpdateLastKnownDefaultGateway(change.gateway)
+	b.NetworkChanged(change.ifname)
 }
 
 type settingsFunc func(*router.Config, *dns.OSConfig) error
@@ -176,9 +197,33 @@ func (a *App) runBackend(ctx context.Context, hardwareAttestation bool) error {
 	b.avoidEmptyDNS = a.isChromeOS()
 
 	var (
-		cfg   configPair
-		state ipn.State
+		cfg                      configPair
+		state                    ipn.State
+		lastAndroidNetworkHandle int64
+		lastAndroidIfname        string
 	)
+
+	dnsRefresh := make(chan struct{}, 1)
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-dnsRefresh:
+				if err := b.sys.DNSManager.Get().RecompileDNSConfig(); err != nil {
+					if !errors.Is(err, dns.ErrNoDNSConfig) {
+						log.Printf("RecompileDNSConfig after Android network change: %v", err)
+					}
+					continue
+				}
+				// SetDNS only caches the VPN DNS configuration. Flush it to the
+				// VPN builder, as the engine does after a major link change.
+				if err := b.vpnFacade.ReconfigureVPN(); err != nil {
+					log.Printf("ReconfigureVPN after Android DNS change: %v", err)
+				}
+			}
+		}
+	}()
 
 	stateCh := make(chan ipn.State)
 	go b.backend.WatchNotifications(ctx, ipn.NotifyInitialPrefs|ipn.NotifyInitialState|ipn.NotifyNoNetMap, func() {}, func(notify *ipn.Notify) bool {
@@ -260,13 +305,28 @@ func (a *App) runBackend(ctx context.Context, hardwareAttestation bool) error {
 				netns.SetAndroidBindToNetworkFunc(nil)
 				vpnService.service = nil
 			}
-		case i := <-onDNSConfigChanged:
-			// TODO (barnstar): Consider using [dns.Manager.RecompileDNSConfig] here.
-			// NetworkChanged injects a netmon event that has the side effect
-			// regenerating the DNS config but have the means to do
-			// that independently of userspace engine network changes which may
-			// eliminate some unnecessary work.
-			go b.NetworkChanged(i)
+		case <-networkChanges.wake:
+			change := networkChanges.take()
+			b.applyAndroidNetworkChange(change)
+			if change.networkHandle == 0 {
+				// Keep the last physical network identity so a replacement using
+				// the same interface name still gets a fresh socket binding.
+				break
+			}
+			if lastAndroidNetworkHandle != 0 &&
+				lastAndroidNetworkHandle != change.networkHandle &&
+				lastAndroidIfname == change.ifname && change.ifname != "" {
+				b.backend.DebugRebind()
+			}
+			lastAndroidNetworkHandle = change.networkHandle
+			lastAndroidIfname = change.ifname
+			// A DNS-only LinkProperties change might not produce a major netmon
+			// event. Recompile and reconfigure outside this loop because
+			// ReconfigureVPN sends a config back to the loop.
+			select {
+			case dnsRefresh <- struct{}{}:
+			default:
+			}
 		}
 	}
 }
@@ -330,6 +390,7 @@ func (a *App) newBackend(dataDir string, appCtx AppContext, store *stateStore,
 		SetBoth:           b.setCfg,
 		GetBaseConfigFunc: b.getDNSBaseConfig,
 	}
+	b.vpnFacade = vf
 	engine, err := wgengine.NewUserspaceEngine(logf, wgengine.Config{
 		Tun:            b.devices,
 		Router:         vf,
