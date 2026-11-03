@@ -104,6 +104,13 @@ fun SettingsView(
           onClick = settingsNav.onNavigateToSplitTunneling,
       )
 
+      Lists.ItemDivider()
+      Setting.Text(
+          R.string.wifi_auto_connect,
+          subtitle = stringResource(R.string.wifi_auto_connect_subtitle),
+          onClick = settingsNav.onNavigateToWifiAutoConnect,
+      )
+
       if (showTailnetLock.value == ShowHide.Show) {
         Lists.ItemDivider()
         Setting.Text(
@@ -298,5 +305,5 @@ fun SettingsPreview() {
   vm.tailNetLockEnabled.set(true)
   vm.isAdmin.set(true)
   vm.managedByOrganization.set("Tails and Scales Inc.")
-  SettingsView(SettingsNav({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}), vm)
+  SettingsView(SettingsNav({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}), vm)
 }
