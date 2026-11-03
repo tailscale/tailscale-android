@@ -18,9 +18,14 @@ import androidx.compose.ui.unit.dp
 import com.tailscale.ipn.ui.theme.link
 
 @Composable
-fun PrimaryActionButton(onClick: () -> Unit, content: @Composable RowScope.() -> Unit) {
+fun PrimaryActionButton(
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    content: @Composable RowScope.() -> Unit,
+) {
   Button(
       onClick = onClick,
+      enabled = enabled,
       contentPadding = PaddingValues(vertical = 12.dp),
       modifier = Modifier.fillMaxWidth(),
       content = content,

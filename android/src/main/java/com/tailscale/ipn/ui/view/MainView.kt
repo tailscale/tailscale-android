@@ -114,6 +114,7 @@ import com.tailscale.ipn.ui.util.itemsWithDividers
 import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.viewModel.AppViewModel
 import com.tailscale.ipn.ui.viewModel.IpnViewModel.NodeState
+import com.tailscale.ipn.ui.viewModel.LoginPhase
 import com.tailscale.ipn.ui.viewModel.MainViewModel
 import com.tailscale.ipn.util.FeatureFlags
 import kotlinx.coroutines.flow.emptyFlow
@@ -245,6 +246,8 @@ fun MainView(
           Ipn.State.NoState,
           Ipn.State.Starting -> StartingView()
           else -> {
+            val loginPhase by viewModel.loginPhase.collectAsState()
+            val loginError by viewModel.loginError.collectAsState()
             ConnectView(
                 state,
                 isPrepared,
@@ -257,6 +260,8 @@ fun MainView(
                 loginAtUrl,
                 netmap?.SelfNode,
                 { viewModel.showVPNPermissionLauncherIfUnauthorized() },
+                loginPhase,
+                loginError,
             )
           }
         }
@@ -484,6 +489,8 @@ fun ConnectView(
     loginAtUrlAction: (String) -> Unit,
     selfNode: Tailcfg.Node?,
     showVPNPermissionLauncher: () -> Unit,
+    loginPhase: LoginPhase = LoginPhase.IDLE,
+    loginError: String? = null,
 ) {
   LaunchedEffect(isPrepared) {
     if (!isPrepared && shouldStartAutomatically) {
@@ -600,8 +607,45 @@ fun ConnectView(
               style = MaterialTheme.typography.titleSmall,
               textAlign = TextAlign.Center,
           )
+          // Explain why a previous login attempt is not making progress, using the login error
+          // reported by the backend's health subsystem (see LoginFlow).
+          loginError?.let { error ->
+            Spacer(modifier = Modifier.size(1.dp))
+            Text(
+                text = stringResource(R.string.login_error_banner, error),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+                textAlign = TextAlign.Center,
+            )
+          }
           Spacer(modifier = Modifier.size(1.dp))
-          PrimaryActionButton(onClick = loginAction) {
+          // Communicate what an in-flight login is currently waiting for, and debounce the
+          // button: repeated taps while a login is in flight only re-request the auth URL (see
+          // IpnViewModel.login) instead of restarting (and thereby canceling) the login.
+          if (loginPhase != LoginPhase.IDLE) {
+            Text(
+                text =
+                    stringResource(
+                        when (loginPhase) {
+                          LoginPhase.STARTING -> R.string.login_status_starting
+                          LoginPhase.AWAITING_URL -> R.string.login_status_awaiting_url
+                          LoginPhase.AUTHENTICATING -> R.string.login_status_authenticating
+                          LoginPhase.STALLED -> R.string.login_status_stalled
+                          LoginPhase.IDLE -> R.string.log_in
+                        }
+                    ),
+                style = MaterialTheme.typography.titleSmall,
+                textAlign = TextAlign.Center,
+            )
+          }
+          Spacer(modifier = Modifier.size(1.dp))
+          // While stalled the login may still complete on its own (a severely degraded network),
+          // so the button stays available: tapping it only re-requests the auth URL (see
+          // IpnViewModel.login) instead of restarting (and thereby canceling) the login.
+          PrimaryActionButton(
+              onClick = loginAction,
+              enabled = loginPhase == LoginPhase.IDLE || loginPhase == LoginPhase.STALLED,
+          ) {
             Text(
                 text = stringResource(id = R.string.log_in),
                 fontSize = MaterialTheme.typography.titleMedium.fontSize,
