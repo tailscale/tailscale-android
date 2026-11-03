@@ -3,6 +3,11 @@
 
 package com.tailscale.ipn.ui.view
 
+import android.app.StatusBarManager
+import android.content.ComponentName
+import android.graphics.drawable.Icon
+import android.os.Build
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
@@ -22,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
@@ -31,6 +37,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.BuildConfig
+import com.tailscale.ipn.QuickToggleService
 import com.tailscale.ipn.R
 import com.tailscale.ipn.mdm.AlwaysNeverUserDecides
 import com.tailscale.ipn.mdm.MDMSettings
@@ -54,6 +61,7 @@ fun SettingsView(
     appViewModel: AppViewModel = viewModel(),
 ) {
   val handler = LocalUriHandler.current
+  val context = LocalContext.current
 
   val user by viewModel.loggedInUser.collectAsState()
   val isAdmin by viewModel.isAdmin.collectAsState()
@@ -143,6 +151,31 @@ fun SettingsView(
       if (!AndroidTVUtil.isAndroidTV()) {
         Lists.ItemDivider()
         Setting.Text(R.string.permissions, onClick = settingsNav.onNavigateToPermissions)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+          Lists.ItemDivider()
+          Setting.Text(R.string.quick_settings_tile_add_title) {
+            context.getSystemService(StatusBarManager::class.java).requestAddTileService(
+                ComponentName(context, QuickToggleService::class.java),
+                context.getString(R.string.tile_name),
+                Icon.createWithResource(context, R.drawable.ic_tile),
+                context.mainExecutor,
+            ) { result ->
+              when (result) {
+                StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ADDED,
+                StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ALREADY_ADDED,
+                StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_NOT_ADDED -> Unit
+                else ->
+                    Toast.makeText(
+                            context,
+                            context.getString(R.string.quick_settings_tile_add_failure, result),
+                            Toast.LENGTH_SHORT,
+                        )
+                        .show()
+              }
+            }
+          }
+        }
       }
 
       managedByOrganization.value?.let {

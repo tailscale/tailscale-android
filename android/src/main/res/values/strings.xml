@@ -50,6 +50,8 @@
 
     <!-- Strings for the settings screen -->
     <string name="settings_title">Settings</string>
+    <string name="quick_settings_tile_add_title">Add tile to Quick Settings</string>
+    <string name="quick_settings_tile_add_failure">Unable to add Quick Settings tile: error %d</string>
     <string name="settings_admin_prefix">"Manage your tailnet settings in the "</string>
     <string name="settings_admin_link">admin console</string>
     <string name="about_tailscale">About Tailscale</string>
