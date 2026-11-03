@@ -14,10 +14,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
+import com.tailscale.ipn.mdm.DebugPolicies
 import com.tailscale.ipn.mdm.MDMSetting
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.util.itemsWithDividers
@@ -29,9 +32,21 @@ fun MDMSettingsDebugView(
     backToSettings: BackNavigation,
     @Suppress("UNUSED_PARAMETER") model: IpnViewModel = viewModel(),
 ) {
+  val debugPoliciesActive by DebugPolicies.isActive.collectAsState()
+
   Scaffold(topBar = { Header(R.string.current_mdm_settings, onBack = backToSettings) }) {
       innerPadding ->
     LazyColumn(modifier = Modifier.padding(innerPadding)) {
+      if (debugPoliciesActive) {
+        item {
+          Text(
+              stringResource(R.string.mdm_debug_policies_active),
+              modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+              style = MaterialTheme.typography.bodySmall,
+              color = MaterialTheme.colorScheme.error,
+          )
+        }
+      }
       itemsWithDividers(MDMSettings.allSettings.sortedBy { "${it::class.java.name}|${it.key}" }) {
           setting ->
         MDMSettingView(setting)

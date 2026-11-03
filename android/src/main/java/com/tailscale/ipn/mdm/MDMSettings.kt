@@ -3,14 +3,54 @@
 
 package com.tailscale.ipn.mdm
 
+import android.content.Context
 import android.content.RestrictionsManager
 import android.content.SharedPreferences
+import android.os.Bundle
 import com.tailscale.ipn.App
 import kotlin.reflect.KVisibility
 import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.jvm.jvmErasure
 
+/**
+ * The MDM policy settings the client understands, and the values currently in effect for each.
+ *
+ * Values normally come from the Android `RestrictionsManager`, which an MDM provider populates from
+ * the policies declared in `res/xml/app_restrictions.xml`. Both the UI, which collects
+ * [MDMSetting.flow] directly, and the Go backend, which reads these settings through the syspolicy
+ * store in `App.getSyspolicyStringValue` and friends, see whatever is loaded here.
+ *
+ * ## Overriding policies in a debug build
+ *
+ * Debug builds can supply policies from a JSON file embedded in the APK instead, so that policy
+ * behavior can be exercised without enrolling the device with an MDM provider. To use it:
+ * 1. Copy `android/src/debug/assets/debug_policies.example.json` to
+ *    `android/src/debug/assets/debug_policies.json`.
+ * 2. Edit the `policies` object. Every key is a policy name declared in this file, such as
+ *    `ForceEnabled` or `ExitNodeID`; the same names an MDM provider would use. The value's JSON
+ *    type must match the setting's declared type:
+ *     - [BooleanMDMSetting]: `true` or `false`.
+ *     - [StringMDMSetting]: a string.
+ *     - [StringArrayListMDMSetting]: an array of strings.
+ *     - [AlwaysNeverUserDecidesMDMSetting]: `"always"`, `"never"`, or `"user-decides"`.
+ *     - [ShowHideMDMSetting]: `"show"` or `"hide"`.
+ *
+ *   A `null` value, or omitting a key entirely, leaves that policy unset. Keys starting with an
+ *   underscore are ignored, so they can be used as comments. Unknown keys and values of the wrong
+ *   type are logged under the `syspolicy` tag and skipped.
+ * 3. Rebuild and install. The policies are read at startup and again whenever restrictions are
+ *    reloaded, so edits take effect on the next build, not the next launch.
+ *
+ * While the file is present and `"enabled": true`, it is the only source of policy: anything it
+ * does not set reads as unset even if a real MDM provider has configured it. Set `"enabled"` to
+ * `false` to fall back to real policies without deleting the file. Confirm what is actually in
+ * effect under Settings > Current MDM Settings, which flags when these overrides are in use.
+ *
+ * `debug_policies.json` is gitignored; do not commit one. The whole mechanism lives in the debug
+ * source set — see [DebugPolicies] — so neither the parser nor the policy file exists in a release
+ * build.
+ */
 object MDMSettings {
   // The String message used in this NoSuchKeyException must match the value of
   // syspolicy.ErrNoSuchKey defined in Go. We compare against its exact text
@@ -107,12 +147,16 @@ object MDMSettings {
 
   // Allows admins to define a list of packages that won't be routed via Tailscale.
   val excludedPackages = StringMDMSetting("ExcludedPackageNames", "Excluded Package Names")
+
   // Allows admins to define a list of packages that will be routed via Tailscale, letting all other
   // apps skip the VPN tunnel.
   val includedPackages = StringMDMSetting("IncludedPackageNames", "Included Package Names")
 
   // Handled on the backend
   val authKey = StringMDMSetting("AuthKey", "Auth Key for login")
+
+  val authKeyConnectAutomatically =
+      BooleanMDMSetting("AuthKey.ConnectAutomatically", "Auth Key Connect Automatically")
 
   // Overrides the value provided by os.Hostname() in Go
   val hostname = StringMDMSetting("Hostname", "Device Hostname")
@@ -138,14 +182,20 @@ object MDMSettings {
 
   val allSettingsByKey by lazy { allSettings.associateBy { it.key } }
 
-  fun loadFrom(preferences: Lazy<SharedPreferences>, restrictionsManager: RestrictionsManager?) {
-    val bundle = restrictionsManager?.applicationRestrictions
-    allSettings.forEach { it.setFrom(bundle, preferences) }
-    isMDMConfigured = bundle != null && !bundle.isEmpty
+  /**
+   * Returns the restrictions to load policies from: the developer-defined overrides described above
+   * if a debug build has any, otherwise the restrictions set by the MDM provider.
+   */
+  fun resolveRestrictions(context: Context, restrictionsManager: RestrictionsManager?): Bundle? =
+      DebugPolicies.overrideBundle(context) ?: restrictionsManager?.applicationRestrictions
+
+  fun loadFrom(preferences: Lazy<SharedPreferences>, restrictions: Bundle?) {
+    allSettings.forEach { it.setFrom(restrictions, preferences) }
+    isMDMConfigured = restrictions != null && !restrictions.isEmpty
   }
 
   fun update(app: App, restrictionsManager: RestrictionsManager?) {
-    loadFrom(lazy { app.getEncryptedPrefs() }, restrictionsManager)
+    loadFrom(lazy { app.getEncryptedPrefs() }, resolveRestrictions(app, restrictionsManager))
     app.notifyPolicyChanged()
   }
 }
