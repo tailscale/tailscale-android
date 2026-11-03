@@ -90,6 +90,7 @@ import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.Netmap
 import com.tailscale.ipn.ui.model.Permissions
 import com.tailscale.ipn.ui.model.Tailcfg
+import com.tailscale.ipn.ui.model.isFavoriteDevice
 import com.tailscale.ipn.ui.theme.customErrorContainer
 import com.tailscale.ipn.ui.theme.disabled
 import com.tailscale.ipn.ui.theme.errorButton

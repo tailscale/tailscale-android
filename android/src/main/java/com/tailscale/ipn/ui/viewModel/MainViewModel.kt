@@ -20,6 +20,7 @@ import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.model.Favorites
 import com.tailscale.ipn.ui.model.Ipn.State
 import com.tailscale.ipn.ui.model.Tailcfg
+import com.tailscale.ipn.ui.model.deviceIds
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.util.PeerCategorizer
 import com.tailscale.ipn.ui.util.PeerSet
