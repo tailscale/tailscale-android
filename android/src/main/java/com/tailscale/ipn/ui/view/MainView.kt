@@ -136,6 +136,14 @@ fun MainView(
 ) {
   val currentPingDevice by viewModel.pingViewModel.peer.collectAsState()
   val healthIcon by viewModel.healthIcon.collectAsState()
+  val connection by viewModel.connectionState.collectAsState()
+
+  LaunchedEffect(connection.backendState) {
+    if (connection.shouldStartAutomatically) {
+      viewModel.maybeRequestVpnPermission()
+    }
+  }
+  LaunchVpnPermissionIfNeeded(viewModel)
 
   LoadingIndicator.Wrap {
     Scaffold(contentWindowInsets = WindowInsets.statusBars) { paddingInsets ->
@@ -145,7 +153,7 @@ fun MainView(
       ) {
         val isPrepared by viewModel.isVpnPrepared.collectAsState()
         val isOn by viewModel.vpnToggleState.collectAsState()
-        val state by viewModel.ipnState.collectAsState()
+        val state = connection.state
         val user by viewModel.loggedInUser.collectAsState()
         val stateVal by viewModel.stateRes.collectAsState(initial = R.string.placeholder)
         val stateStr = stringResource(id = stateVal)
@@ -218,8 +226,6 @@ fun MainView(
         )
         when (state) {
           Ipn.State.Running -> {
-            viewModel.maybeRequestVpnPermission()
-            LaunchVpnPermissionIfNeeded(viewModel)
             PromptForMissingPermissions(viewModel)
 
             if (showKeyExpiry) {
@@ -250,7 +256,7 @@ fun MainView(
                 isPrepared,
                 // If Tailscale is stopping, don't automatically restart; wait for user to take
                 // action (eg, if the user connected to another VPN).
-                state != Ipn.State.Stopping,
+                state != Ipn.State.Stopping && !connection.hasFailed,
                 user,
                 { viewModel.toggleVpn(desiredState = !isOn) },
                 { viewModel.login() },
@@ -312,7 +318,7 @@ private fun LaunchVpnPermissionIfNeeded(viewModel: MainViewModel) {
     if (!shouldRequest) return@LaunchedEffect
     // Defer showing permission launcher until activity is resumed to avoid silent RESULT_CANCELED
     lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
-      viewModel.showVPNPermissionLauncherIfUnauthorized()
+      viewModel.showVPNPermissionLauncherIfUnauthorized(automatically = true)
     }
   }
 }
@@ -485,7 +491,7 @@ fun ConnectView(
     selfNode: Tailcfg.Node?,
     showVPNPermissionLauncher: () -> Unit,
 ) {
-  LaunchedEffect(isPrepared) {
+  LaunchedEffect(isPrepared, shouldStartAutomatically) {
     if (!isPrepared && shouldStartAutomatically) {
       showVPNPermissionLauncher()
     }

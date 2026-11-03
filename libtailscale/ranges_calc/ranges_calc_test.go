@@ -4,6 +4,7 @@
 package ranges_calc
 
 import (
+	"errors"
 	"fmt"
 	"net/netip"
 	"testing"
@@ -69,7 +70,14 @@ func TestCalculate_CapExceeded(t *testing.T) {
 	}
 
 	_, _, err := Calculate(allowed, nil)
-	if err == nil {
-		t.Fatalf("expected error when exceeding cap (%d), got nil", maxCalculatedRoutes)
+	var limitErr *RouteLimitError
+	if !errors.As(err, &limitErr) {
+		t.Fatalf("expected RouteLimitError, got %v", err)
+	}
+	if limitErr.Count != want || limitErr.Limit != maxCalculatedRoutes {
+		t.Fatalf("unexpected route limit details: %+v", limitErr)
+	}
+	if _, _, err := Calculate(allowed[:maxCalculatedRoutes], nil); err != nil {
+		t.Fatalf("routes at the limit should succeed: %v", err)
 	}
 }

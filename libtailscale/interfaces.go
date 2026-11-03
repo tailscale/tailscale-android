@@ -105,7 +105,8 @@ type IPNService interface {
 
 	Close()
 
-	DisconnectVPN()
+	// DisconnectVPN stops the service after a backend failure and reports its cause to the UI.
+	DisconnectVPN(errorMessage string)
 
 	UpdateVpnStatus(bool)
 }

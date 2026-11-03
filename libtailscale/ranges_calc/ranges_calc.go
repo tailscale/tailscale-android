@@ -10,6 +10,16 @@ import (
 	"sort"
 )
 
+// RouteLimitError reports that the calculated routes exceed the device limit.
+type RouteLimitError struct {
+	Count int
+	Limit int
+}
+
+func (e *RouteLimitError) Error() string {
+	return fmt.Sprintf("calculated routes (%d) exceed cap (%d)", e.Count, e.Limit)
+}
+
 // Internal representation of an IP range [Start, End] (inclusive)
 type ipRange struct {
 	Start netip.Addr
@@ -265,7 +275,7 @@ func (rc *rangesCalc) calculate() (ipv4 []netip.Prefix, ipv6 []netip.Prefix, err
 
 	total := len(out4) + len(out6)
 	if total > maxCalculatedRoutes {
-		return nil, nil, fmt.Errorf("calculated routes (%d) exceed cap (%d)", total, maxCalculatedRoutes)
+		return nil, nil, &RouteLimitError{Count: total, Limit: maxCalculatedRoutes}
 	}
 
 	return out4, out6, nil

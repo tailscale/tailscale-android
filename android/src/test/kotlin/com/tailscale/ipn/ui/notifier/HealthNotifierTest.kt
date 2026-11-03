@@ -4,7 +4,9 @@
 package com.tailscale.ipn.ui.notifier
 
 import androidx.core.app.NotificationManagerCompat
+import com.tailscale.ipn.R
 import com.tailscale.ipn.UninitializedApp
+import com.tailscale.ipn.ui.model.DisconnectReason
 import com.tailscale.ipn.ui.model.Health
 import com.tailscale.ipn.ui.model.Health.UnhealthyState
 import com.tailscale.ipn.ui.model.Ipn
@@ -28,11 +30,23 @@ import org.junit.Test
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.Mockito.doNothing
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.verify
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class HealthNotifierTest {
 
   private lateinit var originalWrapper: LibtailscaleWrapper
+  private val disconnectReasonFlow = MutableStateFlow<DisconnectReason?>(null)
+  private val sentNotifications = mutableListOf<String>()
+
+  private fun createNotifier(
+      healthFlow: MutableStateFlow<Health.State?>,
+      ipnFlow: MutableStateFlow<Ipn.State>,
+      scope: CoroutineScope,
+  ) =
+      HealthNotifier(healthFlow, ipnFlow, disconnectReasonFlow, scope) { _, _, code ->
+        sentNotifications.add(code)
+      }
 
   private fun derpWarning() =
       UnhealthyState(
@@ -43,6 +57,141 @@ class HealthNotifierTest {
           ImpactsConnectivity = true,
           DependsOn = listOf("network-status", "no-derp-home", "warming-up"),
       )
+
+  private fun routeLimitWarning() =
+      UnhealthyState(
+          WarnableCode = "android-vpn-update-failed",
+          Severity = Health.Severity.high,
+          Title = "VPN update failed",
+          Text = "Too many routes. Modify your tailnet ACLs, then reconnect.",
+          ImpactsConnectivity = true,
+      )
+
+  @Test
+  fun backendFailureWarningAppearsWhileStoppedAndSurvivesRetries() = runTest {
+    val healthFlow = MutableStateFlow<Health.State?>(null)
+    val ipnFlow = MutableStateFlow(Ipn.State.Stopped)
+    val notifier = createNotifier(healthFlow, ipnFlow, backgroundScope)
+    val warning = routeLimitWarning()
+    runCurrent()
+
+    healthFlow.value = healthState(warning, derpWarning(), warmingUpWarning())
+    disconnectReasonFlow.value = DisconnectReason.BackendFailure("Too many routes")
+    settle()
+    assertEquals(setOf(warning), notifier.currentWarnings.value)
+    assertEquals(R.drawable.warning_rounded, notifier.currentIcon.value)
+    assertEquals(listOf(warning.WarnableCode), sentNotifications)
+
+    for (state in listOf(Ipn.State.Stopping, Ipn.State.Stopped, Ipn.State.Starting)) {
+      ipnFlow.value = state
+      settle()
+      assertEquals(setOf(warning), notifier.currentWarnings.value)
+    }
+    assertEquals("Retries should not send duplicate notifications", 1, sentNotifications.size)
+
+    // The backend clears the warning only after successfully configuring a tunnel.
+    healthFlow.value = emptyHealth()
+    disconnectReasonFlow.value = null
+    ipnFlow.value = Ipn.State.Running
+    settle()
+    assertTrue(notifier.currentWarnings.value.isEmpty())
+    assertNull(notifier.currentIcon.value)
+
+    ipnFlow.value = Ipn.State.Stopped
+    settle()
+    assertTrue(notifier.currentWarnings.value.isEmpty())
+  }
+
+  @Test
+  fun routeLimitWarningClearsOnIntentionalDisconnect() = runTest {
+    val (healthFlow, ipnFlow, notifier) = createRunningNotifier()
+    val warning = routeLimitWarning()
+    healthFlow.value = healthState(warning, warmingUpWarning(), derpWarning())
+    settle()
+    assertEquals(setOf(warning), notifier.currentWarnings.value)
+
+    disconnectReasonFlow.value = DisconnectReason.UserRequested
+    ipnFlow.value = Ipn.State.Stopping
+    runCurrent()
+    assertTrue(notifier.currentWarnings.value.isEmpty())
+    assertNull(notifier.currentIcon.value)
+    verify(UninitializedApp.notificationManager).cancel(warning.WarnableCode.hashCode())
+
+    ipnFlow.value = Ipn.State.Stopped
+    settle()
+    assertTrue(notifier.currentWarnings.value.isEmpty())
+  }
+
+  @Test
+  fun intentionalDisconnectDismissesAnExistingBackendFailure() = runTest {
+    val warning = routeLimitWarning()
+    val healthFlow = MutableStateFlow<Health.State?>(healthState(warning))
+    val ipnFlow = MutableStateFlow(Ipn.State.Stopped)
+    disconnectReasonFlow.value = DisconnectReason.BackendFailure("Too many routes")
+    val notifier = createNotifier(healthFlow, ipnFlow, backgroundScope)
+    runCurrent()
+    assertEquals(setOf(warning), notifier.currentWarnings.value)
+
+    // The service is already stopped, so dismiss the failure without waiting for a state change.
+    disconnectReasonFlow.value = DisconnectReason.UserRequested
+    runCurrent()
+    assertTrue(notifier.currentWarnings.value.isEmpty())
+    assertNull(notifier.currentIcon.value)
+    verify(UninitializedApp.notificationManager).cancel(warning.WarnableCode.hashCode())
+  }
+
+  @Test
+  fun routeLimitWarningIsHiddenWhileStoppedWithoutBackendFailure() = runTest {
+    val healthFlow = MutableStateFlow<Health.State?>(healthState(routeLimitWarning()))
+    val ipnFlow = MutableStateFlow(Ipn.State.Stopped)
+    val notifier = createNotifier(healthFlow, ipnFlow, backgroundScope)
+    settle()
+    assertTrue(notifier.currentWarnings.value.isEmpty())
+
+    disconnectReasonFlow.value = DisconnectReason.UserRequested
+    settle()
+    assertTrue(notifier.currentWarnings.value.isEmpty())
+    assertTrue(sentNotifications.isEmpty())
+  }
+
+  @Test
+  fun otherBackendFailuresAlsoShowWarningsWhileStopped() = runTest {
+    val warning =
+        UnhealthyState(
+            WarnableCode = "test-backend-failure",
+            Severity = Health.Severity.high,
+            Title = "VPN update failed",
+            Text = "Could not establish VPN interface.",
+            ImpactsConnectivity = true,
+        )
+    val healthFlow = MutableStateFlow<Health.State?>(null)
+    val ipnFlow = MutableStateFlow(Ipn.State.Stopped)
+    val notifier = createNotifier(healthFlow, ipnFlow, backgroundScope)
+    disconnectReasonFlow.value = DisconnectReason.BackendFailure(warning.Text)
+    runCurrent()
+
+    // Health updates can arrive after the failure callback, including on a subsequent retry.
+    healthFlow.value = healthState(warning, warmingUpWarning(), derpWarning())
+    runCurrent()
+    assertEquals(setOf(warning), notifier.currentWarnings.value)
+    assertEquals(listOf(warning.WarnableCode), sentNotifications)
+
+    healthFlow.value = emptyHealth()
+    runCurrent()
+    assertTrue(notifier.currentWarnings.value.isEmpty())
+    assertNull(notifier.currentIcon.value)
+  }
+
+  @Test
+  fun backendFailureDoesNotShowWarningsInLoginStates() = runTest {
+    val healthFlow = MutableStateFlow<Health.State?>(healthState(routeLimitWarning()))
+    val ipnFlow = MutableStateFlow(Ipn.State.NeedsLogin)
+    disconnectReasonFlow.value = DisconnectReason.BackendFailure("Too many routes")
+    val notifier = createNotifier(healthFlow, ipnFlow, backgroundScope)
+    settle()
+    assertTrue(notifier.currentWarnings.value.isEmpty())
+    assertTrue(sentNotifications.isEmpty())
+  }
 
   private fun warmingUpWarning() =
       UnhealthyState(
@@ -82,7 +231,7 @@ class HealthNotifierTest {
       Triple<MutableStateFlow<Health.State?>, MutableStateFlow<Ipn.State>, HealthNotifier> {
     val healthFlow = MutableStateFlow<Health.State?>(null)
     val ipnFlow = MutableStateFlow(Ipn.State.Running)
-    val notifier = HealthNotifier(healthFlow, ipnFlow, backgroundScope)
+    val notifier = createNotifier(healthFlow, ipnFlow, backgroundScope)
     runCurrent()
     healthFlow.value = emptyHealth()
     settle()
@@ -119,7 +268,7 @@ class HealthNotifierTest {
   fun noWarningsWhileStoppedEvenWithUnhealthyState() = runTest {
     val healthFlow = MutableStateFlow<Health.State?>(null)
     val ipnFlow = MutableStateFlow(Ipn.State.Stopped)
-    val notifier = HealthNotifier(healthFlow, ipnFlow, backgroundScope)
+    val notifier = createNotifier(healthFlow, ipnFlow, backgroundScope)
     runCurrent()
 
     healthFlow.value = healthState(derpWarning())
@@ -129,8 +278,8 @@ class HealthNotifierTest {
 
   /**
    * Regression test for a startup init-order race: the init block launches a collector that
-   * immediately calls dropAllWarnings() (reading currentWarnings) when the initial ipn state is not
-   * Running. If currentWarnings/currentIcon are declared after the init block, that read hits a
+   * immediately calls notifyHealthUpdated() (reading currentWarnings) when the initial ipn state is
+   * not Running. If currentWarnings/currentIcon are declared after the init block, that read hits a
    * null StateFlow and NPEs. Using Dispatchers.Unconfined runs the launched coroutine eagerly
    * inside the constructor, deterministically reproducing the race on the old ordering. The NPE
    * surfaces as an uncaught coroutine exception, which kills the process on Android but only gets
@@ -144,7 +293,7 @@ class HealthNotifierTest {
     try {
       val healthFlow = MutableStateFlow<Health.State?>(healthState(derpWarning()))
       val ipnFlow = MutableStateFlow(Ipn.State.Stopped)
-      val notifier = HealthNotifier(healthFlow, ipnFlow, scope)
+      val notifier = createNotifier(healthFlow, ipnFlow, scope)
       uncaught?.let { throw it }
       assertTrue(notifier.currentWarnings.value.isEmpty())
       assertNull(notifier.currentIcon.value)
@@ -258,7 +407,7 @@ class HealthNotifierTest {
   fun rapidStateTransitionsDoNotLeakStaleWarnings() = runTest {
     val healthFlow = MutableStateFlow<Health.State?>(null)
     val ipnFlow = MutableStateFlow(Ipn.State.Stopped)
-    val notifier = HealthNotifier(healthFlow, ipnFlow, backgroundScope)
+    val notifier = createNotifier(healthFlow, ipnFlow, backgroundScope)
     runCurrent()
 
     healthFlow.value = healthState(derpWarning())

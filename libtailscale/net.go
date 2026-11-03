@@ -15,11 +15,24 @@ import (
 	"github.com/tailscale/tailscale-android/libtailscale/ifaceparse"
 	rangescalc "github.com/tailscale/tailscale-android/libtailscale/ranges_calc"
 	"github.com/tailscale/wireguard-go/tun"
+	"tailscale.com/health"
 	"tailscale.com/net/dns"
 	"tailscale.com/net/netmon"
 	"tailscale.com/util/dnsname"
 	"tailscale.com/wgengine/router"
 )
+
+// vpnUpdateWarnable remains unhealthy across disconnects and failed retries until
+// a new tunnel is successfully configured.
+var vpnUpdateWarnable = health.Register(&health.Warnable{
+	Code:                "android-vpn-update-failed",
+	Title:               "VPN update failed",
+	Severity:            health.SeverityHigh,
+	ImpactsConnectivity: true,
+	Text: func(args health.Args) string {
+		return args["error"]
+	},
+})
 
 // errVPNNotPrepared is used when VPNService.Builder.establish returns
 // null, either because the VPNService is not yet prepared or because
@@ -79,6 +92,17 @@ var googleDNSServers = []netip.Addr{
 func (b *backend) updateTUN(rcfg *router.Config, dcfg *dns.OSConfig) (err error) {
 	b.logger.Logf("updateTUN: changed")
 	defer b.logger.Logf("updateTUN: finished")
+	defer func() {
+		if err == nil {
+			return
+		}
+		description := err.Error()
+		var limitErr *rangescalc.RouteLimitError
+		if errors.As(err, &limitErr) {
+			description = fmt.Sprintf("The number of routes provisioned for this device (%d) exceeds the set limit (%d). Modify your tailnet ACLs to exclude this device from app connectors, then reconnect.", limitErr.Count, limitErr.Limit)
+		}
+		b.sys.HealthTracker.Get().SetUnhealthy(vpnUpdateWarnable, health.Args{"error": description})
+	}()
 
 	if disableTUN := len(rcfg.LocalAddrs) == 0; disableTUN {
 		b.logger.Logf("updateTUN: closing old TUNs")
@@ -98,6 +122,7 @@ func (b *backend) updateTUN(rcfg *router.Config, dcfg *dns.OSConfig) (err error)
 		if b.devices.Down() {
 			b.logger.Logf("updateTUN: tunnel brought down: %v", err)
 		}
+		vpnService.service.UpdateVpnStatus(false)
 		return nil
 	}
 
@@ -207,8 +232,6 @@ func (b *backend) updateTUN(rcfg *router.Config, dcfg *dns.OSConfig) (err error)
 		}
 		return fmt.Errorf("VpnService.Builder.establish: %v", err)
 	}
-	log.Printf("Setting vpn activity status to true")
-	vpnService.service.UpdateVpnStatus(true)
 	b.logger.Logf("updateTUN: established VPN")
 
 	if parcelFD == nil {
@@ -243,6 +266,9 @@ func (b *backend) updateTUN(rcfg *router.Config, dcfg *dns.OSConfig) (err error)
 
 	b.lastCfg = rcfg
 	b.lastDNSCfg = dcfg
+	// Do not clear on disconnect or a failed retry, even if route calculation succeeded.
+	b.sys.HealthTracker.Get().SetHealthy(vpnUpdateWarnable)
+	vpnService.service.UpdateVpnStatus(true)
 	return nil
 }
 
