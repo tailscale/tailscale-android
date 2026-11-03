@@ -5,6 +5,7 @@ package com.tailscale.ipn.ui.localapi
 
 import android.util.Log
 import com.tailscale.ipn.ui.model.IpnState
+import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.util.TSLog
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.runBlocking
@@ -77,5 +78,37 @@ class ClientTest {
     assertSame(failures[0], request().exceptionOrNull())
     assertSame(failures[1], request().exceptionOrNull())
     assertEquals(2, calls)
+  }
+
+  // A tailnet using disableIPv4 leaves peers with only an IPv6 address, and the ping used to be
+  // abandoned before any request was made, surfacing as "An unknown error occurred" in the ping
+  // view. Reaching the provider is what shows the request was attempted.
+  @Test
+  fun pingSendsARequestForAnIPv6OnlyPeer() = runBlocking {
+    val reachedBackend = IllegalStateException("Reached the backend")
+    val peer =
+        Tailcfg.Node(
+            Name = "peer.example.ts.net",
+            Addresses = listOf("fd7a:115c:a1e0:ab12:4843:cd96:626b:1/128"),
+        )
+    val response = CompletableDeferred<Result<IpnState.PingResult>>()
+    val client = Client(this) { throw reachedBackend }
+
+    client.ping(peer) { response.complete(it) }
+
+    val result = withTimeout(5_000) { response.await() }
+    assertSame(reachedBackend, result.exceptionOrNull())
+  }
+
+  @Test
+  fun pingFailsWithoutSendingWhenThePeerHasNoAddress() = runBlocking {
+    val peer = Tailcfg.Node(Name = "peer.example.ts.net", Addresses = emptyList())
+    val response = CompletableDeferred<Result<IpnState.PingResult>>()
+    val client = Client(this) { throw IllegalStateException("Must not reach the backend") }
+
+    client.ping(peer) { response.complete(it) }
+
+    val result = withTimeout(5_000) { response.await() }
+    assertEquals("No IP address for peer $peer", result.exceptionOrNull()?.message)
   }
 }
