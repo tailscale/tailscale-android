@@ -11,6 +11,10 @@ android_legacy/libs
 # Ignore ABI
 android/src/main/jniLibs/*
 
+# Developer-defined MDM policy overrides for debug builds. Copy
+# debug_policies.example.json alongside it to create one; see MDMSettings.kt.
+android/src/debug/assets/debug_policies.json
+
 # Android Studio files
 android_legacy/.idea
 android_legacy/local.properties

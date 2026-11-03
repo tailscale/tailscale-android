@@ -1,0 +1,26 @@
+{
+  "_": "Copy this file to debug_policies.json in this directory and edit it. See the comment at the top of android/src/main/java/com/tailscale/ipn/mdm/MDMSettings.kt for full instructions. Any key declared in MDMSettings.kt may be used; Settings > Current MDM Settings lists them all in the running app. Keys starting with an underscore are ignored, so they can be used as comments.",
+
+  "enabled": true,
+
+  "policies": {
+    "_boolean": "BooleanMDMSetting: true or false.",
+    "ForceEnabled": true,
+
+    "_string": "StringMDMSetting: any string, or null to leave unset.",
+    "ManagedByOrganizationName": "Debug Org",
+    "ManagedByCaption": "This device is managed by a debug policy file.",
+    "ExitNodeID": null,
+
+    "_stringArray": "StringArrayListMDMSetting: an array of strings.",
+    "HiddenNetworkDevices": ["mullvad", "tagged-devices"],
+
+    "_alwaysNeverUserDecides": "AlwaysNeverUserDecidesMDMSetting: always, never, or user-decides.",
+    "ExitNodeAllowLANAccess": "always",
+    "UseTailscaleDNSSettings": "user-decides",
+
+    "_showHide": "ShowHideMDMSetting: show or hide.",
+    "ExitNodesPicker": "show",
+    "ManageTailnetLock": "hide"
+  }
+}
