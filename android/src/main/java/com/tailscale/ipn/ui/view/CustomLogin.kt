@@ -19,7 +19,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -29,14 +28,22 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.components.Header
+import com.tailscale.ipn.ui.dataSource.AuthKeyLoginDataSource
+import com.tailscale.ipn.ui.dataSource.CustomControlURLLoginDataSource
+import com.tailscale.ipn.ui.theme.AppTheme
 import com.tailscale.ipn.ui.theme.listItem
 import com.tailscale.ipn.ui.util.AndroidTVUtil
-import com.tailscale.ipn.ui.util.set
+import com.tailscale.ipn.ui.viewModel.CustomLoginNav
 import com.tailscale.ipn.ui.viewModel.LoginWithAuthKeyViewModel
+import com.tailscale.ipn.ui.viewModel.LoginWithAuthKeyViewModelFactory
 import com.tailscale.ipn.ui.viewModel.LoginWithCustomControlURLViewModel
+import com.tailscale.ipn.ui.viewModel.LoginWithCustomControlURLViewModelFactory
 
 data class LoginViewStrings(
     var title: String,
@@ -47,81 +54,90 @@ data class LoginViewStrings(
 
 @Composable
 fun LoginWithCustomControlURLView(
-    onNavigateHome: () -> Unit,
-    backToSettings: () -> Unit,
-    viewModel: LoginWithCustomControlURLViewModel = LoginWithCustomControlURLViewModel(),
+    customLoginNav: CustomLoginNav,
+    dataSource: CustomControlURLLoginDataSource,
 ) {
+  val factory = remember(dataSource) { LoginWithCustomControlURLViewModelFactory(dataSource) }
+  val loginWithCustomControlURLViewModel: LoginWithCustomControlURLViewModel =
+      viewModel(factory = factory)
+  val error by loginWithCustomControlURLViewModel.errorDialog.collectAsStateWithLifecycle()
+
+  val strings =
+      LoginViewStrings(
+          title = stringResource(id = R.string.custom_control_menu),
+          explanation = stringResource(id = R.string.custom_control_menu_desc),
+          inputTitle = stringResource(id = R.string.custom_control_url_title),
+          placeholder = stringResource(id = R.string.custom_control_placeholder),
+      )
 
   Scaffold(
       topBar = {
         Header(
             R.string.add_account,
-            onBack = backToSettings,
+            onBack = customLoginNav.backToSettings,
             isTv = AndroidTVUtil.isAndroidTV(),
         )
       }
   ) { innerPadding ->
-    val error by viewModel.errorDialog.collectAsState()
-    val strings =
-        LoginViewStrings(
-            title = stringResource(id = R.string.custom_control_menu),
-            explanation = stringResource(id = R.string.custom_control_menu_desc),
-            inputTitle = stringResource(id = R.string.custom_control_url_title),
-            placeholder = stringResource(id = R.string.custom_control_placeholder),
-        )
-
-    error?.let { ErrorDialog(type = it, action = { viewModel.errorDialog.set(null) }) }
-
     LoginView(
         innerPadding = innerPadding,
         strings = strings,
-        onSubmitAction = { viewModel.setControlURL(it, onNavigateHome) },
+        onSubmitAction = {
+          loginWithCustomControlURLViewModel.setControlURL(it, customLoginNav.onNavigateHome)
+        },
     )
+  }
+
+  error?.let {
+    ErrorDialog(type = it, action = { loginWithCustomControlURLViewModel.clearErrorDialog() })
   }
 }
 
 @Composable
 fun LoginWithAuthKeyView(
-    onNavigateHome: () -> Unit,
-    backToSettings: () -> Unit,
-    viewModel: LoginWithAuthKeyViewModel = LoginWithAuthKeyViewModel(),
+    customLoginNav: CustomLoginNav,
+    dataSource: AuthKeyLoginDataSource,
 ) {
+  val factory = remember(dataSource) { LoginWithAuthKeyViewModelFactory(dataSource) }
+  val loginWithAuthKeyViewModel: LoginWithAuthKeyViewModel = viewModel(factory = factory)
+  val error by loginWithAuthKeyViewModel.errorDialog.collectAsStateWithLifecycle()
+
+  val strings =
+      LoginViewStrings(
+          title = stringResource(id = R.string.auth_key_title),
+          explanation = stringResource(id = R.string.auth_key_explanation),
+          inputTitle = stringResource(id = R.string.auth_key_input_title),
+          placeholder = stringResource(id = R.string.auth_key_placeholder),
+      )
 
   Scaffold(
       topBar = {
         Header(
             R.string.add_account,
-            onBack = backToSettings,
+            onBack = customLoginNav.backToSettings,
             isTv = AndroidTVUtil.isAndroidTV(),
         )
       }
   ) { innerPadding ->
-    val error by viewModel.errorDialog.collectAsState()
-    val strings =
-        LoginViewStrings(
-            title = stringResource(id = R.string.auth_key_title),
-            explanation = stringResource(id = R.string.auth_key_explanation),
-            inputTitle = stringResource(id = R.string.auth_key_input_title),
-            placeholder = stringResource(id = R.string.auth_key_placeholder),
-        )
-    // Show the error overlay if need be
-    error?.let { ErrorDialog(type = it, action = { viewModel.errorDialog.set(null) }) }
-
     LoginView(
         innerPadding = innerPadding,
         strings = strings,
-        onSubmitAction = { viewModel.setAuthKey(it, onNavigateHome) },
+        onSubmitAction = {
+          loginWithAuthKeyViewModel.setAuthKey(it, customLoginNav.onNavigateHome)
+        },
     )
   }
+
+  // Show the error overlay if need be
+  error?.let { ErrorDialog(type = it, action = { loginWithAuthKeyViewModel.clearErrorDialog() }) }
 }
 
 @Composable
-fun LoginView(
+private fun LoginView(
     innerPadding: PaddingValues = PaddingValues(16.dp),
     strings: LoginViewStrings,
     onSubmitAction: (String) -> Unit,
 ) {
-
   var textVal by remember { mutableStateOf("") }
 
   Column(
@@ -173,6 +189,25 @@ fun LoginView(
             )
           }
         },
+    )
+  }
+}
+
+@Preview(showSystemUi = true)
+@Composable
+private fun LoginPreview() {
+  val strings =
+      LoginViewStrings(
+          title = stringResource(id = R.string.auth_key_title),
+          explanation = stringResource(id = R.string.auth_key_explanation),
+          inputTitle = stringResource(id = R.string.auth_key_input_title),
+          placeholder = stringResource(id = R.string.auth_key_placeholder),
+      )
+
+  AppTheme {
+    LoginView(
+        strings = strings,
+        onSubmitAction = {},
     )
   }
 }

@@ -12,9 +12,10 @@ import kotlinx.coroutines.flow.StateFlow
 interface RunExitNodeDataSource {
   val prefs: StateFlow<Ipn.Prefs?>
 
-  fun editPrefs(
+  fun setRunningExitNode(
       scope: CoroutineScope,
-      prefsOut: Ipn.MaskedPrefs,
+      currentPrefs: Ipn.Prefs,
+      isOn: Boolean,
       callback: (Result<Ipn.Prefs>) -> Unit,
   )
 }
@@ -22,11 +23,28 @@ interface RunExitNodeDataSource {
 class RunExitNodeDataSourceImpl : RunExitNodeDataSource {
   override val prefs = Notifier.prefs
 
-  override fun editPrefs(
+  override fun setRunningExitNode(
       scope: CoroutineScope,
-      prefsOut: Ipn.MaskedPrefs,
+      currentPrefs: Ipn.Prefs,
+      isOn: Boolean,
       callback: (Result<Ipn.Prefs>) -> Unit,
   ) {
+    val prefsOut = if (isOn) setZeroRoutes(currentPrefs) else removeAllZeroRoutes(currentPrefs)
+
     Client(scope).editPrefs(prefsOut, callback)
+  }
+
+  private fun setZeroRoutes(prefs: Ipn.Prefs): Ipn.MaskedPrefs {
+    val routes = removeAllZeroRoutes(prefs).AdvertiseRoutes.orEmpty().toMutableList()
+    routes.add("0.0.0.0/0")
+    routes.add("::/0")
+
+    return Ipn.MaskedPrefs().apply { AdvertiseRoutes = routes }
+  }
+
+  private fun removeAllZeroRoutes(prefs: Ipn.Prefs): Ipn.MaskedPrefs {
+    val routes = prefs.AdvertiseRoutes.orEmpty().filterNot { it == "0.0.0.0/0" || it == "::/0" }
+
+    return Ipn.MaskedPrefs().apply { AdvertiseRoutes = routes }
   }
 }
