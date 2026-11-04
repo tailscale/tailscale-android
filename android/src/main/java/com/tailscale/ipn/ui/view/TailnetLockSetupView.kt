@@ -33,8 +33,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.Links
+import com.tailscale.ipn.ui.components.Header
 import com.tailscale.ipn.ui.theme.defaultTextColor
 import com.tailscale.ipn.ui.theme.link
+import com.tailscale.ipn.ui.util.AndroidTVUtil
 import com.tailscale.ipn.ui.util.ClipboardValueView
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.LoadingIndicator
@@ -44,7 +46,7 @@ import com.tailscale.ipn.ui.viewModel.TailnetLockSetupViewModelFactory
 
 @Composable
 fun TailnetLockSetupView(
-    backToSettings: BackNavigation,
+    backToSettings: () -> Unit,
     model: TailnetLockSetupViewModel = viewModel(factory = TailnetLockSetupViewModelFactory()),
 ) {
   val statusItems by model.statusItems.collectAsState()
@@ -52,7 +54,15 @@ fun TailnetLockSetupView(
   val tailnetLockKey by model.tailnetLockKey.collectAsState()
   val tailnetLockTlPubKey = tailnetLockKey.replace("nlpub", "tlpub")
 
-  Scaffold(topBar = { Header(R.string.tailnet_lock, onBack = backToSettings) }) { innerPadding ->
+  Scaffold(
+      topBar = {
+        Header(
+            R.string.tailnet_lock,
+            onBack = backToSettings,
+            isTv = AndroidTVUtil.isAndroidTV(),
+        )
+      }
+  ) { innerPadding ->
     LoadingIndicator.Wrap {
       LazyColumn(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
         item { ExplainerView() }

@@ -28,6 +28,9 @@ import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.Links.SUBNET_ROUTERS_KB_URL
+import com.tailscale.ipn.ui.components.Header
+import com.tailscale.ipn.ui.components.ListItemSwitch
+import com.tailscale.ipn.ui.util.AndroidTVUtil
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.itemsWithDividers
@@ -35,7 +38,7 @@ import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.viewModel.SubnetRoutingViewModel
 
 @Composable
-fun SubnetRoutingView(backToSettings: BackNavigation, model: SubnetRoutingViewModel = viewModel()) {
+fun SubnetRoutingView(backToSettings: () -> Unit, model: SubnetRoutingViewModel = viewModel()) {
   val subnetRoutes by model.advertisedRoutes.collectAsState()
   val uriHandler = LocalUriHandler.current
   val isPresentingDialog by model.isPresentingDialog.collectAsState()
@@ -47,6 +50,7 @@ fun SubnetRoutingView(backToSettings: BackNavigation, model: SubnetRoutingViewMo
         Header(
             R.string.subnet_routes,
             onBack = backToSettings,
+            isTv = AndroidTVUtil.isAndroidTV(),
             actions = {
               IconButton(onClick = { uriHandler.openUri(SUBNET_ROUTERS_KB_URL) }) {
                 Icon(
@@ -70,7 +74,7 @@ fun SubnetRoutingView(backToSettings: BackNavigation, model: SubnetRoutingViewMo
           }
         }
         item("subnetsToggle") {
-          Setting.Switch(
+          ListItemSwitch(
               R.string.use_tailscale_subnets,
               isOn = useSubnets,
               onToggle = {

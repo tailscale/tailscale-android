@@ -27,19 +27,28 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.Links
+import com.tailscale.ipn.ui.components.Header
 import com.tailscale.ipn.ui.theme.defaultTextColor
 import com.tailscale.ipn.ui.theme.link
+import com.tailscale.ipn.ui.util.AndroidTVUtil
 import com.tailscale.ipn.ui.util.ClipboardValueView
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.viewModel.BugReportViewModel
 
 @Composable
-fun BugReportView(backToSettings: BackNavigation, model: BugReportViewModel = viewModel()) {
+fun BugReportView(backToSettings: () -> Unit, model: BugReportViewModel = viewModel()) {
   val bugReportID by model.bugReportID.collectAsState()
 
-  Scaffold(topBar = { Header(R.string.bug_report_title, onBack = backToSettings) }) { innerPadding
-    ->
+  Scaffold(
+      topBar = {
+        Header(
+            R.string.bug_report_title,
+            onBack = backToSettings,
+            isTv = AndroidTVUtil.isAndroidTV(),
+        )
+      }
+  ) { innerPadding ->
     Column(
         modifier =
             Modifier.padding(innerPadding)

@@ -19,11 +19,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.tailscale.ipn.R
+import com.tailscale.ipn.ui.components.Header
 import com.tailscale.ipn.ui.model.Permissions
 import com.tailscale.ipn.ui.theme.exitNodeToggleButton
+import com.tailscale.ipn.ui.util.AndroidTVUtil
 
 @Composable
-fun NotificationsView(backToPermissionsView: BackNavigation, openApplicationSettings: () -> Unit) {
+fun NotificationsView(backToPermissionsView: () -> Unit, openApplicationSettings: () -> Unit) {
   val permissions = Permissions.withGrantedStatus
 
   // Find the notification permission
@@ -35,7 +37,11 @@ fun NotificationsView(backToPermissionsView: BackNavigation, openApplicationSett
 
   Scaffold(
       topBar = {
-        Header(titleRes = R.string.permission_post_notifications, onBack = backToPermissionsView)
+        Header(
+            titleRes = R.string.permission_post_notifications,
+            onBack = backToPermissionsView,
+            isTv = AndroidTVUtil.isAndroidTV(),
+        )
       }
   ) { innerPadding ->
     LazyColumn(modifier = Modifier.padding(innerPadding)) {

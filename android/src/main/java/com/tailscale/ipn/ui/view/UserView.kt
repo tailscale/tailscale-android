@@ -21,6 +21,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.tailscale.ipn.R
+import com.tailscale.ipn.ui.components.CheckedIndicator
+import com.tailscale.ipn.ui.components.SimpleActivityIndicator
 import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.theme.minTextSize
 import com.tailscale.ipn.ui.theme.short
@@ -41,6 +43,7 @@ enum class UserActionState {
 @Composable
 fun UserView(
     profile: IpnLocal.LoginProfile?,
+    isTv: Boolean,
     onClick: (() -> Unit)? = null,
     colors: ListItemColors = ListItemDefaults.colors(),
     actionState: UserActionState = UserActionState.NONE,
@@ -52,7 +55,7 @@ fun UserView(
       ListItem(
           modifier = modifier,
           colors = colors,
-          leadingContent = { Avatar(profile = profile, size = 36) },
+          leadingContent = { Avatar(profile = profile, isTv = isTv, size = 36) },
           headlineContent = {
             AutoResizingText(
                 text = profile.UserProfile.LoginName,

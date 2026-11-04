@@ -17,13 +17,13 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.tailscale.ipn.App
 import com.tailscale.ipn.R
+import com.tailscale.ipn.ui.components.ActivityIndicator
+import com.tailscale.ipn.ui.components.CheckedIndicator
 import com.tailscale.ipn.ui.localapi.Client
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.util.set
-import com.tailscale.ipn.ui.view.ActivityIndicator
-import com.tailscale.ipn.ui.view.CheckedIndicator
 import com.tailscale.ipn.ui.view.ErrorDialogType
 import com.tailscale.ipn.util.TSLog
 import com.tailscale.ipn.util.TaildropUsageTracker

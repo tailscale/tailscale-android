@@ -4,7 +4,6 @@
 package com.tailscale.ipn.ui.view
 
 import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -16,7 +15,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -39,15 +37,20 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
+import com.tailscale.ipn.ui.components.DropdownMenuItem
+import com.tailscale.ipn.ui.components.Header
+import com.tailscale.ipn.ui.components.ListItemText
+import com.tailscale.ipn.ui.util.AndroidTVUtil
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.itemsWithDividers
 import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.viewModel.UserSwitcherViewModel
 
 data class UserSwitcherNav(
-    val backToSettings: BackNavigation,
+    val backToSettings: () -> Unit,
     val onNavigateHome: () -> Unit,
     val onNavigateCustomControl: () -> Unit,
     val onNavigateToAuthKey: () -> Unit,
@@ -70,6 +73,7 @@ fun UserSwitcherView(nav: UserSwitcherNav, viewModel: UserSwitcherViewModel = vi
         Header(
             R.string.accounts,
             onBack = nav.backToSettings,
+            isTv = AndroidTVUtil.isAndroidTV(),
             actions = {
               Row {
                 FusMenu(
@@ -105,12 +109,17 @@ fun UserSwitcherView(nav: UserSwitcherNav, viewModel: UserSwitcherViewModel = vi
       LazyColumn {
         itemsWithDividers(users ?: emptyList()) { user ->
           if (user.ID == currentUser?.ID) {
-            UserView(profile = user, actionState = UserActionState.CURRENT)
+            UserView(
+                profile = user,
+                isTv = AndroidTVUtil.isAndroidTV(),
+                actionState = UserActionState.CURRENT,
+            )
           } else {
             val state =
                 if (user.ID == nextUserId.value) UserActionState.SWITCHING else UserActionState.NONE
             UserView(
                 profile = user,
+                isTv = AndroidTVUtil.isAndroidTV(),
                 actionState = state,
                 onClick = {
                   nextUserId.value = user.ID
@@ -129,7 +138,7 @@ fun UserSwitcherView(nav: UserSwitcherNav, viewModel: UserSwitcherViewModel = vi
 
         item {
           Lists.SectionDivider()
-          Setting.Text(R.string.add_account) {
+          ListItemText(R.string.add_account) {
             viewModel.addProfile {
               if (it.isFailure) {
                 viewModel.errorDialog.set(ErrorDialogType.ADD_PROFILE_FAILED)
@@ -138,11 +147,11 @@ fun UserSwitcherView(nav: UserSwitcherNav, viewModel: UserSwitcherViewModel = vi
           }
 
           Lists.ItemDivider()
-          Setting.Text(R.string.reauthenticate) { viewModel.login() }
+          ListItemText(R.string.reauthenticate) { viewModel.login() }
 
           if (currentUser != null) {
             Lists.ItemDivider()
-            Setting.Text(
+            ListItemText(
                 R.string.log_out,
                 destructive = true,
                 onClick = {
@@ -155,7 +164,7 @@ fun UserSwitcherView(nav: UserSwitcherNav, viewModel: UserSwitcherViewModel = vi
           }
 
           Lists.SectionDivider()
-          Setting.Text(R.string.delete_tailnet, destructive = true) { showDeleteDialog = true }
+          ListItemText(R.string.delete_tailnet, destructive = true) { showDeleteDialog = true }
         }
       }
     }
@@ -176,7 +185,7 @@ fun UserSwitcherView(nav: UserSwitcherNav, viewModel: UserSwitcherViewModel = vi
           TextButton(
               onClick = {
                 val intent =
-                    Intent(Intent.ACTION_VIEW, Uri.parse("https://tailscale.com/contact/support"))
+                    Intent(Intent.ACTION_VIEW, "https://tailscale.com/contact/support".toUri())
                 context.startActivity(intent)
                 showDeleteDialog = false
               }
@@ -206,14 +215,14 @@ fun FusMenu(
       onDismissRequest = { viewModel.showHeaderMenu.set(false) },
       modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainer),
   ) {
-    MenuItem(
+    DropdownMenuItem(
         onClick = {
           onCustomClick()
           viewModel.showHeaderMenu.set(false)
         },
         text = stringResource(id = R.string.custom_control_menu),
     )
-    MenuItem(
+    DropdownMenuItem(
         onClick = {
           onAuthKeyClick()
           viewModel.showHeaderMenu.set(false)
@@ -245,15 +254,6 @@ fun OwnerDeleteDialogText() {
   Text(
       text = annotatedText,
       style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
-  )
-}
-
-@Composable
-fun MenuItem(text: String, onClick: () -> Unit) {
-  DropdownMenuItem(
-      modifier = Modifier.padding(horizontal = 8.dp, vertical = 0.dp),
-      onClick = onClick,
-      text = { Text(text = text) },
   )
 }
 

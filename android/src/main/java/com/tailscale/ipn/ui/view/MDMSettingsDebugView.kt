@@ -23,19 +23,28 @@ import com.tailscale.ipn.R
 import com.tailscale.ipn.mdm.DebugPolicies
 import com.tailscale.ipn.mdm.MDMSetting
 import com.tailscale.ipn.mdm.MDMSettings
+import com.tailscale.ipn.ui.components.Header
+import com.tailscale.ipn.ui.util.AndroidTVUtil
 import com.tailscale.ipn.ui.util.itemsWithDividers
 import com.tailscale.ipn.ui.viewModel.IpnViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MDMSettingsDebugView(
-    backToSettings: BackNavigation,
+    backToSettings: () -> Unit,
     @Suppress("UNUSED_PARAMETER") model: IpnViewModel = viewModel(),
 ) {
   val debugPoliciesActive by DebugPolicies.isActive.collectAsState()
 
-  Scaffold(topBar = { Header(R.string.current_mdm_settings, onBack = backToSettings) }) {
-      innerPadding ->
+  Scaffold(
+      topBar = {
+        Header(
+            R.string.current_mdm_settings,
+            onBack = backToSettings,
+            isTv = AndroidTVUtil.isAndroidTV(),
+        )
+      }
+  ) { innerPadding ->
     LazyColumn(modifier = Modifier.padding(innerPadding)) {
       if (debugPoliciesActive) {
         item {

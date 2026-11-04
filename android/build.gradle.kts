@@ -91,6 +91,7 @@ dependencies {
   debugImplementation(libs.androidx.compose.ui.tooling)
   implementation(libs.androidx.compose.ui.toolingPreview)
   implementation(libs.androidx.lifecycle.viewmodel.ktx)
+  implementation(libs.androidx.lifecycle.runtime.compose)
   implementation(libs.androidx.activity.compose)
   implementation(libs.accompanist.permissions)
   implementation(libs.accompanist.systemuicontroller)

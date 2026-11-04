@@ -22,6 +22,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
+import com.tailscale.ipn.ui.components.Header
+import com.tailscale.ipn.ui.util.AndroidTVUtil
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.flag
 import com.tailscale.ipn.ui.util.itemsWithDividers
@@ -39,7 +41,11 @@ fun MullvadExitNodePickerList(
   LoadingIndicator.Wrap {
     Scaffold(
         topBar = {
-          Header(R.string.choose_mullvad_exit_node, onBack = nav.onNavigateBackToExitNodes)
+          Header(
+              R.string.choose_mullvad_exit_node,
+              onBack = nav.onNavigateBackToExitNodes,
+              isTv = AndroidTVUtil.isAndroidTV(),
+          )
         }
     ) { innerPadding ->
       val mullvadExitNodes by model.mullvadExitNodesByCountryCode.collectAsState()
