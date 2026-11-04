@@ -6,63 +6,102 @@ package com.tailscale.ipn.ui.view
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.safeContentPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tailscale.ipn.R
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.components.Header
+import com.tailscale.ipn.ui.theme.AppTheme
 import com.tailscale.ipn.ui.util.AndroidTVUtil
-import com.tailscale.ipn.ui.viewModel.IpnViewModel
 
-@Suppress("UNUSED_PARAMETER")
 @Composable
-fun ManagedByView(backToSettings: () -> Unit, model: IpnViewModel = viewModel()) {
+fun ManagedByView(backToSettings: () -> Unit) {
+  val organization by MDMSettings.managedByOrganizationName.flow.collectAsStateWithLifecycle()
+  val caption by MDMSettings.managedByCaption.flow.collectAsStateWithLifecycle()
+  val supportUrl by MDMSettings.managedByURL.flow.collectAsStateWithLifecycle()
+
+  val uiState =
+      ManagedByUiState(
+          organizationName = organization.value,
+          caption = caption.value,
+          supportUrl = supportUrl.value,
+      )
+
+  ManagedByScreen(
+      state = uiState,
+      backToSettings = backToSettings,
+      isTv = AndroidTVUtil.isAndroidTV(),
+  )
+}
+
+private data class ManagedByUiState(
+    val organizationName: String?,
+    val caption: String?,
+    val supportUrl: String?,
+)
+
+@Composable
+private fun ManagedByScreen(
+    state: ManagedByUiState,
+    isTv: Boolean,
+    backToSettings: () -> Unit,
+) {
   Scaffold(
       topBar = {
         Header(
             R.string.managed_by,
             onBack = backToSettings,
-            isTv = AndroidTVUtil.isAndroidTV(),
+            isTv = isTv,
         )
       }
-  ) { _ ->
+  ) { innerPadding ->
     Column(
         verticalArrangement =
             Arrangement.spacedBy(space = 20.dp, alignment = Alignment.CenterVertically),
-        horizontalAlignment = Alignment.Start,
+        horizontalAlignment = Alignment.CenterHorizontally,
         modifier =
-            Modifier.fillMaxWidth().safeContentPadding().verticalScroll(rememberScrollState()),
+            Modifier.padding(innerPadding)
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .verticalScroll(rememberScrollState()),
     ) {
-      val managedByOrganization =
-          MDMSettings.managedByOrganizationName.flow.collectAsState().value.value
-      val managedByCaption = MDMSettings.managedByCaption.flow.collectAsState().value.value
-      val managedByURL = MDMSettings.managedByURL.flow.collectAsState().value.value
-      managedByOrganization?.let { Text(stringResource(R.string.managed_by_explainer_orgName, it)) }
-          ?: run { Text(stringResource(R.string.managed_by_explainer)) }
-      managedByCaption?.let {
-        if (it.isNotEmpty()) {
-          Text(it)
-        }
-      }
-      managedByURL?.let { OpenURLButton(stringResource(R.string.open_support), it) }
+      state.organizationName?.let {
+        Text(stringResource(R.string.managed_by_explainer_orgName, it))
+      } ?: run { Text(stringResource(R.string.managed_by_explainer)) }
+
+      state.caption?.takeIf { it.isNotEmpty() }?.let { Text(it) }
+
+      state.supportUrl
+          ?.takeIf { it.isNotEmpty() }
+          ?.let { OpenURLButton(stringResource(R.string.open_support), it) }
     }
   }
 }
 
-@Preview
+@Preview(showSystemUi = true)
 @Composable
-fun ManagedByViewPreview() {
-  val vm = IpnViewModel()
-  ManagedByView(backToSettings = {}, vm)
+fun ManagedByPreview() {
+  AppTheme {
+    ManagedByScreen(
+        state =
+            ManagedByUiState(
+                organizationName = "Tailscale",
+                caption = "Your organization requires this",
+                supportUrl = "https://tailscale.com",
+            ),
+        isTv = false,
+        backToSettings = {},
+    )
+  }
 }
