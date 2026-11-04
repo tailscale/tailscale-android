@@ -3,33 +3,75 @@
 
 package com.tailscale.ipn.ui.viewModel
 
-import com.tailscale.ipn.ui.util.set
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
+import com.tailscale.ipn.ui.dataSource.AuthKeyLoginDataSource
+import com.tailscale.ipn.ui.dataSource.CustomControlURLLoginDataSource
 import com.tailscale.ipn.ui.view.ErrorDialogType
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
-const val AUTH_KEY_LENGTH = 16
+data class CustomLoginNav(
+    val backToSettings: () -> Unit,
+    val onNavigateHome: () -> Unit,
+)
 
-open class CustomLoginViewModel : IpnViewModel() {
-  val errorDialog: StateFlow<ErrorDialogType?> = MutableStateFlow(null)
+class LoginWithAuthKeyViewModelFactory(
+    private val loginActions: AuthKeyLoginDataSource,
+) : ViewModelProvider.Factory {
+  @Suppress("UNCHECKED_CAST")
+  override fun <T : ViewModel> create(modelClass: Class<T>): T {
+    if (modelClass.isAssignableFrom(LoginWithAuthKeyViewModel::class.java)) {
+      return LoginWithAuthKeyViewModel(loginActions) as T
+    }
+    throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
+  }
 }
 
-class LoginWithAuthKeyViewModel : CustomLoginViewModel() {
+class LoginWithAuthKeyViewModel(
+    private val loginActions: AuthKeyLoginDataSource,
+) : ViewModel() {
+  private val _errorDialog = MutableStateFlow<ErrorDialogType?>(null)
+  val errorDialog: StateFlow<ErrorDialogType?> = _errorDialog.asStateFlow()
+
   // Sets the auth key and invokes the login flow
   fun setAuthKey(authKey: String, onSuccess: () -> Unit) {
     // The most basic of checks for auth key syntax
     if (authKey.isEmpty()) {
-      errorDialog.set(ErrorDialogType.INVALID_AUTH_KEY)
+      _errorDialog.value = ErrorDialogType.INVALID_AUTH_KEY
       return
     }
-    loginWithAuthKey(authKey) {
-      it.onFailure { errorDialog.set(ErrorDialogType.ADD_PROFILE_FAILED) }
+    loginActions.loginWithAuthKey(viewModelScope, authKey) {
+      it.onFailure { _errorDialog.value = ErrorDialogType.ADD_PROFILE_FAILED }
       it.onSuccess { onSuccess() }
     }
   }
+
+  fun clearErrorDialog() {
+    _errorDialog.value = null
+  }
 }
 
-class LoginWithCustomControlURLViewModel : CustomLoginViewModel() {
+class LoginWithCustomControlURLViewModelFactory(
+    private val loginActions: CustomControlURLLoginDataSource,
+) : ViewModelProvider.Factory {
+  @Suppress("UNCHECKED_CAST")
+  override fun <T : ViewModel> create(modelClass: Class<T>): T {
+    if (modelClass.isAssignableFrom(LoginWithCustomControlURLViewModel::class.java)) {
+      return LoginWithCustomControlURLViewModel(loginActions) as T
+    }
+    throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
+  }
+}
+
+class LoginWithCustomControlURLViewModel(
+    private val loginActions: CustomControlURLLoginDataSource,
+) : ViewModel() {
+  private val _errorDialog = MutableStateFlow<ErrorDialogType?>(null)
+  val errorDialog: StateFlow<ErrorDialogType?> = _errorDialog.asStateFlow()
+
   // Sets the custom control URL and invokes the login flow
   fun setControlURL(urlStr: String, onSuccess: () -> Unit) {
     // Some basic checks that the entered URL is "reasonable".  The underlying
@@ -40,15 +82,19 @@ class LoginWithCustomControlURLViewModel : CustomLoginViewModel() {
         urlStr.startsWith("http", ignoreCase = true) && urlStr.contains("://") && urlStr.length > 7
     ) {
       false -> {
-        errorDialog.set(ErrorDialogType.INVALID_CUSTOM_URL)
+        _errorDialog.value = ErrorDialogType.INVALID_CUSTOM_URL
         return
       }
       true -> {
-        loginWithCustomControlURL(urlStr) {
-          it.onFailure { errorDialog.set(ErrorDialogType.ADD_PROFILE_FAILED) }
+        loginActions.loginWithCustomControlURL(viewModelScope, urlStr) {
+          it.onFailure { _errorDialog.value = ErrorDialogType.ADD_PROFILE_FAILED }
           it.onSuccess { onSuccess() }
         }
       }
     }
+  }
+
+  fun clearErrorDialog() {
+    _errorDialog.value = null
   }
 }
