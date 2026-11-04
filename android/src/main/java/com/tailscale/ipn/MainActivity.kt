@@ -58,6 +58,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.mdm.ShowHide
+import com.tailscale.ipn.ui.dataSource.AndroidSettingsDataSource
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.navigation.AboutRoute
 import com.tailscale.ipn.ui.navigation.BugReportRoute
@@ -415,7 +416,13 @@ class MainActivity : ComponentActivity() {
                 )
               }
               composable<SettingsRoute> {
-                SettingsView(settingsNav = settingsNav, appViewModel = appViewModel)
+                val dataSource = remember { AndroidSettingsDataSource() }
+                SettingsView(
+                    settingsNav = settingsNav,
+                    dataSource = dataSource,
+                    mainViewModel = viewModel,
+                    appViewModel = appViewModel,
+                )
               }
               composable<ExitNodesRoute> { ExitNodePicker(exitNodePickerNav) }
               composable<HealthRoute> { HealthView(backTo<MainRoute>()) }
