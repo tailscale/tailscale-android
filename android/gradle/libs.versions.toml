@@ -1,7 +1,7 @@
 [versions]
 accompanist = "0.34.0"
 coroutines = "1.8.1"
-navigation = "2.8.5"
+navigation = "2.10.2"
 core = "1.13.1"
 compose-bom = "2024.09.03"
 kotlin = "2.2.10"

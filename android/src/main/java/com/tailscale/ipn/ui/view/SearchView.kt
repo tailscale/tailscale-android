@@ -56,6 +56,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.tailscale.ipn.R
+import com.tailscale.ipn.ui.navigation.PeerDetailsRoute
 import com.tailscale.ipn.ui.theme.listItem
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.viewModel.MainViewModel
@@ -237,7 +238,7 @@ fun SearchView(
                               .padding(horizontal = 4.dp, vertical = 0.dp)
                               .clickable {
                                 viewModel.disableSearchAutoFocus()
-                                navController.navigate("peerDetails/${peer.StableID}")
+                                navController.navigate(PeerDetailsRoute(peer.StableID))
                               },
                   )
                 }

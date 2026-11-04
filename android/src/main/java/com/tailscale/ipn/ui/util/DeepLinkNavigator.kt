@@ -4,8 +4,13 @@
 package com.tailscale.ipn.ui.util
 
 import android.net.Uri
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
 import com.tailscale.ipn.ui.model.Tailcfg
+import com.tailscale.ipn.ui.navigation.ExitNodesRoute
+import com.tailscale.ipn.ui.navigation.MainRoute
+import com.tailscale.ipn.ui.navigation.PeerDetailsRoute
+import com.tailscale.ipn.ui.navigation.SettingsRoute
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.util.TSLog
 
@@ -70,7 +75,7 @@ class DeepLinkNavigator(private val navController: NavHostController) {
       TSLog.d(TAG, "Deep link: device not found for '$identifier'")
       return false
     }
-    navigateOverMain("peerDetails/${node.StableID}")
+    navigateOverMain(PeerDetailsRoute(node.StableID))
     return true
   }
 
@@ -82,25 +87,25 @@ class DeepLinkNavigator(private val navController: NavHostController) {
   }
 
   private fun showExitNodePicker() {
-    navigateOverMain("exitNodes")
+    navigateOverMain(ExitNodesRoute)
   }
 
   private fun showSettings() {
-    navigateOverMain("settings")
+    navigateOverMain(SettingsRoute)
   }
 
-  private fun navigateOverMain(route: String) {
+  private inline fun <reified T : Any> navigateOverMain(route: T) {
     navController.navigate(route) {
-      popUpTo("main") { inclusive = false }
+      popUpTo<MainRoute> { inclusive = false }
       launchSingleTop = true
     }
   }
 
   private fun popToMain() {
-    if (navController.currentDestination?.route == "main") {
+    if (navController.currentDestination?.hasRoute<MainRoute>() == true) {
       return
     }
-    if (!navController.popBackStack(route = "main", inclusive = false)) {
+    if (!navController.popBackStack<MainRoute>(inclusive = false)) {
       TSLog.d(TAG, "Deep link: failed to pop back stack to 'main'")
     }
   }

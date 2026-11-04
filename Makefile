@@ -29,9 +29,15 @@ GOMOBILE_BUILD_TAGS := ts_omit_cachenetmap
 
 # Pull androidApiLevel from gradle.properties.
 ANDROID_API_LEVEL := $(shell grep '^androidApiLevel=' android/gradle.properties | cut -d'=' -f2)
+# Pull androidCompileSdk from gradle.properties.
+ANDROID_COMPILE_SDK := $(shell grep '^androidCompileSdk=' android/gradle.properties | cut -d'=' -f2)
 
 ifeq ($(ANDROID_API_LEVEL),)
 $(error androidApiLevel missing from android/gradle.properties)
+endif
+
+ifeq ($(ANDROID_COMPILE_SDK),)
+$(error androidCompileSdk missing from android/gradle.properties)
 endif
 
 ANDROID_BUILD_TOOLS_VERSION := $(shell grep '^androidBuildToolsVersion=' android/gradle.properties | cut -d'=' -f2)
@@ -65,7 +71,7 @@ else
     ANDROID_TOOLS_URL := "https://dl.google.com/android/repository/commandlinetools-mac-9477386_latest.zip"
     ANDROID_TOOLS_SUM := "2072ffce4f54cdc0e6d2074d2f381e7e579b7d63e915c220b96a7db95b2900ee  commandlinetools-mac-9477386_latest.zip"
 endif
-ANDROID_SDK_PACKAGES := 'platforms;android-$(ANDROID_API_LEVEL)' 'extras;android;m2repository' 'ndk;23.1.7779620' 'platform-tools' 'build-tools;$(ANDROID_BUILD_TOOLS_VERSION)'
+ANDROID_SDK_PACKAGES := 'platforms;android-$(ANDROID_API_LEVEL)' 'platforms;android-$(ANDROID_COMPILE_SDK)' 'extras;android;m2repository' 'ndk;23.1.7779620' 'platform-tools' 'build-tools;$(ANDROID_BUILD_TOOLS_VERSION)'
 
 # Attempt to find an ANDROID_SDK_ROOT / ANDROID_HOME based either from
 # preexisting environment or common locations.
