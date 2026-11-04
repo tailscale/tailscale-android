@@ -11,6 +11,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -25,7 +26,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,29 +38,56 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.components.Header
+import com.tailscale.ipn.ui.dataSource.HealthDataSource
 import com.tailscale.ipn.ui.model.Health
+import com.tailscale.ipn.ui.theme.AppTheme
 import com.tailscale.ipn.ui.theme.success
 import com.tailscale.ipn.ui.util.AndroidTVUtil.isAndroidTV
 import com.tailscale.ipn.ui.viewModel.HealthViewModel
+import com.tailscale.ipn.ui.viewModel.HealthViewModelFactory
 
 @Composable
-fun HealthView(backToSettings: () -> Unit, model: HealthViewModel = viewModel()) {
-  val warnings by model.warnings.collectAsState()
+fun HealthView(
+    backToSettings: () -> Unit,
+    dataSource: HealthDataSource,
+) {
+  val factory = remember(dataSource) { HealthViewModelFactory(dataSource) }
+  val healthViewModel: HealthViewModel = viewModel(factory = factory)
+  val warnings by healthViewModel.warnings.collectAsStateWithLifecycle()
 
+  HealthScreen(
+      warnings = warnings,
+      backToSettings = backToSettings,
+      isTv = isAndroidTV(),
+  )
+}
+
+@Composable
+private fun HealthScreen(
+    warnings: List<Health.UnhealthyState>,
+    backToSettings: () -> Unit,
+    isTv: Boolean,
+) {
   Scaffold(
       topBar = {
         Header(
             titleRes = R.string.health_warnings,
             onBack = backToSettings,
-            isTv = isAndroidTV(),
+            isTv = isTv,
         )
       }
   ) { innerPadding ->
-    LazyColumn(modifier = Modifier.padding(innerPadding)) {
+    LazyColumn(
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        contentPadding = PaddingValues(vertical = 8.dp),
+        modifier = Modifier.padding(innerPadding),
+    ) {
       if (warnings.isEmpty()) {
         item("allGood") {
           Column(
@@ -92,16 +119,31 @@ fun HealthView(backToSettings: () -> Unit, model: HealthViewModel = viewModel())
             }
           }
         }
+      } else {
+        items(warnings) { warning ->
+          Box(
+              modifier =
+                  Modifier.fillMaxWidth()
+                      .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                      .padding(horizontal = 16.dp)
+          ) {
+            HealthWarningView(
+                warning = warning,
+                isTv = isTv,
+            )
+          }
+        }
       }
-
-      items(warnings) { HealthWarningView(it) }
     }
   }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun HealthWarningView(warning: Health.UnhealthyState) {
+private fun HealthWarningView(
+    warning: Health.UnhealthyState,
+    isTv: Boolean,
+) {
   val localClipboardManager = LocalClipboardManager.current
   val context = LocalContext.current
   val copiedText = stringResource(R.string.copied)
@@ -109,50 +151,99 @@ fun HealthWarningView(warning: Health.UnhealthyState) {
 
   // Android TV has no clipboard.
   val itemModifier =
-      if (isAndroidTV()) {
+      if (isTv) {
         Modifier
       } else {
         Modifier.combinedClickable(onClick = {}, onLongClick = { menuExpanded = true })
       }
 
-  Box(modifier = Modifier.background(color = MaterialTheme.colorScheme.surfaceContainerLow)) {
-    Box(
-        modifier =
-            Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp)
-                .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
-                .fillMaxWidth()
-    ) {
-      ListItem(
-          modifier = itemModifier,
-          colors = warning.Severity.listItemColors(),
-          headlineContent = {
-            if (warning.Title.isNotEmpty()) {
-              Text(
-                  warning.Title,
-                  style = MaterialTheme.typography.titleMedium,
-              )
-            }
-          },
-          supportingContent = { Text(warning.Text, style = MaterialTheme.typography.bodyMedium) },
-      )
+  Box(modifier = Modifier.clip(RoundedCornerShape(10.dp)).fillMaxWidth()) {
+    ListItem(
+        modifier = itemModifier,
+        colors = warning.Severity.listItemColors(),
+        headlineContent = {
+          if (warning.Title.isNotEmpty()) {
+            Text(
+                warning.Title,
+                style = MaterialTheme.typography.titleMedium,
+            )
+          }
+        },
+        supportingContent = { Text(warning.Text, style = MaterialTheme.typography.bodyMedium) },
+    )
 
-      // Copy for now; KB-page links to follow.
-      DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-        DropdownMenuItem(
-            leadingIcon = {
-              Icon(painter = painterResource(R.drawable.clipboard), contentDescription = null)
-            },
-            text = { Text(text = stringResource(R.string.copy)) },
-            onClick = {
-              localClipboardManager.setText(AnnotatedString(warning.clipboardText))
-              // Android 13+ shows its own copy confirmation.
-              if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-                Toast.makeText(context, copiedText, Toast.LENGTH_SHORT).show()
-              }
-              menuExpanded = false
-            },
-        )
-      }
+    // Copy for now; KB-page links to follow.
+    DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+      DropdownMenuItem(
+          leadingIcon = {
+            Icon(painter = painterResource(R.drawable.clipboard), contentDescription = null)
+          },
+          text = { Text(text = stringResource(R.string.copy)) },
+          onClick = {
+            localClipboardManager.setText(AnnotatedString(warning.clipboardText))
+            // Android 13+ shows its own copy confirmation.
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+              Toast.makeText(context, copiedText, Toast.LENGTH_SHORT).show()
+            }
+            menuExpanded = false
+          },
+      )
     }
+  }
+}
+
+@Preview(showSystemUi = true)
+@Composable
+private fun HealthPreviewEmpty() {
+  AppTheme {
+    HealthScreen(
+        warnings = emptyList(),
+        backToSettings = {},
+        isTv = false,
+    )
+  }
+}
+
+@Preview(showSystemUi = true)
+@Composable
+private fun HealthPreview() {
+  AppTheme {
+    HealthScreen(
+        warnings =
+            listOf(
+                Health.UnhealthyState(
+                    WarnableCode = "123",
+                    Severity = Health.Severity.high,
+                    Title = "This is a warning",
+                    Text = "This is the text of the warning",
+                    BrokenSince = null,
+                    Args = null,
+                    ImpactsConnectivity = false,
+                    DependsOn = null,
+                ),
+                Health.UnhealthyState(
+                    WarnableCode = "123",
+                    Severity = Health.Severity.medium,
+                    Title = "This is a warning",
+                    Text = "This is the text of the warning",
+                    BrokenSince = null,
+                    Args = null,
+                    ImpactsConnectivity = false,
+                    DependsOn = null,
+                ),
+                Health.UnhealthyState(
+                    WarnableCode = "123",
+                    Severity = Health.Severity.low,
+                    Title = "This is a warning",
+                    Text = "This is the text of the warning",
+                    BrokenSince = null,
+                    Args = null,
+                    ImpactsConnectivity = false,
+                    DependsOn = null,
+                ),
+            ),
+        backToSettings = {},
+        isTv = false,
+    )
   }
 }
