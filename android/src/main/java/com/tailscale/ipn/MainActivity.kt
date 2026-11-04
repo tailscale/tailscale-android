@@ -59,6 +59,7 @@ import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.mdm.ShowHide
 import com.tailscale.ipn.ui.dataSource.DNSSettingsDataSourceImpl
 import com.tailscale.ipn.ui.dataSource.ExitNodePickerDataSourceImpl
+import com.tailscale.ipn.ui.dataSource.HealthDataSourceImpl
 import com.tailscale.ipn.ui.dataSource.PeerDetailsDataSourceImpl
 import com.tailscale.ipn.ui.dataSource.RunExitNodeDataSourceImpl
 import com.tailscale.ipn.ui.dataSource.SettingsDataSourceImpl
@@ -433,7 +434,13 @@ class MainActivity : ComponentActivity() {
                     dataSource = dataSource,
                 )
               }
-              composable<HealthRoute> { HealthView(backTo<MainRoute>()) }
+              composable<HealthRoute> {
+                val dataSource = remember { HealthDataSourceImpl() }
+                HealthView(
+                    backToSettings = backTo<MainRoute>(),
+                    dataSource = dataSource,
+                )
+              }
               composable<MullvadRoute> {
                 val dataSource = remember { ExitNodePickerDataSourceImpl() }
                 MullvadExitNodePickerListView(
