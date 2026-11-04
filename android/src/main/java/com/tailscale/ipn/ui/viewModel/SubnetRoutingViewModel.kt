@@ -5,18 +5,29 @@ package com.tailscale.ipn.ui.viewModel
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.tailscale.ipn.ui.localapi.Client
+import com.tailscale.ipn.ui.dataSource.SubnetRoutingDataSource
 import com.tailscale.ipn.ui.model.Ipn
-import com.tailscale.ipn.ui.notifier.Notifier
-import com.tailscale.ipn.ui.util.set
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
+
+class SubnetRoutingViewModelFactory(
+    private val dataSource: SubnetRoutingDataSource,
+) : ViewModelProvider.Factory {
+  @Suppress("UNCHECKED_CAST")
+  override fun <T : ViewModel> create(modelClass: Class<T>): T {
+    if (modelClass.isAssignableFrom(SubnetRoutingViewModel::class.java)) {
+      return SubnetRoutingViewModel(dataSource) as T
+    }
+    throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
+  }
+}
 
 /**
  * SubnetRoutingViewModel is responsible for managing the content of the subnet router management
@@ -24,20 +35,25 @@ import kotlinx.coroutines.launch
  * advertised routes change. It also handles the state of the editing dialog, and updates the
  * preferences stored in the backend when the routes are edited in the UI.
  */
-class SubnetRoutingViewModel : ViewModel() {
+class SubnetRoutingViewModel(
+    private val dataSource: SubnetRoutingDataSource,
+) : ViewModel() {
   private val TAG = "SubnetRoutingViewModel"
 
   /** Matches the value of the "RouteAll" backend preference. */
-  val routeAll: StateFlow<Boolean> = MutableStateFlow(true)
+  private val _routeAll = MutableStateFlow(true)
+  val routeAll: StateFlow<Boolean> = _routeAll.asStateFlow()
 
   /**
    * The advertised routes displayed at any point in time in the UI. The class observes this value
    * for changes, and updates the backend preferences accordingly.
    */
-  val advertisedRoutes: StateFlow<List<String>> = MutableStateFlow(listOf())
+  private val _advertisedRoutes = MutableStateFlow<List<String>>(emptyList())
+  val advertisedRoutes: StateFlow<List<String>> = _advertisedRoutes.asStateFlow()
 
   /** Whether we are presenting the add/edit dialog to set/change the value of a route. */
-  val isPresentingDialog: StateFlow<Boolean> = MutableStateFlow(false)
+  private val _isPresentingDialog = MutableStateFlow(false)
+  val isPresentingDialog: StateFlow<Boolean> = _isPresentingDialog.asStateFlow()
 
   /**
    * When editing a route, this stores the initial value. It is used to determine which of the
@@ -45,23 +61,26 @@ class SubnetRoutingViewModel : ViewModel() {
    * dialog should reset it to empty as well. If the user is adding a new route, this will be empty
    * despite isPresentingDialog being true.
    */
-  private val editingRoute: StateFlow<String> = MutableStateFlow("")
+  private val _editingRoute = MutableStateFlow("")
 
   /** The value currently entered in the add/edit dialog text field. */
-  val dialogTextFieldValue: MutableStateFlow<String> = MutableStateFlow("")
+  private val _dialogTextFieldValue = MutableStateFlow("")
+  val dialogTextFieldValue: StateFlow<String> = _dialogTextFieldValue.asStateFlow()
 
   /**
    * True if the value currently entered in the dialog text field is valid, false otherwise. If the
    * text field is empty, this returns true as we don't want to display an error state when the user
    * hasn't entered anything.
    */
-  val isTextFieldValueValid: StateFlow<Boolean> = MutableStateFlow(true)
+  private val _isTextFieldValueValid = MutableStateFlow(true)
+  val isTextFieldValueValid: StateFlow<Boolean> = _isTextFieldValueValid.asStateFlow()
 
   /**
    * If an error occurred while saving the ipn.Prefs to the backend this value is non-null.
    * Subsequent successful attempts to save will clear it.
    */
-  val currentError: MutableStateFlow<String?> = MutableStateFlow(null)
+  private val _currentError = MutableStateFlow<String?>(null)
+  val currentError: StateFlow<String?> = _currentError.asStateFlow()
 
   init {
     viewModelScope.launch {
@@ -69,12 +88,12 @@ class SubnetRoutingViewModel : ViewModel() {
       // whether it is valid or invalid, and set isTextFieldValueValid accordingly.
       dialogTextFieldValue.collect { newValue ->
         if (newValue.isEmpty()) {
-          isTextFieldValueValid.set(true)
+          _isTextFieldValueValid.value = true
           return@collect
         }
         val isValid = isValidCIDR(newValue)
         Log.v(TAG, "isValidCIDR($newValue): $isValid")
-        isTextFieldValueValid.set(isValid)
+        _isTextFieldValueValid.value = isValid
         return@collect
       }
     }
@@ -82,7 +101,7 @@ class SubnetRoutingViewModel : ViewModel() {
     viewModelScope.launch {
       // Similarly, if the routes change in the backend at any time, we should also reflect
       // that change in the UI.
-      Notifier.prefs
+      dataSource.prefs
           // Ignore any prefs updates without AdvertiseRoutes
           .mapNotNull { it?.AdvertiseRoutes }
           // Ignore duplicate values to prevent an unnecessary UI update
@@ -92,17 +111,17 @@ class SubnetRoutingViewModel : ViewModel() {
           .filter { it != advertisedRoutes }
           .collect { newRoutesFromBackend ->
             Log.d(TAG, "AdvertiseRoutes changed in the backend: $newRoutesFromBackend")
-            advertisedRoutes.set(newRoutesFromBackend)
+            _advertisedRoutes.value = newRoutesFromBackend
           }
     }
 
     viewModelScope.launch {
-      Notifier.prefs
-          .map { it?.RouteAll }
+      dataSource.prefs
+          .mapNotNull { it?.RouteAll }
           .distinctUntilChanged()
-          .collect {
-            Log.d(TAG, "RouteAll changed in the backend: $it")
-            routeAll.set(it)
+          .collect { routeAll ->
+            Log.d(TAG, "RouteAll changed in the backend: $routeAll")
+            _routeAll.value = routeAll
           }
     }
 
@@ -111,32 +130,31 @@ class SubnetRoutingViewModel : ViewModel() {
         val prefsOut = Ipn.MaskedPrefs()
         prefsOut.RouteAll = it
         Log.d(TAG, "Will save RouteAll in the backend: $it")
-        Client(viewModelScope)
-            .editPrefs(
-                prefsOut,
-                responseHandler = { result ->
-                  if (result.isFailure) {
-                    Log.e(TAG, "Error saving RouteAll: ${result.exceptionOrNull()}")
-                    currentError.set(result.exceptionOrNull()?.localizedMessage)
-                    return@editPrefs
-                  } else {
-                    Log.d(
-                        TAG,
-                        "RouteAll set in backend. New value: ${result.getOrNull()?.RouteAll}",
-                    )
-                    currentError.set(null)
-                  }
-                },
+        dataSource.editPrefs(viewModelScope, prefsOut) { result ->
+          if (result.isFailure) {
+            Log.e(TAG, "Error saving RouteAll: ${result.exceptionOrNull()}")
+            _currentError.value = result.exceptionOrNull()?.localizedMessage
+            return@editPrefs
+          } else {
+            Log.d(
+                TAG,
+                "RouteAll set in backend. New value: ${result.getOrNull()?.RouteAll}",
             )
+            _currentError.value = null
+          }
+        }
       }
     }
   }
 
   // Public functions
 
-  fun toggleUseSubnets(onDone: () -> Unit) {
-    routeAll.set(!routeAll.value)
-    onDone()
+  fun toggleUseSubnets() {
+    _routeAll.value = !routeAll.value
+  }
+
+  fun updateDialogTextFieldValue(value: String) {
+    _dialogTextFieldValue.value = value
   }
 
   /**
@@ -153,7 +171,7 @@ class SubnetRoutingViewModel : ViewModel() {
       return
     }
     currentRoutes.remove(route)
-    advertisedRoutes.set(currentRoutes)
+    _advertisedRoutes.value = currentRoutes
     saveRoutesToPrefs()
   }
 
@@ -163,24 +181,24 @@ class SubnetRoutingViewModel : ViewModel() {
    */
   fun startEditingRoute(route: String) {
     Log.d(TAG, "startEditingRoute: $route")
-    editingRoute.set(route)
-    dialogTextFieldValue.set(route)
-    isPresentingDialog.set(true)
+    _editingRoute.value = route
+    _dialogTextFieldValue.value = route
+    _isPresentingDialog.value = true
   }
 
   /** Commits the changes made so far in the editing dialog. */
   fun doneEditingRoute(newValue: String) {
     Log.d(TAG, "doneEditingRoute: $newValue")
-    editRoute(editingRoute.value, newValue)
+    editRoute(_editingRoute.value, newValue)
     stopEditingRoute()
   }
 
   /** Cancels any current editing session and closes the dialog. */
   fun stopEditingRoute() {
     Log.d(TAG, "stopEditingRoute")
-    isPresentingDialog.set(false)
-    dialogTextFieldValue.set("")
-    editingRoute.set("")
+    _isPresentingDialog.value = false
+    _dialogTextFieldValue.value = ""
+    _editingRoute.value = ""
   }
 
   /**
@@ -212,7 +230,7 @@ class SubnetRoutingViewModel : ViewModel() {
       Log.v(TAG, "Updating route at index $index: $newRoute")
       currentRoutes[index] = newRoute
     }
-    advertisedRoutes.set(currentRoutes)
+    _advertisedRoutes.value = currentRoutes
     saveRoutesToPrefs()
   }
 
@@ -220,23 +238,19 @@ class SubnetRoutingViewModel : ViewModel() {
     val prefsOut = Ipn.MaskedPrefs()
     prefsOut.AdvertiseRoutes = advertisedRoutes.value
     Log.d(TAG, "Will save AdvertiseRoutes in the backend: $(advertisedRoutes.value)")
-    Client(viewModelScope)
-        .editPrefs(
-            prefsOut,
-            responseHandler = { result ->
-              if (result.isFailure) {
-                Log.e(TAG, "Error saving AdvertiseRoutes: ${result.exceptionOrNull()}")
-                currentError.set(result.exceptionOrNull()?.localizedMessage)
-                return@editPrefs
-              } else {
-                Log.d(
-                    TAG,
-                    "AdvertiseRoutes set in backend. New value: ${result.getOrNull()?.AdvertiseRoutes}",
-                )
-                currentError.set(null)
-              }
-            },
+    dataSource.editPrefs(viewModelScope, prefsOut) { result ->
+      if (result.isFailure) {
+        Log.e(TAG, "Error saving AdvertiseRoutes: ${result.exceptionOrNull()}")
+        _currentError.value = result.exceptionOrNull()?.localizedMessage
+        return@editPrefs
+      } else {
+        Log.d(
+            TAG,
+            "AdvertiseRoutes set in backend. New value: ${result.getOrNull()?.AdvertiseRoutes}",
         )
+        _currentError.value = null
+      }
+    }
   }
 
   /**
@@ -244,10 +258,10 @@ class SubnetRoutingViewModel : ViewModel() {
    * UI. We call this when dismissing an error upon saving the routes.
    */
   fun onErrorDismissed() {
-    currentError.set(null)
-    Client(viewModelScope).prefs { response ->
+    _currentError.value = null
+    dataSource.reloadPrefs(viewModelScope) { response ->
       Log.d(TAG, "Reloading routes from backend due to failed save: $response")
-      this.advertisedRoutes.set(response.getOrNull()?.AdvertiseRoutes ?: emptyList())
+      this._advertisedRoutes.value = response.getOrNull()?.AdvertiseRoutes ?: emptyList()
     }
   }
 

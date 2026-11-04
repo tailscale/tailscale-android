@@ -28,7 +28,6 @@ import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.tailscale.ipn.R
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -37,7 +36,7 @@ import kotlinx.coroutines.flow.StateFlow
  */
 @Composable
 fun EditSubnetRouteDialogView(
-    valueFlow: MutableStateFlow<String>,
+    valueFlow: StateFlow<String>,
     isValueValidFlow: StateFlow<Boolean>,
     onValueChange: (String) -> Unit,
     onCommit: (String) -> Unit,
