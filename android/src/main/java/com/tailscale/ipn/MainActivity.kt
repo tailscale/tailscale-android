@@ -57,6 +57,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.mdm.ShowHide
+import com.tailscale.ipn.ui.dataSource.DNSSettingsDataSourceImpl
 import com.tailscale.ipn.ui.dataSource.PeerDetailsDataSourceImpl
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.navigation.AboutRoute
@@ -438,7 +439,13 @@ class MainActivity : ComponentActivity() {
                 )
               }
               composable<BugReportRoute> { BugReportView(backTo<SettingsRoute>()) }
-              composable<DNSSettingsRoute> { DNSSettingsView(backTo<SettingsRoute>()) }
+              composable<DNSSettingsRoute> {
+                val dataSource = remember { DNSSettingsDataSourceImpl() }
+                DNSSettingsView(
+                    backToSettings = backTo<SettingsRoute>(),
+                    dataSource = dataSource,
+                )
+              }
               composable<SplitTunnelingRoute> { SplitTunnelAppPickerView(backTo<SettingsRoute>()) }
               composable<TailnetLockRoute> { TailnetLockSetupView(backTo<SettingsRoute>()) }
               composable<SubnetRoutingRoute> { SubnetRoutingView(backTo<SettingsRoute>()) }
