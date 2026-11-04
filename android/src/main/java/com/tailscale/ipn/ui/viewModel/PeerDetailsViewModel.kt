@@ -6,63 +6,66 @@ package com.tailscale.ipn.ui.viewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.tailscale.ipn.App
+import com.tailscale.ipn.ui.dataSource.PeerDetailsDataSource
 import com.tailscale.ipn.ui.model.Favorites
+import com.tailscale.ipn.ui.model.Netmap
 import com.tailscale.ipn.ui.model.StableNodeID
 import com.tailscale.ipn.ui.model.Tailcfg
-import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.util.ComposableStringFormatter
-import com.tailscale.ipn.ui.util.set
-import java.io.File
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 data class PeerSettingInfo(val titleRes: Int, val value: ComposableStringFormatter)
 
 class PeerDetailsViewModelFactory(
     private val nodeId: StableNodeID,
-    private val filesDir: File,
     private val pingViewModel: PingViewModel,
+    private val dataSource: PeerDetailsDataSource,
 ) : ViewModelProvider.Factory {
   @Suppress("UNCHECKED_CAST")
   override fun <T : ViewModel> create(modelClass: Class<T>): T {
-    return PeerDetailsViewModel(nodeId, filesDir, pingViewModel) as T
+    if (modelClass.isAssignableFrom(PeerDetailsViewModel::class.java)) {
+      return PeerDetailsViewModel(nodeId, pingViewModel, dataSource) as T
+    }
+    throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
   }
 }
 
 class PeerDetailsViewModel(
     val nodeId: StableNodeID,
-    val filesDir: File,
     val pingViewModel: PingViewModel,
-) : IpnViewModel() {
-  val node: StateFlow<Tailcfg.Node?> = MutableStateFlow(null)
-  val isPinging: StateFlow<Boolean> = MutableStateFlow(false)
+    private val dataSource: PeerDetailsDataSource,
+) : ViewModel() {
+  val netmap: StateFlow<Netmap.NetworkMap?> = dataSource.netmap
+  private val _node = MutableStateFlow<Tailcfg.Node?>(null)
+  val node: StateFlow<Tailcfg.Node?> = _node.asStateFlow()
+  private val _isPinging = MutableStateFlow(false)
+  val isPinging: StateFlow<Boolean> = _isPinging.asStateFlow()
 
-  private val favoritesManager = App.get().favoritesManager
-  val favorites: StateFlow<Favorites?> = favoritesManager.favorites
-  val isWritingFavorites: StateFlow<Boolean> = favoritesManager.writing
+  val favorites: StateFlow<Favorites?> = dataSource.favorites
+  val isWritingFavorites: StateFlow<Boolean> = dataSource.isWritingFavorites
 
   init {
     viewModelScope.launch {
-      Notifier.netmap.collect { nm ->
-        netmap.set(nm)
-        nm?.getPeer(nodeId)?.let { peer -> node.set(peer) }
+      dataSource.netmap.collect { netmap ->
+        netmap?.getPeer(nodeId)?.let { peer -> _node.value = peer }
       }
     }
   }
 
   fun startPing() {
-    isPinging.set(true)
-    node.value?.let { this.pingViewModel.startPing(it) }
+    _isPinging.value = true
+    node.value?.let { pingViewModel.startPing(it) }
   }
 
   fun onPingDismissal() {
-    isPinging.set(false)
-    this.pingViewModel.handleDismissal()
+    _isPinging.value = false
+    pingViewModel.handleDismissal()
   }
 
   fun togglePin() {
-    node.value?.let { favoritesManager.toggleDevice(it.StableID) }
+    node.value?.let { dataSource.toggleFavorite(it.StableID) }
   }
 }
