@@ -3,7 +3,6 @@
 
 package com.tailscale.ipn.ui.view
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -39,7 +38,6 @@ import com.tailscale.ipn.ui.viewModel.DNSSettingsViewModelFactory
 
 data class ViewableRoute(val name: String, val resolvers: List<DnsType.Resolver>)
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun DNSSettingsView(
     backToSettings: () -> Unit,
