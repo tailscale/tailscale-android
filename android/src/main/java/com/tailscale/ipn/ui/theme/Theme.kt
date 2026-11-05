@@ -7,7 +7,6 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ColorScheme
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ListItemColors
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -307,7 +306,6 @@ val ColorScheme.errorListItem: ListItemColors
   }
 
 /** Main color scheme for top app bar, styles it as a surface container. */
-@OptIn(ExperimentalMaterial3Api::class)
 val ColorScheme.topAppBar: TopAppBarColors
   @Composable
   get() =
@@ -459,7 +457,6 @@ val ColorScheme.exitNodeToggleButton: ButtonColors
 val ColorScheme.disabled: Color
   get() = Color(0xFFAFACAB) // gray-400
 
-@OptIn(ExperimentalMaterial3Api::class)
 val ColorScheme.searchBarColors: TextFieldColors
   @Composable
   get() {
