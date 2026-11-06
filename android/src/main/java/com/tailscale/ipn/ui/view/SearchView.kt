@@ -230,7 +230,10 @@ fun SearchView(
                       supportingContent = {
                         Column {
                           Text(peerSet.sectionTitle())
-                          Text(peer.Addresses?.firstOrNull()?.split("/")?.first() ?: "No IP")
+                          Text(
+                              peer.Addresses?.firstOrNull()?.split("/")?.first()
+                                  ?: stringResource(R.string.no_ip_address)
+                          )
                         }
                       },
                       modifier =

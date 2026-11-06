@@ -80,7 +80,7 @@ fun PermissionsView(
               val displayPath =
                   permissionsViewModel.currentDir.collectAsState().value?.let {
                     friendlyDirName(it)
-                  } ?: "No access"
+                  } ?: stringResource(R.string.no_access)
 
               Text(displayPath)
             },

@@ -59,7 +59,8 @@ fun TaildropDirView(
       item {
         val currentDir by permissionsViewModel.currentDir.collectAsState()
         TSLog.d("TaildropDirView", "currentDir in UI: $currentDir")
-        val displayPath = currentDir?.let { friendlyDirName(it) } ?: "No access"
+        val displayPath =
+            currentDir?.let { friendlyDirName(it) } ?: stringResource(R.string.no_access)
 
         ListItem(
             headlineContent = {

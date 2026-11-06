@@ -92,7 +92,7 @@ fun PeerDetails(
                   IconButton(onClick = { model.startPing() }) {
                     Icon(
                         painter = painterResource(R.drawable.sensors_24),
-                        contentDescription = "Ping device",
+                        contentDescription = stringResource(R.string.accessibility_ping_device),
                     )
                   }
 
