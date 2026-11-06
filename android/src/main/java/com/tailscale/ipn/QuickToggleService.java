@@ -43,6 +43,7 @@ public class QuickToggleService extends TileService {
             isRunning = running;
         }
         updateTile();
+        VPNToggleWidgetProvider.updateAll(UninitializedApp.get());
     }
 
     @Override
