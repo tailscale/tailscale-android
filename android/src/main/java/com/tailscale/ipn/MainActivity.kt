@@ -58,6 +58,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.mdm.ShowHide
+import com.tailscale.ipn.ui.dataSource.AndroidPeerDetailsDataSource
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.navigation.AboutRoute
 import com.tailscale.ipn.ui.navigation.BugReportRoute
@@ -107,7 +108,7 @@ import com.tailscale.ipn.ui.view.MullvadExitNodePicker
 import com.tailscale.ipn.ui.view.MullvadExitNodePickerList
 import com.tailscale.ipn.ui.view.MullvadInfoView
 import com.tailscale.ipn.ui.view.NotificationsView
-import com.tailscale.ipn.ui.view.PeerDetails
+import com.tailscale.ipn.ui.view.PeerDetailsView
 import com.tailscale.ipn.ui.view.PermissionsView
 import com.tailscale.ipn.ui.view.PrimaryActionButton
 import com.tailscale.ipn.ui.view.RunExitNodeView
@@ -125,7 +126,6 @@ import com.tailscale.ipn.ui.viewModel.ExitNodePickerNav
 import com.tailscale.ipn.ui.viewModel.MainViewModel
 import com.tailscale.ipn.ui.viewModel.MainViewModelFactory
 import com.tailscale.ipn.ui.viewModel.PermissionsViewModel
-import com.tailscale.ipn.ui.viewModel.PingViewModel
 import com.tailscale.ipn.ui.viewModel.SettingsNav
 import com.tailscale.ipn.util.ShareFileHelper
 import com.tailscale.ipn.util.TSLog
@@ -431,11 +431,11 @@ class MainActivity : ComponentActivity() {
               composable<RunExitNodeRoute> { RunExitNodeView(exitNodePickerNav) }
               composable<PeerDetailsRoute> { entry ->
                 val route = entry.toRoute<PeerDetailsRoute>()
-                val pingViewModel: PingViewModel = viewModel()
-                PeerDetails(
-                    { navController.popBackStack() },
+                val dataSource = remember { AndroidPeerDetailsDataSource() }
+                PeerDetailsView(
+                    onNavigateBack = { navController.popBackStack() },
                     nodeId = route.nodeId,
-                    pingViewModel = pingViewModel,
+                    dataSource = dataSource,
                 )
               }
               composable<BugReportRoute> { BugReportView(backTo<SettingsRoute>()) }
