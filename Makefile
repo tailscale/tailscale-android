@@ -438,6 +438,7 @@ DOCKER_ANDROID_DIR := $(CURDIR)/.android-docker
 DOCKER_ANDROID_INTEGRATION_DIR := $(CURDIR)/.android-integration-docker
 DOCKER_GRADLE_DIR := $(CURDIR)/.gradle-docker
 DOCKER_GO_CACHE_DIR := $(CURDIR)/.cache-docker
+ANDROID_INTEGRATION_ARTIFACTS_DIR := integration-artifacts
 
 .PHONY: docker-android-dir
 docker-android-dir:
@@ -445,7 +446,7 @@ docker-android-dir:
 
 .PHONY: docker-android-integration-dir
 docker-android-integration-dir:
-	@mkdir -p $(DOCKER_ANDROID_INTEGRATION_DIR) $(DOCKER_GO_CACHE_DIR)
+	@mkdir -p $(DOCKER_ANDROID_INTEGRATION_DIR) $(DOCKER_GO_CACHE_DIR) $(ANDROID_INTEGRATION_ARTIFACTS_DIR)
 
 DOCKER_RUN_VOLS := -v $(CURDIR):/build/tailscale-android -v $(DOCKER_ANDROID_DIR):/root/.android -v $(DOCKER_GRADLE_DIR):/build/.gradle -v $(DOCKER_GO_CACHE_DIR):/build/.cache --env GOPATH=/build/.cache/go --env GOMODCACHE=/build/.cache/go/pkg/mod
 
@@ -470,7 +471,7 @@ android-integration-test-run: docker-build-android-integration-image docker-andr
 		--env GOMODCACHE=/root/.cache/go/pkg/mod \
 		-w /workspace \
 		$(ANDROID_INTEGRATION_DOCKER_IMAGE) \
-		/usr/local/bin/run-android-integration-test /workspace/$(DEBUG_APK)
+		/usr/local/bin/run-android-integration-test /workspace/$(DEBUG_APK) -artifacts -outputdir=/workspace/$(ANDROID_INTEGRATION_ARTIFACTS_DIR)
 
 .PHONY: docker-remove-build-image
 docker-remove-build-image: ## Removes the current docker build image

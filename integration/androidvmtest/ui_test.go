@@ -4,9 +4,13 @@
 package androidvmtest
 
 import (
+	"bytes"
+	"context"
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -189,6 +193,36 @@ func prepareDeviceForUI(t *testing.T, adb adbRunner) {
 	for _, setting := range []string{"window_animation_scale", "transition_animation_scale", "animator_duration_scale"} {
 		adb.run(t, "shell", "settings", "put", "global", setting, "0")
 	}
+}
+
+func recordScreen(t *testing.T, adb adbRunner) {
+	t.Helper()
+	const remote = "/data/local/tmp/tailscale-screen.mp4"
+	dir := t.ArtifactDir()
+	adb.runOutputAllowError("shell", "rm", "-f", remote)
+	// t.Context ends before cleanups run, so the recorder gets its own deadline to finish the file.
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
+	var out bytes.Buffer
+	rec := exec.CommandContext(ctx, adb.path, adb.args("shell", "screenrecord", "--size", "720x1280", "--bit-rate", "2000000", remote)...)
+	rec.Stdout, rec.Stderr = &out, &out
+	if err := rec.Start(); err != nil {
+		cancel()
+		t.Logf("screenrecord did not start: %v", err)
+		return
+	}
+	t.Cleanup(func() {
+		defer cancel()
+		adb.runOutputAllowError("shell", "pkill", "-INT", "screenrecord")
+		timer := time.AfterFunc(15*time.Second, cancel)
+		err := rec.Wait()
+		timer.Stop()
+		if err != nil {
+			t.Logf("screenrecord: %v\n%s", err, out.Bytes())
+		}
+		if pulled, err := adb.runOutputAllowError("pull", remote, filepath.Join(dir, "screen.mp4")); err != nil {
+			t.Logf("adb pull %s: %v\n%s", remote, err, pulled)
+		}
+	})
 }
 
 func logUIDiagnostics(t *testing.T, adb adbRunner, last uiScreen, lastErr error) {
