@@ -36,7 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil.compose.AsyncImage
+import coil3.compose.AsyncImage
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.components.ActivityIndicator
 import com.tailscale.ipn.ui.components.CheckedIndicator

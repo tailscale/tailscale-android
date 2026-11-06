@@ -15,7 +15,7 @@ lifecycle = "2.11.0"
 activity = "1.13.0"
 fragment = "1.9.1"
 splashscreen = "1.1.0-rc01"
-coil = "2.6.0"
+coil = "3.6.3"
 zxing = "3.5.4"
 vico = "1.15.0"
 androidx-test = "1.7.0"
@@ -64,7 +64,8 @@ androidx-navigation-compose = { module = "androidx.navigation:navigation-compose
 androidx-navigation-ui = { module = "androidx.navigation:navigation-ui-ktx", version.ref = "navigation" }
 
 # Supporting libraries
-coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coil" }
+coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
+coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coil" }
 zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
 vico-compose = { module = "com.patrykandpatrick.vico:compose", version.ref = "vico" }
 vico-composeM3 = { module = "com.patrykandpatrick.vico:compose-m3", version.ref = "vico" }
