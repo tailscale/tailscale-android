@@ -93,8 +93,6 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
   var healthNotifier: HealthNotifier? = null
   lateinit var favoritesManager: FavoritesManager
 
-  override fun getPlatformDNSConfig(): String = dns.dnsConfigAsString
-
   override fun getInstallSource(): String = AppSourceChecker.getInstallSource(this)
 
   override fun shouldUseGoogleDNSFallback(): Boolean = BuildConfig.USE_GOOGLE_DNS_FALLBACK

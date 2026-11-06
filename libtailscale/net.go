@@ -323,7 +323,9 @@ func (b *backend) getDNSBaseConfig() (ret dns.OSConfig, _ error) {
 }
 
 func (b *backend) getPlatformDNSConfig() string {
-	return b.appCtx.GetPlatformDNSConfig()
+	b.androidNetworkMu.RLock()
+	defer b.androidNetworkMu.RUnlock()
+	return b.androidNetwork.dnsConfig
 }
 
 func (b *backend) setCfg(rcfg *router.Config, dcfg *dns.OSConfig) error {
