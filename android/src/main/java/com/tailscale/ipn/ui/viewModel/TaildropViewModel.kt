@@ -3,52 +3,42 @@
 
 package com.tailscale.ipn.ui.viewModel
 
-import android.content.Context
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.tailscale.ipn.App
-import com.tailscale.ipn.R
-import com.tailscale.ipn.ui.components.ActivityIndicator
-import com.tailscale.ipn.ui.components.CheckedIndicator
-import com.tailscale.ipn.ui.localapi.Client
+import com.tailscale.ipn.ui.dataSource.TaildropDataSource
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.Tailcfg
-import com.tailscale.ipn.ui.notifier.Notifier
-import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.view.ErrorDialogType
 import com.tailscale.ipn.util.TSLog
-import com.tailscale.ipn.util.TaildropUsageTracker
-import kotlinx.coroutines.CoroutineScope
+import kotlin.collections.filter
+import kotlin.collections.orEmpty
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 class TaildropViewModelFactory(
-    private val requestedTransfers: StateFlow<List<Ipn.OutgoingFile>>,
-    private val applicationScope: CoroutineScope,
+    private val dataSource: TaildropDataSource,
 ) : ViewModelProvider.Factory {
   @Suppress("UNCHECKED_CAST")
   override fun <T : ViewModel> create(modelClass: Class<T>): T {
-    return TaildropViewModel(requestedTransfers, applicationScope) as T
+    if (modelClass.isAssignableFrom(TaildropViewModel::class.java)) {
+      return TaildropViewModel(dataSource) as T
+    }
+    throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
   }
 }
 
 class TaildropViewModel(
-    private val requestedTransfers: StateFlow<List<Ipn.OutgoingFile>>,
-    private val applicationScope: CoroutineScope,
-) : IpnViewModel() {
+    private val dataSource: TaildropDataSource,
+) : ViewModel() {
+  private val TAG = "TaildropViewModel"
+  private val requestedTransfers = dataSource.requestedTransfers
 
   // Represents the state of a file transfer
   enum class TransferState {
@@ -58,30 +48,34 @@ class TaildropViewModel(
   }
 
   // The overall VPN state
-  val state = Notifier.state
+  val state = dataSource.state
 
   // Set of OutgoingFile.IDs that we're currently transferring.
-  private val currentTransferIDs: StateFlow<Set<String>> = MutableStateFlow(emptySet())
+  private val currentTransferIDs = MutableStateFlow<Set<String>>(emptySet())
   // Flow of Ipn.OutgoingFiles with updated statuses for every entry in transferWithStatuses.
-  private val transfers: StateFlow<List<Ipn.OutgoingFile>> = MutableStateFlow(emptyList())
+  private val _transfers = MutableStateFlow<List<Ipn.OutgoingFile>>(emptyList())
+  val transfers: StateFlow<List<Ipn.OutgoingFile>> = _transfers
 
   // The total size of all pending files.
   val totalSize: Long
     get() = requestedTransfers.value.sumOf { it.DeclaredSize }
 
   // Recently shared-to devices (capped at 3) and everything else.
-  val recentPeers: StateFlow<List<Tailcfg.Node>> = MutableStateFlow(emptyList())
-  val otherPeers: StateFlow<List<Tailcfg.Node>> = MutableStateFlow(emptyList())
+  private val _recentPeers = MutableStateFlow<List<Tailcfg.Node>>(emptyList())
+  val recentPeers: StateFlow<List<Tailcfg.Node>> = _recentPeers.asStateFlow()
+  private val _otherPeers = MutableStateFlow<List<Tailcfg.Node>>(emptyList())
+  val otherPeers: StateFlow<List<Tailcfg.Node>> = _otherPeers.asStateFlow()
 
-  // Non null if there's an error to be rendered.
-  val showDialog: StateFlow<ErrorDialogType?> = MutableStateFlow(null)
+  // Non-null if there's an error to be rendered.
+  private val _showDialog = MutableStateFlow<ErrorDialogType?>(null)
+  val showDialog: StateFlow<ErrorDialogType?> = _showDialog.asStateFlow()
 
   private var refreshJob: Job? = null
   private val refreshIntervalMs = 5_000L
 
   init {
     viewModelScope.launch {
-      Notifier.state.collect {
+      dataSource.state.collect {
         if (it == Ipn.State.Running) {
           startPeriodicTargetRefresh()
         } else {
@@ -94,21 +88,17 @@ class TaildropViewModel(
     viewModelScope.launch {
       // Map the outgoing files by their PeerId since we need to display them for each peer
       // We only need to track files which are pending send, everything else is irrelevant.
-      Notifier.outgoingFiles
-          .combine(currentTransferIDs) { outgoingFiles, ongoingIDs ->
-            Pair(outgoingFiles, ongoingIDs)
+      dataSource.outgoingFiles
+          .combine(currentTransferIDs) { outgoingFiles, ongoingIds ->
+            outgoingFiles.orEmpty().filter { it.ID in ongoingIds }
           }
-          .collect { (outgoingFiles, ongoingIDs) ->
-            outgoingFiles?.let {
-              transfers.set(outgoingFiles.filter { ongoingIDs.contains(it.ID) })
-            } ?: run { transfers.set(emptyList()) }
-          }
+          .collect { _transfers.value = it }
     }
 
     viewModelScope.launch {
       requestedTransfers.collect {
         // New share intent — drop tracking of any prior transfer IDs.
-        currentTransferIDs.set(emptySet())
+        currentTransferIDs.value = emptySet()
       }
     }
   }
@@ -143,62 +133,27 @@ class TaildropViewModel(
     refreshJob = viewModelScope.launch {
       while (true) {
         loadTargets()
-        delay(refreshIntervalMs)
+        delay(refreshIntervalMs.milliseconds)
       }
     }
   }
 
   // Loads valid fileTargets from localAPI and splits into recent vs other.
   private fun loadTargets() {
-    Client(viewModelScope).fileTargets { result ->
+    dataSource.loadPeers(viewModelScope) { result ->
       result
-          .onSuccess { targets ->
-            val ctx = App.get()
-            val userID = Notifier.netmap.value?.SelfNode?.User ?: 0L
-            val all = targets.map { it.Node }
-            val (recent, other) = TaildropUsageTracker.partitionByRecency(ctx, userID, all)
-            val onlineFirst =
-                other.sortedWith(
-                    compareByDescending<Tailcfg.Node> { it.Online ?: false }
-                        .thenBy { (it.ComputedName ?: it.Name).lowercase() }
-                )
-            recentPeers.set(recent)
-            otherPeers.set(onlineFirst)
+          .onSuccess {
+            _recentPeers.value = it.recent
+            _otherPeers.value = it.other
           }
           .onFailure { TSLog.e(TAG, "Error loading targets: ${it.message}") }
     }
   }
 
-  // Creates the trailing status view for the peer list item depending on the state of
-  // any requested transfers.
-  @Composable
-  fun TrailingContentForPeer(peerId: String) {
-    // Check our outgoing files for the peer and determine the state of the transfer.
-    val transfers = this.transfers.collectAsState().value.filter { it.PeerID == peerId }
-    val status: TransferState = transferState(transfers) ?: return
-
-    // Still no status? Nothing to render for this peer
-
-    Column(modifier = Modifier.fillMaxHeight()) {
-      when (status) {
-        TransferState.SENDING -> {
-          val progress = progress(transfers)
-          Text(
-              stringResource(id = R.string.taildrop_sending),
-              style = MaterialTheme.typography.bodyMedium,
-          )
-          ActivityIndicator(progress, 60)
-        }
-        TransferState.SENT -> CheckedIndicator()
-        TransferState.FAILED -> Text(stringResource(id = R.string.taildrop_share_failed_short))
-      }
-    }
-  }
-
   // Commences the file transfer to the specified node iff
-  fun share(context: Context, node: Tailcfg.Node) {
+  fun share(node: Tailcfg.Node) {
     if (node.Online != true) {
-      showDialog.set(ErrorDialogType.SHARE_DEVICE_NOT_CONNECTED)
+      _showDialog.value = ErrorDialogType.SHARE_DEVICE_NOT_CONNECTED
       return
     }
 
@@ -208,15 +163,29 @@ class TaildropViewModel(
     if (transfers.value.any { it.PeerID == node.StableID && !it.Finished }) return
 
     val preparedTransfers = requestedTransfers.value.map { it.prepare(node.StableID) }
-    currentTransferIDs.set(currentTransferIDs.value + preparedTransfers.map { it.ID })
+    currentTransferIDs.value += preparedTransfers.map { it.ID }
 
-    Client(applicationScope).putTaildropFiles(context, node.StableID, preparedTransfers) {
+    dataSource.sendFiles(node, preparedTransfers) {
       if (it.isFailure) {
-        showDialog.set(ErrorDialogType.SHARE_FAILED)
-      } else {
-        val userID = Notifier.netmap.value?.SelfNode?.User ?: 0L
-        TaildropUsageTracker.updateLastUsed(context, userID, node.StableID)
+        _showDialog.value = ErrorDialogType.SHARE_FAILED
       }
     }
+  }
+
+  fun dismissDialog() {
+    _showDialog.value = null
+  }
+
+  fun startVPN() = dataSource.startVPN()
+
+  data class PeerTransferStatus(
+      val state: TransferState,
+      val progress: Double,
+  )
+
+  fun transferStatusForPeer(files: List<Ipn.OutgoingFile>): PeerTransferStatus? {
+    val status = transferState(files) ?: return null
+    val progress = if (status == TransferState.SENDING) progress(files) else 0.0
+    return PeerTransferStatus(status, progress)
   }
 }
