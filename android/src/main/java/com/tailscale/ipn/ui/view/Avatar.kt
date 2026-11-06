@@ -27,14 +27,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import coil.annotation.ExperimentalCoilApi
-import coil.compose.AsyncImage
-import coil.compose.AsyncImagePainter
+import coil3.compose.AsyncImage
+import coil3.compose.AsyncImagePainter
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.util.conditional
 
-@OptIn(ExperimentalCoilApi::class)
 @Composable
 fun Avatar(
     profile: IpnLocal.LoginProfile?,
