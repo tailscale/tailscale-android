@@ -58,6 +58,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.mdm.ShowHide
+import com.tailscale.ipn.ui.dataSource.AndroidHealthDataSource
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.navigation.AboutRoute
 import com.tailscale.ipn.ui.navigation.BugReportRoute
@@ -418,7 +419,13 @@ class MainActivity : ComponentActivity() {
                 SettingsView(settingsNav = settingsNav, appViewModel = appViewModel)
               }
               composable<ExitNodesRoute> { ExitNodePicker(exitNodePickerNav) }
-              composable<HealthRoute> { HealthView(backTo<MainRoute>()) }
+              composable<HealthRoute> {
+                val dataSource = remember { AndroidHealthDataSource() }
+                HealthView(
+                    backToSettings = backTo<MainRoute>(),
+                    dataSource = dataSource,
+                )
+              }
               composable<MullvadRoute> { MullvadExitNodePickerList(exitNodePickerNav) }
               composable<MullvadInfoRoute> { MullvadInfoView(exitNodePickerNav) }
               composable<MullvadCountryRoute> { entry ->
