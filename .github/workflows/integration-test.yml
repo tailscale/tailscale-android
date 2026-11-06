@@ -117,3 +117,18 @@ jobs:
 
       - name: Run integration test
         run: make android-integration-test
+
+      - name: Make test artifacts readable
+        if: always()
+        continue-on-error: true
+        run: test ! -d integration-artifacts || sudo chmod -R a+rX integration-artifacts
+
+      - name: Upload test artifacts
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: integration-test-artifacts-${{ github.run_attempt }}
+          path: integration-artifacts/
+          if-no-files-found: ignore
+          retention-days: 14
