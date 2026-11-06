@@ -5,7 +5,6 @@ package com.tailscale.ipn.ui.view
 
 import android.os.Build
 import android.widget.Toast
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -99,7 +98,6 @@ fun HealthView(backToSettings: () -> Unit, model: HealthViewModel = viewModel())
   }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun HealthWarningView(warning: Health.UnhealthyState) {
   val localClipboardManager = LocalClipboardManager.current

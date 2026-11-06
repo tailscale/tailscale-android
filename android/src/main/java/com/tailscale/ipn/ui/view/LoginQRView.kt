@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -35,7 +34,6 @@ import com.tailscale.ipn.ui.theme.AppTheme
 import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.viewModel.LoginQRViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginQRView(onDismiss: () -> Unit = {}, model: LoginQRViewModel = viewModel()) {
   Surface(color = MaterialTheme.colorScheme.scrim, modifier = Modifier.fillMaxSize()) {
