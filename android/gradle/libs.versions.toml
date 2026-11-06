@@ -20,15 +20,12 @@ animation = "1.7.4"
 coil = "2.6.0"
 zxing = "3.5.4"
 vico = "1.15.0"
-androidx-test = "1.6.2"
-androidx-test-ext = "1.2.1"
-espresso = "3.6.1"
-uiautomator = "2.3.0"
-onetimepassword = "2.4.0"
-commons-codec = "1.16.1"
-mockito-core = "5.12.0"
-mockito-inline = "5.2.0"
-mockito-kotlin = "5.4.0"
+androidx-test = "1.7.0"
+androidx-test-ext = "1.3.0"
+espresso = "3.7.0"
+uiautomator = "2.4.1"
+mockito-core = "5.24.0"
+mockito-kotlin = "6.4.0"
 agp = "9.4.1"
 ktfmt = "0.27.0"
 
@@ -81,14 +78,9 @@ androidx-test-ext-junitKtx = { module = "androidx.test.ext:junit-ktx", version.r
 androidx-test-espresso-core = { module = "androidx.test.espresso:espresso-core", version.ref = "espresso" }
 androidx-test-uiautomator = { module = "androidx.test.uiautomator:uiautomator", version.ref = "uiautomator" }
 
-# Authentication only for tests
-kotlin-onetimepassword = { module = "dev.turingcomplete:kotlin-onetimepassword", version.ref = "onetimepassword" }
-commons-codec = { module = "commons-codec:commons-codec", version.ref = "commons-codec" }
-
 # Unit Tests
 junit = { module = "junit:junit", version.ref = "junit" }
 mockito-core = { module = "org.mockito:mockito-core", version.ref = "mockito-core" }
-mockito-inline = { module = "org.mockito:mockito-inline", version.ref = "mockito-inline" }
 mockito-kotlin = { module = "org.mockito.kotlin:mockito-kotlin", version.ref = "mockito-kotlin" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
 
