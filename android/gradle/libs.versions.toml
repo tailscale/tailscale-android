@@ -1,6 +1,4 @@
 [versions]
-accompanist-permissions = "0.37.3"
-accompanist-systemuicontroller = "0.36.0"
 coroutines = "1.11.0"
 navigation = "2.10.2"
 core = "1.13.1"
@@ -61,8 +59,6 @@ androidx-lifecycle-viewmodel-ktx = { module = "androidx.lifecycle:lifecycle-view
 androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity" }
 androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "splashscreen" }
-accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanist-permissions" }
-accompanist-systemuicontroller = { module = "com.google.accompanist:accompanist-systemuicontroller", version.ref = "accompanist-systemuicontroller" }
 
 # Navigation dependencies
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigation" }

@@ -3,6 +3,10 @@
 
 package com.tailscale.ipn.ui.theme
 
+import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
+import androidx.activity.compose.LocalActivity
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
@@ -18,12 +22,11 @@ import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
-import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
 @Composable
 fun AppTheme(useDarkTheme: Boolean = isSystemInDarkTheme(), content: @Composable() () -> Unit) {
@@ -44,13 +47,19 @@ fun AppTheme(useDarkTheme: Boolean = isSystemInDarkTheme(), content: @Composable
           bodyMedium = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp),
       )
 
-  // TODO: Migrate to Activity.enableEdgeToEdge
-  @Suppress("deprecation") val systemUiController = rememberSystemUiController()
+  val activity = LocalActivity.current as? ComponentActivity
 
-  DisposableEffect(systemUiController, useDarkTheme) {
-    systemUiController.setStatusBarColor(color = colors.surfaceContainer)
-    systemUiController.setNavigationBarColor(color = Color.Black)
-    onDispose {}
+  SideEffect {
+    activity?.enableEdgeToEdge(
+        statusBarStyle =
+            SystemBarStyle.auto(
+                android.graphics.Color.TRANSPARENT,
+                android.graphics.Color.TRANSPARENT,
+            ) {
+              useDarkTheme
+            },
+        navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.BLACK),
+    )
   }
 
   MaterialTheme(colorScheme = colors, typography = typography, content = content)
