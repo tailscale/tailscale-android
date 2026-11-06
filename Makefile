@@ -10,14 +10,14 @@
 # with this name, it will be used.
 #
 # The convention here is tailscale-android-build-amd64-<date>
-DOCKER_IMAGE := tailscale-android-build-amd64-20260912-1
+DOCKER_IMAGE := tailscale-android-build-amd64-20261106-1
 
 # The integration test image contains the Android emulator, system image, SDK,
 # build-tools, NDK, adb, and helper tools needed to run the emulator-backed Go
 # integration tests. Bump this tag when docker/Dockerfile.android-integration
 # or the required tool versions change, using:
 # tailscale-android-integration-amd64-YYYYMMDD-N
-ANDROID_INTEGRATION_DOCKER_IMAGE := tailscale-android-integration-amd64-20260912-1
+ANDROID_INTEGRATION_DOCKER_IMAGE := tailscale-android-integration-amd64-20261106-1
 export TS_USE_TOOLCHAIN=1
 
 # If set, additional comma-separated build tags passed to the libtailscale Go
@@ -29,15 +29,15 @@ GOMOBILE_BUILD_TAGS := ts_omit_cachenetmap
 
 # Pull androidApiLevel from gradle.properties.
 ANDROID_API_LEVEL := $(shell grep '^androidApiLevel=' android/gradle.properties | cut -d'=' -f2)
-# Pull androidCompileSdk from gradle.properties.
-ANDROID_COMPILE_SDK := $(shell grep '^androidCompileSdk=' android/gradle.properties | cut -d'=' -f2)
+# Pull androidCompileSdkPackage from gradle.properties.
+ANDROID_COMPILE_SDK_PACKAGE := $(shell grep '^androidCompileSdkPackage=' android/gradle.properties | cut -d'=' -f2)
 
 ifeq ($(ANDROID_API_LEVEL),)
 $(error androidApiLevel missing from android/gradle.properties)
 endif
 
-ifeq ($(ANDROID_COMPILE_SDK),)
-$(error androidCompileSdk missing from android/gradle.properties)
+ifeq ($(ANDROID_COMPILE_SDK_PACKAGE),)
+$(error androidCompileSdkPackage missing from android/gradle.properties)
 endif
 
 ANDROID_BUILD_TOOLS_VERSION := $(shell grep '^androidBuildToolsVersion=' android/gradle.properties | cut -d'=' -f2)
@@ -71,7 +71,7 @@ else
     ANDROID_TOOLS_URL := "https://dl.google.com/android/repository/commandlinetools-mac-9477386_latest.zip"
     ANDROID_TOOLS_SUM := "2072ffce4f54cdc0e6d2074d2f381e7e579b7d63e915c220b96a7db95b2900ee  commandlinetools-mac-9477386_latest.zip"
 endif
-ANDROID_SDK_PACKAGES := 'platforms;android-$(ANDROID_API_LEVEL)' 'platforms;android-$(ANDROID_COMPILE_SDK)' 'extras;android;m2repository' 'ndk;23.1.7779620' 'platform-tools' 'build-tools;$(ANDROID_BUILD_TOOLS_VERSION)'
+ANDROID_SDK_PACKAGES := 'platforms;android-$(ANDROID_API_LEVEL)' '$(ANDROID_COMPILE_SDK_PACKAGE)' 'extras;android;m2repository' 'ndk;23.1.7779620' 'platform-tools' 'build-tools;$(ANDROID_BUILD_TOOLS_VERSION)'
 
 # Attempt to find an ANDROID_SDK_ROOT / ANDROID_HOME based either from
 # preexisting environment or common locations.
