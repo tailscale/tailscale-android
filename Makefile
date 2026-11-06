@@ -17,7 +17,7 @@ DOCKER_IMAGE := tailscale-android-build-amd64-20261106-1
 # integration tests. Bump this tag when docker/Dockerfile.android-integration
 # or the required tool versions change, using:
 # tailscale-android-integration-amd64-YYYYMMDD-N
-ANDROID_INTEGRATION_DOCKER_IMAGE := tailscale-android-integration-amd64-20261106-1
+ANDROID_INTEGRATION_DOCKER_IMAGE := tailscale-android-integration-amd64-20261106-2
 export TS_USE_TOOLCHAIN=1
 
 # If set, additional comma-separated build tags passed to the libtailscale Go

@@ -13,6 +13,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/netip"
 	"net/url"
 	"os"
 	"os/exec"
@@ -53,9 +54,24 @@ const (
 	loginAction       = "com.tailscale.ipn.integration.LOGIN"
 	authKey           = "tskey-integration-android"
 	debugKeystorePass = "android"
+	wantBody          = "hello-from-tsnet-android-integration"
 )
 
 func TestAndroidAuthKeyLogin(t *testing.T) {
+	e := newAndroidEnv(t)
+	e.loginWithDebugBroadcast(t)
+	e.checkPeerTraffic(t)
+}
+
+type androidEnv struct {
+	adb        adbRunner
+	control    *testcontrol.Server
+	controlURL string
+	peerIP     netip.Addr
+}
+
+func newAndroidEnv(t *testing.T) *androidEnv {
+	t.Helper()
 	if runtime.GOOS != "linux" {
 		t.Skip("Android integration test currently only runs on Linux")
 	}
@@ -85,7 +101,6 @@ func TestAndroidAuthKeyLogin(t *testing.T) {
 	control.ExplicitBaseURL = controlURL
 	t.Logf("test control URL for Android: %s", controlURL)
 
-	const wantBody = "hello-from-tsnet-android-integration"
 	peer := &tsnet.Server{
 		Dir:        t.TempDir(),
 		ControlURL: controlServer.URL,
@@ -126,33 +141,54 @@ func TestAndroidAuthKeyLogin(t *testing.T) {
 	adb.run(t, "install", "-r", "-t", probeAPKPath)
 	t.Cleanup(func() { adb.runAllowError(t, "uninstall", probePackage) })
 	t.Cleanup(func() { adb.runAllowError(t, "shell", "am", "force-stop", androidPackage) })
-	adb.run(t, "shell", "appops", "set", androidPackage, "ACTIVATE_VPN", "allow")
-	adb.run(t, "shell", "am", "force-stop", androidPackage)
-	adb.run(t, "shell", "pm", "clear", androidPackage)
+	return &androidEnv{adb: adb, control: control, controlURL: controlURL, peerIP: peerIP}
+}
 
-	adb.run(t,
+func (e *androidEnv) loginWithDebugBroadcast(t *testing.T) {
+	t.Helper()
+	e.adb.run(t, "shell", "appops", "set", androidPackage, "ACTIVATE_VPN", "allow")
+	e.adb.run(t, "shell", "am", "force-stop", androidPackage)
+	e.adb.run(t, "shell", "pm", "clear", androidPackage)
+
+	e.adb.run(t,
 		"shell", "am", "broadcast",
 		"-a", loginAction,
 		"-n", androidPackage+"/.IPNReceiver",
 		"--include-stopped-packages",
-		"--es", "control_url", controlURL,
+		"--es", "control_url", e.controlURL,
 		"--es", "auth_key", authKey,
 	)
 
-	waitForNodeCount(t, control, 2)
+	waitForNodeCount(t, e.control, 2)
+}
 
+func (e *androidEnv) resetApp(t *testing.T) {
+	t.Helper()
+	e.adb.run(t, "shell", "appops", "set", androidPackage, "ACTIVATE_VPN", "default")
+	e.adb.run(t, "shell", "am", "force-stop", androidPackage)
+	e.adb.run(t, "shell", "pm", "clear", androidPackage)
+	if out, err := e.adb.runOutputAllowError("shell", "pm", "revoke", androidPackage, "android.permission.POST_NOTIFICATIONS"); err != nil {
+		t.Logf("pm revoke POST_NOTIFICATIONS: %v\n%s", err, out)
+	}
+	if out := e.adb.runOutput(t, "shell", "dumpsys", "package", androidPackage); strings.Contains(out, "android.permission.POST_NOTIFICATIONS: granted=true") {
+		t.Fatalf("%s still has POST_NOTIFICATIONS after pm revoke", androidPackage)
+	}
+}
+
+func (e *androidEnv) checkPeerTraffic(t *testing.T) {
+	t.Helper()
 	probeResultPath := "files/result"
-	adb.run(t, "shell", "run-as", probePackage, "mkdir", "-p", "files")
+	e.adb.run(t, "shell", "run-as", probePackage, "mkdir", "-p", "files")
 
-	peerURL := fmt.Sprintf("http://%s/", peerIP)
+	peerURL := fmt.Sprintf("http://%s/", e.peerIP)
 	t.Logf("running Android netprobe against tsnet peer URL %s", peerURL)
-	adb.runAllowError(t, "shell", "run-as", probePackage, "rm", "-f", probeResultPath)
-	adb.run(t,
+	e.adb.runAllowError(t, "shell", "run-as", probePackage, "rm", "-f", probeResultPath)
+	e.adb.run(t,
 		"shell", "am", "broadcast",
 		"-n", probeReceiver,
 		"--es", "url", peerURL,
 	)
-	got := waitForProbeResult(t, adb, probeResultPath)
+	got := waitForProbeResult(t, e.adb, probeResultPath)
 	if !strings.Contains(got, "exit=0\n") {
 		t.Fatalf("Android probe failed: %q", got)
 	}
