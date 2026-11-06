@@ -58,6 +58,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.mdm.ShowHide
+import com.tailscale.ipn.ui.dataSource.AndroidExitNodePickerDataSource
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.navigation.AboutRoute
 import com.tailscale.ipn.ui.navigation.BugReportRoute
@@ -93,7 +94,7 @@ import com.tailscale.ipn.ui.util.universalFit
 import com.tailscale.ipn.ui.view.AboutView
 import com.tailscale.ipn.ui.view.BugReportView
 import com.tailscale.ipn.ui.view.DNSSettingsView
-import com.tailscale.ipn.ui.view.ExitNodePicker
+import com.tailscale.ipn.ui.view.ExitNodePickerView
 import com.tailscale.ipn.ui.view.HealthView
 import com.tailscale.ipn.ui.view.IntroView
 import com.tailscale.ipn.ui.view.LoginQRView
@@ -103,8 +104,8 @@ import com.tailscale.ipn.ui.view.MDMSettingsDebugView
 import com.tailscale.ipn.ui.view.MainView
 import com.tailscale.ipn.ui.view.MainViewNavigation
 import com.tailscale.ipn.ui.view.ManagedByView
-import com.tailscale.ipn.ui.view.MullvadExitNodePicker
-import com.tailscale.ipn.ui.view.MullvadExitNodePickerList
+import com.tailscale.ipn.ui.view.MullvadExitNodePickerListView
+import com.tailscale.ipn.ui.view.MullvadExitNodePickerView
 import com.tailscale.ipn.ui.view.MullvadInfoView
 import com.tailscale.ipn.ui.view.NotificationsView
 import com.tailscale.ipn.ui.view.PeerDetails
@@ -417,18 +418,38 @@ class MainActivity : ComponentActivity() {
               composable<SettingsRoute> {
                 SettingsView(settingsNav = settingsNav, appViewModel = appViewModel)
               }
-              composable<ExitNodesRoute> { ExitNodePicker(exitNodePickerNav) }
+              composable<ExitNodesRoute> {
+                val dataSource = remember { AndroidExitNodePickerDataSource() }
+                ExitNodePickerView(
+                    exitNodePickerNav = exitNodePickerNav,
+                    dataSource = dataSource,
+                )
+              }
               composable<HealthRoute> { HealthView(backTo<MainRoute>()) }
-              composable<MullvadRoute> { MullvadExitNodePickerList(exitNodePickerNav) }
+              composable<MullvadRoute> {
+                val dataSource = remember { AndroidExitNodePickerDataSource() }
+                MullvadExitNodePickerListView(
+                    exitNodePickerNav = exitNodePickerNav,
+                    dataSource = dataSource,
+                )
+              }
               composable<MullvadInfoRoute> { MullvadInfoView(exitNodePickerNav) }
               composable<MullvadCountryRoute> { entry ->
                 val route = entry.toRoute<MullvadCountryRoute>()
-                MullvadExitNodePicker(
+                val dataSource = remember { AndroidExitNodePickerDataSource() }
+                MullvadExitNodePickerView(
                     countryCode = route.countryCode,
-                    exitNodePickerNav,
+                    exitNodePickerNav = exitNodePickerNav,
+                    dataSource = dataSource,
                 )
               }
-              composable<RunExitNodeRoute> { RunExitNodeView(exitNodePickerNav) }
+              composable<RunExitNodeRoute> {
+                val dataSource = remember { AndroidExitNodePickerDataSource() }
+                RunExitNodeView(
+                    exitNodePickerNav = exitNodePickerNav,
+                    dataSource = dataSource,
+                )
+              }
               composable<PeerDetailsRoute> { entry ->
                 val route = entry.toRoute<PeerDetailsRoute>()
                 val pingViewModel: PingViewModel = viewModel()
