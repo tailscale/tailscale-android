@@ -20,22 +20,31 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
+import com.tailscale.ipn.ui.components.Header
 import com.tailscale.ipn.ui.model.Permissions
+import com.tailscale.ipn.ui.util.AndroidTVUtil
 import com.tailscale.ipn.ui.util.friendlyDirName
 import com.tailscale.ipn.ui.util.itemsWithDividers
 import com.tailscale.ipn.ui.viewModel.PermissionsViewModel
 
 @Composable
 fun PermissionsView(
-    backToSettings: BackNavigation,
+    backToSettings: () -> Unit,
     navToTaildropDirView: () -> Unit,
     navToNotificationsView: () -> Unit,
     permissionsViewModel: PermissionsViewModel = viewModel(),
 ) {
   val permissions = Permissions.withGrantedStatus
 
-  Scaffold(topBar = { Header(titleRes = R.string.permissions, onBack = backToSettings) }) {
-      innerPadding ->
+  Scaffold(
+      topBar = {
+        Header(
+            titleRes = R.string.permissions,
+            onBack = backToSettings,
+            isTv = AndroidTVUtil.isAndroidTV(),
+        )
+      }
+  ) { innerPadding ->
     LazyColumn(modifier = Modifier.padding(innerPadding)) {
       // Existing Android runtime permissions
       itemsWithDividers(permissions) { (permission, granted) ->

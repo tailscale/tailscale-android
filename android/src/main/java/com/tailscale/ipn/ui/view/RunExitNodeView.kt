@@ -30,6 +30,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
+import com.tailscale.ipn.ui.components.Header
+import com.tailscale.ipn.ui.util.AndroidTVUtil
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerNav
 import com.tailscale.ipn.ui.viewModel.IpnViewModel
@@ -39,7 +41,13 @@ fun RunExitNodeView(nav: ExitNodePickerNav, model: IpnViewModel = viewModel()) {
   val isRunningExitNode by model.isRunningExitNode.collectAsState()
 
   Scaffold(
-      topBar = { Header(R.string.run_as_exit_node, onBack = nav.onNavigateBackToExitNodes) }
+      topBar = {
+        Header(
+            R.string.run_as_exit_node,
+            onBack = nav.onNavigateBackToExitNodes,
+            isTv = AndroidTVUtil.isAndroidTV(),
+        )
+      }
   ) { innerPadding ->
     LoadingIndicator.Wrap {
       Column(

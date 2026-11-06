@@ -21,7 +21,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.tailscale.ipn.R
+import com.tailscale.ipn.ui.components.Header
 import com.tailscale.ipn.ui.theme.exitNodeToggleButton
+import com.tailscale.ipn.ui.util.AndroidTVUtil
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.friendlyDirName
 import com.tailscale.ipn.ui.viewModel.PermissionsViewModel
@@ -29,12 +31,18 @@ import com.tailscale.ipn.util.TSLog
 
 @Composable
 fun TaildropDirView(
-    backToPermissionsView: BackNavigation,
+    backToPermissionsView: () -> Unit,
     openDirectoryLauncher: ActivityResultLauncher<Uri?>,
     permissionsViewModel: PermissionsViewModel,
 ) {
   Scaffold(
-      topBar = { Header(titleRes = R.string.taildrop_dir_access, onBack = backToPermissionsView) }
+      topBar = {
+        Header(
+            titleRes = R.string.taildrop_dir_access,
+            onBack = backToPermissionsView,
+            isTv = AndroidTVUtil.isAndroidTV(),
+        )
+      }
   ) { innerPadding ->
     LazyColumn(modifier = Modifier.padding(innerPadding)) {
       item {

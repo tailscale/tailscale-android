@@ -21,12 +21,22 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
 import com.tailscale.ipn.mdm.MDMSettings
+import com.tailscale.ipn.ui.components.Header
+import com.tailscale.ipn.ui.util.AndroidTVUtil
 import com.tailscale.ipn.ui.viewModel.IpnViewModel
 
 @Suppress("UNUSED_PARAMETER")
 @Composable
-fun ManagedByView(backToSettings: BackNavigation, model: IpnViewModel = viewModel()) {
-  Scaffold(topBar = { Header(R.string.managed_by, onBack = backToSettings) }) { _ ->
+fun ManagedByView(backToSettings: () -> Unit, model: IpnViewModel = viewModel()) {
+  Scaffold(
+      topBar = {
+        Header(
+            R.string.managed_by,
+            onBack = backToSettings,
+            isTv = AndroidTVUtil.isAndroidTV(),
+        )
+      }
+  ) { _ ->
     Column(
         verticalArrangement =
             Arrangement.spacedBy(space = 20.dp, alignment = Alignment.CenterVertically),

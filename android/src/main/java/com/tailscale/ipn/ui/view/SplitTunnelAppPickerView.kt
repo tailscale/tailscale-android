@@ -41,13 +41,16 @@ import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.App
 import com.tailscale.ipn.R
+import com.tailscale.ipn.ui.components.DropdownMenuItem
+import com.tailscale.ipn.ui.components.Header
+import com.tailscale.ipn.ui.util.AndroidTVUtil
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.viewModel.SplitTunnelAppPickerViewModel
 
 @Composable
 fun SplitTunnelAppPickerView(
-    backToSettings: BackNavigation,
+    backToSettings: () -> Unit,
     model: SplitTunnelAppPickerViewModel = viewModel(),
 ) {
   val installedApps by model.installedApps.collectAsState()
@@ -77,6 +80,7 @@ fun SplitTunnelAppPickerView(
         Header(
             titleRes = R.string.split_tunneling,
             onBack = backToSettings,
+            isTv = AndroidTVUtil.isAndroidTV(),
             actions = {
               Row {
                 FusMenu(viewModel = model, onSwitchClick = { model.showSwitchDialog.set(true) })
@@ -200,7 +204,7 @@ fun FusMenu(viewModel: SplitTunnelAppPickerViewModel, onSwitchClick: (() -> Unit
       onDismissRequest = { viewModel.showHeaderMenu.set(false) },
       modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainer),
   ) {
-    MenuItem(
+    DropdownMenuItem(
         onClick = {
           viewModel.showHeaderMenu.set(false)
           onSwitchClick()

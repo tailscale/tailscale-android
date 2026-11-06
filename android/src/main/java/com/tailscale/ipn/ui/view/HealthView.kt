@@ -41,17 +41,25 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
+import com.tailscale.ipn.ui.components.Header
 import com.tailscale.ipn.ui.model.Health
 import com.tailscale.ipn.ui.theme.success
 import com.tailscale.ipn.ui.util.AndroidTVUtil.isAndroidTV
 import com.tailscale.ipn.ui.viewModel.HealthViewModel
 
 @Composable
-fun HealthView(backToSettings: BackNavigation, model: HealthViewModel = viewModel()) {
+fun HealthView(backToSettings: () -> Unit, model: HealthViewModel = viewModel()) {
   val warnings by model.warnings.collectAsState()
 
-  Scaffold(topBar = { Header(titleRes = R.string.health_warnings, onBack = backToSettings) }) {
-      innerPadding ->
+  Scaffold(
+      topBar = {
+        Header(
+            titleRes = R.string.health_warnings,
+            onBack = backToSettings,
+            isTv = isAndroidTV(),
+        )
+      }
+  ) { innerPadding ->
     LazyColumn(modifier = Modifier.padding(innerPadding)) {
       if (warnings.isEmpty()) {
         item("allGood") {

@@ -20,12 +20,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.tailscale.ipn.R
+import com.tailscale.ipn.ui.components.Header
+import com.tailscale.ipn.ui.util.AndroidTVUtil
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerNav
 
 @Composable
 fun MullvadInfoView(nav: ExitNodePickerNav) {
   Scaffold(
-      topBar = { Header(R.string.choose_mullvad_exit_node, onBack = nav.onNavigateBackToExitNodes) }
+      topBar = {
+        Header(
+            R.string.choose_mullvad_exit_node,
+            onBack = nav.onNavigateBackToExitNodes,
+            isTv = AndroidTVUtil.isAndroidTV(),
+        )
+      }
   ) { innerPadding ->
     LazyColumn(
         horizontalAlignment = Alignment.CenterHorizontally,

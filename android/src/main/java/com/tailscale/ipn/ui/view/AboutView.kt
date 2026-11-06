@@ -32,15 +32,24 @@ import androidx.compose.ui.unit.dp
 import com.tailscale.ipn.BuildConfig
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.Links
+import com.tailscale.ipn.ui.components.Header
 import com.tailscale.ipn.ui.theme.logoBackground
+import com.tailscale.ipn.ui.util.AndroidTVUtil
 import com.tailscale.ipn.ui.util.AppVersion
 
 @Composable
-fun AboutView(backToSettings: BackNavigation) {
+fun AboutView(backToSettings: () -> Unit) {
   val localClipboardManager = LocalClipboardManager.current
 
-  Scaffold(topBar = { Header(R.string.about_view_header, onBack = backToSettings) }) { innerPadding
-    ->
+  Scaffold(
+      topBar = {
+        Header(
+            R.string.about_view_header,
+            onBack = backToSettings,
+            isTv = AndroidTVUtil.isAndroidTV(),
+        )
+      }
+  ) { innerPadding ->
     Column(
         verticalArrangement =
             Arrangement.spacedBy(space = 20.dp, alignment = Alignment.CenterVertically),

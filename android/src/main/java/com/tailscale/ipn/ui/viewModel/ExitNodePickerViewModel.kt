@@ -7,8 +7,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.tailscale.ipn.ui.localapi.Client
+import com.tailscale.ipn.ui.model.ExitNode
 import com.tailscale.ipn.ui.model.Ipn
-import com.tailscale.ipn.ui.model.StableNodeID
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.set
@@ -38,18 +38,6 @@ class ExitNodePickerViewModelFactory(private val nav: ExitNodePickerNav) :
 }
 
 class ExitNodePickerViewModel(private val nav: ExitNodePickerNav) : IpnViewModel() {
-  data class ExitNode(
-      val id: StableNodeID? = null,
-      val label: String,
-      val online: StateFlow<Boolean>,
-      val selected: Boolean,
-      val mullvad: Boolean = false,
-      val priority: Int = 0,
-      val countryCode: String = "",
-      val country: String = "",
-      val city: String = "",
-  )
-
   val tailnetExitNodes: StateFlow<List<ExitNode>> = MutableStateFlow(emptyList())
   val mullvadExitNodesByCountryCode: StateFlow<Map<String, List<ExitNode>>> =
       MutableStateFlow(TreeMap())
@@ -166,8 +154,8 @@ class ExitNodePickerViewModel(private val nav: ExitNodePickerNav) : IpnViewModel
   }
 }
 
-val List<ExitNodePickerViewModel.ExitNode>.selected
+val List<ExitNode>.selected
   get() = this.any { it.selected }
 
-val Map<String, List<ExitNodePickerViewModel.ExitNode>>.selected
+val Map<String, List<ExitNode>>.selected
   get() = this.any { it.value.selected }

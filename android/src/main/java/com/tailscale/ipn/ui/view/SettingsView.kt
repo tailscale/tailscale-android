@@ -3,13 +3,11 @@
 
 package com.tailscale.ipn.ui.view
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -21,7 +19,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
@@ -36,8 +33,10 @@ import com.tailscale.ipn.mdm.AlwaysNeverUserDecides
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.mdm.ShowHide
 import com.tailscale.ipn.ui.Links
+import com.tailscale.ipn.ui.components.Header
+import com.tailscale.ipn.ui.components.ListItemSwitch
+import com.tailscale.ipn.ui.components.ListItemText
 import com.tailscale.ipn.ui.theme.link
-import com.tailscale.ipn.ui.theme.listItem
 import com.tailscale.ipn.ui.util.AndroidTVUtil
 import com.tailscale.ipn.ui.util.AndroidTVUtil.isAndroidTV
 import com.tailscale.ipn.ui.util.AppVersion
@@ -68,13 +67,18 @@ fun SettingsView(
 
   Scaffold(
       topBar = {
-        Header(titleRes = R.string.settings_title, onBack = settingsNav.onNavigateBackHome)
+        Header(
+            titleRes = R.string.settings_title,
+            onBack = settingsNav.onNavigateBackHome,
+            isTv = isAndroidTV(),
+        )
       }
   ) { innerPadding ->
     Column(modifier = Modifier.padding(innerPadding).verticalScroll(rememberScrollState())) {
       if (isVPNPrepared) {
         UserView(
             profile = user,
+            isTv = isAndroidTV(),
             actionState = UserActionState.NAV,
             onClick = settingsNav.onNavigateToUserSwitcher,
         )
@@ -86,7 +90,7 @@ fun SettingsView(
       }
 
       Lists.SectionDivider()
-      Setting.Text(
+      ListItemText(
           R.string.dns_settings,
           subtitle =
               corpDNSEnabled?.let {
@@ -98,7 +102,7 @@ fun SettingsView(
       )
 
       Lists.ItemDivider()
-      Setting.Text(
+      ListItemText(
           R.string.split_tunneling,
           subtitle = stringResource(R.string.filter_apps_allowed_to_access_tailscale),
           onClick = settingsNav.onNavigateToSplitTunneling,
@@ -106,7 +110,7 @@ fun SettingsView(
 
       if (showTailnetLock.value == ShowHide.Show) {
         Lists.ItemDivider()
-        Setting.Text(
+        ListItemText(
             R.string.tailnet_lock,
             subtitle =
                 tailnetLockEnabled?.let {
@@ -117,11 +121,11 @@ fun SettingsView(
       }
       if (useTailscaleSubnets.value == AlwaysNeverUserDecides.UserDecides) {
         Lists.ItemDivider()
-        Setting.Text(R.string.subnet_routing, onClick = settingsNav.onNavigateToSubnetRouting)
+        ListItemText(R.string.subnet_routing, onClick = settingsNav.onNavigateToSubnetRouting)
       }
 
       Lists.ItemDivider()
-      Setting.Switch(
+      ListItemSwitch(
           R.string.client_remote_logging_enabled,
           subtitle =
               stringResource(
@@ -142,22 +146,22 @@ fun SettingsView(
 
       if (!AndroidTVUtil.isAndroidTV()) {
         Lists.ItemDivider()
-        Setting.Text(R.string.permissions, onClick = settingsNav.onNavigateToPermissions)
+        ListItemText(R.string.permissions, onClick = settingsNav.onNavigateToPermissions)
       }
 
       managedByOrganization.value?.let {
         Lists.ItemDivider()
-        Setting.Text(
+        ListItemText(
             title = stringResource(R.string.managed_by_orgName, it),
             onClick = settingsNav.onNavigateToManagedBy,
         )
       }
 
       Lists.SectionDivider()
-      Setting.Text(R.string.bug_report, onClick = settingsNav.onNavigateToBugReport)
+      ListItemText(R.string.bug_report, onClick = settingsNav.onNavigateToBugReport)
 
       Lists.ItemDivider()
-      Setting.Text(
+      ListItemText(
           R.string.about_tailscale,
           subtitle = "${stringResource(id = R.string.version)} ${AppVersion.Short()}",
           onClick = settingsNav.onNavigateToAbout,
@@ -167,7 +171,7 @@ fun SettingsView(
       if (BuildConfig.DEBUG) {
         Lists.SectionDivider()
         Lists.MutedHeader(text = stringResource(R.string.internal_debug_options))
-        Setting.Text(R.string.mdm_settings, onClick = settingsNav.onNavigateToMDMSettings)
+        ListItemText(R.string.mdm_settings, onClick = settingsNav.onNavigateToMDMSettings)
       }
     }
   }
@@ -194,77 +198,6 @@ fun SettingsView(
           TextButton(onClick = { showDisableLoggingDialog = false }) {
             Text(stringResource(R.string.cancel))
           }
-        },
-    )
-  }
-}
-
-object Setting {
-  @Composable
-  fun Text(
-      titleRes: Int = 0,
-      title: String? = null,
-      subtitle: String? = null,
-      destructive: Boolean = false,
-      enabled: Boolean = true,
-      onClick: (() -> Unit)? = null,
-  ) {
-    var modifier: Modifier = Modifier
-    if (enabled) {
-      onClick?.let { modifier = modifier.clickable(onClick = it) }
-    }
-    ListItem(
-        modifier = modifier,
-        colors = MaterialTheme.colorScheme.listItem,
-        headlineContent = {
-          Text(
-              title ?: stringResource(titleRes),
-              style = MaterialTheme.typography.bodyMedium,
-              color = if (destructive) MaterialTheme.colorScheme.error else Color.Unspecified,
-          )
-        },
-        supportingContent =
-            subtitle?.let {
-              {
-                Text(
-                    it,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-              }
-            },
-    )
-  }
-
-  @Composable
-  fun Switch(
-      titleRes: Int = 0,
-      title: String? = null,
-      subtitle: String? = null,
-      isOn: Boolean,
-      enabled: Boolean = true,
-      onToggle: (Boolean) -> Unit = {},
-  ) {
-    ListItem(
-        colors = MaterialTheme.colorScheme.listItem,
-        headlineContent = {
-          Text(
-              title ?: stringResource(titleRes),
-              style = MaterialTheme.typography.bodyMedium,
-          )
-        },
-        supportingContent =
-            subtitle?.let {
-              {
-                Text(
-                    it,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-              }
-            },
-        trailingContent = {
-          TintedSwitch(checked = isOn, onCheckedChange = onToggle, enabled = enabled)
         },
     )
   }

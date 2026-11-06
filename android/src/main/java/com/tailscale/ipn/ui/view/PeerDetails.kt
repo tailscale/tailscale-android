@@ -35,6 +35,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
+import com.tailscale.ipn.ui.components.Header
 import com.tailscale.ipn.ui.theme.listItem
 import com.tailscale.ipn.ui.theme.short
 import com.tailscale.ipn.ui.util.AndroidTVUtil.isAndroidTV
@@ -111,6 +112,7 @@ fun PeerDetails(
                   }
                 },
                 onBack = onNavigateBack,
+                isTv = isAndroidTV(),
             )
           },
       ) { innerPadding ->

@@ -5,7 +5,6 @@ package com.tailscale.ipn.ui.view
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -15,6 +14,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
+import com.tailscale.ipn.ui.components.Header
+import com.tailscale.ipn.ui.model.ExitNode
+import com.tailscale.ipn.ui.util.AndroidTVUtil
 import com.tailscale.ipn.ui.util.Lists
 import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.util.flag
@@ -23,7 +25,6 @@ import com.tailscale.ipn.ui.viewModel.ExitNodePickerNav
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerViewModel
 import com.tailscale.ipn.ui.viewModel.ExitNodePickerViewModelFactory
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MullvadExitNodePicker(
     countryCode: String,
@@ -42,6 +43,7 @@ fun MullvadExitNodePicker(
             Header(
                 title = { Text("${countryCode.flag()} ${any.country}") },
                 onBack = nav.onNavigateBackToMullvad,
+                isTv = AndroidTVUtil.isAndroidTV(),
             )
           }
       ) { innerPadding ->
@@ -51,7 +53,7 @@ fun MullvadExitNodePicker(
             item {
               ExitNodeItem(
                   model,
-                  ExitNodePickerViewModel.ExitNode(
+                  ExitNode(
                       id = bestAvailableNode.id,
                       label = stringResource(R.string.best_available),
                       online = bestAvailableNode.online,
