@@ -4,7 +4,6 @@
 package com.tailscale.ipn.ui.view
 
 // TODO(angott): must mention usage of com.patrykandpatrick.vico library in LICENSES
-import android.graphics.Typeface
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.fadeIn
@@ -13,51 +12,66 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.patrykandpatrick.vico.compose.axis.axisGuidelineComponent
-import com.patrykandpatrick.vico.compose.axis.horizontal.rememberBottomAxis
-import com.patrykandpatrick.vico.compose.axis.vertical.rememberStartAxis
-import com.patrykandpatrick.vico.compose.chart.Chart
-import com.patrykandpatrick.vico.compose.chart.line.lineChart
-import com.patrykandpatrick.vico.compose.component.shapeComponent
-import com.patrykandpatrick.vico.compose.component.textComponent
-import com.patrykandpatrick.vico.compose.dimensions.dimensionsOf
-import com.patrykandpatrick.vico.compose.m3.style.m3ChartStyle
-import com.patrykandpatrick.vico.compose.style.ProvideChartStyle
-import com.patrykandpatrick.vico.compose.style.currentChartStyle
-import com.patrykandpatrick.vico.core.axis.AxisItemPlacer
-import com.patrykandpatrick.vico.core.chart.copy
-import com.patrykandpatrick.vico.core.entry.FloatEntry
-import com.patrykandpatrick.vico.core.entry.entryModelOf
+import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
+import com.patrykandpatrick.vico.compose.cartesian.axis.HorizontalAxis
+import com.patrykandpatrick.vico.compose.cartesian.axis.VerticalAxis
+import com.patrykandpatrick.vico.compose.cartesian.axis.rememberAxisGuidelineComponent
+import com.patrykandpatrick.vico.compose.cartesian.axis.rememberAxisLabelComponent
+import com.patrykandpatrick.vico.compose.cartesian.data.CartesianChartModelProducer
+import com.patrykandpatrick.vico.compose.cartesian.data.CartesianLayerRangeProvider
+import com.patrykandpatrick.vico.compose.cartesian.data.CartesianValueFormatter
+import com.patrykandpatrick.vico.compose.cartesian.data.lineModel
+import com.patrykandpatrick.vico.compose.cartesian.layer.CartesianLayerPadding
+import com.patrykandpatrick.vico.compose.cartesian.layer.LineCartesianLayer
+import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLine
+import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLineCartesianLayer
+import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
+import com.patrykandpatrick.vico.compose.cartesian.rememberVicoScrollState
+import com.patrykandpatrick.vico.compose.common.Fill
+import com.patrykandpatrick.vico.compose.common.Insets
+import com.patrykandpatrick.vico.compose.common.component.rememberShapeComponent
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.model.Tailcfg
+import com.tailscale.ipn.ui.theme.AppTheme
 import com.tailscale.ipn.ui.util.ConnectionMode
 import com.tailscale.ipn.ui.viewModel.PingViewModel
 import java.text.DecimalFormat
+import kotlinx.coroutines.runBlocking
 
 @Composable
 fun PingView(model: PingViewModel = viewModel()) {
@@ -66,11 +80,22 @@ fun PingView(model: PingViewModel = viewModel()) {
   val peer: Tailcfg.Node? by model.peer.collectAsState()
   val lastLatencyValue: String by model.lastLatencyValue.collectAsState()
   val pingValues: List<Double> by model.latencyValues.collectAsState()
-  val chartEntryModel =
-      entryModelOf(
-          pingValues.withIndex().map { FloatEntry((it.index + 1).toFloat(), it.value.toFloat()) }
-      )
   val errorMessage: String? by model.errorMessage.collectAsState()
+
+  val modelProducer = remember { CartesianChartModelProducer() }
+
+  LaunchedEffect(pingValues) {
+    modelProducer.runTransaction {
+      if (pingValues.isNotEmpty()) {
+        lineModel {
+          series(
+              x = pingValues.indices.map { it + 1 },
+              y = pingValues,
+          )
+        }
+      }
+    }
+  }
 
   Column(
       verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -123,56 +148,10 @@ fun PingView(model: PingViewModel = viewModel()) {
     }
 
     if (pingValues.isNotEmpty()) {
-      ProvideChartStyle(chartStyle = m3ChartStyle()) {
-        val defaultLines = currentChartStyle.lineChart.lines
-        val circlePoint =
-            shapeComponent(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.background,
-                strokeColor = MaterialTheme.colorScheme.surfaceTint,
-                strokeWidth = 2.dp,
-            )
-        Chart(
-            chart =
-                lineChart(
-                    remember(defaultLines) {
-                      defaultLines.map { defaultLine ->
-                        defaultLine.copy(point = circlePoint, pointSizeDp = 10.0F)
-                      }
-                    },
-                    spacing = 0.dp,
-                ),
-            model = chartEntryModel,
-            startAxis =
-                rememberStartAxis(
-                    valueFormatter = { value, _ -> DecimalFormat("#;−#").format(value) + " ms" },
-                    itemPlacer = remember { AxisItemPlacer.Vertical.default(maxItemCount = 5) },
-                    label =
-                        textComponent(
-                            color = MaterialTheme.colorScheme.secondary,
-                            typeface = Typeface.MONOSPACE,
-                            padding = dimensionsOf(end = 8.dp),
-                        ),
-                    guideline =
-                        axisGuidelineComponent(
-                            color = MaterialTheme.colorScheme.secondaryContainer
-                        ),
-                ),
-            bottomAxis =
-                rememberBottomAxis(
-                    itemPlacer = remember { AxisItemPlacer.Horizontal.default(spacing = 1) },
-                    label =
-                        textComponent(
-                            color = MaterialTheme.colorScheme.secondary,
-                            typeface = Typeface.MONOSPACE,
-                        ),
-                    guideline =
-                        axisGuidelineComponent(
-                            color = MaterialTheme.colorScheme.secondaryContainer
-                        ),
-                ),
-        )
-      }
+      PingChart(
+          pingValues = pingValues,
+          modelProducer = modelProducer,
+      )
     } else {
       errorMessage?.also { error ->
         Column(
@@ -219,4 +198,149 @@ fun PingView(model: PingViewModel = viewModel()) {
   }
 }
 
-fun Double.roundedString(decimals: Int): String = "%.${decimals}f".format(this)
+@Composable
+private fun PingChart(
+    pingValues: List<Double>,
+    modelProducer: CartesianChartModelProducer,
+    modifier: Modifier = Modifier,
+) {
+  val circlePoint =
+      rememberShapeComponent(
+          shape = CircleShape,
+          fill = Fill(MaterialTheme.colorScheme.background),
+          strokeFill = Fill(MaterialTheme.colorScheme.surfaceTint),
+          strokeThickness = 2.dp,
+      )
+
+  // Pads lowest/highest values by 5 instead of lots of empty space 0-lowest value
+  val rangeProvider =
+      CartesianLayerRangeProvider.fixed(
+          minY = (pingValues.minOrNull() ?: 0.0).let { (it - 5.0).coerceAtLeast(0.0) },
+          maxY = (pingValues.maxOrNull() ?: 0.0) + 5.0,
+      )
+
+  val lineProvider =
+      LineCartesianLayer.LineProvider.series(
+          LineCartesianLayer.rememberLine(
+              fill = LineCartesianLayer.LineFill.single(Fill(MaterialTheme.colorScheme.primary)),
+              areaFill =
+                  LineCartesianLayer.AreaFill.single(
+                      Fill(
+                          Brush.verticalGradient(
+                              colors =
+                                  listOf(
+                                      MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                                      MaterialTheme.colorScheme.primary.copy(alpha = 0f),
+                                  )
+                          )
+                      )
+                  ),
+              pointProvider =
+                  LineCartesianLayer.PointProvider.single(
+                      LineCartesianLayer.Point(
+                          component = circlePoint,
+                          size = 10.dp,
+                      )
+                  ),
+              interpolator = remember { LineCartesianLayer.Interpolator.cubic() },
+          )
+      )
+
+  val verticalAxis =
+      VerticalAxis.rememberStart(
+          valueFormatter =
+              remember {
+                CartesianValueFormatter { _, value, _ ->
+                  DecimalFormat("#;−#").format(value) + " ms"
+                }
+              },
+          itemPlacer = remember { VerticalAxis.ItemPlacer.count(count = { 5 }) },
+          label =
+              rememberAxisLabelComponent(
+                  style =
+                      TextStyle(
+                          color = MaterialTheme.colorScheme.secondary,
+                          fontFamily = FontFamily.Monospace,
+                          fontSize = 12.sp,
+                      ),
+                  padding = Insets(end = 8.dp),
+              ),
+          guideline =
+              rememberAxisGuidelineComponent(
+                  fill = Fill(MaterialTheme.colorScheme.secondaryContainer),
+              ),
+      )
+
+  val horizontalAxis =
+      HorizontalAxis.rememberBottom(
+          itemPlacer = remember { HorizontalAxis.ItemPlacer.segmented(shiftExtremeLines = false) }
+      )
+
+  // Each interval is 40.dp spacing + 10.dp point diameter.
+  // Reserve half at each edge and cancel Vico's built-in 5.dp point-radius padding.
+  val layerPadding =
+      CartesianLayerPadding(
+          scalableStart = 25.dp,
+          scalableEnd = 25.dp,
+          unscalableStart = (-5).dp,
+          unscalableEnd = (-5).dp,
+      )
+
+  CartesianChartHost(
+      modifier = modifier,
+      chart =
+          rememberCartesianChart(
+              rememberLineCartesianLayer(
+                  rangeProvider = rangeProvider,
+                  lineProvider = lineProvider,
+                  pointSpacing = 40.dp,
+              ),
+              startAxis = verticalAxis,
+              bottomAxis = horizontalAxis,
+              layerPadding = { layerPadding },
+          ),
+      modelProducer = modelProducer,
+      scrollState = rememberVicoScrollState(scrollEnabled = false),
+      animationSpec = null,
+  )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Preview(showSystemUi = true)
+@Composable
+private fun PingChartPreview() {
+  val pingValues = listOf(45.0, 62.0, 48.0, 80.0, 55.0, 42.0, 60.0, 51.0, 47.0, 53.0)
+  val modelProducer = remember {
+    CartesianChartModelProducer().also { producer ->
+      // Previews need chart data populated synchronously.
+      runBlocking {
+        producer.runTransaction {
+          lineModel {
+            series(
+                x = pingValues.indices.map { it + 1 },
+                y = pingValues,
+            )
+          }
+        }
+      }
+    }
+  }
+
+  AppTheme {
+    Box(Modifier.fillMaxSize()) {
+      ModalBottomSheet(
+          onDismissRequest = {},
+          sheetState =
+              rememberModalBottomSheetState(
+                  skipPartiallyExpanded = true,
+              ),
+      ) {
+        PingChart(
+            pingValues = pingValues,
+            modelProducer = modelProducer,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 36.dp),
+        )
+      }
+    }
+  }
+}

@@ -14,7 +14,6 @@ import com.tailscale.ipn.ui.localapi.Client
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.util.ConnectionMode
 import com.tailscale.ipn.ui.util.set
-import com.tailscale.ipn.ui.view.roundedString
 import com.tailscale.ipn.util.TSLog
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -136,3 +135,5 @@ class PingViewModel : ViewModel() {
     }
   }
 }
+
+private fun Double.roundedString(decimals: Int): String = "%.${decimals}f".format(this)
