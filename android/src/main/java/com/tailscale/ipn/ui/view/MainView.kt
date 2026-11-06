@@ -79,7 +79,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
-import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.tailscale.ipn.App
 import com.tailscale.ipn.R
 import com.tailscale.ipn.mdm.MDMSettings
@@ -1030,19 +1029,18 @@ fun ExpiryNotification(netmap: Netmap.NetworkMap, action: () -> Unit = {}) {
   }
 }
 
-@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun PromptForMissingPermissions(viewModel: MainViewModel) {
   if (viewModel.skipPromptsForAuthKeyLogin()) {
     return
   }
-  Permissions.prompt.forEach { (permission, state) ->
+  Permissions.prompt.forEach { (permission, requestPermissions) ->
     ErrorDialog(
         title = permission.title,
         message = permission.description,
         buttonText = R.string._continue,
     ) {
-      state.launchPermissionRequest()
+      requestPermissions()
     }
   }
 }
