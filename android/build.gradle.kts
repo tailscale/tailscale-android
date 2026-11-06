@@ -104,6 +104,7 @@ dependencies {
 
   // Supporting libraries.
   implementation(libs.coil.compose)
+  implementation(libs.coil.network.okhttp)
   implementation(libs.zxing.core)
   implementation(libs.vico.compose)
   implementation(libs.vico.composeM3)
