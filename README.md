@@ -123,6 +123,10 @@ For faster Kotlin-only iteration while avoiding the `gomobile bind` step:
 nix develop --command bash -lc 'cd android && ./gradlew ktfmtCheck compileDebugKotlin'
 ```
 
+  ## Integration tests
+    
+  In GitHub Actions, integration tests run automatically for pull requests that change relevant Android, Go, or build/test infrastructure code. They can also be triggered by adding the run-integration-test label to a pull request or manually through the Integration Test workflow.
+
 ## Building
 
 ```sh

@@ -7,13 +7,98 @@ concurrency:
 on:
   workflow_dispatch:
   pull_request:
-    types: [labeled, synchronize, reopened]
+    types: [opened, labeled, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: read
 
 jobs:
+  should-run:
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.check.outputs.run }}
+    steps:
+      - name: Check PR files and labels
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HAS_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'run-integration-test') }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch || "$HAS_LABEL" == true ]]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          python3 - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          paths = {
+              "android/build.gradle.kts",
+              "android/gradle/libs.versions.toml",
+              "android/gradle.properties",
+              "android/gradlew",
+              "android/settings.gradle.kts",
+              "android/src/main/AndroidManifest.xml",
+              "android/src/main/java/com/tailscale/ipn/App.kt",
+              "android/src/main/java/com/tailscale/ipn/DnsConfig.java",
+              "android/src/main/java/com/tailscale/ipn/IntegrationLoginWorker.kt",
+              "android/src/main/java/com/tailscale/ipn/IPNReceiver.java",
+              "android/src/main/java/com/tailscale/ipn/IPNService.kt",
+              "android/src/main/java/com/tailscale/ipn/NetworkChangeCallback.kt",
+              "android/src/main/java/com/tailscale/ipn/VPNServiceBuilder.kt",
+              "android/src/main/java/com/tailscale/ipn/WorkerForegroundInfo.kt",
+              "android/src/main/java/com/tailscale/ipn/ui/localapi/Client.kt",
+              "android/src/main/java/com/tailscale/ipn/ui/model/Ipn.kt",
+              "scripts/run-android-integration-test-docker.sh",
+              "scripts/docker-build-apt-get.sh",
+              "docker/DockerFile.amd64-build",
+              "docker/Dockerfile.android-integration",
+              "Makefile",
+              ".github/workflows/integration-test.yml",
+          }
+
+          def should_run_for(name):
+              return (
+                  name in paths
+                  or name.startswith("android/gradle/")
+                  or name.startswith("integration/androidvmtest/")
+                  or (name.startswith("libtailscale/") and name.count("/") == 1
+                      and name.endswith(".go") and not name.endswith("_test.go"))
+              )
+
+          url = f"{os.environ['GITHUB_API_URL']}/repos/{os.environ['GITHUB_REPOSITORY']}/pulls/{os.environ['PR_NUMBER']}/files"
+          run = False
+          page = 1
+          while True:
+              request = urllib.request.Request(
+                  f"{url}?per_page=100&page={page}",
+                  headers={
+                      "Accept": "application/vnd.github+json",
+                      "Authorization": f"Bearer {os.environ['GH_TOKEN']}",
+                  },
+              )
+              with urllib.request.urlopen(request) as response:
+                  files = json.load(response)
+              for file in files:
+                  for name in (file["filename"], file.get("previous_filename", "")):
+                      if should_run_for(name):
+                          print(f"Integration test trigger: {name}")
+                          run = True
+              if len(files) < 100:
+                  break
+              page += 1
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write(f"run={str(run).lower()}\n")
+          PY
+
   integration-test:
-    if: |
-      github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'run-integration-test'))
+    needs: should-run
+    if: needs.should-run.outputs.run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 90
 
