@@ -84,8 +84,10 @@ class Client(
   }
 
   fun ping(peer: Tailcfg.Node, responseHandler: PingResultHandler) {
-    val ip = peer.primaryIPv4Address.orEmpty()
-    if (ip.isEmpty()) {
+    // A tailnet using disableIPv4 leaves peers with no IPv4 address at all. The backend's ping
+    // handler parses either family, so fall back to IPv6 rather than refusing to send.
+    val ip = peer.primaryIPv4Address ?: peer.primaryIPv6Address
+    if (ip.isNullOrEmpty()) {
       responseHandler(Result.failure(Exception("No IP address for peer $peer")))
       return
     }
