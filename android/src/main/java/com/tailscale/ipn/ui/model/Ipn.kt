@@ -37,6 +37,8 @@ class Ipn {
   @Serializable
   data class Notify(
       val Version: String? = null,
+      val SessionID: String? = null,
+      val Suspended: Boolean = false,
       val ErrMessage: String? = null,
       val LoginFinished: Empty.Message? = null,
       val FilesWaiting: Empty.Message? = null,

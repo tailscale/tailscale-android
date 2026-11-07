@@ -52,6 +52,7 @@ private object Endpoint {
   const val TAILFS_SERVER_ADDRESS = "tailfs/fileserver-address"
   const val ENABLE_EXIT_NODE = "set-use-exit-node-enabled"
   const val FAVORITES = "pins"
+  const val RESUME_IPN_BUS = "resume-ipn-bus"
 }
 
 typealias StatusResponseHandler = (Result<IpnState.Status>) -> Unit
@@ -204,6 +205,17 @@ class Client(
   fun setFavorites(favorites: FavoritesRequest, responseHandler: (Result<Favorites>) -> Unit) {
     val body = Json.encodeToString(favorites).toByteArray()
     return post(Endpoint.FAVORITES, body, responseHandler = responseHandler)
+  }
+
+  fun resumeIPNBus(
+      sessionID: String,
+      responseHandler: (Result<Unit>) -> Unit,
+  ) {
+    val encodedSessionID = java.net.URLEncoder.encode(sessionID, "UTF-8")
+    post(
+        "${Endpoint.RESUME_IPN_BUS}?session=$encodedSessionID",
+        responseHandler = responseHandler,
+    )
   }
 
   private inline fun <reified T> get(

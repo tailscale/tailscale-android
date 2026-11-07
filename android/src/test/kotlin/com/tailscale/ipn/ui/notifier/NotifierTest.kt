@@ -6,7 +6,10 @@ package com.tailscale.ipn.ui.notifier
 import com.tailscale.ipn.ui.model.Ipn.Notify
 import com.tailscale.ipn.ui.model.IpnState
 import com.tailscale.ipn.ui.model.Tailcfg
+import kotlinx.serialization.json.Json
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -42,5 +45,21 @@ class NotifierTest {
   fun emptyPeerChangesDoNotRequireNetmapUpdate() {
     assertFalse(Notify(PeersChanged = emptyList()).hasNetworkMapChanges())
     assertFalse(Notify(PeersRemoved = emptyList()).hasNetworkMapChanges())
+  }
+
+  @Test
+  fun initialNotificationContainsSessionID() {
+    val notify = Json.decodeFromString<Notify>("""{"SessionID":"abc123","State":6}""")
+
+    assertEquals("abc123", notify.SessionID)
+    assertFalse(notify.Suspended)
+  }
+
+  @Test
+  fun suspendedNotificationIsDecoded() {
+    val notify = Json.decodeFromString<Notify>("""{"Suspended":true}""")
+
+    assertTrue(notify.Suspended)
+    assertNull(notify.SessionID)
   }
 }

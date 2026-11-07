@@ -5,6 +5,7 @@ package com.tailscale.ipn.ui.notifier
 
 import com.tailscale.ipn.App
 import com.tailscale.ipn.BuildConfig
+import com.tailscale.ipn.ui.localapi.Client
 import com.tailscale.ipn.ui.model.Empty
 import com.tailscale.ipn.ui.model.Health
 import com.tailscale.ipn.ui.model.Ipn
@@ -88,6 +89,9 @@ object Notifier {
   private lateinit var app: libtailscale.Application
   private var manager: libtailscale.NotificationManager? = null
 
+  private var sessionID: String? = null
+  private var watchGeneration = 0
+
   @Synchronized
   @JvmStatic
   fun setApp(newApp: libtailscale.Application) {
@@ -101,6 +105,17 @@ object Notifier {
     if (!::app.isInitialized) {
       App.get()
     }
+
+    val oldManager: libtailscale.NotificationManager?
+    val generation: Int
+    synchronized(this) {
+      generation = ++watchGeneration
+      oldManager = manager
+      manager = null
+      sessionID = null
+    }
+    manager?.stop()
+
     scope.launch(Dispatchers.IO) {
       val mask =
           NotifyWatchOpt.Prefs.value or
@@ -108,60 +123,131 @@ object Notifier {
               NotifyWatchOpt.PeerChanges.value or
               NotifyWatchOpt.NoNetmap.value or
               NotifyWatchOpt.InitialStatus.value or
-              NotifyWatchOpt.InitialHealthState.value
-      manager =
+              NotifyWatchOpt.InitialHealthState.value or
+              NotifyWatchOpt.SuspendWhenBehind.value
+      val newManager =
           app.watchNotifications(mask.toLong()) { notification ->
             runCatching {
               val notify = decoder.decodeFromStream<Notify>(notification.inputStream())
-              notify.State?.let { state.set(Ipn.State.fromInt(it)) }
-              if (BuildConfig.DEBUG) {
-                notify.InitialStatus?.let {
-                  TSLog.d(
-                      TAG,
-                      "received initial status: peers=${it.Peer?.size ?: 0}, users=${it.User?.size ?: 0}",
-                  )
-                }
-                val peersChanged = notify.PeersChanged?.size ?: 0
-                val peersRemoved = notify.PeersRemoved?.size ?: 0
-                val users = notify.UserProfiles?.size ?: 0
-                if (
-                    notify.SelfChange != null || peersChanged > 0 || peersRemoved > 0 || users > 0
-                ) {
-                  TSLog.d(
-                      TAG,
-                      "received bus update: self=${notify.SelfChange != null}, peersChanged=$peersChanged, peersRemoved=$peersRemoved, users=$users",
-                  )
-                }
-              }
-              updateNetworkMap(notify)
-              notify.Prefs?.let(prefs::set)
-              notify.Engine?.let(engineStatus::set)
-              notify.TailFSShares?.let(tailFSShares::set)
-              notify.BrowseToURL?.let(browseToURL::set)
-              notify.LoginFinished?.let { loginFinished.set(it.property) }
-              notify.Version?.let(version::set)
-              notify.OutgoingFiles?.let(outgoingFiles::set)
-              notify.FilesWaiting?.let(filesWaiting::set)
-              notify.IncomingFiles?.let(incomingFiles::set)
-              notify.Health?.let {
-                if (INJECT_FAKE_HEALTH_WARNINGS) {
-                  injectFakeHealthState()
+
+              val active =
+                  synchronized(this@Notifier) {
+                    if (generation != watchGeneration) {
+                      false
+                    } else {
+                      notify.SessionID?.let { sessionID = it }
+                      true
+                    }
+                  }
+
+              if (active) {
+                if (notify.Suspended) {
+                  resumeSuspendedWatch(scope, generation)
                 } else {
-                  health.set(it)
+                  processNotification(notify)
                 }
               }
             }
                 .onFailure { TSLog.e(TAG, "failed to process IPN notification", it) }
           }
+
+      val installed =
+          synchronized(this@Notifier) {
+            if (generation == watchGeneration) {
+              manager = newManager
+              true
+            } else {
+              false
+            }
+          }
+
+      if (!installed) {
+        newManager.stop()
+      }
     }
+  }
+
+  private fun processNotification(notify: Notify) {
+    notify.State?.let { state.set(Ipn.State.fromInt(it)) }
+
+    if (BuildConfig.DEBUG) {
+      notify.InitialStatus?.let {
+        TSLog.d(
+            TAG,
+            "received initial status: peers=${it.Peer?.size ?: 0}, users=${it.User?.size ?: 0}",
+        )
+      }
+      val peersChanged = notify.PeersChanged?.size ?: 0
+      val peersRemoved = notify.PeersRemoved?.size ?: 0
+      val users = notify.UserProfiles?.size ?: 0
+      if (notify.SelfChange != null || peersChanged > 0 || peersRemoved > 0 || users > 0) {
+        TSLog.d(
+            TAG,
+            "received bus update: self=${notify.SelfChange != null}, peersChanged=$peersChanged, peersRemoved=$peersRemoved, users=$users",
+        )
+      }
+    }
+
+    updateNetworkMap(notify)
+    notify.Prefs?.let(prefs::set)
+    notify.Engine?.let(engineStatus::set)
+    notify.TailFSShares?.let(tailFSShares::set)
+    notify.BrowseToURL?.let(browseToURL::set)
+    notify.LoginFinished?.let { loginFinished.set(it.property) }
+    notify.Version?.let(version::set)
+    notify.OutgoingFiles?.let(outgoingFiles::set)
+    notify.FilesWaiting?.let(filesWaiting::set)
+    notify.IncomingFiles?.let(incomingFiles::set)
+    notify.Health?.let {
+      if (INJECT_FAKE_HEALTH_WARNINGS) {
+        injectFakeHealthState()
+      } else {
+        health.set(it)
+      }
+    }
+  }
+
+  private fun resumeSuspendedWatch(scope: CoroutineScope, generation: Int) {
+    val id = synchronized(this) { if (generation == watchGeneration) sessionID else null }
+
+    if (id == null) {
+      TSLog.e(TAG, "IPN bus suspended without a session ID")
+      restartWatch(scope, generation)
+      return
+    }
+
+    TSLog.d(TAG, "IPN bus suspended; resuming session $id")
+
+    Client(scope).resumeIPNBus(id) { result ->
+      result.onSuccess { TSLog.d(TAG, "IPN bus session resumed") }
+      result.onFailure {
+        TSLog.e(TAG, "Failed to resume IPN bus session", it)
+        restartWatch(scope, generation)
+      }
+    }
+  }
+
+  private fun restartWatch(
+      scope: CoroutineScope,
+      generation: Int,
+  ) {
+    val active = synchronized(this) { generation == watchGeneration }
+
+    if (!active) return
+    TSLog.d(TAG, "restarting IPN bus watcher")
+    start(scope)
   }
 
   fun stop() {
     TSLog.d(TAG, "Stopping Notifier")
-    manager?.let {
-      it.stop()
+    val oldManager: libtailscale.NotificationManager?
+    synchronized(this) {
+      ++watchGeneration
+      sessionID = null
+      oldManager = manager
       manager = null
     }
+    oldManager?.stop()
   }
 
   // NotifyWatchOpt is a bitmask of options supplied to the notifier to specify which
@@ -177,6 +263,7 @@ object Notifier {
     PeerChanges(4096),
     NoNetmap(8192),
     InitialStatus(16384),
+    SuspendWhenBehind(1 shl 19),
   }
 
   fun setState(newState: Ipn.State) {
