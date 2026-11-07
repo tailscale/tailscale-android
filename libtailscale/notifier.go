@@ -16,6 +16,11 @@ func (app *App) WatchNotifications(mask int, cb NotificationCallback) Notificati
 	app.ready.Wait()
 
 	ctx, cancel := context.WithCancel(context.Background())
+
+	// Suspend lagging watchers instead of disconnecting them
+	mask |= int(ipn.NotifySuspendWhenBehind)
+
+	var sessionID string
 	go app.backend.WatchNotifications(ctx, ipn.NotifyWatchOpt(mask), func() {}, func(notify *ipn.Notify) bool {
 		defer func() {
 			if p := recover(); p != nil {
@@ -23,6 +28,24 @@ func (app *App) WatchNotifications(mask int, cb NotificationCallback) Notificati
 				panic(p)
 			}
 		}()
+
+		if notify.SessionID != "" {
+			sessionID = notify.SessionID
+		}
+		if notify.Suspended {
+			if sessionID == "" {
+				log.Printf("error: WatchNotifications: suspended without session ID")
+				return false
+			}
+			if err := app.backend.ResumeWatchNotifications(ctx, sessionID); err != nil {
+				if ctx.Err() != nil {
+					return false
+				}
+				log.Printf("error: WatchNotifications: resume %v", err)
+				return false
+			}
+			return true
+		}
 
 		b, err := json.Marshal(notify)
 		if err != nil {
