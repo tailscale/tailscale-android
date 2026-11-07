@@ -62,6 +62,7 @@ done
 adb shell input keyevent "${KEYCODE_MENU}" >/dev/null 2>&1 || true
 
 ./tool/go test ./integration/androidvmtest \
-    -run TestAndroidAuthKeyLogin \
+    -v \
+    -timeout=30m \
     -android.apk="${APK}" \
     "$@"
