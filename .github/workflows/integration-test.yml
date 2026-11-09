@@ -57,6 +57,8 @@ jobs:
               "scripts/docker-build-apt-get.sh",
               "docker/DockerFile.amd64-build",
               "docker/Dockerfile.android-integration",
+              "go.sum",
+              "go.mod",
               "Makefile",
               ".github/workflows/integration-test.yml",
           }
