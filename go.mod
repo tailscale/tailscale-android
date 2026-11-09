@@ -3,9 +3,9 @@ module github.com/tailscale/tailscale-android
 go 1.27.3
 
 require (
-	github.com/tailscale/wireguard-go v0.0.0-20261102205419-b884e294b6d8
+	github.com/tailscale/wireguard-go v0.0.0-20261105205217-79ead109a81a
 	golang.org/x/mobile v0.0.0-20240806205939-81131f6468ab
-	tailscale.com v1.105.0-pre.0.20261106233810-46f938791d5d
+	tailscale.com v1.105.0-pre.0.20261109194644-d5012e6983a7
 )
 
 require (
