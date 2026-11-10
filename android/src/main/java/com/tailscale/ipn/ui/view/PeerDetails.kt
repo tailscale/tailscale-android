@@ -75,7 +75,7 @@ fun PeerDetailsView(
 
   PeerDetailsScreen(
       state =
-          PeerDetailsUiState(
+          PeerDetailsUIState(
               node = currentNode,
               netmap = currentNetmap,
               isWriting = isWriting,
@@ -129,7 +129,7 @@ private fun ValueRow(title: String, value: String) {
   )
 }
 
-private data class PeerDetailsUiState(
+private data class PeerDetailsUIState(
     val node: Tailcfg.Node,
     val netmap: Netmap.NetworkMap,
     val isWriting: Boolean,
@@ -138,7 +138,7 @@ private data class PeerDetailsUiState(
 
 @Composable
 private fun PeerDetailsScreen(
-    state: PeerDetailsUiState,
+    state: PeerDetailsUIState,
     startPing: () -> Unit,
     togglePin: () -> Unit,
     onBack: () -> Unit,
@@ -224,7 +224,7 @@ private fun PeerDetailsPreview() {
   AppTheme {
     PeerDetailsScreen(
         state =
-            PeerDetailsUiState(
+            PeerDetailsUIState(
                 node =
                     Tailcfg.Node(
                         ComputedName = "My node",

@@ -50,7 +50,6 @@ import androidx.core.net.toUri
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -58,7 +57,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.mdm.ShowHide
-import com.tailscale.ipn.ui.dataSource.AndroidPeerDetailsDataSource
+import com.tailscale.ipn.ui.dataSource.PeerDetailsDataSourceImpl
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.navigation.AboutRoute
 import com.tailscale.ipn.ui.navigation.BugReportRoute
@@ -431,7 +430,7 @@ class MainActivity : ComponentActivity() {
               composable<RunExitNodeRoute> { RunExitNodeView(exitNodePickerNav) }
               composable<PeerDetailsRoute> { entry ->
                 val route = entry.toRoute<PeerDetailsRoute>()
-                val dataSource = remember { AndroidPeerDetailsDataSource() }
+                val dataSource = remember { PeerDetailsDataSourceImpl() }
                 PeerDetailsView(
                     onNavigateBack = { navController.popBackStack() },
                     nodeId = route.nodeId,

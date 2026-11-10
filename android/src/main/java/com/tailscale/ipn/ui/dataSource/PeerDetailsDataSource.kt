@@ -19,7 +19,7 @@ interface PeerDetailsDataSource {
   fun toggleFavorite(id: StableNodeID)
 }
 
-class AndroidPeerDetailsDataSource : PeerDetailsDataSource {
+class PeerDetailsDataSourceImpl : PeerDetailsDataSource {
   private val favoritesManager: FavoritesManager = App.get().favoritesManager
 
   override val netmap: StateFlow<Netmap.NetworkMap?> = Notifier.netmap
