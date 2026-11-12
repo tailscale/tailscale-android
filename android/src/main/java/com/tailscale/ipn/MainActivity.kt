@@ -64,6 +64,7 @@ import com.tailscale.ipn.ui.dataSource.PeerDetailsDataSourceImpl
 import com.tailscale.ipn.ui.dataSource.RunExitNodeDataSourceImpl
 import com.tailscale.ipn.ui.dataSource.SettingsDataSourceImpl
 import com.tailscale.ipn.ui.dataSource.SubnetRoutingDataSourceImpl
+import com.tailscale.ipn.ui.dataSource.TailnetLockSetupDataSourceImpl
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.navigation.AboutRoute
 import com.tailscale.ipn.ui.navigation.BugReportRoute
@@ -484,10 +485,16 @@ class MainActivity : ComponentActivity() {
                 )
               }
               composable<SplitTunnelingRoute> { SplitTunnelAppPickerView(backTo<SettingsRoute>()) }
-              composable<TailnetLockRoute> { TailnetLockSetupView(backTo<SettingsRoute>()) }
               composable<SubnetRoutingRoute> {
                 val dataSource = remember { SubnetRoutingDataSourceImpl() }
                 SubnetRoutingView(
+                    backToSettings = backTo<SettingsRoute>(),
+                    dataSource = dataSource,
+                )
+              }
+              composable<TailnetLockRoute> {
+                val dataSource = remember { TailnetLockSetupDataSourceImpl() }
+                TailnetLockSetupView(
                     backToSettings = backTo<SettingsRoute>(),
                     dataSource = dataSource,
                 )
