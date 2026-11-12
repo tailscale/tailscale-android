@@ -23,9 +23,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.lifecycleScope
+import com.tailscale.ipn.ui.dataSource.TaildropDataSourceImpl
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.theme.AppTheme
 import com.tailscale.ipn.ui.util.set
@@ -50,6 +52,14 @@ class ShareActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     setContent {
+      val dataSource = remember {
+        TaildropDataSourceImpl(
+            requestedTransfers = requestedTransfers,
+            context = applicationContext,
+            applicationScope = (application as App).applicationScope,
+        )
+      }
+
       AppTheme {
         Surface(color = MaterialTheme.colorScheme.inverseSurface) { // Background for the letterbox
           Surface(modifier = Modifier.universalFit()) {
@@ -68,9 +78,7 @@ class ShareActivity : ComponentActivity() {
                   )
                 }
             ) { innerPadding ->
-              Surface(modifier = Modifier.padding(innerPadding)) {
-                TaildropView(requestedTransfers, (application as App).applicationScope)
-              }
+              Surface(modifier = Modifier.padding(innerPadding)) { TaildropView(dataSource) }
             }
           }
         }
