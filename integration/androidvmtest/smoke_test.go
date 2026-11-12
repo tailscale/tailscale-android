@@ -14,6 +14,7 @@ func TestAndroidSmoke(t *testing.T) {
 
 	var launched bool
 	t.Run("App launches", func(t *testing.T) {
+		recordScreen(t, e.adb)
 		launchApp(t, e)
 		completeFirstRun(t, e)
 		launched = true
@@ -22,6 +23,7 @@ func TestAndroidSmoke(t *testing.T) {
 		if !launched {
 			t.Skip("needs App launches to pass")
 		}
+		recordScreen(t, e.adb)
 		addAccountWithCustomServer(t, e)
 		addAccountWithAuthKey(t, e)
 		allowNotifications(t, e)
