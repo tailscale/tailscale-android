@@ -407,4 +407,10 @@
     <string name="copy_magic_dns_address">Copy MagicDNS hostname</string>
     <string name="copy_ipv4_address">Copy IPv4</string>
     <string name="copy_ipv6_address">Copy IPv6</string>
+    <!-- App shortcuts (launcher long-press, Tasker, Samsung Modes &amp; Routines) -->
+    <string name="shortcut_connect_short">Connect</string>
+    <string name="shortcut_connect_long">Connect to Tailscale</string>
+    <string name="shortcut_disconnect_short">Disconnect</string>
+    <string name="shortcut_disconnect_long">Disconnect from Tailscale</string>
+
 </resources>
