@@ -3,15 +3,16 @@
 
 package com.tailscale.ipn.ui.viewModel
 
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.tailscale.ipn.App
-import com.tailscale.ipn.ui.localapi.Client
-import com.tailscale.ipn.ui.notifier.Notifier
-import com.tailscale.ipn.ui.util.LoadingIndicator
-import com.tailscale.ipn.ui.util.set
+import com.tailscale.ipn.ui.dataSource.SettingsDataSource
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 
 data class SettingsNav(
     val onNavigateToBugReport: () -> Unit,
@@ -28,37 +29,59 @@ data class SettingsNav(
     val onBackToSettings: () -> Unit,
 )
 
-class SettingsViewModel : IpnViewModel() {
-  // Display name for the logged in user
-  val isAdmin: StateFlow<Boolean> = MutableStateFlow(false)
+class SettingsViewModelFactory(
+    private val dataSource: SettingsDataSource,
+) : ViewModelProvider.Factory {
+  @Suppress("UNCHECKED_CAST")
+  override fun <T : ViewModel> create(modelClass: Class<T>): T {
+    if (modelClass.isAssignableFrom(SettingsViewModel::class.java)) {
+      return SettingsViewModel(dataSource) as T
+    }
+    throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
+  }
+}
+
+class SettingsViewModel(
+    private val dataSource: SettingsDataSource,
+) : ViewModel() {
+  // Display name for the logged-in user
+  val isAdmin: StateFlow<Boolean> =
+      dataSource.netmap
+          .map { it?.SelfNode?.isAdmin ?: false }
+          .stateIn(
+              viewModelScope,
+              SharingStarted.WhileSubscribed(5_000),
+              false,
+          )
+
   // True if tailnet lock is enabled.  nil if not yet known.
-  val tailNetLockEnabled: StateFlow<Boolean?> = MutableStateFlow(null)
+  private val _tailNetLockEnabled = MutableStateFlow<Boolean?>(null)
+  val tailNetLockEnabled: StateFlow<Boolean?> = _tailNetLockEnabled.asStateFlow()
+
   // True if tailscaleDNS is enabled. nil if not yet known.
-  val corpDNSEnabled: StateFlow<Boolean?> = MutableStateFlow(null)
-  val isClientRemoteLoggingEnabled: StateFlow<Boolean> = MutableStateFlow(true)
+  val corpDNSEnabled: StateFlow<Boolean?> =
+      dataSource.prefs
+          .map { it?.CorpDNS }
+          .stateIn(
+              viewModelScope,
+              SharingStarted.WhileSubscribed(5_000),
+              null,
+          )
+
+  private val _isClientRemoteLoggingEnabled = MutableStateFlow(true)
+  val isClientRemoteLoggingEnabled: StateFlow<Boolean> = _isClientRemoteLoggingEnabled.asStateFlow()
 
   init {
-    isClientRemoteLoggingEnabled.set(App.get().isClientLoggingEnabled())
+    _isClientRemoteLoggingEnabled.value = dataSource.isClientLoggingEnabled()
 
-    viewModelScope.launch {
-      Notifier.netmap.collect { netmap -> isAdmin.set(netmap?.SelfNode?.isAdmin ?: false) }
-    }
-
-    Client(viewModelScope).tailnetLockStatus { result ->
-      result.onSuccess { status -> tailNetLockEnabled.set(status.Enabled) }
-
-      LoadingIndicator.stop()
-    }
-
-    viewModelScope.launch {
-      Notifier.prefs.collect {
-        it?.let { corpDNSEnabled.set(it.CorpDNS) } ?: run { corpDNSEnabled.set(null) }
-      }
+    dataSource.tailnetLockStatus(viewModelScope) { result ->
+      result.onSuccess { status -> _tailNetLockEnabled.value = status.Enabled }
     }
   }
 
   fun toggleIsClientRemoteLoggingEnabled() {
-    isClientRemoteLoggingEnabled.set(!isClientRemoteLoggingEnabled.value)
-    App.get().updateIsClientLoggingEnabled(isClientRemoteLoggingEnabled.value)
+    val enabled = !isClientRemoteLoggingEnabled.value
+    _isClientRemoteLoggingEnabled.value = enabled
+    dataSource.setClientLoggingEnabled(enabled)
   }
 }
