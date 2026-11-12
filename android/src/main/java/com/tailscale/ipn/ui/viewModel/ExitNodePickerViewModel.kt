@@ -6,18 +6,21 @@ package com.tailscale.ipn.ui.viewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.tailscale.ipn.ui.localapi.Client
+import com.tailscale.ipn.ui.dataSource.ExitNodePickerDataSource
 import com.tailscale.ipn.ui.model.ExitNode
 import com.tailscale.ipn.ui.model.Ipn
-import com.tailscale.ipn.ui.notifier.Notifier
-import com.tailscale.ipn.ui.util.LoadingIndicator
-import com.tailscale.ipn.ui.util.set
+import com.tailscale.ipn.ui.util.AdvertisedRoutesHelper
 import java.util.TreeMap
+import kotlin.coroutines.resume
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 
 data class ExitNodePickerNav(
     val onNavigateBackHome: () -> Unit,
@@ -29,28 +32,42 @@ data class ExitNodePickerNav(
     val onNavigateToRunAsExitNode: () -> Unit,
 )
 
-class ExitNodePickerViewModelFactory(private val nav: ExitNodePickerNav) :
+class ExitNodePickerViewModelFactory(private val dataSource: ExitNodePickerDataSource) :
     ViewModelProvider.Factory {
   @Suppress("UNCHECKED_CAST")
   override fun <T : ViewModel> create(modelClass: Class<T>): T {
-    return ExitNodePickerViewModel(nav) as T
+    if (modelClass.isAssignableFrom(ExitNodePickerViewModel::class.java)) {
+      return ExitNodePickerViewModel(dataSource) as T
+    }
+    throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
   }
 }
 
-class ExitNodePickerViewModel(private val nav: ExitNodePickerNav) : IpnViewModel() {
-  val tailnetExitNodes: StateFlow<List<ExitNode>> = MutableStateFlow(emptyList())
+class ExitNodePickerViewModel(private val dataSource: ExitNodePickerDataSource) : ViewModel() {
+  private val _tailnetExitNodes = MutableStateFlow<List<ExitNode>>(emptyList())
+  val tailnetExitNodes: StateFlow<List<ExitNode>> = _tailnetExitNodes.asStateFlow()
+  private val _mullvadExitNodesByCountryCode =
+      MutableStateFlow<Map<String, List<ExitNode>>>(TreeMap())
   val mullvadExitNodesByCountryCode: StateFlow<Map<String, List<ExitNode>>> =
-      MutableStateFlow(TreeMap())
-  val mullvadBestAvailableByCountry: StateFlow<Map<String, ExitNode>> = MutableStateFlow(TreeMap())
-  val mullvadExitNodeCount: StateFlow<Int> = MutableStateFlow(0)
-  val anyActive: StateFlow<Boolean> = MutableStateFlow(false)
-  val shouldShowMullvadInfo: StateFlow<Boolean> = MutableStateFlow(false)
+      _mullvadExitNodesByCountryCode.asStateFlow()
+  private val _mullvadBestAvailableByCountry = MutableStateFlow<Map<String, ExitNode>>(TreeMap())
+  val mullvadBestAvailableByCountry: StateFlow<Map<String, ExitNode>> =
+      _mullvadBestAvailableByCountry.asStateFlow()
+  private val _mullvadExitNodeCount = MutableStateFlow(0)
+  val mullvadExitNodeCount: StateFlow<Int> = _mullvadExitNodeCount.asStateFlow()
+  private val _anyActive = MutableStateFlow(false)
+  val anyActive: StateFlow<Boolean> = _anyActive.asStateFlow()
+  private val _shouldShowMullvadInfo = MutableStateFlow(false)
+  val shouldShowMullvadInfo: StateFlow<Boolean> = _shouldShowMullvadInfo.asStateFlow()
+
+  val isRunningExitNode: StateFlow<Boolean> =
+      dataSource.prefs
+          .map { prefs -> prefs?.let { AdvertisedRoutesHelper.exitNodeOnFromPrefs(it) } ?: false }
+          .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
   init {
     viewModelScope.launch {
-      Notifier.netmap
-          .combine(Notifier.prefs) { netmap, prefs -> Pair(netmap, prefs) }
-          .stateIn(viewModelScope)
+      combine(dataSource.netmap, dataSource.prefs) { netmap, prefs -> netmap to prefs }
           .collect { (netmap, prefs) ->
             val exitNodeId = prefs?.activeExitNodeID ?: prefs?.selectedExitNodeID
             netmap?.Peers?.let { peers ->
@@ -72,7 +89,9 @@ class ExitNodePickerViewModel(private val nav: ExitNodePickerNav) : IpnViewModel
                       }
 
               val tailnetNodes = allNodes.filter { !it.mullvad }
-              tailnetExitNodes.set(tailnetNodes.sortedWith { a, b -> a.label.compareTo(b.label) })
+              _tailnetExitNodes.value = tailnetNodes.sortedWith { a, b ->
+                a.label.compareTo(b.label)
+              }
 
               val allMullvadExitNodes = allNodes.filter { node ->
                 // Pick all mullvad nodes that are online or the currently selected
@@ -107,50 +126,44 @@ class ExitNodePickerViewModel(private val nav: ExitNodePickerNav) : IpnViewModel
                             .values
                             .sortedBy { it.city.lowercase() }
                       }
-              mullvadExitNodesByCountryCode.set(mullvadExitNodes)
-              mullvadExitNodeCount.set(allMullvadExitNodes.size)
+              _mullvadExitNodesByCountryCode.value = mullvadExitNodes
+              _mullvadExitNodeCount.value = allMullvadExitNodes.size
 
               val bestAvailableByCountry = mullvadExitNodes.mapValues { (_, nodes) ->
                 nodes.minByOrNull { -1 * it.priority }!!
               }
-              mullvadBestAvailableByCountry.set(bestAvailableByCountry)
-
-              anyActive.set(allNodes.any { it.selected })
+              _mullvadBestAvailableByCountry.value = bestAvailableByCountry
+              _anyActive.value = allNodes.any { it.selected }
 
               prefs?.let { prefs ->
                 // Only show the Mullvad info view if the user is an admin and is using a Tailscale
                 // control server, as it wouldn't be actionable information otherwise.
-                shouldShowMullvadInfo.set(
+                _shouldShowMullvadInfo.value =
                     netmap.SelfNode.isAdmin && prefs.ControlURL.endsWith(".tailscale.com")
-                )
               }
             }
           }
     }
   }
 
-  fun setExitNode(node: ExitNode) {
-    LoadingIndicator.start()
+  suspend fun setExitNode(node: ExitNode) {
     val prefsOut = Ipn.MaskedPrefs()
     prefsOut.ExitNodeID = node.id
 
-    Client(viewModelScope).editPrefs(prefsOut) {
-      nav.onNavigateBackHome()
-      LoadingIndicator.stop()
+    suspendCancellableCoroutine<Unit> { continuation ->
+      dataSource.editPrefs(viewModelScope, prefsOut) { continuation.resume(Unit) }
     }
   }
 
-  fun toggleAllowLANAccess(callback: (Result<Ipn.Prefs>) -> Unit) {
-    val prefs =
-        Notifier.prefs.value
-            ?: run {
-              callback(Result.failure(Exception("no prefs")))
-              return@toggleAllowLANAccess
-            }
+  suspend fun toggleAllowLANAccess(): Result<Ipn.Prefs> {
+    val prefs = dataSource.prefs.value ?: return Result.failure(Exception("no prefs"))
 
     val prefsOut = Ipn.MaskedPrefs()
     prefsOut.ExitNodeAllowLANAccess = !prefs.ExitNodeAllowLANAccess
-    Client(viewModelScope).editPrefs(prefsOut, callback)
+
+    return suspendCancellableCoroutine { continuation ->
+      dataSource.editPrefs(viewModelScope, prefsOut) { result -> continuation.resume(result) }
+    }
   }
 }
 
