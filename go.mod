@@ -1,11 +1,11 @@
 module github.com/tailscale/tailscale-android
 
-go 1.27.3
+go 1.27.4
 
 require (
 	github.com/tailscale/wireguard-go v0.0.0-20261106233718-9e0ab45c16ca
 	golang.org/x/mobile v0.0.0-20240806205939-81131f6468ab
-	tailscale.com v1.104.6
+	tailscale.com v1.104.7
 )
 
 require (
