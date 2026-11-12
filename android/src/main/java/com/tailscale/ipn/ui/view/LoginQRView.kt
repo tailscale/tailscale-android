@@ -13,35 +13,64 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
+import com.tailscale.ipn.ui.dataSource.LoginQRDataSource
 import com.tailscale.ipn.ui.theme.AppTheme
-import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.ui.viewModel.LoginQRViewModel
+import com.tailscale.ipn.ui.viewModel.LoginQRViewModelFactory
+import com.tailscale.ipn.ui.viewModel.generateQRCode
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LoginQRView(onDismiss: () -> Unit = {}, model: LoginQRViewModel = viewModel()) {
+fun LoginQRView(
+    onDismiss: () -> Unit = {},
+    dataSource: LoginQRDataSource,
+) {
+  val factory = remember(dataSource) { LoginQRViewModelFactory(dataSource) }
+  val loginQRViewModel: LoginQRViewModel = viewModel(factory = factory)
+
+  val image by loginQRViewModel.qrCode.collectAsStateWithLifecycle()
+  val numCode by loginQRViewModel.numCode.collectAsStateWithLifecycle()
+
+  LoginQRScreen(
+      state =
+          LoginQRUIState(
+              image = image,
+              numCode = numCode,
+          ),
+      onDismiss = onDismiss,
+  )
+}
+
+private data class LoginQRUIState(
+    val image: ImageBitmap?,
+    val numCode: String?,
+)
+
+@Composable
+private fun LoginQRScreen(
+    state: LoginQRUIState,
+    onDismiss: () -> Unit,
+) {
   Surface(color = MaterialTheme.colorScheme.scrim, modifier = Modifier.fillMaxSize()) {
     Dialog(onDismissRequest = onDismiss) {
-      val image by model.qrCode.collectAsState()
-      val numCode by model.numCode.collectAsState()
       Column(
           modifier =
               Modifier.clip(RoundedCornerShape(10.dp))
@@ -61,7 +90,7 @@ fun LoginQRView(onDismiss: () -> Unit = {}, model: LoginQRViewModel = viewModel(
             modifier = Modifier.size(200.dp).background(MaterialTheme.colorScheme.onSurface),
             contentAlignment = Alignment.Center,
         ) {
-          image?.let {
+          state.image?.let {
             Image(
                 bitmap = it,
                 contentDescription = "Scan to login",
@@ -75,7 +104,7 @@ fun LoginQRView(onDismiss: () -> Unit = {}, model: LoginQRViewModel = viewModel(
             color = MaterialTheme.colorScheme.onSurface,
         )
 
-        numCode?.let {
+        state.numCode?.let {
           Box(
               modifier =
                   Modifier.clip(RoundedCornerShape(6.dp))
@@ -97,11 +126,17 @@ fun LoginQRView(onDismiss: () -> Unit = {}, model: LoginQRViewModel = viewModel(
   }
 }
 
+@Preview(showSystemUi = true)
 @Composable
-@Preview
-fun LoginQRViewPreview() {
-  val vm = LoginQRViewModel()
-  vm.qrCode.set(vm.generateQRCode("https://tailscale.com", 200, 0))
-  vm.numCode.set("123456789")
-  AppTheme { LoginQRView({}, vm) }
+private fun LoginQRViewPreview() {
+  AppTheme {
+    LoginQRScreen(
+        state =
+            LoginQRUIState(
+                image = "https://tailscale.com".generateQRCode(200),
+                numCode = "123456789",
+            ),
+        onDismiss = {},
+    )
+  }
 }

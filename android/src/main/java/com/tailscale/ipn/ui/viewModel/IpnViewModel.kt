@@ -219,30 +219,6 @@ open class IpnViewModel : ViewModel() {
     }
   }
 
-  fun loginWithAuthKey(authKey: String, completionHandler: (Result<Unit>) -> Unit = {}) {
-    val prefs = Ipn.MaskedPrefs()
-    prefs.WantRunning = true
-    login(prefs, authKey = authKey, completionHandler)
-  }
-
-  fun loginWithCustomControlURL(
-      controlURL: String,
-      completionHandler: (Result<Unit>) -> Unit = {},
-  ) {
-    val prefs = Ipn.MaskedPrefs()
-    prefs.ControlURL = controlURL
-    login(prefs, completionHandler = completionHandler)
-  }
-
-  fun logout(completionHandler: (Result<String>) -> Unit = {}) {
-    Client(viewModelScope).logout { result ->
-      result
-          .onSuccess { TSLog.d(TAG, "Logout started: $it") }
-          .onFailure { TSLog.e(TAG, "Error starting logout: ${it.message}") }
-      completionHandler(result)
-    }
-  }
-
   // User Profiles
 
   private fun loadUserProfiles() {
@@ -256,37 +232,6 @@ open class IpnViewModel : ViewModel() {
       result
           .onSuccess { loggedInUser.set(if (it.isEmpty()) null else it) }
           .onFailure { TSLog.e(TAG, "Error loading current profile: ${it.message}") }
-    }
-  }
-
-  fun switchProfile(profile: IpnLocal.LoginProfile, completionHandler: (Result<String>) -> Unit) {
-    val switchProfile = {
-      Client(viewModelScope).switchProfile(profile) {
-        startVPN()
-        completionHandler(it)
-      }
-    }
-    Client(viewModelScope).editPrefs(Ipn.MaskedPrefs().apply { WantRunning = false }) { result ->
-      result
-          .onSuccess { switchProfile() }
-          .onFailure { TSLog.e(TAG, "Error setting wantRunning to false: ${it.message}") }
-    }
-  }
-
-  fun addProfile(completionHandler: (Result<String>) -> Unit) {
-    Client(viewModelScope).addProfile {
-      if (it.isSuccess) {
-        login()
-      }
-      startVPN()
-      completionHandler(it)
-    }
-  }
-
-  fun deleteProfile(profile: IpnLocal.LoginProfile, completionHandler: (Result<String>) -> Unit) {
-    Client(viewModelScope).deleteProfile(profile) {
-      viewModelScope.launch { loadUserProfiles() }
-      completionHandler(it)
     }
   }
 
