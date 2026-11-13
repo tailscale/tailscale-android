@@ -49,6 +49,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -262,7 +263,13 @@ fun MainView(
         }
       }
       currentPingDevice?.let { _ ->
-        ModalBottomSheet(onDismissRequest = { viewModel.onPingDismissal() }) {
+        ModalBottomSheet(
+            onDismissRequest = { viewModel.onPingDismissal() },
+            sheetState =
+                rememberModalBottomSheetState(
+                    skipPartiallyExpanded = true,
+                ),
+        ) {
           PingView(model = viewModel.pingViewModel)
         }
       }
