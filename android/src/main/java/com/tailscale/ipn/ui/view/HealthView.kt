@@ -5,7 +5,6 @@ package com.tailscale.ipn.ui.view
 
 import android.os.Build
 import android.widget.Toast
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -138,7 +137,6 @@ private fun HealthScreen(
   }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun HealthWarningView(
     warning: Health.UnhealthyState,

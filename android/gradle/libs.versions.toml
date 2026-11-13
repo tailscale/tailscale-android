@@ -1,22 +1,20 @@
 [versions]
-accompanist = "0.34.0"
+accompanist-permissions = "0.37.3"
+accompanist-systemuicontroller = "0.36.0"
 coroutines = "1.11.0"
 navigation = "2.10.2"
 core = "1.19.1"
-compose-bom = "2024.09.03"
+compose-bom = "2026.09.00"
 kotlin = "2.4.21"
 work = "2.12.0"
 browser = "1.10.0"
 security-crypto = "1.1.0"
 serialization = "1.12.0"
 junit = "4.13.2"
-compose = "1.7.3"
-material3 = "1.3.0"
-lifecycle = "2.8.6"
-activity = "1.9.2"
-fragment = "1.5.4"
-splashscreen = "1.2.0"
-animation = "1.7.4"
+lifecycle = "2.11.0"
+activity = "1.13.0"
+fragment = "1.9.1"
+splashscreen = "1.1.0-rc01"
 coil = "2.6.0"
 zxing = "3.5.4"
 vico = "1.15.0"
@@ -50,19 +48,19 @@ kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 
 # Compose dependencies
+androidx-compose-material3 = { module = "androidx.compose.material3:material3" }
+androidx-compose-material-icons = { module = "androidx.compose.material:material-icons-core" }
+androidx-compose-ui = { module = "androidx.compose.ui:ui" }
+androidx-compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
+androidx-compose-animation = { module = "androidx.compose.animation:animation" }
 androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "compose-bom" }
-androidx-compose-material3 = { module = "androidx.compose.material3:material3", version.ref = "material3" }
-androidx-compose-material-icons = { module = "androidx.compose.material:material-icons-core", version.ref = "compose" }
-androidx-compose-ui = { module = "androidx.compose.ui:ui", version.ref = "compose" }
-androidx-compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling", version.ref = "compose" }
 androidx-compose-ui-toolingPreview = { module = "androidx.compose.ui:ui-tooling-preview" }
-androidx-compose-animation = { module = "androidx.compose.animation:animation", version.ref = "animation" }
 androidx-lifecycle-viewmodel-ktx = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "lifecycle" }
 androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity" }
 androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "splashscreen" }
-accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanist" }
-accompanist-systemuicontroller = { module = "com.google.accompanist:accompanist-systemuicontroller", version.ref = "accompanist" }
+accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanist-permissions" }
+accompanist-systemuicontroller = { module = "com.google.accompanist:accompanist-systemuicontroller", version.ref = "accompanist-systemuicontroller" }
 
 # Navigation dependencies
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigation" }

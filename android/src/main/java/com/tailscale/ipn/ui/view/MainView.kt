@@ -127,7 +127,7 @@ data class MainViewNavigation(
     val onNavigateToSearch: () -> Unit,
 )
 
-@OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainView(
     loginAtUrl: (String) -> Unit,
@@ -1047,7 +1047,6 @@ fun PromptForMissingPermissions(viewModel: MainViewModel) {
   }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Search(
     onSearchBarClick: () -> Unit, // Callback for navigating to SearchView

@@ -5,7 +5,6 @@ package com.tailscale.ipn.ui.view
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -28,7 +27,6 @@ import com.tailscale.ipn.ui.util.AndroidTVUtil
 import com.tailscale.ipn.ui.util.itemsWithDividers
 import com.tailscale.ipn.ui.viewModel.IpnViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MDMSettingsDebugView(
     backToSettings: () -> Unit,
