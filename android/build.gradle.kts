@@ -119,14 +119,9 @@ dependencies {
   androidTestImplementation(libs.androidx.test.uiautomator)
   androidTestImplementation(libs.junit)
 
-  // Authentication only for tests.
-  androidTestImplementation(libs.kotlin.onetimepassword)
-  androidTestImplementation(libs.commons.codec)
-
   // Unit tests.
   testImplementation(libs.junit)
   testImplementation(libs.mockito.core)
-  testImplementation(libs.mockito.inline)
   testImplementation(libs.mockito.kotlin)
   testImplementation(libs.kotlinx.coroutines.test)
 }
