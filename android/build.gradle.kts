@@ -78,7 +78,6 @@ dependencies {
   // Kotlin dependencies.
   implementation(libs.kotlinx.serialization.json)
   implementation(libs.kotlinx.coroutines.core)
-  implementation(libs.androidx.room.ktx)
   runtimeOnly(libs.kotlinx.coroutines.android)
   implementation(libs.kotlin.stdlib)
   implementation(libs.kotlin.reflect)
