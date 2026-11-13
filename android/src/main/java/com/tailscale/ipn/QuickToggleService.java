@@ -5,6 +5,7 @@ package com.tailscale.ipn;
 
 import android.app.PendingIntent;
 import android.content.Intent;
+import android.net.VpnService;
 import android.os.Build;
 import android.service.quicksettings.Tile;
 import android.service.quicksettings.TileService;
@@ -88,7 +89,8 @@ public class QuickToggleService extends TileService {
       if (needsToStop) {
           app.stopVPN();
       } else {
-          boolean vpnPrepared = App.get().getAppScopedViewModel().getVpnPrepared().getValue();
+          boolean vpnPrepared = VpnService.prepare(this) == null;
+          App.get().getAppScopedViewModel().setVpnPrepared(vpnPrepared);
           if (vpnPrepared) {
               app.startVPN();
           } else {
