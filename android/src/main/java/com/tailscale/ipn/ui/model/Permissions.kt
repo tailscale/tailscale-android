@@ -4,58 +4,96 @@
 package com.tailscale.ipn.ui.model
 
 import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Build
+import androidx.activity.compose.LocalActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationManagerCompat
-import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.PermissionState
-import com.google.accompanist.permissions.isGranted
-import com.google.accompanist.permissions.rememberMultiplePermissionsState
-import com.google.accompanist.permissions.shouldShowRationale
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.tailscale.ipn.R
 
 object Permissions {
   /** Permissions to prompt for on MainView. */
-  @OptIn(ExperimentalPermissionsApi::class)
-  val prompt: List<Pair<Permission, PermissionState>>
+  val prompt: List<Pair<Permission, () -> Unit>>
     @Composable
     get() {
-      val permissionStates = rememberMultiplePermissionsState(permissions = all.map { it.name })
-      return all.zip(permissionStates.permissions).filter { (_, state) ->
-        !state.status.isGranted && !state.status.shouldShowRationale
+      val context = LocalContext.current
+      val activity = LocalActivity.current
+
+      return all.mapNotNull { permission ->
+        fun shouldPrompt(): Boolean =
+            activity != null &&
+                ContextCompat.checkSelfPermission(context, permission.name) !=
+                    PackageManager.PERMISSION_GRANTED &&
+                !ActivityCompat.shouldShowRequestPermissionRationale(
+                    activity,
+                    permission.name,
+                )
+
+        val showPrompt =
+            remember(context, activity, permission.name) { mutableStateOf(shouldPrompt()) }
+
+        val launcher =
+            rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+              showPrompt.value = shouldPrompt()
+            }
+
+        LifecycleResumeEffect(context, activity, permission.name) {
+          showPrompt.value = shouldPrompt()
+          onPauseOrDispose {}
+        }
+
+        if (showPrompt.value) {
+          permission to { launcher.launch(permission.name) }
+        } else {
+          null
+        }
       }
     }
 
   /** All permissions with granted status. */
-  @OptIn(ExperimentalPermissionsApi::class)
   val withGrantedStatus: List<Pair<Permission, Boolean>>
     @Composable
     get() {
-      val permissionStates = rememberMultiplePermissionsState(permissions = all.map { it.name })
-      val result = mutableListOf<Pair<Permission, Boolean>>()
-      result.addAll(
-          all.zip(permissionStates.permissions).map { (permission, state) ->
-            Pair(permission, state.status.isGranted)
-          }
-      )
-      if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-        // On Android versions prior to 13, we have to programmatically check if notifications are
-        // being allowed.
-        val notificationsEnabled =
-            NotificationManagerCompat.from(LocalContext.current).areNotificationsEnabled()
-        result.add(
-            Pair(
-                Permission(
-                    "",
-                    R.string.permission_post_notifications,
-                    R.string.permission_post_notifications_needed,
-                ),
-                notificationsEnabled,
-            )
-        )
+      val context = LocalContext.current
+
+      fun readStatuses(): List<Pair<Permission, Boolean>> {
+        val result =
+            all.map { permission ->
+                  permission to
+                      (ContextCompat.checkSelfPermission(context, permission.name) ==
+                          PackageManager.PERMISSION_GRANTED)
+                }
+                .toMutableList()
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+          result.add(
+              Permission(
+                  "",
+                  R.string.permission_post_notifications,
+                  R.string.permission_post_notifications_needed,
+              ) to NotificationManagerCompat.from(context).areNotificationsEnabled()
+          )
+        }
+
+        return result
       }
-      return result
+
+      val statuses = remember(context) { mutableStateOf(readStatuses()) }
+
+      LifecycleResumeEffect(context) {
+        statuses.value = readStatuses()
+        onPauseOrDispose {}
+      }
+
+      return statuses.value
     }
 
   /**

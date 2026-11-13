@@ -92,8 +92,6 @@ dependencies {
   implementation(libs.androidx.lifecycle.viewmodel.ktx)
   implementation(libs.androidx.lifecycle.runtime.compose)
   implementation(libs.androidx.activity.compose)
-  implementation(libs.accompanist.permissions)
-  implementation(libs.accompanist.systemuicontroller)
   implementation(libs.androidx.core.splashscreen)
   implementation(libs.androidx.compose.animation)
 
