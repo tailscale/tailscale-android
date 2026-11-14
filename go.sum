@@ -254,5 +254,5 @@ howett.net/plist v1.0.0 h1:7CrbWYbPPO/PyNy38b2EB/+gYbjCe2DXBxgtOOZbSQM=
 howett.net/plist v1.0.0/go.mod h1:lqaXoTrLY4hg8tnEzNru53gicrbv7rrk+2xJA/7hw9g=
 software.sslmate.com/src/go-pkcs12 v0.7.3 h1:JBQD3FDqYjTeyDAeZQklj2ar88ykBLtALloPJHyAauU=
 software.sslmate.com/src/go-pkcs12 v0.7.3/go.mod h1:Qiz0EyvDRJjjxGyUQa2cCNZn/wMyzrRJ/qcDXOQazLI=
-tailscale.com v1.105.0-pre.0.20261112205852-7109040a7da2 h1:41X06MsnNoEurczQ0S3zQdJBp6R1ikawZIVHJ95AaUI=
-tailscale.com v1.105.0-pre.0.20261112205852-7109040a7da2/go.mod h1:21+DZV3U1/RXqINCQfbzjAH3GT5i3xXauoBRC4yIZBo=
+tailscale.com v1.105.0-pre.0.20261113150507-e0d532cca9be h1:bX7U8B15pd6ECniTomWgFBjl7+CSlRySBerJGsAXCNk=
+tailscale.com v1.105.0-pre.0.20261113150507-e0d532cca9be/go.mod h1:21+DZV3U1/RXqINCQfbzjAH3GT5i3xXauoBRC4yIZBo=
