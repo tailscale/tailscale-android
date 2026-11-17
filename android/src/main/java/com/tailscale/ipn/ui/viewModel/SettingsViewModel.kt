@@ -71,8 +71,12 @@ class SettingsViewModel(
   private val _isClientRemoteLoggingEnabled = MutableStateFlow(true)
   val isClientRemoteLoggingEnabled: StateFlow<Boolean> = _isClientRemoteLoggingEnabled.asStateFlow()
 
+  private val _isTunnelWatchdogEnabled = MutableStateFlow(true)
+  val isTunnelWatchdogEnabled: StateFlow<Boolean> = _isTunnelWatchdogEnabled.asStateFlow()
+
   init {
     _isClientRemoteLoggingEnabled.value = dataSource.isClientLoggingEnabled()
+    _isTunnelWatchdogEnabled.value = dataSource.isTunnelWatchdogEnabled()
 
     dataSource.tailnetLockStatus(viewModelScope) { result ->
       result.onSuccess { status -> _tailNetLockEnabled.value = status.Enabled }
@@ -83,5 +87,11 @@ class SettingsViewModel(
     val enabled = !isClientRemoteLoggingEnabled.value
     _isClientRemoteLoggingEnabled.value = enabled
     dataSource.setClientLoggingEnabled(enabled)
+  }
+
+  fun toggleTunnelWatchdog() {
+    val enabled = !isTunnelWatchdogEnabled.value
+    _isTunnelWatchdogEnabled.value = enabled
+    dataSource.setTunnelWatchdogEnabled(enabled)
   }
 }

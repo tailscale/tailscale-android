@@ -558,6 +558,7 @@ open class UninitializedApp : Application() {
     const val TAG = "UninitializedApp"
     const val STATUS_NOTIFICATION_ID = 1
     const val STATUS_EXIT_NODE_FAILURE_NOTIFICATION_ID = 2
+    const val WATCHDOG_NOTIFICATION_ID = 4
     const val STATUS_CHANNEL_ID = "tailscale-status"
     // Key for shared preference that tracks whether or not we're able to start
     // the VPN (i.e. we're logged in and machine is authorized).
@@ -572,6 +573,11 @@ open class UninitializedApp : Application() {
     private const val ALLOW_SELECTED_APPS_KEY = "allowSelectedApps"
 
     private const val IS_CLIENT_LOGGING_ENABLED_KEY = "isClientLoggingEnabled"
+
+    // Whether the dead-tunnel watchdog may recycle the tunnel. On by default: the failure it
+    // guards against is silent and needs a manual off/on cycle to fix, so leaving it off would
+    // leave the user with the bug. It is user-disableable in Settings.
+    private const val TUNNEL_WATCHDOG_ENABLED_KEY = "tunnelWatchdogEnabled"
     // File for shared preferences that are not encrypted.
     private const val UNENCRYPTED_PREFERENCES = "unencrypted"
     private lateinit var appInstance: UninitializedApp
@@ -778,6 +784,40 @@ open class UninitializedApp : Application() {
   fun updateIsClientLoggingEnabled(value: Boolean) {
     getUnencryptedPrefs().edit().putBoolean(IS_CLIENT_LOGGING_ENABLED_KEY, value).apply()
     App.get().getLibtailscaleApp().setClientLoggingEnabled(getIsClientLoggingEnabled())
+  }
+
+  /** Whether the dead-tunnel watchdog may recycle the tunnel. Defaults to on. */
+  fun isTunnelWatchdogEnabled(): Boolean {
+    return getUnencryptedPrefs().getBoolean(TUNNEL_WATCHDOG_ENABLED_KEY, true)
+  }
+
+  fun setTunnelWatchdogEnabled(enabled: Boolean) {
+    getUnencryptedPrefs().edit().putBoolean(TUNNEL_WATCHDOG_ENABLED_KEY, enabled).apply()
+  }
+
+  /**
+   * Surfaces the watchdog's give-up state as a health notification. The watchdog stops acting once
+   * it reaches this point, so the user is told the tunnel is still dead instead of the app
+   * thrashing restarts in the background.
+   */
+  fun notifyWatchdogGaveUp() {
+    if (
+        ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+    ) {
+      TSLog.d(TAG, "watchdog give-up notification skipped: POST_NOTIFICATIONS not granted")
+      return
+    }
+    val text = getString(R.string.watchdog_gave_up_text)
+    val notification =
+        NotificationCompat.Builder(this, HealthNotifier.HEALTH_CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(getString(R.string.watchdog_gave_up_title))
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .build()
+    notificationManager.notify(WATCHDOG_NOTIFICATION_ID, notification)
   }
 
   fun updateUserSelectedPackages(packageNames: List<String>) {
