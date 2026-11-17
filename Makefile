@@ -17,7 +17,7 @@ DOCKER_IMAGE := tailscale-android-build-amd64-20261106-1
 # integration tests. Bump this tag when docker/Dockerfile.android-integration
 # or the required tool versions change, using:
 # tailscale-android-integration-amd64-YYYYMMDD-N
-ANDROID_INTEGRATION_DOCKER_IMAGE := tailscale-android-integration-amd64-20261106-2
+ANDROID_INTEGRATION_DOCKER_IMAGE := tailscale-android-integration-amd64-20261118-1
 export TS_USE_TOOLCHAIN=1
 
 # If set, additional comma-separated build tags passed to the libtailscale Go
@@ -439,6 +439,7 @@ DOCKER_ANDROID_INTEGRATION_DIR := $(CURDIR)/.android-integration-docker
 DOCKER_GRADLE_DIR := $(CURDIR)/.gradle-docker
 DOCKER_GO_CACHE_DIR := $(CURDIR)/.cache-docker
 ANDROID_INTEGRATION_ARTIFACTS_DIR := integration-artifacts
+ANDROID_TEST_SUMMARY := android-test-summary.md
 
 .PHONY: docker-android-dir
 docker-android-dir:
@@ -458,20 +459,36 @@ docker-run-build: clean jarsign-env docker-build-image docker-android-dir ## Run
 docker-tailscale-debug: docker-build-image docker-android-dir ## Build tailscale-debug.apk inside the docker env (stable signer across runs)
 	@docker run --rm $(DOCKER_RUN_VOLS) $(DOCKER_IMAGE) make tailscale-debug
 
-.PHONY: android-integration-test
-android-integration-test: docker-tailscale-debug android-integration-test-run ## Build APK and run adb-backed Android integration tests in Docker
-
-.PHONY: android-integration-test-run
-android-integration-test-run: docker-build-android-integration-image docker-android-integration-dir ## Run adb-backed Android integration tests in Docker using existing APK
+define run-androidvmtest
+	@rm -f $(ANDROID_TEST_SUMMARY)
 	@docker run --rm --device /dev/kvm \
 		-v $(CURDIR):/workspace \
 		-v $(DOCKER_ANDROID_INTEGRATION_DIR):/root/.android \
 		-v $(DOCKER_GO_CACHE_DIR):/root/.cache \
 		--env GOPATH=/root/.cache/go \
 		--env GOMODCACHE=/root/.cache/go/pkg/mod \
+		--env GITHUB_ACTIONS \
+		--env GITHUB_REPOSITORY \
+		--env GITHUB_STEP_SUMMARY=/workspace/$(ANDROID_TEST_SUMMARY) \
+		--env TS_TESTWRAPPER_RESULTS_SUMMARY \
 		-w /workspace \
 		$(ANDROID_INTEGRATION_DOCKER_IMAGE) \
-		/usr/local/bin/run-android-integration-test /workspace/$(DEBUG_APK) -artifacts -outputdir=/workspace/$(ANDROID_INTEGRATION_ARTIFACTS_DIR)
+		/usr/local/bin/run-android-integration-test /workspace/$(DEBUG_APK) -artifacts -outputdir=/workspace/$(ANDROID_INTEGRATION_ARTIFACTS_DIR) $(1)
+endef
+
+.PHONY: android-integration-test
+android-integration-test: docker-tailscale-debug android-integration-test-run ## Build APK and run adb-backed Android integration tests in Docker
+
+.PHONY: android-integration-test-run
+android-integration-test-run: docker-build-android-integration-image docker-android-integration-dir ## Run adb-backed Android integration tests in Docker using existing APK
+	$(call run-androidvmtest,-run '^TestAndroid' -skip '^TestAndroidSmoke$$')
+
+.PHONY: android-smoke-test
+android-smoke-test: docker-tailscale-debug android-smoke-test-run ## Build APK and run the Android UI smoke test in Docker
+
+.PHONY: android-smoke-test-run
+android-smoke-test-run: docker-build-android-integration-image docker-android-integration-dir ## Run the Android UI smoke test in Docker using existing APK
+	$(call run-androidvmtest,-run '^TestAndroidSmoke$$')
 
 .PHONY: docker-remove-build-image
 docker-remove-build-image: ## Removes the current docker build image

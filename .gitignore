@@ -39,8 +39,9 @@ tailscale.jks
 .cache-docker
 .gradle-docker
 
-# Screen recordings and other test artifacts from `make android-integration-test`.
+# Test artifacts from `make android-smoke-test` and `make android-integration-test`.
 /integration-artifacts/
+/android-test-summary.md
 
 # Java profiling output
 *.hprof
