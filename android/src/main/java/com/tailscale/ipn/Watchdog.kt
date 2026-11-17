@@ -182,22 +182,34 @@ internal class TunnelWatchdog(
     private val act: suspend (RecycleAction) -> Unit,
     private val onGiveUp: () -> Unit,
     private val clock: () -> Long = System::currentTimeMillis,
+    /**
+     * Durable sink for the watchdog's decisions. logcat rotates in minutes on a
+     * busy device, so a decision made at 03:00 is gone by morning unless it is
+     * written somewhere that survives. Defaults to a no-op so tests need no file.
+     */
+    private val logSink: (String) -> Unit = {},
 ) {
   private var job: Job? = null
   private var lastBytes: Long? = null
   private var lastTrafficAtMillis: Long = 0L
   private var lastProbeBytes: Long = 0L
 
+  /** Logs to logcat and to the durable sink, so a decision outlives the ring buffer. */
+  private fun log(message: String) {
+    TSLog.d(TAG, message)
+    runCatching { logSink(message) }
+  }
+
   fun start() {
     if (job != null) return
-    TSLog.d(TAG, "starting (interval=${policy.probeIntervalMillis}ms)")
+    log("starting (interval=${policy.probeIntervalMillis}ms)")
     job = scope.launch { run() }
   }
 
   fun stop() {
     job?.cancel()
     job = null
-    TSLog.d(TAG, "stopped")
+    log("stopped")
   }
 
   private suspend fun run() {
@@ -206,14 +218,14 @@ internal class TunnelWatchdog(
       try {
         tick()
       } catch (e: Exception) {
-        TSLog.e(TAG, "tick failed: $e")
+        log("tick failed: $e")
       }
     }
   }
 
   private suspend fun tick() {
     if (!isEnabled()) {
-      TSLog.d(TAG, "disabled by user; skipping")
+      log("disabled by user; skipping")
       return
     }
 
@@ -221,7 +233,7 @@ internal class TunnelWatchdog(
     if (state != Ipn.State.Running) {
       // A backend that is not Running is not a dead tunnel. Recycling it here would fight the
       // login flow, so the watchdog stays out of the way.
-      TSLog.d(TAG, "skip: ipn.State=$state (not Running)")
+      log("skip: ipn.State=$state (not Running)")
       return
     }
 
@@ -239,14 +251,14 @@ internal class TunnelWatchdog(
     lastProbeBytes = 0L
     if (delta >= policy.minMeaningfulBytes) {
       lastTrafficAtMillis = now
-      TSLog.d(TAG, "traffic flowing (${delta}B); healthy")
+      log("traffic flowing (${delta}B); healthy")
       handle(core.onProbeRound(success = true, targetsProbed = 0, nowMillis = now), null)
       return
     }
 
     val idleFor = now - lastTrafficAtMillis
     if (idleFor < policy.idleThresholdMillis) {
-      TSLog.d(TAG, "idle ${idleFor}ms < ${policy.idleThresholdMillis}ms; waiting")
+      log("idle ${idleFor}ms < ${policy.idleThresholdMillis}ms; waiting")
       return
     }
 
@@ -261,21 +273,20 @@ internal class TunnelWatchdog(
 
   private suspend fun handle(decision: WatchdogDecision, outcome: ProbeOutcome?) {
     when (decision) {
-      WatchdogDecision.Healthy -> TSLog.d(TAG, "healthy")
-      WatchdogDecision.Recovered -> TSLog.d(TAG, "recovered; counters reset")
+      WatchdogDecision.Healthy -> log("healthy")
+      WatchdogDecision.Recovered -> log("recovered; counters reset")
       WatchdogDecision.Waiting ->
-          TSLog.d(
-              TAG,
+          log(
               "waiting: failures=${core.failures} targets=${outcome?.targetsProbed ?: 0} " +
                   "peersOk=${outcome?.peersOk ?: 0}/${outcome?.peersProbed ?: 0} " +
                   "controlOk=${outcome?.controlOk ?: false}",
           )
       is WatchdogDecision.Act -> {
-        TSLog.w(TAG, "acting: ${decision.action} (failures=${core.failures})")
+        log("acting: ${decision.action} (failures=${core.failures})")
         act(decision.action)
       }
       WatchdogDecision.GiveUp -> {
-        TSLog.e(TAG, "giving up after ${policy.maxRestarts} restarts; tunnel still dead")
+        log("giving up after ${policy.maxRestarts} restarts; tunnel still dead")
         onGiveUp()
       }
     }

@@ -20,6 +20,7 @@ import com.tailscale.ipn.util.TSLog
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.Socket
+import java.io.File
 import java.util.UUID
 import kotlin.coroutines.resume
 import kotlinx.coroutines.CoroutineScope
@@ -65,6 +66,9 @@ open class IPNService : VpnService(), libtailscale.IPNService {
                 probe = { probeTunnel() },
                 act = { action -> performRecycleAction(action) },
                 onGiveUp = { UninitializedApp.get().notifyWatchdogGaveUp() },
+                logSink = { message ->
+                  WatchdogLog(File(filesDir, "watchdog.log")).append(message)
+                },
             )
             .also { it.start() }
   }
