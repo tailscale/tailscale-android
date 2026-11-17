@@ -282,6 +282,8 @@ internal class TunnelWatchdog(
   }
 
   companion object {
-    const val TAG = "Watchdog"
+    // Not "Watchdog": Android's system_server already logs under that tag, so
+    // `adb logcat -s Watchdog` would be mostly system noise.
+    const val TAG = "TSWatchdog"
   }
 }
