@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
@@ -40,12 +41,30 @@ class HealthNotifier(
   private val ignoredWarnableCodes: Set<String> =
       setOf(
           // Ignored on Android because installing unstable takes quite some effort
-          "is-using-unstable-version",
+          Health.WARNABLE_IS_USING_UNSTABLE_VERSION,
 
           // Ignored on Android because we already have a dedicated connected/not connected
           // notification
-          "wantrunning-false",
+          Health.WARNABLE_WANT_RUNNING_FALSE,
       )
+
+  /**
+   * IPN states in which the user is not (yet) connected, e.g. before logging in. Health warnings
+   * surfacing in these states (see [loginRelevantWarnableCodes]) let the app explain why a login
+   * attempt is not making progress, such as a login canceled by a racing start or a network
+   * blocking Tailscale. See tailscale/tailscale#18304.
+   */
+  private val preLoginStates: Set<Ipn.State> =
+      setOf(Ipn.State.NeedsLogin, Ipn.State.NeedsMachineAuth, Ipn.State.Starting)
+
+  /**
+   * Warnables surfaced while in one of the [preLoginStates]. The backend reports the last login
+   * error via the login-state warnable, and a down network via the network-status warnable. Other
+   * warnables are not meaningful before the user is logged in (e.g. relay-server state) and would
+   * only produce noise.
+   */
+  private val loginRelevantWarnableCodes: Set<String> =
+      setOf(Health.WARNABLE_LOGIN_STATE, Health.WARNABLE_NETWORK_STATUS)
 
   // These must be initialized before the init block below, which launches a coroutine that can
   // immediately call dropAllWarnings() (reading currentWarnings) on a background dispatcher. If
@@ -57,19 +76,35 @@ class HealthNotifier(
   init {
     // This roughly matches the iOS/macOS implementation in terms of debouncing, and ignoring
     // health warnings in various states.
+    //
+    // Unlike those platforms, warnings that are relevant while the user is not yet logged in
+    // (notably the login-state warnable carrying the last login error) are also surfaced in the
+    // pre-login states: otherwise login failures would be invisible to the user, as in
+    // tailscale/tailscale#18304, where login attempts were silently canceled by repeated taps.
     scope.launch {
       ipnStateFlow
           .flatMapLatest { ipnState ->
-            if (ipnState == Ipn.State.Running) {
-              healthStateFlow
-                  .distinctUntilChanged { old, new ->
-                    old?.Warnings.orEmpty() == new?.Warnings.orEmpty()
-                  }
-                  .debounce(3000)
-            } else {
-              TSLog.d(TAG, "Ignoring and dropping all health messages in state $ipnState")
-              dropAllWarnings()
-              emptyFlow()
+            when {
+              ipnState == Ipn.State.Running ->
+                  healthStateFlow
+                      .distinctUntilChanged { old, new ->
+                        old?.Warnings.orEmpty() == new?.Warnings.orEmpty()
+                      }
+                      .debounce(3000)
+              ipnState in preLoginStates -> {
+                TSLog.d(TAG, "Watching login-relevant health messages in state $ipnState")
+                healthStateFlow
+                    .map { it.loginRelevant() }
+                    .distinctUntilChanged { old, new ->
+                      old?.Warnings.orEmpty() == new?.Warnings.orEmpty()
+                    }
+                    .debounce(3000)
+              }
+              else -> {
+                TSLog.d(TAG, "Ignoring and dropping all health messages in state $ipnState")
+                dropAllWarnings()
+                emptyFlow()
+              }
             }
           }
           .collect { health ->
@@ -79,12 +114,27 @@ class HealthNotifier(
     }
   }
 
+  /**
+   * Filters a health state down to the warnings that are relevant while the user is not logged in
+   * (see [loginRelevantWarnableCodes]). Returns a state with an empty warning set if none are
+   * relevant, so that pending pre-login warnings are cleared.
+   */
+  private fun Health.State?.loginRelevant(): Health.State {
+    val warnings =
+        this?.Warnings
+            ?.values
+            ?.filterNotNull()
+            ?.filter { it.WarnableCode in loginRelevantWarnableCodes }
+            .orEmpty()
+    return Health.State(Warnings = warnings.associateBy { it.WarnableCode })
+  }
+
   private fun notifyHealthUpdated(warnings: Array<UnhealthyState>) {
     val warningsBeforeAdd = currentWarnings.value
     val currentWarnableCodes = warnings.map { it.WarnableCode }.toSet()
     val addedWarnings: MutableSet<UnhealthyState> = mutableSetOf()
     val removedByNewDependency: MutableSet<UnhealthyState> = mutableSetOf()
-    val isWarmingUp = warnings.any { it.WarnableCode == "warming-up" }
+    val isWarmingUp = warnings.any { it.WarnableCode == Health.WARNABLE_WARMING_UP }
 
     /**
      * dropDependenciesForAddedWarning checks if there is any warning in `warningsBeforeAdd` that

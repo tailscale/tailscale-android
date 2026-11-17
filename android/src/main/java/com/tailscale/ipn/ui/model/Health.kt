@@ -11,11 +11,31 @@ import com.tailscale.ipn.ui.theme.warning
 import kotlinx.serialization.Serializable
 
 class Health {
+  companion object {
+    // Warnable codes of the health subsystem in the Go backend
+    // (tailscale.com/tsconst.HealthWarnable*). Keep in sync with the backend.
+    const val WARNABLE_LOGIN_STATE = "login-state"
+    const val WARNABLE_NETWORK_STATUS = "network-status"
+    const val WARNABLE_WANT_RUNNING_FALSE = "wantrunning-false"
+    const val WARNABLE_IS_USING_UNSTABLE_VERSION = "is-using-unstable-version"
+    const val WARNABLE_WARMING_UP = "warming-up"
+
+    // Argument names used by warnables in the Go backend (tailscale.com/health.Arg*).
+    const val ARG_ERROR = "error"
+  }
+
   @Serializable
   data class State(
       // WarnableCode -> UnhealthyState or null
       var Warnings: Map<String, UnhealthyState?>? = null,
-  )
+  ) {
+    /**
+     * The last login error reported by the backend via the login-state warnable, or null if the
+     * backend reported no login error (yet). See tailscale.com/health LoginStateWarnable.
+     */
+    val loginStateError: String?
+      get() = Warnings?.get(WARNABLE_LOGIN_STATE)?.Args?.get(ARG_ERROR)?.takeIf { it.isNotEmpty() }
+  }
 
   @Serializable
   data class UnhealthyState(

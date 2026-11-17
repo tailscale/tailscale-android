@@ -39,8 +39,10 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 class MainViewModelFactory(private val appViewModel: AppViewModel) : ViewModelProvider.Factory {
   @Suppress("UNCHECKED_CAST")
@@ -65,6 +67,16 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
   // invoked until the current operation is complete.
   private val _isToggleInProgress = MutableStateFlow(false)
   val isToggleInProgress: StateFlow<Boolean> = _isToggleInProgress
+
+  companion object {
+    /**
+     * How long a VPN toggle keeps the switch disabled while waiting for the backend to settle in
+     * the requested state. Toggling again while a start/stop is in flight cancels and restarts
+     * backend work (see tailscale/tailscale#18304), so the switch stays disabled (and the main view
+     * shows the transition state) until the IPN state reaches a stable state.
+     */
+    private const val TOGGLE_SETTLE_TIMEOUT_MS = 30_000L
+  }
 
   // Permission to prepare VPN
   private var vpnPermissionLauncher: ActivityResultLauncher<Intent>? = null
@@ -244,18 +256,32 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
     _requestVpnPermission.value = true
   }
 
-  fun showVPNPermissionLauncherIfUnauthorized() {
+  /**
+   * Shows the VPN permission launcher if permission has not been granted yet. Returns true if a
+   * system permission dialog was shown (in which case the caller waits for the dialog instead of
+   * for the VPN state to change).
+   */
+  fun showVPNPermissionLauncherIfUnauthorized(): Boolean {
     val vpnIntent = VpnService.prepare(App.get())
     TSLog.d("VpnPermissions", "vpnIntent=$vpnIntent")
     if (vpnIntent != null) {
       vpnPermissionLauncher?.launch(vpnIntent)
-    } else {
-      appViewModel.setVpnPrepared(true)
-      startVPN()
+      _requestVpnPermission.value = false // reset
+      return true
     }
+    appViewModel.setVpnPrepared(true)
+    startVPN()
     _requestVpnPermission.value = false // reset
+    return false
   }
 
+  /**
+   * Turns the VPN on or off. While the resulting start/stop is in flight the switch stays disabled
+   * (see [isToggleInProgress]) and the main view shows the transition state ("Starting"/ "Not
+   * connected"), until the IPN state settles in a stable state or [TOGGLE_SETTLE_TIMEOUT_MS]
+   * passes. If a permission dialog is shown, the guard is released instead: the dialog itself
+   * prevents a second toggle, and the user must answer it first.
+   */
   fun toggleVpn(desiredState: Boolean) {
     if (isToggleInProgress.value) {
       // Prevent toggling while a previous toggle is in progress
@@ -264,18 +290,35 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
 
     viewModelScope.launch {
       _isToggleInProgress.value = true
+      val startState = Notifier.state.value
       try {
-        val currentState = Notifier.state.value
+        var permissionDialogShown = false
+        var transitionRequested = false
 
         if (desiredState) {
           // User wants to turn ON the VPN
-          when {
-            currentState != State.Running -> showVPNPermissionLauncherIfUnauthorized()
+          if (startState != State.Running) {
+            transitionRequested = true
+            permissionDialogShown = showVPNPermissionLauncherIfUnauthorized()
           }
         } else {
           // User wants to turn OFF the VPN
-          if (currentState == State.Running) {
+          if (startState == State.Running) {
+            transitionRequested = true
             stopVPN()
+          }
+        }
+
+        if (transitionRequested && !permissionDialogShown) {
+          // Wait for the IPN state to settle outside the transient states (Starting/Stopping) so
+          // that a rapid second toggle cannot cancel the first transition's backend work. If a
+          // permission dialog was shown, the dialog itself prevents a second toggle until it is
+          // answered.
+          withTimeoutOrNull(TOGGLE_SETTLE_TIMEOUT_MS) {
+            Notifier.state.first { state ->
+              val settled = state != State.Starting && state != State.Stopping
+              settled && (state != startState || state == State.NeedsLogin)
+            }
           }
         }
       } finally {

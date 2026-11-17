@@ -4,6 +4,7 @@
 package com.tailscale.ipn.ui.notifier
 
 import androidx.core.app.NotificationManagerCompat
+import com.tailscale.ipn.R
 import com.tailscale.ipn.UninitializedApp
 import com.tailscale.ipn.ui.model.Health
 import com.tailscale.ipn.ui.model.Health.UnhealthyState
@@ -42,6 +43,16 @@ class HealthNotifierTest {
           Text = "Could not connect to relay server.",
           ImpactsConnectivity = true,
           DependsOn = listOf("network-status", "no-derp-home", "warming-up"),
+      )
+
+  private fun loginStateWarning(error: String = "register request: context canceled") =
+      UnhealthyState(
+          WarnableCode = "login-state",
+          Severity = Health.Severity.medium,
+          Title = "Logged out",
+          Text = "You are logged out. The last login error was: $error",
+          Args = mapOf("error" to error),
+          DependsOn = listOf("wantrunning-false"),
       )
 
   private fun warmingUpWarning() =
@@ -100,6 +111,108 @@ class HealthNotifierTest {
     healthFlow.value = emptyHealth()
     settle()
     assertTrue(notifier.currentWarnings.value.isEmpty())
+  }
+
+  /**
+   * Pre-login states (NeedsLogin/Starting/NeedsMachineAuth) must surface the health warnings that
+   * explain why a login is not making progress (the backend's login-state warnable carries the last
+   * login error); see tailscale/tailscale#18304.
+   */
+  @Test
+  fun loginWarningsSurfaceWhileNeedsLogin() = runTest {
+    val healthFlow = MutableStateFlow<Health.State?>(null)
+    val ipnFlow = MutableStateFlow(Ipn.State.NeedsLogin)
+    val notifier = HealthNotifier(healthFlow, ipnFlow, backgroundScope)
+    runCurrent()
+
+    healthFlow.value = healthState(loginStateWarning())
+    settle()
+    assertEquals(
+        "login-state warnings must surface while NeedsLogin",
+        setOf("login-state"),
+        notifier.currentWarnings.value.map { it.WarnableCode }.toSet(),
+    )
+    // The warning is also surfaced in the login-relevant icon state.
+    assertEquals(R.drawable.info, notifier.currentIcon.value)
+  }
+
+  @Test
+  fun networkWarningsSurfaceWhileStarting() = runTest {
+    val healthFlow = MutableStateFlow<Health.State?>(null)
+    val ipnFlow = MutableStateFlow(Ipn.State.Starting)
+    val notifier = HealthNotifier(healthFlow, ipnFlow, backgroundScope)
+    runCurrent()
+
+    healthFlow.value =
+        healthState(
+            UnhealthyState(
+                WarnableCode = "network-status",
+                Severity = Health.Severity.medium,
+                Title = "Network down",
+                Text = "Tailscale cannot connect because the network is down.",
+                ImpactsConnectivity = true,
+            )
+        )
+    settle()
+    assertEquals(
+        setOf("network-status"),
+        notifier.currentWarnings.value.map { it.WarnableCode }.toSet(),
+    )
+  }
+
+  /** Warnings that are not meaningful before the user is logged in must not surface pre-login. */
+  @Test
+  fun nonLoginWarningsFilteredWhileNeedsLogin() = runTest {
+    val healthFlow = MutableStateFlow<Health.State?>(null)
+    val ipnFlow = MutableStateFlow(Ipn.State.NeedsLogin)
+    val notifier = HealthNotifier(healthFlow, ipnFlow, backgroundScope)
+    runCurrent()
+
+    healthFlow.value = healthState(derpWarning(), loginStateWarning())
+    settle()
+    assertEquals(
+        setOf("login-state"),
+        notifier.currentWarnings.value.map { it.WarnableCode }.toSet(),
+    )
+  }
+
+  /** A login warning that surfaced pre-login is dropped once the login completes. */
+  @Test
+  fun loginWarningDroppedWhenRunningAgainWithHealthyState() = runTest {
+    val healthFlow = MutableStateFlow<Health.State?>(null)
+    val ipnFlow = MutableStateFlow(Ipn.State.NeedsLogin)
+    val notifier = HealthNotifier(healthFlow, ipnFlow, backgroundScope)
+    runCurrent()
+
+    healthFlow.value = healthState(loginStateWarning())
+    settle()
+    assertEquals(1, notifier.currentWarnings.value.size)
+
+    // Login completes and the backend clears the login error.
+    ipnFlow.value = Ipn.State.Running
+    healthFlow.value = emptyHealth()
+    settle()
+    assertTrue(notifier.currentWarnings.value.isEmpty())
+  }
+
+  /** A pre-login warning that is still present must surface once the login completes (Running). */
+  @Test
+  fun preLoginWarningStillPresentSurfacesWhenRunning() = runTest {
+    val healthFlow = MutableStateFlow<Health.State?>(null)
+    val ipnFlow = MutableStateFlow(Ipn.State.NeedsLogin)
+    val notifier = HealthNotifier(healthFlow, ipnFlow, backgroundScope)
+    runCurrent()
+
+    healthFlow.value = healthState(loginStateWarning())
+    settle()
+    ipnFlow.value = Ipn.State.Running
+    // The warning is re-delivered in the running state's initial health snapshot.
+    healthFlow.value = healthState(loginStateWarning())
+    settle()
+    assertEquals(
+        setOf("login-state"),
+        notifier.currentWarnings.value.map { it.WarnableCode }.toSet(),
+    )
   }
 
   @Test
