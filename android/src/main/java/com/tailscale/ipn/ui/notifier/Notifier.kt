@@ -108,7 +108,8 @@ object Notifier {
               NotifyWatchOpt.PeerChanges.value or
               NotifyWatchOpt.NoNetmap.value or
               NotifyWatchOpt.InitialStatus.value or
-              NotifyWatchOpt.InitialHealthState.value
+              NotifyWatchOpt.InitialHealthState.value or
+              NotifyWatchOpt.SuspendWhenBehind.value
       manager =
           app.watchNotifications(mask.toLong()) { notification ->
             runCatching {
@@ -177,6 +178,7 @@ object Notifier {
     PeerChanges(4096),
     NoNetmap(8192),
     InitialStatus(16384),
+    SuspendWhenBehind(1 shl 19),
   }
 
   fun setState(newState: Ipn.State) {
