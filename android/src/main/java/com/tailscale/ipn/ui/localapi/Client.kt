@@ -84,7 +84,7 @@ class Client(
   }
 
   fun ping(peer: Tailcfg.Node, responseHandler: PingResultHandler) {
-    val ip = peer.primaryIPv4Address.orEmpty()
+    val ip = (peer.primaryIPv4Address ?: peer.primaryIPv6Address).orEmpty()
     if (ip.isEmpty()) {
       responseHandler(Result.failure(Exception("No IP address for peer $peer")))
       return
