@@ -12,6 +12,7 @@ import com.tailscale.ipn.ui.model.Ipn.Notify
 import com.tailscale.ipn.ui.model.IpnState
 import com.tailscale.ipn.ui.model.Netmap
 import com.tailscale.ipn.ui.model.NodeID
+import com.tailscale.ipn.ui.model.StableNodeID
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.util.set
 import com.tailscale.ipn.util.InlineShareInboxStore
@@ -36,6 +37,11 @@ internal fun Notify.hasNetworkMapChanges(): Boolean =
         !PeersChanged.isNullOrEmpty() ||
         !PeersRemoved.isNullOrEmpty() ||
         !UserProfiles.isNullOrEmpty()
+
+data class SelfNodeUpdate(
+    val revision: Long,
+    val stableID: StableNodeID?,
+)
 
 // Notifier is a wrapper around the IPN Bus notifier.  It provides a way to watch
 // for changes in various parts of the Tailscale engine.  You will typically only use
@@ -72,6 +78,9 @@ object Notifier {
   // notification because POST_NOTIFICATIONS was denied.
   private val _inlineShareInbox = MutableStateFlow(InlineShareInboxStore.load())
   val inlineShareInbox: StateFlow<List<PendingInlineShare>> = _inlineShareInbox
+
+  private val _selfNodeUpdate = MutableStateFlow<SelfNodeUpdate?>(null)
+  val selfNodeUpdate: StateFlow<SelfNodeUpdate?> = _selfNodeUpdate
 
   fun appendInlineShare(p: PendingInlineShare) {
     _inlineShareInbox.update { it + p }
@@ -135,6 +144,15 @@ object Notifier {
                 }
               }
               updateNetworkMap(notify)
+              if (notify.InitialStatus != null || notify.SelfChange != null) {
+                _selfNodeUpdate.update { previous ->
+                  SelfNodeUpdate(
+                      revision = (previous?.revision ?: 0L) + 1,
+                      stableID = notify.SelfChange?.StableID ?: notify.InitialStatus?.Self?.ID,
+                  )
+                }
+              }
+
               notify.Prefs?.let(prefs::set)
               notify.Engine?.let(engineStatus::set)
               notify.TailFSShares?.let(tailFSShares::set)
