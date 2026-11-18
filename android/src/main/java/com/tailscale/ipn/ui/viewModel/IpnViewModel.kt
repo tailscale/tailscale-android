@@ -7,11 +7,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tailscale.ipn.UninitializedApp
 import com.tailscale.ipn.mdm.MDMSettings
+import com.tailscale.ipn.ui.dataSource.LoginActionsDataSource
+import com.tailscale.ipn.ui.dataSource.LoginActionsDataSourceImpl
+import com.tailscale.ipn.ui.dataSource.RunExitNodeDataSource
+import com.tailscale.ipn.ui.dataSource.RunExitNodeDataSourceImpl
 import com.tailscale.ipn.ui.localapi.Client
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.UserID
-import com.tailscale.ipn.ui.model.deepCopy
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.util.AdvertisedRoutesHelper
 import com.tailscale.ipn.ui.util.LoadingIndicator
@@ -26,7 +29,10 @@ import kotlinx.coroutines.launch
  * Base model for most models in this application. Provides common facilities for watching IPN
  * notifications, managing login/logout, updating preferences, etc.
  */
-open class IpnViewModel : ViewModel() {
+open class IpnViewModel(
+    private val loginActionsDataSource: LoginActionsDataSource = LoginActionsDataSourceImpl(),
+    private val runExitNodeDataSource: RunExitNodeDataSource = RunExitNodeDataSourceImpl(),
+) : ViewModel() {
   protected val TAG = this::class.simpleName
 
   val loggedInUser: StateFlow<IpnLocal.LoginProfile?> = MutableStateFlow(null)
@@ -35,7 +41,7 @@ open class IpnViewModel : ViewModel() {
   private val _vpnPrepared = MutableStateFlow(false)
   val vpnPrepared: StateFlow<Boolean> = _vpnPrepared
 
-  // The userId associated with the current node. ie: The logged in user.
+  // The userId associated with the current node. ie: The logged-in user.
   private var selfNodeUserId: UserID? = null
 
   val isRunningExitNode: StateFlow<Boolean> = MutableStateFlow(false)
@@ -167,80 +173,12 @@ open class IpnViewModel : ViewModel() {
       authKey: String? = null,
       completionHandler: (Result<Unit>) -> Unit = {},
   ) {
-    // Start the IPNService foreground notification so that Android
-    // does not freeze the process or cut network access while the user is in the browser
-    // completing auth. The foreground service transitions to a full VPN service later when
-    // startVPN() is called after the backend reaches Running state.
-    UninitializedApp.get().startForegroundForLogin()
-    val client = Client(viewModelScope)
-
-    val finalMaskedPrefs = maskedPrefs?.deepCopy() ?: Ipn.MaskedPrefs()
-    // Don't set WantRunning=true here. Setting it in editPrefs() triggers cc.Login(LoginDefault)
-    // in the Go backend on the existing control client; when the user taps "Log in," login() calls
-    // start(), which triggers resetControlClientLocked(), cancelling the existing control client
-    // and creating a new one. On a slow connection, the first control client's register is still
-    // in flight when it is canceled. Instead, set WantRunning=true on the Prefs returned by
-    // editPrefs() and pass
-    // it via start()'s UpdatePrefs, which resets the control client first.
-    if (authKey != null) {
-      finalMaskedPrefs.LoggedOut = false
-    }
-
-    client.editPrefs(finalMaskedPrefs) { editResult ->
-      editResult
-          .onFailure {
-            TSLog.e(TAG, "editPrefs() failed: ${it.message}")
-            completionHandler(Result.failure(it))
-          }
-          .onSuccess { success ->
-            success.WantRunning = true
-            val opts = Ipn.Options(UpdatePrefs = success, AuthKey = authKey)
-            client.start(opts) { startResult ->
-              startResult
-                  .onFailure {
-                    TSLog.e(TAG, "start() failed: ${it.message}")
-                    completionHandler(Result.failure(it))
-                  }
-                  .onSuccess {
-                    client.startLoginInteractive { loginResult ->
-                      loginResult
-                          .onFailure {
-                            TSLog.e(
-                                TAG,
-                                "startLoginInteractive() failed: ${it.message}",
-                            )
-                            completionHandler(Result.failure(it))
-                          }
-                          .onSuccess { completionHandler(Result.success(Unit)) }
-                    }
-                  }
-            }
-          }
-    }
-  }
-
-  fun loginWithAuthKey(authKey: String, completionHandler: (Result<Unit>) -> Unit = {}) {
-    val prefs = Ipn.MaskedPrefs()
-    prefs.WantRunning = true
-    login(prefs, authKey = authKey, completionHandler)
-  }
-
-  fun loginWithCustomControlURL(
-      controlURL: String,
-      completionHandler: (Result<Unit>) -> Unit = {},
-  ) {
-    val prefs = Ipn.MaskedPrefs()
-    prefs.ControlURL = controlURL
-    login(prefs, completionHandler = completionHandler)
-  }
-
-  fun logout(completionHandler: (Result<String>) -> Unit = {}) {
-    Client(viewModelScope).logout { result ->
-      result
-          .onSuccess { TSLog.d(TAG, "Logout started: $it") }
-          .onFailure { TSLog.e(TAG, "Error starting logout: ${it.message}") }
-      completionHandler(result)
-    }
+    loginActionsDataSource.login(
+        scope = viewModelScope,
+        maskedPrefs = maskedPrefs,
+        authKey = authKey,
+        completionHandler = completionHandler,
+    )
   }
 
   // User Profiles
@@ -256,37 +194,6 @@ open class IpnViewModel : ViewModel() {
       result
           .onSuccess { loggedInUser.set(if (it.isEmpty()) null else it) }
           .onFailure { TSLog.e(TAG, "Error loading current profile: ${it.message}") }
-    }
-  }
-
-  fun switchProfile(profile: IpnLocal.LoginProfile, completionHandler: (Result<String>) -> Unit) {
-    val switchProfile = {
-      Client(viewModelScope).switchProfile(profile) {
-        startVPN()
-        completionHandler(it)
-      }
-    }
-    Client(viewModelScope).editPrefs(Ipn.MaskedPrefs().apply { WantRunning = false }) { result ->
-      result
-          .onSuccess { switchProfile() }
-          .onFailure { TSLog.e(TAG, "Error setting wantRunning to false: ${it.message}") }
-    }
-  }
-
-  fun addProfile(completionHandler: (Result<String>) -> Unit) {
-    Client(viewModelScope).addProfile {
-      if (it.isSuccess) {
-        login()
-      }
-      startVPN()
-      completionHandler(it)
-    }
-  }
-
-  fun deleteProfile(profile: IpnLocal.LoginProfile, completionHandler: (Result<String>) -> Unit) {
-    Client(viewModelScope).deleteProfile(profile) {
-      viewModelScope.launch { loadUserProfiles() }
-      completionHandler(it)
     }
   }
 
@@ -309,39 +216,16 @@ open class IpnViewModel : ViewModel() {
   }
 
   fun setRunningExitNode(isOn: Boolean) {
+    val currentPrefs = lastPrefs ?: return
+
     LoadingIndicator.start()
-    lastPrefs?.let { currentPrefs ->
-      val newPrefs: Ipn.MaskedPrefs =
-          if (isOn) {
-            setZeroRoutes(currentPrefs)
-          } else {
-            removeAllZeroRoutes(currentPrefs)
-          }
-      Client(viewModelScope).editPrefs(newPrefs) { result ->
-        LoadingIndicator.stop()
-        TSLog.d("RunExitNodeViewModel", "Edited prefs: $result")
-      }
+    runExitNodeDataSource.setRunningExitNode(
+        scope = viewModelScope,
+        currentPrefs = currentPrefs,
+        isOn = isOn,
+    ) { result ->
+      LoadingIndicator.stop()
+      TSLog.d(TAG, "Edited prefs: $result")
     }
-  }
-
-  private fun setZeroRoutes(prefs: Ipn.Prefs): Ipn.MaskedPrefs {
-    val newRoutes = removeAllZeroRoutes(prefs).AdvertiseRoutes.orEmpty().toMutableList()
-    newRoutes.add("0.0.0.0/0")
-    newRoutes.add("::/0")
-    val newPrefs = Ipn.MaskedPrefs()
-    newPrefs.AdvertiseRoutes = newRoutes
-    return newPrefs
-  }
-
-  private fun removeAllZeroRoutes(prefs: Ipn.Prefs): Ipn.MaskedPrefs {
-    val newRoutes = emptyList<String>().toMutableList()
-    prefs.AdvertiseRoutes.orEmpty().forEach {
-      if (it != "0.0.0.0/0" && it != "::/0") {
-        newRoutes.add(it)
-      }
-    }
-    val newPrefs = Ipn.MaskedPrefs()
-    newPrefs.AdvertiseRoutes = newRoutes
-    return newPrefs
   }
 }

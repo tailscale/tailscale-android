@@ -10,9 +10,6 @@ import com.tailscale.ipn.ui.dataSource.RunExitNodeDataSource
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.util.AdvertisedRoutesHelper
 import com.tailscale.ipn.util.TSLog
-import kotlin.collections.filterNot
-import kotlin.collections.orEmpty
-import kotlin.collections.toMutableList
 import kotlin.coroutines.resume
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -52,27 +49,16 @@ class RunExitNodeViewModel(
 
   suspend fun setRunningExitNode(isOn: Boolean) {
     val currentPrefs = lastPrefs ?: return
-    val prefsOut = if (isOn) setZeroRoutes(currentPrefs) else removeAllZeroRoutes(currentPrefs)
 
     suspendCancellableCoroutine<Unit> { continuation ->
-      dataSource.editPrefs(viewModelScope, prefsOut) { result ->
+      dataSource.setRunningExitNode(
+          scope = viewModelScope,
+          currentPrefs = currentPrefs,
+          isOn = isOn,
+      ) { result ->
         TSLog.d("RunExitNodeViewModel", "Edited prefs: $result")
         continuation.resume(Unit)
       }
     }
-  }
-
-  private fun setZeroRoutes(prefs: Ipn.Prefs): Ipn.MaskedPrefs {
-    val routes = removeAllZeroRoutes(prefs).AdvertiseRoutes.orEmpty().toMutableList()
-    routes.add("0.0.0.0/0")
-    routes.add("::/0")
-
-    return Ipn.MaskedPrefs().apply { AdvertiseRoutes = routes }
-  }
-
-  private fun removeAllZeroRoutes(prefs: Ipn.Prefs): Ipn.MaskedPrefs {
-    val routes = prefs.AdvertiseRoutes.orEmpty().filterNot { it == "0.0.0.0/0" || it == "::/0" }
-
-    return Ipn.MaskedPrefs().apply { AdvertiseRoutes = routes }
   }
 }
