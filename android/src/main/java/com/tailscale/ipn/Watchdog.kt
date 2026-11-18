@@ -67,6 +67,9 @@ internal sealed interface WatchdogDecision {
  *   any real user traffic in a 5 minute window, so it separates "the app is doing something" from
  *   "the app is silent".
  * @param ladder the escalation order.
+ * @param derpCooldownMillis minimum gap between two home-relay corrections. A
+ *   wrong home relay is a slow-burn problem, not an emergency, so one correction
+ *   an hour is plenty and it cannot turn into a restun loop.
  */
 internal class WatchdogPolicy(
     val failureThreshold: Int = 3,
@@ -76,6 +79,7 @@ internal class WatchdogPolicy(
     val probeIntervalMillis: Long = 5 * 60 * 1000L,
     val idleThresholdMillis: Long = 5 * 60 * 1000L,
     val minMeaningfulBytes: Long = 4096L,
+    val derpCooldownMillis: Long = 60 * 60 * 1000L,
     val ladder: List<RecycleAction> =
         listOf(
             RecycleAction.REBIND,
@@ -165,6 +169,39 @@ internal data class ProbeOutcome(
 }
 
 /**
+ * What the watchdog needs to judge the home relay: this node's home region and
+ * the home regions of the online peers.
+ */
+internal data class DerpView(val homeRelay: String?, val peerRelays: List<String>)
+
+/**
+ * Decides whether the home relay looks wrong.
+ *
+ * The app cannot see DERP latencies (the status exposes the home region code but
+ * no measurements), so this uses the only signal it has: where the peers are
+ * homed. On a tailnet whose devices sit in one place, a node homed to a distant
+ * region while its peers are homed elsewhere is the shape of the Toronto bug —
+ * the home relay had stuck on a region 84 ms away while every peer was on the
+ * 22 ms one.
+ *
+ * @param homeRelay this node's home DERP region code, or null if unknown.
+ * @param peerRelays the home region codes of the online peers.
+ * @return the region code the peers agree on when it differs from [homeRelay],
+ *   otherwise null.
+ */
+internal fun disagreeingPeerRelay(homeRelay: String?, peerRelays: List<String>): String? {
+  if (homeRelay.isNullOrEmpty()) return null
+  val counts = peerRelays.filter { it.isNotEmpty() }.groupingBy { it }.eachCount()
+  if (counts.isEmpty()) return null
+  val (consensus, votes) = counts.maxByOrNull { it.value } ?: return null
+  // Require a real majority, not a single peer: one peer in another region is
+  // normal on a distributed tailnet.
+  if (votes < 2) return null
+  if (consensus == homeRelay) return null
+  return consensus
+}
+
+/**
  * The watchdog coroutine. It lives inside [IPNService] because that is the only component with
  * unrestricted network access in Doze.
  *
@@ -182,6 +219,8 @@ internal class TunnelWatchdog(
     private val act: suspend (RecycleAction) -> Unit,
     private val onGiveUp: () -> Unit,
     private val clock: () -> Long = System::currentTimeMillis,
+    /** This node's home relay and the peers' home relays, or null when unknown. */
+    private val currentDerpView: suspend () -> DerpView? = { null },
     /**
      * Durable sink for the watchdog's decisions. logcat rotates in minutes on a
      * busy device, so a decision made at 03:00 is gone by morning unless it is
@@ -193,6 +232,7 @@ internal class TunnelWatchdog(
   private var lastBytes: Long? = null
   private var lastTrafficAtMillis: Long = 0L
   private var lastProbeBytes: Long = 0L
+  private var lastDerpRestunAtMillis: Long? = null
 
   /** Logs to logcat and to the durable sink, so a decision outlives the ring buffer. */
   private fun log(message: String) {
@@ -238,6 +278,8 @@ internal class TunnelWatchdog(
     }
 
     val now = clock()
+    checkHomeRelay(now)
+
     val bytes = bytesTransferred()
     val prev = lastBytes
     lastBytes = bytes
@@ -269,6 +311,27 @@ internal class TunnelWatchdog(
 
     val decision = core.onProbeRound(outcome.tunnelAlive, outcome.targetsProbed, now)
     handle(decision, outcome)
+  }
+
+  /**
+   * Corrects a home relay that disagrees with where the peers are homed.
+   *
+   * This is deliberately separate from the traffic ladder: a wrong home relay
+   * does not stop traffic, it makes the *fallback* slow, so it must not consume
+   * the ladder's escalation budget or its restart counter.
+   */
+  private suspend fun checkHomeRelay(now: Long) {
+    val view = currentDerpView() ?: return
+    val consensus = disagreeingPeerRelay(view.homeRelay, view.peerRelays) ?: return
+    val home = view.homeRelay
+    val last = lastDerpRestunAtMillis
+    if (last != null && now - last < policy.derpCooldownMillis) {
+      log("home relay $home != peer consensus $consensus; in cooldown")
+      return
+    }
+    log("home relay $home != peer consensus $consensus; restun")
+    lastDerpRestunAtMillis = now
+    act(RecycleAction.RESTUN)
   }
 
   private suspend fun handle(decision: WatchdogDecision, outcome: ProbeOutcome?) {

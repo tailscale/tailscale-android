@@ -114,6 +114,13 @@ object NetworkChangeCallback {
             super.onCapabilitiesChanged(network, capabilities)
 
             lock.withLock {
+              val previous = activeNetworks[network]?.caps
+              // Android calls this on every capability change, including signal
+              // strength. Logging only real differences tells us whether the
+              // frequent callbacks carry new information or are pure churn.
+              if (previous != null && previous != capabilities) {
+                TSLog.d(TAG, "caps changed for $network: $previous -> $capabilities")
+              }
               activeNetworks[network]?.caps = capabilities
 
               if (recomputeDefaultNetworkLocked("onCapabilitiesChanged")) {

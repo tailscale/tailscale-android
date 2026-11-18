@@ -14,6 +14,7 @@ import android.system.OsConstants
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.localapi.Client
 import com.tailscale.ipn.ui.model.Ipn
+import com.tailscale.ipn.ui.model.IpnState
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.util.TSLog
@@ -66,6 +67,17 @@ open class IPNService : VpnService(), libtailscale.IPNService {
                 probe = { probeTunnel() },
                 act = { action -> performRecycleAction(action) },
                 onGiveUp = { UninitializedApp.get().notifyWatchdogGaveUp() },
+                currentDerpView = {
+                  fetchStatus()?.let { s ->
+                    DerpView(
+                        homeRelay = s.Self?.Relay,
+                        peerRelays =
+                            s.Peer?.values.orEmpty()
+                                .filter { it.Online }
+                                .mapNotNull { it.Relay },
+                    )
+                  }
+                },
                 logSink = { message ->
                   WatchdogLog(File(filesDir, "watchdog.log")).append(message)
                 },
@@ -323,6 +335,16 @@ open class IPNService : VpnService(), libtailscale.IPNService {
               }
             }
           } ?: false
+
+  /** Fetches the engine status once, for the home-relay check. */
+  private suspend fun fetchStatus(): IpnState.Status? =
+      withTimeoutOrNull(PROBE_TIMEOUT_MILLIS) {
+            suspendCancellableCoroutine { cont ->
+              Client(scope).status { result ->
+                if (cont.isActive) cont.resume(result.getOrNull())
+              }
+            }
+          }
 
   private suspend fun probeControlPlane(): Boolean =
       withTimeoutOrNull(PROBE_TIMEOUT_MILLIS) {

@@ -158,4 +158,32 @@ class WatchdogTest {
         driver.failRounds(policy.failureThreshold, policy.minProbeTargets),
     )
   }
+
+  @Test
+  fun homeRelayMatchingThePeerConsensusIsFine() {
+    assertEquals(null, disagreeingPeerRelay("sfo", listOf("sfo", "sfo", "lax")))
+  }
+
+  @Test
+  fun homeRelayDisagreeingWithTwoPeersIsReported() {
+    // The Toronto case: every peer on sfo, this node stuck on tor.
+    assertEquals("sfo", disagreeingPeerRelay("tor", listOf("sfo", "sfo", "sfo")))
+  }
+
+  @Test
+  fun aSinglePeerInAnotherRegionIsNotEnough() {
+    assertEquals(null, disagreeingPeerRelay("tor", listOf("sfo")))
+  }
+
+  @Test
+  fun unknownHomeRelayIsIgnored() {
+    assertEquals(null, disagreeingPeerRelay(null, listOf("sfo", "sfo")))
+    assertEquals(null, disagreeingPeerRelay("", listOf("sfo", "sfo")))
+  }
+
+  @Test
+  fun noPeersIsIgnored() {
+    assertEquals(null, disagreeingPeerRelay("tor", emptyList()))
+    assertEquals(null, disagreeingPeerRelay("tor", listOf("", "")))
+  }
 }

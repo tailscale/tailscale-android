@@ -44,8 +44,12 @@ import java.io.IOException
 import java.lang.UnsupportedOperationException
 import java.net.NetworkInterface
 import java.security.GeneralSecurityException
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import java.util.Collections
 import java.util.Locale
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -139,6 +143,26 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
         getString(R.string.key_expiry_channel_description),
         NotificationManagerCompat.IMPORTANCE_DEFAULT,
     )
+    scheduleWatchdogRecovery()
+  }
+
+  /**
+   * Schedules the out-of-process backstop. WorkManager's minimum periodic
+   * interval is 15 minutes, and Doze defers it further, so this is a slow
+   * safety net, not the primary recovery path — the in-process watchdog in
+   * [IPNService] is.
+   */
+  private fun scheduleWatchdogRecovery() {
+    try {
+      WorkManager.getInstance(this)
+          .enqueueUniquePeriodicWork(
+              WatchdogRecoveryWorker.WORK_NAME,
+              ExistingPeriodicWorkPolicy.KEEP,
+              PeriodicWorkRequestBuilder<WatchdogRecoveryWorker>(15, TimeUnit.MINUTES).build(),
+          )
+    } catch (e: Exception) {
+      TSLog.e(TAG, "failed to schedule watchdog recovery: $e")
+    }
   }
 
   override fun onTerminate() {
@@ -264,6 +288,10 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
   }
 
   fun setWantRunning(wantRunning: Boolean, onSuccess: (() -> Unit)? = null) {
+    // Remember the user's intent outside the encrypted prefs so the recovery
+    // worker can tell "the user wants the tunnel up" from "the user turned it
+    // off" without starting the backend.
+    getUnencryptedPrefs().edit().putBoolean(WANT_RUNNING_KEY, wantRunning).apply()
     val callback: (Result<Ipn.Prefs>) -> Unit = { result ->
       result.fold(
           onSuccess = { onSuccess?.invoke() },
@@ -578,6 +606,10 @@ open class UninitializedApp : Application() {
     // guards against is silent and needs a manual off/on cycle to fix, so leaving it off would
     // leave the user with the bug. It is user-disableable in Settings.
     private const val TUNNEL_WATCHDOG_ENABLED_KEY = "tunnelWatchdogEnabled"
+
+    // The user's last expressed intent for the tunnel, mirrored out of the
+    // encrypted prefs so the recovery worker can read it without a backend.
+    internal const val WANT_RUNNING_KEY = "wantRunning"
     // File for shared preferences that are not encrypted.
     private const val UNENCRYPTED_PREFERENCES = "unencrypted"
     private lateinit var appInstance: UninitializedApp
@@ -616,7 +648,7 @@ open class UninitializedApp : Application() {
     return getUnencryptedPrefs().getBoolean(ABLE_TO_START_VPN_KEY, false)
   }
 
-  private fun getUnencryptedPrefs(): SharedPreferences {
+  protected fun getUnencryptedPrefs(): SharedPreferences {
     return getSharedPreferences(UNENCRYPTED_PREFERENCES, MODE_PRIVATE)
   }
 
@@ -789,6 +821,14 @@ open class UninitializedApp : Application() {
   /** Whether the dead-tunnel watchdog may recycle the tunnel. Defaults to on. */
   fun isTunnelWatchdogEnabled(): Boolean {
     return getUnencryptedPrefs().getBoolean(TUNNEL_WATCHDOG_ENABLED_KEY, true)
+  }
+
+  /**
+   * Whether the user last asked for the tunnel to be up. Read by the recovery
+   * worker, which must never reconnect a tunnel the user deliberately turned off.
+   */
+  fun wantsRunning(): Boolean {
+    return getUnencryptedPrefs().getBoolean(WANT_RUNNING_KEY, false)
   }
 
   fun setTunnelWatchdogEnabled(enabled: Boolean) {

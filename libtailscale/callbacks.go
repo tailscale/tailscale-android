@@ -10,7 +10,14 @@ import (
 var (
 	// onVPNRequested receives global IPNService references when
 	// a VPN connection is requested.
-	onVPNRequested = make(chan IPNService)
+	//
+	// Buffered, and written with a non-blocking send (see RequestVPN): this
+	// channel is written from the Android main thread inside
+	// IPNService.onStartCommand, and an unbuffered send there blocks until the
+	// backend's select loop is free. When the loop is busy in updateTUN (JNI
+	// calls and route setup) the main thread stalls, which Android reports as
+	// an ANR of type SERVICE_EXECUTING after 30 s.
+	onVPNRequested = make(chan IPNService, 1)
 	// onDisconnect receives global IPNService references when
 	// disconnecting.
 	onDisconnect = make(chan IPNService)
