@@ -1,9 +1,9 @@
 // Copyright (c) Tailscale Inc & AUTHORS
 // SPDX-License-Identifier: BSD-3-Clause
+
 package com.tailscale.ipn.ui.viewModel
 
 import android.content.Intent
-import android.net.Uri
 import android.net.VpnService
 import androidx.activity.result.ActivityResultLauncher
 import androidx.compose.runtime.getValue
@@ -14,119 +14,179 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.tailscale.ipn.App
 import com.tailscale.ipn.R
-import com.tailscale.ipn.mdm.MDMSettings
+import com.tailscale.ipn.UninitializedApp
+import com.tailscale.ipn.ui.controller.ExitNodeController
+import com.tailscale.ipn.ui.controller.PeerListController
+import com.tailscale.ipn.ui.controller.PendingTaildropController
+import com.tailscale.ipn.ui.dataSource.ExitNodeStatusDataSource
+import com.tailscale.ipn.ui.dataSource.LoginActionsDataSource
+import com.tailscale.ipn.ui.dataSource.MainDataSource
 import com.tailscale.ipn.ui.model.Favorites
+import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.Ipn.State
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.notifier.Notifier
-import com.tailscale.ipn.ui.util.PeerCategorizer
-import com.tailscale.ipn.ui.util.PeerSet
+import com.tailscale.ipn.ui.repository.ProfilesRepository
 import com.tailscale.ipn.ui.util.TimeUtil
-import com.tailscale.ipn.ui.util.set
-import com.tailscale.ipn.ui.util.withPinnedSection
 import com.tailscale.ipn.util.TSLog
 import java.time.Duration
-import kotlin.time.Duration.Companion.milliseconds
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
-class MainViewModelFactory(private val appViewModel: AppViewModel) : ViewModelProvider.Factory {
+class MainViewModelFactory(
+    private val appViewModel: AppViewModel,
+    private val dataSource: MainDataSource,
+    private val loginActions: LoginActionsDataSource,
+    private val exitNodeDataSource: ExitNodeStatusDataSource,
+    private val profilesRepository: ProfilesRepository,
+) : ViewModelProvider.Factory {
   @Suppress("UNCHECKED_CAST")
   override fun <T : ViewModel> create(modelClass: Class<T>): T {
     if (modelClass.isAssignableFrom(MainViewModel::class.java)) {
-      return MainViewModel(appViewModel) as T
+      return MainViewModel(
+          appViewModel = appViewModel,
+          dataSource = dataSource,
+          loginActions = loginActions,
+          exitNodeDataSource = exitNodeDataSource,
+          profilesRepository = profilesRepository,
+      )
+          as T
     }
-    throw IllegalArgumentException("Unknown ViewModel class")
+    throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
   }
 }
 
-@OptIn(FlowPreview::class)
-class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
-  // The user readable state of the system
-  val stateRes: StateFlow<Int> = MutableStateFlow(userStringRes(State.NoState, State.NoState, true))
+class MainViewModel(
+    private val appViewModel: AppViewModel,
+    private val dataSource: MainDataSource,
+    private val loginActions: LoginActionsDataSource,
+    exitNodeDataSource: ExitNodeStatusDataSource,
+    profilesRepository: ProfilesRepository,
+) : ViewModel() {
+  val favorites: StateFlow<Favorites?> = dataSource.favorites
+  val prefs = dataSource.prefs
+  val netmap = dataSource.netmap
+  val managedByOrganization = dataSource.managedByOrganization
+  val healthIcon: StateFlow<Int?> = dataSource.healthIcon
 
-  // The expected state of the VPN toggle
-  private val _vpnToggleState = MutableStateFlow(false)
-  val vpnToggleState: StateFlow<Boolean> = _vpnToggleState
+  private val exitNodeController =
+      ExitNodeController(
+          dataSource = exitNodeDataSource,
+          scope = viewModelScope,
+      )
 
-  // Keeps track of whether a toggle operation is in progress. This ensures that toggleVpn cannot be
-  // invoked until the current operation is complete.
-  private val _isToggleInProgress = MutableStateFlow(false)
-  val isToggleInProgress: StateFlow<Boolean> = _isToggleInProgress
+  val nodeState = exitNodeController.nodeState
 
-  // Permission to prepare VPN
-  private var vpnPermissionLauncher: ActivityResultLauncher<Intent>? = null
-  private val _requestVpnPermission = MutableStateFlow(false)
-  val requestVpnPermission: StateFlow<Boolean> = _requestVpnPermission
-
-  // Select Taildrop directory
-  private var directoryPickerLauncher: ActivityResultLauncher<Uri?>? = null
-
-  // The list of peers
-  private val _peers = MutableStateFlow<List<PeerSet>>(emptyList())
-  val peers: StateFlow<List<PeerSet>> = _peers
-
-  private val _groupedPeers = MutableStateFlow<List<PeerSet>>(emptyList())
-
-  // The list of peers
-  private val _searchViewPeers = MutableStateFlow<List<PeerSet>>(emptyList())
-  val searchViewPeers: StateFlow<List<PeerSet>> = _searchViewPeers
-
-  // The current state of the IPN for determining view visibility
   val ipnState = Notifier.state
+  val isVpnPrepared = appViewModel.vpnPrepared
+  private val isVpnActive = appViewModel.vpnActive
 
-  private val favoritesManager = App.get().favoritesManager
-  val favorites: StateFlow<Favorites?> = favoritesManager.favorites
-  val isWritingFavorites: StateFlow<Boolean> = favoritesManager.writing
+  private val _stateRes = MutableStateFlow(userStringRes(State.NoState, State.NoState, true))
+  val stateRes: StateFlow<Int> = _stateRes.asStateFlow()
 
-  // The active search term for filtering peers
-  private val _searchTerm = MutableStateFlow("")
-  val searchTerm: StateFlow<String> = _searchTerm
+  private val _vpnToggleState = MutableStateFlow(false)
+  val vpnToggleState: StateFlow<Boolean> = _vpnToggleState.asStateFlow()
+
+  private val _isToggleInProgress = MutableStateFlow(false)
+  val isToggleInProgress: StateFlow<Boolean> = _isToggleInProgress.asStateFlow()
+
+  private val _requestVpnPermission = MutableStateFlow(false)
+  val requestVpnPermission: StateFlow<Boolean> = _requestVpnPermission.asStateFlow()
+
   var autoFocusSearch by mutableStateOf(true)
     private set
 
   // True if we should render the key expiry banner
-  val showExpiry: StateFlow<Boolean> = MutableStateFlow(false)
+  private val _showExpiry = MutableStateFlow(false)
+  val showExpiry: StateFlow<Boolean> = _showExpiry.asStateFlow()
 
   private val _pingPeer = MutableStateFlow<Tailcfg.Node?>(null)
   val pingPeer: StateFlow<Tailcfg.Node?> = _pingPeer.asStateFlow()
 
-  // The peer for which the dropdown menu is currently expanded. Null if no menu is expanded
-  var expandedMenuPeer: StateFlow<Tailcfg.Node?> = MutableStateFlow(null)
+  val loggedInUser = profilesRepository.currentProfile
 
   // Self-contained controller for the Taildrop in-app banner/list sheet.
-  val pendingTaildrop: PendingTaildropViewModel = PendingTaildropViewModel()
+  val pendingTaildrop = PendingTaildropController(viewModelScope)
 
-  val isVpnPrepared: StateFlow<Boolean> = appViewModel.vpnPrepared
+  private var vpnPermissionLauncher: ActivityResultLauncher<Intent>? = null
 
-  val isVpnActive: StateFlow<Boolean> = appViewModel.vpnActive
+  private val peerListController =
+      PeerListController(
+          netmap = dataSource.netmap,
+          favorites = dataSource.favorites,
+          scope = viewModelScope,
+      )
 
-  private var searchJob: Job? = null
+  val peers = peerListController.peers
+  val searchViewPeers = peerListController.searchViewPeers
+  val searchTerm = peerListController.searchTerm
 
-  // Icon displayed in the button to present the health view
-  val healthIcon: StateFlow<Int?> = MutableStateFlow(null)
+  // Returns true if we should skip all of the user-interactive permissions prompts
+  // (with the exception of the VPN permission prompt)
+  fun skipPromptsForAuthKeyLogin(): Boolean = dataSource.skipPromptsForAuthKeyLogin()
 
-  fun updateSearchTerm(term: String) {
-    _searchTerm.value = term
+  init {
+    viewModelScope.launch {
+      var previousState: State? = null
+
+      combine(ipnState, isVpnActive) { state, active -> state to active }
+          .collect { (currentState, active) ->
+            // Determine the correct state resource string
+            _stateRes.value = userStringRes(currentState, previousState, active)
+            // Determine if the VPN toggle should be on
+            _vpnToggleState.value =
+                when {
+                  active && (currentState == State.Running || currentState == State.Starting) ->
+                      true
+
+                  previousState == State.NoState && currentState == State.Starting -> true
+
+                  else -> false
+                }
+            // Update the previous state
+            previousState = currentState
+          }
+    }
+
+    // Key expiry
+    viewModelScope.launch {
+      dataSource.netmap.filterNotNull().collect { netmap ->
+        if (netmap.SelfNode.keyDoesNotExpire) {
+          _showExpiry.value = false
+        } else {
+          val expiryNotificationWindowMDM = dataSource.keyExpirationNotice()
+          val window =
+              expiryNotificationWindowMDM?.let { TimeUtil.duration(it) } ?: Duration.ofHours(24)
+          _showExpiry.value =
+              TimeUtil.isWithinExpiryNotificationWindow(window, netmap.SelfNode.KeyExpiry ?: "")
+        }
+      }
+    }
   }
 
-  fun hidePeerDropdownMenu() {
-    expandedMenuPeer.set(null)
+  fun login(
+      maskedPrefs: Ipn.MaskedPrefs? = null,
+      authKey: String? = null,
+      completionHandler: (Result<Unit>) -> Unit = {},
+  ) {
+    loginActions.login(
+        scope = viewModelScope,
+        maskedPrefs = maskedPrefs,
+        authKey = authKey,
+        completionHandler = completionHandler,
+    )
+  }
+
+  fun updateSearchTerm(term: String) {
+    peerListController.updateSearchTerm(term)
   }
 
   fun togglePin(peer: Tailcfg.Node) {
-    favoritesManager.toggleDevice(peer.StableID)
+    dataSource.toggleFavorite(peer.StableID)
   }
 
   fun startPing(peer: Tailcfg.Node) {
@@ -137,95 +197,14 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
     _pingPeer.value = null
   }
 
-  // Returns true if we should skip all of the user-interactive permissions prompts
-  // (with the exception of the VPN permission prompt)
-  fun skipPromptsForAuthKeyLogin(): Boolean {
-    val v = MDMSettings.authKey.flow.value.value
-    return v != null && v != ""
+  // Exit Node Manipulation
+
+  suspend fun toggleExitNode() {
+    exitNodeController.toggleExitNode()
   }
 
-  private val peerCategorizer = PeerCategorizer()
-  @OptIn(ExperimentalCoroutinesApi::class)
-  private val categorizerDispatcher = Dispatchers.Default.limitedParallelism(1)
-
-  init {
-    viewModelScope.launch {
-      var previousState: State? = null
-      combine(Notifier.state, isVpnActive) { state, active -> state to active }
-          .collect { (currentState, active) ->
-            // Determine the correct state resource string
-            stateRes.set(userStringRes(currentState, previousState, active))
-            // Determine if the VPN toggle should be on
-            val isOn =
-                when {
-                  active && (currentState == State.Running || currentState == State.Starting) ->
-                      true
-                  previousState == State.NoState && currentState == State.Starting -> true
-                  else -> false
-                }
-            // Update the VPN toggle state
-            _vpnToggleState.value = isOn
-            // Update the previous state
-            previousState = currentState
-          }
-    }
-
-    viewModelScope.launch {
-      _searchTerm.debounce(250L.milliseconds).collect { term ->
-        // run the search as a background task
-        searchJob?.cancel()
-        searchJob =
-            launch(categorizerDispatcher) {
-              val filteredPeers = peerCategorizer.groupedAndFilteredPeers(term)
-              _searchViewPeers.value = filteredPeers
-            }
-      }
-    }
-
-    // handle grouping
-    viewModelScope.launch {
-      Notifier.netmap.filterNotNull().collectLatest { netmap ->
-        searchJob?.cancel()
-        withContext(categorizerDispatcher) {
-          peerCategorizer.regenerateGroupedPeers(netmap)
-          val filteredPeers = peerCategorizer.groupedAndFilteredPeers(searchTerm.value)
-          _groupedPeers.value = peerCategorizer.peerSets
-          _searchViewPeers.value = filteredPeers
-        }
-      }
-    }
-
-    // transform with favorites
-    viewModelScope.launch {
-      combine(_groupedPeers, favorites) { sets, favs -> sets to favs }
-          .collectLatest { (sets, favs) ->
-            withContext(categorizerDispatcher) {
-              _peers.value = sets.withPinnedSection(favs?.deviceIds.orEmpty())
-            }
-          }
-    }
-
-    // Key expiry
-    viewModelScope.launch {
-      Notifier.netmap.filterNotNull().collect { netmap ->
-        if (netmap.SelfNode.keyDoesNotExpire) {
-          showExpiry.set(false)
-        } else {
-          val expiryNotificationWindowMDM = MDMSettings.keyExpirationNotice.flow.value.value
-          val window =
-              expiryNotificationWindowMDM?.let { TimeUtil.duration(it) } ?: Duration.ofHours(24)
-          showExpiry.set(
-              TimeUtil.isWithinExpiryNotificationWindow(
-                  window,
-                  netmap.SelfNode.KeyExpiry ?: "",
-              )
-          )
-        }
-      }
-    }
-    viewModelScope.launch {
-      App.get().healthNotifier?.currentIcon?.collect { icon -> healthIcon.set(icon) }
-    }
+  suspend fun setRunningExitNode(isOn: Boolean) {
+    exitNodeController.setRunningExitNode(isOn)
   }
 
   fun maybeRequestVpnPermission() {
@@ -235,11 +214,12 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
   fun showVPNPermissionLauncherIfUnauthorized() {
     val vpnIntent = VpnService.prepare(App.get())
     TSLog.d("VpnPermissions", "vpnIntent=$vpnIntent")
+
     if (vpnIntent != null) {
       vpnPermissionLauncher?.launch(vpnIntent)
     } else {
       appViewModel.setVpnPrepared(true)
-      startVPN()
+      UninitializedApp.get().startVPN()
     }
     _requestVpnPermission.value = false // reset
   }
@@ -253,27 +233,23 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
     viewModelScope.launch {
       _isToggleInProgress.value = true
       try {
-        val currentState = Notifier.state.value
+        val currentState = ipnState.value
 
         if (desiredState) {
           // User wants to turn ON the VPN
-          when {
-            currentState != State.Running -> showVPNPermissionLauncherIfUnauthorized()
+          if (currentState != State.Running) {
+            showVPNPermissionLauncherIfUnauthorized()
           }
         } else {
           // User wants to turn OFF the VPN
           if (currentState == State.Running) {
-            stopVPN()
+            UninitializedApp.get().stopVPN()
           }
         }
       } finally {
         _isToggleInProgress.value = false
       }
     }
-  }
-
-  fun searchPeers(searchTerm: String) {
-    this.searchTerm.set(searchTerm)
   }
 
   fun enableSearchAutoFocus() {
@@ -290,7 +266,11 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
   }
 }
 
-private fun userStringRes(currentState: State?, previousState: State?, vpnActive: Boolean): Int {
+private fun userStringRes(
+    currentState: State?,
+    previousState: State?,
+    vpnActive: Boolean,
+): Int {
   return when {
     previousState == State.NoState && currentState == State.Starting -> R.string.starting
     currentState == State.NoState -> R.string.placeholder

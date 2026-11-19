@@ -57,6 +57,19 @@ class LoginActionsDataSourceImpl :
     login(scope, prefs, authKey = null, completionHandler)
   }
 
+  /**
+   * Order of operations:
+   * 1. editPrefs() with maskedPrefs (to allow ControlURL override), LoggedOut=false if AuthKey !=
+   *    null
+   * 2. start() starts the LocalBackend state machine with WantRunning=true. to avoid a race: if
+   *    editPrefs() set WantRunning=true, the backend would fire a cc.Login(LoginDefault) on the
+   *    existing control client immediately. start() then tears down this client and creates a new
+   *    one
+   * 3. startLoginInteractive() is currently required for both interactive and non-interactive
+   *    (using auth key) login
+   *
+   * Any failure short‑circuits the chain and invokes completionHandler once.
+   */
   override fun login(
       scope: CoroutineScope,
       maskedPrefs: Ipn.MaskedPrefs?,

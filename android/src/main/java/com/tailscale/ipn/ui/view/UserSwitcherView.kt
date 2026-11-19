@@ -44,8 +44,10 @@ import com.tailscale.ipn.ui.components.Header
 import com.tailscale.ipn.ui.components.ListItemText
 import com.tailscale.ipn.ui.dataSource.LoginActionsDataSource
 import com.tailscale.ipn.ui.dataSource.UserSwitcherDataSource
+import com.tailscale.ipn.ui.model.ErrorDialogType
 import com.tailscale.ipn.ui.model.IpnLocal
 import com.tailscale.ipn.ui.model.Tailcfg
+import com.tailscale.ipn.ui.repository.ProfilesRepository
 import com.tailscale.ipn.ui.theme.AppTheme
 import com.tailscale.ipn.ui.util.AndroidTVUtil
 import com.tailscale.ipn.ui.util.Lists
@@ -60,11 +62,14 @@ fun UserSwitcherView(
     userSwitcherNav: UserSwitcherNav,
     dataSource: UserSwitcherDataSource,
     loginActions: LoginActionsDataSource,
+    profilesRepository: ProfilesRepository,
 ) {
   val context = LocalContext.current
 
   val factory =
-      remember(dataSource, loginActions) { UserSwitcherViewModelFactory(dataSource, loginActions) }
+      remember(dataSource, loginActions, profilesRepository) {
+        UserSwitcherViewModelFactory(dataSource, loginActions, profilesRepository)
+      }
   val userSwitcherViewModel: UserSwitcherViewModel = viewModel(factory = factory)
 
   val users by userSwitcherViewModel.loginProfiles.collectAsStateWithLifecycle()
