@@ -78,6 +78,7 @@ open class IPNService : VpnService(), libtailscale.IPNService {
                     )
                   }
                 },
+                snapshot = { diagnosticSnapshot() },
                 logSink = { message ->
                   WatchdogLog(File(filesDir, "watchdog.log")).append(message)
                 },
@@ -335,6 +336,33 @@ open class IPNService : VpnService(), libtailscale.IPNService {
               }
             }
           } ?: false
+
+  /**
+   * Everything the app can see about the tunnel, captured at the moment it
+   * stopped passing traffic. This is the evidence we have never had: the state
+   * at failure, not a reconstruction afterwards.
+   */
+  private suspend fun diagnosticSnapshot(): String {
+    val status = fetchStatus()
+    val peers = status?.Peer?.values.orEmpty()
+    val online = peers.count { it.Online }
+    val direct = peers.count { it.Online && !it.CurAddr.isNullOrEmpty() }
+    val relays = peers.filter { it.Online }.mapNotNull { it.Relay }.groupingBy { it }.eachCount()
+    val health = Notifier.health.value?.Warnings?.keys?.sorted() ?: emptyList()
+    val prefs = Notifier.prefs.value
+    return buildString {
+      appendLine("ipn.State=${Notifier.state.value}")
+      appendLine("homeRelay=${status?.Self?.Relay ?: "?"}")
+      appendLine("peers online=$online direct=$direct relays=$relays")
+      appendLine("health=$health")
+      appendLine("wantRunning=${prefs?.WantRunning} exitNode=${prefs?.ExitNodeID}")
+      appendLine(
+          "underlyingNet=${NetworkChangeCallback.cachedDefaultNetwork} " +
+              "iface=${NetworkChangeCallback.cachedDefaultInterfaceName ?: "none"}"
+      )
+      appendLine("uidBytes=${appBytesTransferred()}")
+    }
+  }
 
   /** Fetches the engine status once, for the home-relay check. */
   private suspend fun fetchStatus(): IpnState.Status? =

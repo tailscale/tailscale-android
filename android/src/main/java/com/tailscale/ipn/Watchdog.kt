@@ -222,6 +222,13 @@ internal class TunnelWatchdog(
     /** This node's home relay and the peers' home relays, or null when unknown. */
     private val currentDerpView: suspend () -> DerpView? = { null },
     /**
+     * A multi-line diagnostic snapshot taken when a probe round fails, before
+     * the watchdog acts. This is the instrument that makes the next failure
+     * diagnosable: the state at the moment the tunnel stopped passing traffic
+     * is the evidence we have never had.
+     */
+    private val snapshot: suspend () -> String = { "" },
+    /**
      * Durable sink for the watchdog's decisions. logcat rotates in minutes on a
      * busy device, so a decision made at 03:00 is gone by morning unless it is
      * written somewhere that survives. Defaults to a no-op so tests need no file.
@@ -310,6 +317,11 @@ internal class TunnelWatchdog(
     lastProbeBytes = (after - before).coerceAtLeast(0L)
 
     val decision = core.onProbeRound(outcome.tunnelAlive, outcome.targetsProbed, now)
+    if (!outcome.tunnelAlive) {
+      // Capture the state BEFORE acting: a restart destroys the evidence.
+      runCatching { log("SNAPSHOT\n" + snapshot()) }
+          .onFailure { log("snapshot failed: $it") }
+    }
     handle(decision, outcome)
   }
 
