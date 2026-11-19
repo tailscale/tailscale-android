@@ -440,6 +440,7 @@ DOCKER_GRADLE_DIR := $(CURDIR)/.gradle-docker
 DOCKER_GO_CACHE_DIR := $(CURDIR)/.cache-docker
 ANDROID_INTEGRATION_ARTIFACTS_DIR := integration-artifacts
 ANDROID_TEST_SUMMARY := android-test-summary.md
+ANDROID_TEST_RESULTS := android-test-results.json
 
 .PHONY: docker-android-dir
 docker-android-dir:
@@ -460,7 +461,7 @@ docker-tailscale-debug: docker-build-image docker-android-dir ## Build tailscale
 	@docker run --rm $(DOCKER_RUN_VOLS) $(DOCKER_IMAGE) make tailscale-debug
 
 define run-androidvmtest
-	@rm -f $(ANDROID_TEST_SUMMARY)
+	@rm -f $(ANDROID_TEST_SUMMARY) $(ANDROID_TEST_RESULTS)
 	@docker run --rm --device /dev/kvm \
 		-v $(CURDIR):/workspace \
 		-v $(DOCKER_ANDROID_INTEGRATION_DIR):/root/.android \
@@ -470,6 +471,7 @@ define run-androidvmtest
 		--env GITHUB_ACTIONS \
 		--env GITHUB_REPOSITORY \
 		--env GITHUB_STEP_SUMMARY=/workspace/$(ANDROID_TEST_SUMMARY) \
+		--env TS_TESTWRAPPER_RESULTS_JSON=/workspace/$(ANDROID_TEST_RESULTS) \
 		--env TS_TESTWRAPPER_RESULTS_SUMMARY \
 		-w /workspace \
 		$(ANDROID_INTEGRATION_DOCKER_IMAGE) \

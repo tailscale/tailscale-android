@@ -106,6 +106,8 @@ jobs:
     if: needs.should-run.outputs.run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    outputs:
+      report: ${{ steps.report.outputs.report }}
 
     steps:
       - name: Check out code
@@ -130,9 +132,39 @@ jobs:
       - name: Run integration test
         env:
           TS_TESTWRAPPER_RESULTS_SUMMARY: "1"
-        run: make android-integration-test-run
+        shell: bash
+        run: make android-integration-test-run 2>&1 | tee "integration-test-${GITHUB_RUN_ATTEMPT}.log"
 
       - name: Add test results to the summary
         if: always()
         continue-on-error: true
         run: test ! -f android-test-summary.md || cat android-test-summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Report test results
+        id: report
+        if: always()
+        continue-on-error: true
+        uses: ./.github/actions/android-test-report
+        with:
+          check: integration-test
+
+  notify:
+    needs: [should-run, integration-test]
+    if: always() && needs.should-run.outputs.run == 'true' && (github.event_name != 'pull_request' || github.run_attempt != '1' || github.event.action == 'labeled')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      actions: read
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Post results to Slack
+        uses: ./.github/actions/android-slack-notify
+        with:
+          webhook: ${{ secrets.ANDROID_SLACK_WEBHOOK_URL }}
+          result: ${{ needs.integration-test.result }}
+          report: ${{ needs.integration-test.outputs.report }}
+          combine: ${{ github.event_name == 'pull_request' }}

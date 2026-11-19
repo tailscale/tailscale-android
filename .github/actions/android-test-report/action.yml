@@ -1,0 +1,150 @@
+name: android-test-report
+description: Upload the failed cases' recordings and summarize the results for Slack
+
+inputs:
+  check:
+    description: Name of the test job, used to find the test log and name the uploads
+    required: true
+  all-recordings-url:
+    description: Download URL of the zip with every recording, if one was uploaded
+    required: false
+    default: ""
+
+outputs:
+  report:
+    description: JSON with the counts, the failed and flaky cases, and the download links
+    value: ${{ steps.report.outputs.report }}
+
+runs:
+  using: composite
+  steps:
+    - name: Collect results
+      id: collect
+      shell: bash
+      env:
+        CHECK: ${{ inputs.check }}
+      run: |
+        log="${CHECK}-${GITHUB_RUN_ATTEMPT}.log"
+        rows='[]'
+        has_results=false
+        if [ -s android-test-results.json ]; then
+          case "$(jq -r 'type' android-test-results.json 2>/dev/null || true)" in
+            array)
+              rows=$(jq -c '[ .[] | objects ] | unique_by([.Package, .Test])' android-test-results.json)
+              has_results=true
+              ;;
+            null)
+              has_results=true
+              ;;
+          esac
+        fi
+
+        # Only Go's own result lines count, so a test's log output can't add a name.
+        names='[]'
+        if [ -s "$log" ]; then
+          names=$(sed -nE 's/^( {4})*--- FAIL: ([^ ]+) \([0-9]+\.[0-9]+s\)$/\2/p' "$log" | jq -R -s -c 'split("\n") | map(select(length > 0)) | unique')
+        fi
+
+        recordings='[]'
+        while IFS= read -r -d '' f; do
+          dir=$(basename "$(dirname "$(dirname "$f")")")
+          recordings=$(jq -c --arg n "${dir//__//}" --arg f "$f" 'if any(.[]; .name == $n) then . else . + [{name: $n, file: $f}] end' <<<"$recordings")
+        done < <(find integration-artifacts/_artifacts -name screen.mp4 -print0 2>/dev/null | sort -z)
+
+        jq -n -c --argjson rows "$rows" --argjson names "$names" --argjson recordings "$recordings" --argjson has "$has_results" '
+          ($rows | map({key: .Test, value: .Outcome}) | from_entries) as $out
+          | def outcome: $out[split("/")[0]] // "";
+          [ $names[] | select(outcome == "fail" or outcome == "retried") ] as $listed
+          | [ $listed[] | . as $n | select(any($listed[]; startswith($n + "/")) | not) ] as $leaves
+          | [ $rows[] | select(.Outcome == "fail" or .Outcome == "retried") | .Test as $t | select(any($leaves[]; split("/")[0] == $t) | not) | $t ] as $bare
+          | ($leaves + $bare) as $cases
+          | [ ($cases[] | select(outcome == "fail")), ($cases[] | select(outcome == "retried")) ] as $ordered
+          | [ $ordered[] as $n | $recordings[] | select(.name == $n) ] as $wanted
+          | {
+              has_results: $has,
+              passed: ([ $rows[] | select(.Outcome == "pass" or .Outcome == "retried") ] | length),
+              failed: ([ $rows[] | select(.Outcome == "fail") ] | length),
+              skipped: ([ $rows[] | select(.Outcome == "skip") ] | length),
+              retried: ([ $rows[] | select(.Outcome == "retried") ] | length),
+              failed_cases: [ $cases[] | select(outcome == "fail") ],
+              flaky_cases: [ $cases[] | select(outcome == "retried") ],
+              wanted: $wanted[:3],
+              more_recordings: ([ ($wanted | length) - 3, 0 ] | max)
+            }' > "$RUNNER_TEMP/android-test-report.json"
+
+        mkdir -p recordings
+        i=0
+        while IFS=$'\t' read -r name file; do
+          i=$((i + 1))
+          out="recordings/${CHECK}-${GITHUB_RUN_ATTEMPT}-${name//\//__}.mp4"
+          cp "$file" "$out"
+          echo "video$i=$out" >> "$GITHUB_OUTPUT"
+          echo "case$i=$name" >> "$GITHUB_OUTPUT"
+        done < <(jq -r '.wanted[] | [.name, .file] | @tsv' "$RUNNER_TEMP/android-test-report.json")
+
+
+    - name: Upload recording 1
+      id: video-1
+      if: always() && steps.collect.outputs.video1 != ''
+      continue-on-error: true
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        path: ${{ steps.collect.outputs.video1 }}
+        archive: false
+        retention-days: 14
+
+    - name: Upload recording 2
+      id: video-2
+      if: always() && steps.collect.outputs.video2 != ''
+      continue-on-error: true
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        path: ${{ steps.collect.outputs.video2 }}
+        archive: false
+        retention-days: 14
+
+    - name: Upload recording 3
+      id: video-3
+      if: always() && steps.collect.outputs.video3 != ''
+      continue-on-error: true
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        path: ${{ steps.collect.outputs.video3 }}
+        archive: false
+        retention-days: 14
+
+    - name: Summarize for Slack
+      id: report
+      if: always()
+      shell: bash
+      env:
+        CHECK: ${{ inputs.check }}
+        CASE1: ${{ steps.collect.outputs.case1 }}
+        CASE2: ${{ steps.collect.outputs.case2 }}
+        CASE3: ${{ steps.collect.outputs.case3 }}
+        URL1: ${{ steps.video-1.outputs.artifact-url }}
+        URL2: ${{ steps.video-2.outputs.artifact-url }}
+        URL3: ${{ steps.video-3.outputs.artifact-url }}
+        ALL_URL: ${{ inputs.all-recordings-url }}
+      run: |
+        report="$RUNNER_TEMP/android-test-report.json"
+        if [ ! -s "$report" ]; then
+          echo '{}' > "$report"
+        fi
+        summary=$(jq -c --arg c1 "$CASE1" --arg c2 "$CASE2" --arg c3 "$CASE3" \
+          --arg u1 "$URL1" --arg u2 "$URL2" --arg u3 "$URL3" \
+          --arg all "$ALL_URL" '
+          del(.wanted)
+          | .recordings = ([ {name: $c1, url: $u1}, {name: $c2, url: $u2}, {name: $c3, url: $u3} ] | map(select(.name != "" and .url != "")))
+          | .all_recordings_url = $all' "$report")
+        echo "report=$summary" >> "$GITHUB_OUTPUT"
+        printf '%s\n' "$summary" > "${CHECK}-report.json"
+
+    - name: Upload report
+      if: always() && steps.report.outputs.report != ''
+      continue-on-error: true
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: ${{ inputs.check }}-report-${{ github.run_attempt }}
+        path: ${{ inputs.check }}-report.json
+        retention-days: 14
