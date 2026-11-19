@@ -24,21 +24,25 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
+import androidx.lifecycle.viewmodel.compose.rememberViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.components.Header
 import com.tailscale.ipn.ui.dataSource.PeerDetailsDataSource
+import com.tailscale.ipn.ui.dataSource.PingDataSource
 import com.tailscale.ipn.ui.model.Netmap
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.theme.AppTheme
@@ -46,10 +50,11 @@ import com.tailscale.ipn.ui.theme.listItem
 import com.tailscale.ipn.ui.theme.short
 import com.tailscale.ipn.ui.util.AndroidTVUtil.isAndroidTV
 import com.tailscale.ipn.ui.util.Lists
+import com.tailscale.ipn.ui.util.copyText
 import com.tailscale.ipn.ui.util.itemsWithDividers
 import com.tailscale.ipn.ui.viewModel.PeerDetailsViewModel
 import com.tailscale.ipn.ui.viewModel.PeerDetailsViewModelFactory
-import com.tailscale.ipn.ui.viewModel.PingViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,10 +62,9 @@ fun PeerDetailsView(
     onNavigateBack: () -> Unit,
     nodeId: String,
     dataSource: PeerDetailsDataSource,
-    pingViewModel: PingViewModel = viewModel(),
+    pingDataSource: PingDataSource,
 ) {
-  val factory =
-      remember(dataSource) { PeerDetailsViewModelFactory(nodeId, pingViewModel, dataSource) }
+  val factory = remember(dataSource) { PeerDetailsViewModelFactory(nodeId, dataSource) }
   val peerDetailsViewModel: PeerDetailsViewModel = viewModel(factory = factory)
 
   val isPinging by peerDetailsViewModel.isPinging.collectAsStateWithLifecycle()
@@ -89,28 +93,38 @@ fun PeerDetailsView(
   )
 
   if (isPinging) {
-    ModalBottomSheet(
-        onDismissRequest = { peerDetailsViewModel.onPingDismissal() },
-        sheetState =
-            rememberModalBottomSheetState(
-                skipPartiallyExpanded = true,
-            ),
+    val pingOwner = rememberViewModelStoreOwner()
+
+    CompositionLocalProvider(
+        LocalViewModelStoreOwner provides pingOwner,
     ) {
-      PingView(model = peerDetailsViewModel.pingViewModel)
+      ModalBottomSheet(
+          onDismissRequest = peerDetailsViewModel::onPingDismissal,
+          sheetState =
+              rememberModalBottomSheetState(
+                  skipPartiallyExpanded = true,
+              ),
+      ) {
+        PingView(
+            peer = currentNode,
+            dataSource = pingDataSource,
+        )
+      }
     }
   }
 }
 
 @Composable
 private fun AddressRow(address: String, type: String, isTv: Boolean) {
-  val localClipboardManager = LocalClipboardManager.current
+  val clipboard = LocalClipboard.current
+  val scope = rememberCoroutineScope()
 
   // Android TV doesn't have a clipboard, nor any way to use the values, so visible only.
   val modifier =
       if (isTv) {
         Modifier.focusable(false)
       } else {
-        Modifier.clickable { localClipboardManager.setText(AnnotatedString(address)) }
+        Modifier.clickable { scope.launch { clipboard.copyText(type, address) } }
       }
 
   ListItem(

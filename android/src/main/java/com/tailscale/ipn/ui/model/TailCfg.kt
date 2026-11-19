@@ -5,6 +5,7 @@ package com.tailscale.ipn.ui.model
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.Clipboard
 import androidx.compose.ui.res.stringResource
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.Links
@@ -13,6 +14,7 @@ import com.tailscale.ipn.ui.theme.on
 import com.tailscale.ipn.ui.util.ComposableStringFormatter
 import com.tailscale.ipn.ui.util.DisplayAddress
 import com.tailscale.ipn.ui.util.TimeUtil
+import com.tailscale.ipn.ui.util.copyText
 import com.tailscale.ipn.ui.util.flag
 import com.tailscale.ipn.ui.viewModel.PeerSettingInfo
 import java.util.Date
@@ -173,6 +175,18 @@ class Tailcfg {
 
         return result
       }
+
+    suspend fun copyIPV4Address(clipboard: Clipboard) {
+      clipboard.copyText("IPv4 address", primaryIPv4Address ?: "")
+    }
+
+    suspend fun copyIPV6Address(clipboard: Clipboard) {
+      clipboard.copyText("IPv6 address", primaryIPv6Address ?: "")
+    }
+
+    suspend fun copyMagicDNSAddress(clipboard: Clipboard) {
+      clipboard.copyText("MagicDNS address", magicDNSAddress ?: "")
+    }
 
     @Composable
     fun expiryLabel(): String {
