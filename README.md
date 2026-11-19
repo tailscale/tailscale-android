@@ -125,7 +125,7 @@ nix develop --command bash -lc 'cd android && ./gradlew ktfmtCheck compileDebugK
 
   ## Integration tests
     
-  In GitHub Actions, integration tests run automatically for pull requests that change relevant Android, Go, or build/test infrastructure code. They can also be triggered by adding the run-integration-test label to a pull request or manually through the Integration Test workflow.
+  In GitHub Actions, integration tests run automatically for pull requests that change relevant Android, Go, or build/test infrastructure code. They can also be triggered by adding the run-integration-test label to a pull request or manually through the Integration Test workflow. The UI smoke test runs as its own Smoke Test check on every pull request, and both checks also run three times a night on main.
 
 ## Building
 

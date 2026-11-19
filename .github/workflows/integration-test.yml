@@ -6,6 +6,9 @@ concurrency:
 
 on:
   workflow_dispatch:
+  schedule:
+    # Three runs a night, at 07:13, 07:33 and 07:53 UTC, to catch flaky tests.
+    - cron: "13,33,53 7 * * *"
   pull_request:
     types: [opened, labeled, synchronize, reopened]
 
@@ -26,7 +29,7 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           HAS_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'run-integration-test') }}
         run: |
-          if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch || "$HAS_LABEL" == true ]]; then
+          if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch || "$GITHUB_EVENT_NAME" == schedule || "$HAS_LABEL" == true ]]; then
             echo "run=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -115,20 +118,21 @@ jobs:
           sudo udevadm trigger --name-match=kvm
           ls -l /dev/kvm
 
+      - name: Build Docker build image
+        run: make docker-build-image
+
+      - name: Build debug APK
+        run: make docker-tailscale-debug
+
+      - name: Build Docker test image
+        run: make docker-build-android-integration-image
+
       - name: Run integration test
-        run: make android-integration-test
+        env:
+          TS_TESTWRAPPER_RESULTS_SUMMARY: "1"
+        run: make android-integration-test-run
 
-      - name: Make test artifacts readable
+      - name: Add test results to the summary
         if: always()
         continue-on-error: true
-        run: test ! -d integration-artifacts || sudo chmod -R a+rX integration-artifacts
-
-      - name: Upload test artifacts
-        if: always()
-        continue-on-error: true
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: integration-test-artifacts-${{ github.run_attempt }}
-          path: integration-artifacts/
-          if-no-files-found: ignore
-          retention-days: 14
+        run: test ! -f android-test-summary.md || cat android-test-summary.md >> "$GITHUB_STEP_SUMMARY"
