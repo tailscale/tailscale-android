@@ -42,6 +42,7 @@ tailscale.jks
 # Test artifacts from `make android-smoke-test` and `make android-integration-test`.
 /integration-artifacts/
 /android-test-summary.md
+/android-test-results.json
 
 # Java profiling output
 *.hprof
