@@ -75,6 +75,35 @@ object NetworkChangeCallback {
     underlyingNetworkListener = listener
   }
 
+  // Reconcile the callback cache with Android before starting a VPN. The app process can outlive
+  // the VPN service, so reconnecting must not depend on having received every network callback
+  // while the VPN was stopped.
+  @Suppress("DEPRECATION") // A one-off snapshot repairs the cache; callbacks still handle updates.
+  fun refreshDefaultNetwork(connectivityManager: ConnectivityManager, dns: DnsConfig) {
+    lock.withLock {
+      val networks = connectivityManager.allNetworks.toSet()
+      // Discard networks whose onLost callback was missed, but retain placeholders for live
+      // networks whose LinkProperties callback has not arrived yet.
+      activeNetworks.keys.retainAll(networks)
+      for (network in networks) {
+        val caps = connectivityManager.getNetworkCapabilities(network)
+        if (
+            caps == null ||
+                !caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) ||
+                !caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
+        ) {
+          activeNetworks.remove(network)
+          continue
+        }
+        val linkProps = connectivityManager.getLinkProperties(network) ?: continue
+        if (linkProps.interfaceName == null) continue
+        activeNetworks[network] = NetworkInfo(caps, linkProps)
+      }
+      recomputeDefaultNetworkLocked("refreshDefaultNetwork")
+      maybeUpdateDNSConfig("refreshDefaultNetwork", dns)
+    }
+  }
+
   // monitorDnsChanges sets up a network callback to monitor changes to the
   // system's network state and update the DNS configuration when interfaces
   // become available or properties of those interfaces change.
