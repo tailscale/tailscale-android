@@ -232,7 +232,23 @@ type ShareFileHelper interface {
 // of various state changes.
 
 func RequestVPN(service IPNService) {
-	onVPNRequested <- service
+	// Never block the caller. This is called from the Android main thread
+	// inside IPNService.onStartCommand, and a blocked send there is an ANR of
+	// type SERVICE_EXECUTING after 30 s. If a request is already pending, the
+	// newest service instance wins.
+	select {
+	case onVPNRequested <- service:
+		return
+	default:
+	}
+	select {
+	case <-onVPNRequested:
+	default:
+	}
+	select {
+	case onVPNRequested <- service:
+	default:
+	}
 }
 
 func ServiceDisconnect(service IPNService) {

@@ -366,6 +366,10 @@
     <string name="client_remote_logging_disable_confirm_title">Disable remote client logging?</string>
     <string name="client_remote_logging_disable_confirm_message">Disabling remote client logging will break Network Flow Logs if enabled and required by your tailnet admin, and will prevent Tailscale Support from being able to help debug problems with this device.</string>
     <string name="client_remote_logging_disable_confirm_button">Yes, disable</string>
+    <string name="tunnel_watchdog_enabled">Automatic tunnel recovery</string>
+    <string name="tunnel_watchdog_enabled_subtitle">Detects a tunnel that has stopped passing traffic and recycles it automatically. Turn this off if you would rather reconnect by hand.</string>
+    <string name="watchdog_gave_up_title">Tunnel still not working</string>
+    <string name="watchdog_gave_up_text">Automatic recovery tried three times without restoring traffic. Turn the VPN off and on to reconnect.</string>
     <string name="specifies_a_device_name_to_be_used_instead_of_the_automatic_default">Specifies a device name to be used instead of the automatic default.</string>
     <string name="hostname">Hostname</string>
     <string name="failed_to_save">Failed to save</string>

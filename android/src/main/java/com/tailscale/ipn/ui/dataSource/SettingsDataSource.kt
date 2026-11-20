@@ -24,6 +24,10 @@ interface SettingsDataSource {
   fun isClientLoggingEnabled(): Boolean
 
   fun setClientLoggingEnabled(enabled: Boolean)
+
+  fun isTunnelWatchdogEnabled(): Boolean
+
+  fun setTunnelWatchdogEnabled(enabled: Boolean)
 }
 
 class SettingsDataSourceImpl : SettingsDataSource {
@@ -41,5 +45,11 @@ class SettingsDataSourceImpl : SettingsDataSource {
 
   override fun setClientLoggingEnabled(enabled: Boolean) {
     App.get().updateIsClientLoggingEnabled(enabled)
+  }
+
+  override fun isTunnelWatchdogEnabled() = App.get().isTunnelWatchdogEnabled()
+
+  override fun setTunnelWatchdogEnabled(enabled: Boolean) {
+    App.get().setTunnelWatchdogEnabled(enabled)
   }
 }

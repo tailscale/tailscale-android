@@ -114,6 +114,18 @@ object NetworkChangeCallback {
             super.onCapabilitiesChanged(network, capabilities)
 
             lock.withLock {
+              val previous = activeNetworks[network]?.caps
+              // Android calls this on every capability change, including signal
+              // strength, and in practice most calls repeat identical
+              // capabilities: a 9-hour window on this device produced hundreds
+              // of callbacks and only 6 real changes. Recomputing the default
+              // network for an identical set is pure work, so skip it.
+              if (previous != null && previous == capabilities) {
+                return
+              }
+              if (previous != null) {
+                TSLog.d(TAG, "caps changed for $network: $previous -> $capabilities")
+              }
               activeNetworks[network]?.caps = capabilities
 
               if (recomputeDefaultNetworkLocked("onCapabilitiesChanged")) {

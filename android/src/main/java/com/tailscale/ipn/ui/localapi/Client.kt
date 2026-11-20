@@ -98,6 +98,15 @@ class Client(
     post(Endpoint.BUG_REPORT, responseHandler = responseHandler)
   }
 
+  /**
+   * Runs one of the engine's `debug` actions in-process. The whole `debug` family is compiled into
+   * the shipped APK (the Android build only omits `ts_omit_cachenetmap`), so `rebind`, `restun` and
+   * `break-tcp-conns` are available to the watchdog without a socket.
+   */
+  fun debugAction(action: String, responseHandler: (Result<Unit>) -> Unit = {}) {
+    post("${Endpoint.DEBUG}?action=$action", responseHandler = responseHandler)
+  }
+
   fun prefs(responseHandler: PrefsHandler) {
     get(Endpoint.PREFS, responseHandler = responseHandler)
   }

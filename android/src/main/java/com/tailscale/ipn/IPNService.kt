@@ -6,18 +6,31 @@ import android.app.PendingIntent
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Network
+import android.net.TrafficStats
 import android.net.VpnService
 import android.os.Build
+import android.os.Process
 import android.system.OsConstants
 import com.tailscale.ipn.mdm.MDMSettings
+import com.tailscale.ipn.ui.localapi.Client
 import com.tailscale.ipn.ui.model.Ipn
+import com.tailscale.ipn.ui.model.IpnState
+import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.util.TSLog
+import java.net.InetAddress
+import java.net.InetSocketAddress
+import java.net.Socket
+import java.io.File
 import java.util.UUID
+import kotlin.coroutines.resume
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import libtailscale.Libtailscale
 
 open class IPNService : VpnService(), libtailscale.IPNService {
@@ -26,6 +39,7 @@ open class IPNService : VpnService(), libtailscale.IPNService {
   private lateinit var app: App
   val scope = CoroutineScope(Dispatchers.IO)
   private var closed = false
+  private var watchdog: TunnelWatchdog? = null
 
   override fun id(): String {
     return randomID
@@ -43,6 +57,33 @@ open class IPNService : VpnService(), libtailscale.IPNService {
     NetworkChangeCallback.setUnderlyingNetworkListener { network ->
       updateUnderlyingNetwork(network)
     }
+
+    watchdog =
+        TunnelWatchdog(
+                scope = scope,
+                isEnabled = { UninitializedApp.get().isTunnelWatchdogEnabled() },
+                currentState = { Notifier.state.value },
+                bytesTransferred = { appBytesTransferred() },
+                probe = { probeTunnel() },
+                act = { action -> performRecycleAction(action) },
+                onGiveUp = { UninitializedApp.get().notifyWatchdogGaveUp() },
+                currentDerpView = {
+                  fetchStatus()?.let { s ->
+                    DerpView(
+                        homeRelay = s.Self?.Relay,
+                        peerRelays =
+                            s.Peer?.values.orEmpty()
+                                .filter { it.Online }
+                                .mapNotNull { it.Relay },
+                    )
+                  }
+                },
+                snapshot = { diagnosticSnapshot() },
+                logSink = { message ->
+                  WatchdogLog(File(filesDir, "watchdog.log")).append(message)
+                },
+            )
+            .also { it.start() }
   }
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int =
@@ -114,6 +155,8 @@ open class IPNService : VpnService(), libtailscale.IPNService {
   }
 
   override fun onDestroy() {
+    watchdog?.stop()
+    watchdog = null
     NetworkChangeCallback.setUnderlyingNetworkListener(null)
     close()
     updateVpnStatus(false)
@@ -251,11 +294,125 @@ open class IPNService : VpnService(), libtailscale.IPNService {
     return VPNServiceBuilder(b)
   }
 
+  /**
+   * Total bytes this app's UID has moved, used by the watchdog's traffic gate. Returns 0 when the
+   * platform does not report per-UID stats, which makes the gate treat the app as silent and fall
+   * through to the probe — the probe is the authoritative signal either way.
+   */
+  private fun appBytesTransferred(): Long {
+    val uid = Process.myUid()
+    val rx = TrafficStats.getUidRxBytes(uid)
+    val tx = TrafficStats.getUidTxBytes(uid)
+    if (rx == TrafficStats.UNSUPPORTED.toLong() || tx == TrafficStats.UNSUPPORTED.toLong()) {
+      return 0L
+    }
+    return rx + tx
+  }
+
+  /**
+   * Probes a tailnet peer (through the tunnel) and the control plane (from the app's own sockets).
+   * The peer probe is the tunnel-liveness signal; the control-plane probe tells us whether the app
+   * has any egress at all, which separates "tunnel dead" from "app blackholed".
+   */
+  private suspend fun probeTunnel(): ProbeOutcome {
+    val peers =
+        Notifier.netmap.value?.Peers.orEmpty()
+            .filter { !it.primaryIPv4Address.isNullOrEmpty() }
+            .take(MAX_PROBE_PEERS)
+    var peersOk = 0
+    for (peer in peers) {
+      if (pingPeer(peer)) peersOk++
+    }
+    val controlOk = probeControlPlane()
+    return ProbeOutcome(peersProbed = peers.size, peersOk = peersOk, controlOk = controlOk)
+  }
+
+  private suspend fun pingPeer(peer: Tailcfg.Node): Boolean =
+      withTimeoutOrNull(PROBE_TIMEOUT_MILLIS) {
+            suspendCancellableCoroutine { cont ->
+              Client(scope).ping(peer) { result ->
+                val ok = result.getOrNull()?.Err?.isEmpty() == true
+                if (cont.isActive) cont.resume(ok)
+              }
+            }
+          } ?: false
+
+  /**
+   * Everything the app can see about the tunnel, captured at the moment it
+   * stopped passing traffic. This is the evidence we have never had: the state
+   * at failure, not a reconstruction afterwards.
+   */
+  private suspend fun diagnosticSnapshot(): String {
+    val status = fetchStatus()
+    val peers = status?.Peer?.values.orEmpty()
+    val online = peers.count { it.Online }
+    val direct = peers.count { it.Online && !it.CurAddr.isNullOrEmpty() }
+    val relays = peers.filter { it.Online }.mapNotNull { it.Relay }.groupingBy { it }.eachCount()
+    val health = Notifier.health.value?.Warnings?.keys?.sorted() ?: emptyList()
+    val prefs = Notifier.prefs.value
+    return buildString {
+      appendLine("ipn.State=${Notifier.state.value}")
+      appendLine("homeRelay=${status?.Self?.Relay ?: "?"}")
+      appendLine("peers online=$online direct=$direct relays=$relays")
+      appendLine("health=$health")
+      appendLine("wantRunning=${prefs?.WantRunning} exitNode=${prefs?.ExitNodeID}")
+      appendLine(
+          "underlyingNet=${NetworkChangeCallback.cachedDefaultNetwork} " +
+              "iface=${NetworkChangeCallback.cachedDefaultInterfaceName ?: "none"}"
+      )
+      appendLine("uidBytes=${appBytesTransferred()}")
+    }
+  }
+
+  /** Fetches the engine status once, for the home-relay check. */
+  private suspend fun fetchStatus(): IpnState.Status? =
+      withTimeoutOrNull(PROBE_TIMEOUT_MILLIS) {
+            suspendCancellableCoroutine { cont ->
+              Client(scope).status { result ->
+                if (cont.isActive) cont.resume(result.getOrNull())
+              }
+            }
+          }
+
+  private suspend fun probeControlPlane(): Boolean =
+      withTimeoutOrNull(PROBE_TIMEOUT_MILLIS) {
+            withContext(Dispatchers.IO) {
+              try {
+                val address = InetAddress.getByName(CONTROL_PLANE_HOST)
+                Socket().use { socket ->
+                  socket.connect(
+                      InetSocketAddress(address, CONTROL_PLANE_PORT),
+                      PROBE_TIMEOUT_MILLIS.toInt(),
+                  )
+                }
+                true
+              } catch (e: Exception) {
+                false
+              }
+            }
+          } ?: false
+
+  private suspend fun performRecycleAction(action: RecycleAction) {
+    when (action) {
+      RecycleAction.RESTART_VPN -> app.restartVPN()
+      else -> Client(scope).debugAction(action.wireName)
+    }
+  }
+
   companion object {
     const val ACTION_START_VPN = "com.tailscale.ipn.START_VPN"
     const val ACTION_STOP_VPN = "com.tailscale.ipn.STOP_VPN"
     const val ACTION_RESTART_VPN = "com.tailscale.ipn.RESTART_VPN"
     const val ACTION_START_FOREGROUND_ONLY = "com.tailscale.ipn.START_FOREGROUND_ONLY"
+
+    // Two peers is the smallest number that lets one sleeping peer be outvoted by another.
+    private const val MAX_PROBE_PEERS = 2
+
+    // Matches the 2 s timeout the existing disco ping uses in Client.ping.
+    private const val PROBE_TIMEOUT_MILLIS = 2000L
+
+    private const val CONTROL_PLANE_HOST = "controlplane.tailscale.com"
+    private const val CONTROL_PLANE_PORT = 443
   }
 }
 
