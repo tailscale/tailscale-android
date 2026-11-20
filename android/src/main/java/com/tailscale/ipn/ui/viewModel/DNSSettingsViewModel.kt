@@ -16,12 +16,14 @@ import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.theme.off
 import com.tailscale.ipn.ui.theme.success
+import com.tailscale.ipn.util.TSLog
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 class DNSSettingsViewModelFactory(
     private val dataSource: DNSSettingsDataSource,
@@ -45,15 +47,60 @@ data class DNSSettingsUiState(
 class DNSSettingsViewModel(
     private val dataSource: DNSSettingsDataSource,
 ) : ViewModel() {
-  private val dnsConfig: StateFlow<Tailcfg.DNSConfig?> =
-      dataSource.netmap
-          .filterNotNull()
-          .map { it.DNS }
-          .stateIn(
-              viewModelScope,
-              SharingStarted.WhileSubscribed(5_000),
-              null,
-          )
+  private val dnsConfig = MutableStateFlow<Tailcfg.DNSConfig?>(null)
+  private var dnsGeneration = 0L
+
+  init {
+    viewModelScope.launch {
+      dataSource.state.collect { state ->
+        if (state != Ipn.State.Running) {
+          dnsGeneration++
+          dnsConfig.value = null
+        } else {
+          refreshDNSConfig()
+        }
+      }
+    }
+
+    viewModelScope.launch {
+      var previousNodeID = dataSource.netmap.value?.SelfNode?.StableID
+
+      dataSource.selfNodeUpdate.filterNotNull().collect { update ->
+        val nodeID = update.stableID
+
+        if (nodeID == null || nodeID != previousNodeID) {
+          previousNodeID = nodeID
+          dnsGeneration++
+          dnsConfig.value = null
+        }
+
+        refreshDNSConfig()
+      }
+    }
+  }
+
+  fun refreshDNSConfig() {
+    if (dataSource.state.value != Ipn.State.Running) return
+    val selfUpdate = dataSource.selfNodeUpdate.value
+    if (selfUpdate != null && selfUpdate.stableID == null) return
+
+    val generation = ++dnsGeneration
+
+    dataSource.dnsConfig(viewModelScope) { result ->
+      if (generation != dnsGeneration || dataSource.state.value != Ipn.State.Running)
+          return@dnsConfig
+
+      result
+          .onSuccess { dnsConfig.value = it }
+          .onFailure {
+            TSLog.e(
+                "DNSSettingsViewModel",
+                "Failed to fetch DNS configuration",
+                it,
+            )
+          }
+    }
+  }
 
   val uiState: StateFlow<DNSSettingsUiState> =
       combine(

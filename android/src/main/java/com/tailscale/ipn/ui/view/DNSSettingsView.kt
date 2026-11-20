@@ -12,6 +12,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -55,6 +56,8 @@ fun DNSSettingsView(
         resolvers?.let { ViewableRoute(name = name, resolvers = it) }
       }
 
+  LaunchedEffect(dnsSettingsViewModel) { dnsSettingsViewModel.refreshDNSConfig() }
+
   DNSSettingsScreen(
       state =
           DNSSettingsUIState(
@@ -97,7 +100,7 @@ private fun DNSSettingsScreen(
             onBack = backToSettings,
             isTv = isTv,
         )
-      }
+      },
   ) { innerPadding ->
     LoadingIndicator.Wrap {
       LazyColumn(Modifier.padding(innerPadding)) {
