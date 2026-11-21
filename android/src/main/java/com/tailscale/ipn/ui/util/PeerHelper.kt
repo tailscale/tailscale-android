@@ -3,7 +3,10 @@
 
 package com.tailscale.ipn.ui.util
 
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.util.fastAny
+import com.tailscale.ipn.R
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.model.Netmap
 import com.tailscale.ipn.ui.model.StableNodeID
@@ -24,6 +27,12 @@ data class PeerSet(
 
   val isFavorite: Boolean
     get() = id == FAVORITES_ID
+
+  val sectionTitle: String
+    @Composable
+    get() =
+        if (isFavorite) stringResource(id = R.string.pinned_devices)
+        else title ?: stringResource(id = R.string.unknown_user)
 }
 
 fun List<PeerSet>.withPinnedSection(pinnedIds: List<StableNodeID>): List<PeerSet> {

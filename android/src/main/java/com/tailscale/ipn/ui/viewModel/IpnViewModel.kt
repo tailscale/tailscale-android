@@ -14,6 +14,7 @@ import com.tailscale.ipn.ui.dataSource.RunExitNodeDataSourceImpl
 import com.tailscale.ipn.ui.localapi.Client
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.IpnLocal
+import com.tailscale.ipn.ui.model.NodeState
 import com.tailscale.ipn.ui.model.UserID
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.util.AdvertisedRoutesHelper
@@ -52,25 +53,6 @@ open class IpnViewModel(
   private val _nodeState = MutableStateFlow(NodeState.NONE)
   val nodeState: StateFlow<NodeState> = _nodeState
   val managedByOrganization = MDMSettings.managedByOrganizationName.flow
-
-  enum class NodeState {
-    NONE,
-    ACTIVE_AND_RUNNING,
-
-    // Last selected exit node is active but is not being used.
-    ACTIVE_NOT_RUNNING,
-
-    // Last selected exit node is currently offline.
-    OFFLINE_ENABLED,
-
-    // Last selected exit node has been de-selected and is currently offline.
-    OFFLINE_DISABLED,
-
-    // Exit node selection is managed by an administrator, and last selected exit node is currently
-    // offline
-    OFFLINE_MDM,
-    RUNNING_AS_EXIT_NODE,
-  }
 
   init {
     viewModelScope.launch {

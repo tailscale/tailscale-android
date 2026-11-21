@@ -21,21 +21,19 @@ data class PeerSettingInfo(val titleRes: Int, val value: ComposableStringFormatt
 
 class PeerDetailsViewModelFactory(
     private val nodeId: StableNodeID,
-    private val pingViewModel: PingViewModel,
     private val dataSource: PeerDetailsDataSource,
 ) : ViewModelProvider.Factory {
   @Suppress("UNCHECKED_CAST")
   override fun <T : ViewModel> create(modelClass: Class<T>): T {
     if (modelClass.isAssignableFrom(PeerDetailsViewModel::class.java)) {
-      return PeerDetailsViewModel(nodeId, pingViewModel, dataSource) as T
+      return PeerDetailsViewModel(nodeId, dataSource) as T
     }
     throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
   }
 }
 
 class PeerDetailsViewModel(
-    val nodeId: StableNodeID,
-    val pingViewModel: PingViewModel,
+    private val nodeId: StableNodeID,
     private val dataSource: PeerDetailsDataSource,
 ) : ViewModel() {
   val netmap: StateFlow<Netmap.NetworkMap?> = dataSource.netmap
@@ -57,12 +55,10 @@ class PeerDetailsViewModel(
 
   fun startPing() {
     _isPinging.value = true
-    node.value?.let { pingViewModel.startPing(it) }
   }
 
   fun onPingDismissal() {
     _isPinging.value = false
-    pingViewModel.handleDismissal()
   }
 
   fun togglePin() {

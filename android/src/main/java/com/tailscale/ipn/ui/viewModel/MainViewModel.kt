@@ -9,8 +9,6 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.ClipboardManager
-import androidx.compose.ui.text.AnnotatedString
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -35,6 +33,7 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
@@ -100,10 +99,11 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
   // True if we should render the key expiry banner
   val showExpiry: StateFlow<Boolean> = MutableStateFlow(false)
 
+  private val _pingPeer = MutableStateFlow<Tailcfg.Node?>(null)
+  val pingPeer: StateFlow<Tailcfg.Node?> = _pingPeer.asStateFlow()
+
   // The peer for which the dropdown menu is currently expanded. Null if no menu is expanded
   var expandedMenuPeer: StateFlow<Tailcfg.Node?> = MutableStateFlow(null)
-
-  var pingViewModel: PingViewModel = PingViewModel()
 
   // Self-contained controller for the Taildrop in-app banner/list sheet.
   val pendingTaildrop: PendingTaildropViewModel = PendingTaildropViewModel()
@@ -125,28 +125,16 @@ class MainViewModel(private val appViewModel: AppViewModel) : IpnViewModel() {
     expandedMenuPeer.set(null)
   }
 
-  fun copyIPV4Address(peer: Tailcfg.Node, clipboardManager: ClipboardManager) {
-    clipboardManager.setText(AnnotatedString(peer.primaryIPv4Address ?: ""))
-  }
-
-  fun copyIPV6Address(peer: Tailcfg.Node, clipboardManager: ClipboardManager) {
-    clipboardManager.setText(AnnotatedString(peer.primaryIPv6Address ?: ""))
-  }
-
-  fun copyMagicDNSAddress(peer: Tailcfg.Node, clipboardManager: ClipboardManager) {
-    clipboardManager.setText(AnnotatedString(peer.magicDNSAddress ?: ""))
-  }
-
   fun togglePin(peer: Tailcfg.Node) {
     favoritesManager.toggleDevice(peer.StableID)
   }
 
   fun startPing(peer: Tailcfg.Node) {
-    this.pingViewModel.startPing(peer)
+    _pingPeer.value = peer
   }
 
   fun onPingDismissal() {
-    this.pingViewModel.handleDismissal()
+    _pingPeer.value = null
   }
 
   // Returns true if we should skip all of the user-interactive permissions prompts

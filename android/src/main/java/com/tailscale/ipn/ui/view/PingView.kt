@@ -29,7 +29,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -46,6 +45,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
 import com.patrykandpatrick.vico.compose.cartesian.axis.HorizontalAxis
@@ -66,22 +66,48 @@ import com.patrykandpatrick.vico.compose.common.Fill
 import com.patrykandpatrick.vico.compose.common.Insets
 import com.patrykandpatrick.vico.compose.common.component.rememberShapeComponent
 import com.tailscale.ipn.R
+import com.tailscale.ipn.ui.dataSource.PingDataSource
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.theme.AppTheme
 import com.tailscale.ipn.ui.util.ConnectionMode
 import com.tailscale.ipn.ui.viewModel.PingViewModel
+import com.tailscale.ipn.ui.viewModel.PingViewModelFactory
 import java.text.DecimalFormat
 import kotlinx.coroutines.runBlocking
 
 @Composable
-fun PingView(model: PingViewModel = viewModel()) {
-  val connectionMode: ConnectionMode by
-      model.connectionMode.collectAsState(initial = ConnectionMode.NotConnected())
-  val peer: Tailcfg.Node? by model.peer.collectAsState()
-  val lastLatencyValue: String by model.lastLatencyValue.collectAsState()
-  val pingValues: List<Double> by model.latencyValues.collectAsState()
-  val errorMessage: String? by model.errorMessage.collectAsState()
+fun PingView(
+    peer: Tailcfg.Node,
+    dataSource: PingDataSource,
+) {
+  val factory = remember(dataSource) { PingViewModelFactory(dataSource) }
 
+  val model: PingViewModel = viewModel(factory = factory)
+
+  val connectionMode by model.connectionMode.collectAsStateWithLifecycle()
+  val lastLatencyValue by model.lastLatencyValue.collectAsStateWithLifecycle()
+  val pingValues by model.latencyValues.collectAsStateWithLifecycle()
+  val errorMessage by model.errorMessage.collectAsStateWithLifecycle()
+
+  LaunchedEffect(model, peer.StableID) { model.startPing(peer) }
+
+  PingScreen(
+      peer = peer,
+      connectionMode = connectionMode,
+      lastLatencyValue = lastLatencyValue,
+      pingValues = pingValues,
+      errorMessage = errorMessage,
+  )
+}
+
+@Composable
+private fun PingScreen(
+    peer: Tailcfg.Node,
+    connectionMode: ConnectionMode,
+    lastLatencyValue: String,
+    pingValues: List<Double>,
+    errorMessage: String?,
+) {
   val modelProducer = remember { CartesianChartModelProducer() }
 
   LaunchedEffect(pingValues) {
@@ -104,7 +130,7 @@ fun PingView(model: PingViewModel = viewModel()) {
     Row {
       Column {
         Text(
-            stringResource(R.string.pinging_node_name, peer?.ComputedName ?: "???"),
+            stringResource(R.string.pinging_node_name, peer.ComputedName ?: "???"),
             fontStyle = MaterialTheme.typography.titleLarge.fontStyle,
             fontWeight = FontWeight.Bold,
         )

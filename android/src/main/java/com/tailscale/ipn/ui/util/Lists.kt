@@ -47,6 +47,7 @@ object Lists {
   @Composable
   fun LargeTitle(
       title: String,
+      modifier: Modifier = Modifier,
       bottomPadding: Dp = 0.dp,
       style: TextStyle = MaterialTheme.typography.titleMedium,
       fontWeight: FontWeight? = null,
@@ -57,7 +58,7 @@ object Lists {
   ) {
     Box(
         modifier =
-            Modifier.fillMaxWidth().background(color = backgroundColor, shape = RectangleShape)
+            modifier.fillMaxWidth().background(color = backgroundColor, shape = RectangleShape)
     ) {
       Row(
           modifier =
