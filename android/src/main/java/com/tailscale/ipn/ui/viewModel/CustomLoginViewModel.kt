@@ -8,7 +8,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.tailscale.ipn.ui.dataSource.AuthKeyLoginDataSource
 import com.tailscale.ipn.ui.dataSource.CustomControlURLLoginDataSource
-import com.tailscale.ipn.ui.view.ErrorDialogType
+import com.tailscale.ipn.ui.model.ErrorDialogType
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

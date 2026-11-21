@@ -32,13 +32,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.tailscale.ipn.R
-import com.tailscale.ipn.ui.viewModel.PendingTaildropViewModel
+import com.tailscale.ipn.ui.controller.PendingTaildropController
+import com.tailscale.ipn.ui.model.PendingTaildropItem
 import com.tailscale.ipn.util.InlineShare
 
 // Bottom sheet of pending Taildrop items; mirrors iOS InlineShareListSheet.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun InlineShareListSheet(viewModel: PendingTaildropViewModel) {
+fun InlineShareListSheet(viewModel: PendingTaildropController) {
   val items by viewModel.pendingItems.collectAsState()
   val context = LocalContext.current
 
@@ -77,7 +78,7 @@ fun InlineShareListSheet(viewModel: PendingTaildropViewModel) {
 
 @Composable
 private fun PendingItemRow(
-    item: PendingTaildropViewModel.PendingTaildropItem,
+    item: PendingTaildropItem,
     onConsume: () -> Unit,
     onDismiss: () -> Unit,
     onOpenFolder: () -> Unit,
@@ -90,7 +91,7 @@ private fun PendingItemRow(
               .padding(horizontal = 16.dp, vertical = 12.dp),
   ) {
     Icon(
-        painter = painterResource(id = iconFor(item)),
+        painter = painterResource(id = item.icon),
         contentDescription = null,
         modifier = Modifier.size(24.dp),
         tint = MaterialTheme.colorScheme.primary,
@@ -110,14 +111,14 @@ private fun PendingItemRow(
       )
     }
     when (item) {
-      is PendingTaildropViewModel.PendingTaildropItem.InlineShareItem ->
+      is PendingTaildropItem.InlineShareItem ->
           IconButton(onClick = onDismiss) {
             Icon(
                 imageVector = Icons.Outlined.Close,
                 contentDescription = stringResource(R.string.taildrop_dismiss),
             )
           }
-      is PendingTaildropViewModel.PendingTaildropItem.File ->
+      is PendingTaildropItem.File ->
           IconButton(onClick = onOpenFolder) {
             Icon(
                 painter = painterResource(id = R.drawable.baseline_folder_open_24),
@@ -128,18 +129,11 @@ private fun PendingItemRow(
   }
 }
 
-private fun iconFor(item: PendingTaildropViewModel.PendingTaildropItem): Int =
-    when (item) {
-      is PendingTaildropViewModel.PendingTaildropItem.File -> R.drawable.single_file
-      is PendingTaildropViewModel.PendingTaildropItem.InlineShareItem ->
-          if (item.share.kind == InlineShare.Kind.URL) R.drawable.link else R.drawable.single_file
-    }
-
 @Composable
-private fun primaryText(item: PendingTaildropViewModel.PendingTaildropItem): String =
+private fun primaryText(item: PendingTaildropItem): String =
     when (item) {
-      is PendingTaildropViewModel.PendingTaildropItem.File -> item.partial.Name
-      is PendingTaildropViewModel.PendingTaildropItem.InlineShareItem ->
+      is PendingTaildropItem.File -> item.partial.Name
+      is PendingTaildropItem.InlineShareItem ->
           when (item.share.kind) {
             InlineShare.Kind.URL -> item.share.content
             InlineShare.Kind.TEXT -> item.share.content.take(80).replace("\n", " ")
@@ -147,11 +141,10 @@ private fun primaryText(item: PendingTaildropViewModel.PendingTaildropItem): Str
     }
 
 @Composable
-private fun secondaryText(item: PendingTaildropViewModel.PendingTaildropItem): String =
+private fun secondaryText(item: PendingTaildropItem): String =
     when (item) {
-      is PendingTaildropViewModel.PendingTaildropItem.File ->
-          stringResource(R.string.taildrop_tap_to_open)
-      is PendingTaildropViewModel.PendingTaildropItem.InlineShareItem ->
+      is PendingTaildropItem.File -> stringResource(R.string.taildrop_tap_to_open)
+      is PendingTaildropItem.InlineShareItem ->
           if (item.share.kind == InlineShare.Kind.URL) stringResource(R.string.taildrop_tap_to_open)
           else stringResource(R.string.taildrop_tap_to_copy)
     }

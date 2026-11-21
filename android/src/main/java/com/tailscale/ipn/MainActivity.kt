@@ -61,9 +61,11 @@ import com.tailscale.ipn.mdm.ShowHide
 import com.tailscale.ipn.ui.components.TaildropDirectoryPickerPrompt
 import com.tailscale.ipn.ui.dataSource.DNSSettingsDataSourceImpl
 import com.tailscale.ipn.ui.dataSource.ExitNodePickerDataSourceImpl
+import com.tailscale.ipn.ui.dataSource.ExitNodeStatusDataSourceImpl
 import com.tailscale.ipn.ui.dataSource.HealthDataSourceImpl
 import com.tailscale.ipn.ui.dataSource.LoginActionsDataSourceImpl
 import com.tailscale.ipn.ui.dataSource.LoginQRDataSourceImpl
+import com.tailscale.ipn.ui.dataSource.MainDataSourceImpl
 import com.tailscale.ipn.ui.dataSource.PeerDetailsDataSourceImpl
 import com.tailscale.ipn.ui.dataSource.PingDataSourceImpl
 import com.tailscale.ipn.ui.dataSource.RunExitNodeDataSourceImpl
@@ -183,14 +185,25 @@ class MainActivity : ComponentActivity() {
 
     pendingDeepLink = deepLinkUri(intent)
 
-    // grab app to make sure it initializes
-    App.get()
-    appViewModel = (application as App).getAppScopedViewModel()
+    val app = App.get()
+    appViewModel = app.getAppScopedViewModel()
     viewModel =
-        ViewModelProvider(this, MainViewModelFactory(appViewModel)).get(MainViewModel::class.java)
+        ViewModelProvider(
+            this,
+            MainViewModelFactory(
+                appViewModel = appViewModel,
+                dataSource = MainDataSourceImpl(),
+                loginActions = LoginActionsDataSourceImpl(),
+                exitNodeDataSource =
+                    ExitNodeStatusDataSourceImpl(
+                        runExitNode = RunExitNodeDataSourceImpl(),
+                    ),
+                profilesRepository = app.profilesRepository,
+            ),
+        )[MainViewModel::class.java]
 
     val rm = getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
-    MDMSettings.update(App.get(), rm)
+    MDMSettings.update(app, rm)
     if (
         MDMSettings.onboardingFlow.flow.value.value == ShowHide.Hide ||
             MDMSettings.authKey.flow.value.value != null
@@ -209,26 +222,25 @@ class MainActivity : ComponentActivity() {
           if (granted) {
             TSLog.d("VpnPermission", "VPN permission granted")
             appViewModel.setVpnPrepared(true)
-            App.get().startVPN()
+            app.startVPN()
+          } else if (isAnotherVpnActive(this)) {
+            TSLog.d("VpnPermission", "Another VPN is likely active")
+            showOtherVPNConflictDialog()
           } else {
-            if (isAnotherVpnActive(this)) {
-              TSLog.d("VpnPermission", "Another VPN is likely active")
-              showOtherVPNConflictDialog()
-            } else {
-              TSLog.d("VpnPermission", "Permission was denied by the user")
-              appViewModel.setVpnPrepared(false)
+            TSLog.d("VpnPermission", "Permission was denied by the user")
+            appViewModel.setVpnPrepared(false)
 
-              AlertDialog.Builder(this)
-                  .setTitle(R.string.vpn_permission_needed)
-                  .setMessage(R.string.vpn_explainer)
-                  .setPositiveButton(R.string.try_again) { _, _ ->
-                    viewModel.showVPNPermissionLauncherIfUnauthorized()
-                  }
-                  .setNegativeButton(R.string.cancel, null)
-                  .show()
-            }
+            AlertDialog.Builder(this)
+                .setTitle(R.string.vpn_permission_needed)
+                .setMessage(R.string.vpn_explainer)
+                .setPositiveButton(R.string.try_again) { _, _ ->
+                  viewModel.showVPNPermissionLauncherIfUnauthorized()
+                }
+                .setNegativeButton(R.string.cancel, null)
+                .show()
           }
         }
+
     viewModel.setVpnPermissionLauncher(vpnPermissionLauncher)
     val directoryPickerLauncher =
         registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri: Uri? ->
@@ -525,6 +537,7 @@ class MainActivity : ComponentActivity() {
                     userSwitcherNav = userSwitcherNav,
                     dataSource = dataSource,
                     loginActions = loginActions,
+                    profilesRepository = app.profilesRepository,
                 )
               }
               composable<PermissionsRoute> {

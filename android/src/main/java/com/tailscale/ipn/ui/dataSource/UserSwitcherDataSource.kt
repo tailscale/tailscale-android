@@ -14,14 +14,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
 
 interface UserSwitcherDataSource {
-  val state: StateFlow<Ipn.State>
   val netmap: StateFlow<Netmap.NetworkMap?>
-
-  fun loadProfiles(
-      scope: CoroutineScope,
-      onProfiles: (Result<List<IpnLocal.LoginProfile>>) -> Unit,
-      onCurrentProfile: (Result<IpnLocal.LoginProfile>) -> Unit,
-  )
 
   fun logout(scope: CoroutineScope, completionHandler: (Result<String>) -> Unit)
 
@@ -45,18 +38,7 @@ interface UserSwitcherDataSource {
 class UserSwitcherDataSourceImpl : UserSwitcherDataSource {
   private val tag = "AndroidUserSwitcherDataSource"
 
-  override val state = Notifier.state
   override val netmap = Notifier.netmap
-
-  override fun loadProfiles(
-      scope: CoroutineScope,
-      onProfiles: (Result<List<IpnLocal.LoginProfile>>) -> Unit,
-      onCurrentProfile: (Result<IpnLocal.LoginProfile>) -> Unit,
-  ) {
-    val client = Client(scope)
-    client.profiles(onProfiles)
-    client.currentProfile(onCurrentProfile)
-  }
 
   override fun logout(scope: CoroutineScope, completionHandler: (Result<String>) -> Unit) {
     Client(scope).logout { result ->

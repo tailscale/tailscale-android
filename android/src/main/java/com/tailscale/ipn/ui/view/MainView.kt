@@ -1,5 +1,6 @@
 // Copyright (c) Tailscale Inc & AUTHORS
 // SPDX-License-Identifier: BSD-3-Clause
+
 package com.tailscale.ipn.ui.view
 
 import androidx.compose.foundation.layout.Arrangement
@@ -101,7 +102,7 @@ fun MainView(
           modifier = Modifier.fillMaxWidth().padding(paddingInsets),
           verticalArrangement = Arrangement.Center,
       ) {
-        val hideHeader = (isAndroidTV() && ipnState == Ipn.State.NeedsLogin)
+        val hideHeader = (isTv && ipnState == Ipn.State.NeedsLogin)
         ListItem(
             colors = MaterialTheme.colorScheme.surfaceContainerListItem,
             leadingContent = {
@@ -135,7 +136,7 @@ fun MainView(
                   )
                   healthIcon?.let {
                     IconButton(
-                        onClick = { navigation.onNavigateToHealth() },
+                        onClick = navigation.onNavigateToHealth,
                         modifier = Modifier.size(16.dp),
                     ) {
                       Icon(
@@ -156,15 +157,14 @@ fun MainView(
               ) {
                 when (user) {
                   null -> SettingsButton(action = navigation.onNavigateToSettings)
-                  else -> {
-                    Avatar(
-                        profile = user,
-                        size = 36,
-                        isTv = isTv,
-                        action = navigation.onNavigateToSettings,
-                        isFocusable = true,
-                    )
-                  }
+                  else ->
+                      Avatar(
+                          profile = user,
+                          size = 36,
+                          isTv = isTv,
+                          action = navigation.onNavigateToSettings,
+                          isFocusable = true,
+                      )
                 }
               }
             },
@@ -204,10 +204,8 @@ fun MainView(
                 navigation = navigation,
             )
           }
-
           Ipn.State.NoState,
           Ipn.State.Starting -> StartingView()
-
           else -> {
             ConnectView(
                 viewModel = viewModel,
@@ -216,36 +214,35 @@ fun MainView(
           }
         }
       }
-      currentPingDevice?.let { peer ->
-        val pingOwner = rememberViewModelStoreOwner()
+    }
+  }
 
-        CompositionLocalProvider(
-            LocalViewModelStoreOwner provides pingOwner,
-        ) {
-          ModalBottomSheet(
-              onDismissRequest = viewModel::onPingDismissal,
-              sheetState =
-                  rememberModalBottomSheetState(
-                      skipPartiallyExpanded = true,
-                  ),
-          ) {
-            PingView(
-                peer = peer,
-                dataSource = pingDataSource,
-            )
-          }
-        }
-      }
+  currentPingDevice?.let { peer ->
+    val pingOwner = rememberViewModelStoreOwner()
 
-      if (showPendingSheet) {
-        ModalBottomSheet(
-            onDismissRequest = {
-              viewModel.pendingTaildrop.isPresentingPendingItemsList.value = false
-            }
-        ) {
-          InlineShareListSheet(viewModel = viewModel.pendingTaildrop)
-        }
+    CompositionLocalProvider(
+        LocalViewModelStoreOwner provides pingOwner,
+    ) {
+      ModalBottomSheet(
+          onDismissRequest = viewModel::onPingDismissal,
+          sheetState =
+              rememberModalBottomSheetState(
+                  skipPartiallyExpanded = true,
+              ),
+      ) {
+        PingView(
+            peer = peer,
+            dataSource = pingDataSource,
+        )
       }
+    }
+  }
+
+  if (showPendingSheet) {
+    ModalBottomSheet(
+        onDismissRequest = { viewModel.pendingTaildrop.isPresentingPendingItemsList.value = false },
+    ) {
+      InlineShareListSheet(viewModel = viewModel.pendingTaildrop)
     }
   }
 }

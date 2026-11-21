@@ -27,12 +27,14 @@ import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.mdm.MDMSettingsChangedReceiver
+import com.tailscale.ipn.ui.dataSource.ProfilesDataSourceImpl
 import com.tailscale.ipn.ui.localapi.Client
 import com.tailscale.ipn.ui.model.Ipn
 import com.tailscale.ipn.ui.model.Netmap
 import com.tailscale.ipn.ui.notifier.FavoritesManager
 import com.tailscale.ipn.ui.notifier.HealthNotifier
 import com.tailscale.ipn.ui.notifier.Notifier
+import com.tailscale.ipn.ui.repository.ProfilesRepository
 import com.tailscale.ipn.ui.viewModel.AppViewModel
 import com.tailscale.ipn.ui.viewModel.AppViewModelFactory
 import com.tailscale.ipn.util.FeatureFlags
@@ -54,7 +56,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import libtailscale.Libtailscale
 
@@ -90,6 +91,14 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     get() = appViewModelStore
 
   private val appViewModelStore: ViewModelStore by lazy { ViewModelStore() }
+
+  val profilesRepository: ProfilesRepository by lazy {
+    ProfilesRepository(
+        dataSource = ProfilesDataSourceImpl(),
+        scope = applicationScope,
+    )
+  }
+
   var healthNotifier: HealthNotifier? = null
   lateinit var favoritesManager: FavoritesManager
 
