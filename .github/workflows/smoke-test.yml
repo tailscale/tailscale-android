@@ -18,6 +18,8 @@ jobs:
   smoke-test:
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    outputs:
+      report: ${{ steps.report.outputs.report }}
 
     steps:
       - name: Check out code
@@ -42,7 +44,8 @@ jobs:
       - name: Run smoke test
         env:
           TS_TESTWRAPPER_RESULTS_SUMMARY: "1"
-        run: make android-smoke-test-run
+        shell: bash
+        run: make android-smoke-test-run 2>&1 | tee "smoke-test-${GITHUB_RUN_ATTEMPT}.log"
 
       - name: Add test results to the summary
         if: always()
@@ -55,6 +58,7 @@ jobs:
         run: test ! -d integration-artifacts || sudo chmod -R a+rX integration-artifacts
 
       - name: Upload test artifacts
+        id: artifacts
         if: always()
         continue-on-error: true
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -63,3 +67,33 @@ jobs:
           path: integration-artifacts/
           if-no-files-found: ignore
           retention-days: 14
+
+      - name: Report test results
+        id: report
+        if: always()
+        continue-on-error: true
+        uses: ./.github/actions/android-test-report
+        with:
+          check: smoke-test
+          all-recordings-url: ${{ steps.artifacts.outputs.artifact-url }}
+
+  notify:
+    needs: smoke-test
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      actions: read
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Post results to Slack
+        uses: ./.github/actions/android-slack-notify
+        with:
+          webhook: ${{ secrets.ANDROID_SLACK_WEBHOOK_URL }}
+          result: ${{ needs.smoke-test.result }}
+          report: ${{ needs.smoke-test.outputs.report }}
+          combine: ${{ github.event_name == 'pull_request' }}

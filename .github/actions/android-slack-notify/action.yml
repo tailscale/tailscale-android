@@ -1,0 +1,301 @@
+name: android-slack-notify
+description: Post Android test results to Slack, with the failed cases' recordings and the job logs up front
+
+inputs:
+  webhook:
+    description: Slack incoming webhook URL. Nothing is posted when it's empty
+    required: false
+    default: ""
+  result:
+    description: Result of this workflow's test job
+    required: true
+  report:
+    description: The report output of android-test-report, if this workflow has one
+    required: false
+    default: ""
+  combine:
+    description: On a PR, wait for the other two checks and post one message for all three
+    required: false
+    default: "false"
+  wait-minutes:
+    description: How long to wait for the other checks before posting
+    required: false
+    default: "30"
+  timeout-minutes:
+    description: The test job's timeout-minutes, so a cancel at the limit reads as a timeout
+    required: false
+    default: "90"
+  github-token:
+    description: Token for reading jobs, job logs and the other checks' reports
+    required: false
+    default: ${{ github.token }}
+
+runs:
+  using: composite
+  steps:
+    - name: Look up this job
+      id: self
+      shell: bash
+      env:
+        HAS_WEBHOOK: ${{ inputs.webhook != '' }}
+        RESULT: ${{ inputs.result }}
+        TIMEOUT: ${{ inputs.timeout-minutes }}
+        GH_TOKEN: ${{ inputs.github-token }}
+        EVENT: ${{ github.event_name }}
+      run: |
+        if [ "$HAS_WEBHOOK" != true ]; then
+          echo "send=false" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        path=${GITHUB_WORKFLOW_REF#"$GITHUB_REPOSITORY"/}
+        path=${path%%@*}
+        self=$(jq -n -c -L "$GITHUB_ACTION_PATH" --arg p "$path" 'include "message"; [ checks[] | select(.path == $p) ][0] // {}')
+        if [ "$(jq -r '.check // ""' <<<"$self")" = "" ]; then
+          echo "::error::$path is missing from the checks table in message.jq"
+          exit 1
+        fi
+
+        jobs=$(curl -fsSL --retry 2 -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+          "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/attempts/$GITHUB_RUN_ATTEMPT/jobs?per_page=100" 2>/dev/null || echo '{}')
+        job=$(jq -c --arg j "$(jq -r .job <<<"$self")" '[ .jobs[]? | select(.name == $j) ][0] // {}' <<<"$jobs")
+        minutes=$(jq -r -L "$GITHUB_ACTION_PATH" 'include "message"; minutes' <<<"$job")
+
+        # A timed-out job ends cancelled, so its duration tells a timeout from a newer push.
+        timed_out=false
+        if [ "$RESULT" = cancelled ] && [ -n "$minutes" ] && [ "$minutes" -ge $((TIMEOUT - 5)) ]; then
+          timed_out=true
+        fi
+        send=true
+        if [ "$RESULT" = cancelled ] && [ "$timed_out" = false ] && [ "$EVENT" = pull_request ]; then
+          send=false
+        fi
+        jq -n -c -L "$GITHUB_ACTION_PATH" --argjson self "$self" --argjson job "$job" --arg result "$RESULT" \
+          --arg minutes "$minutes" --arg timed_out "$timed_out" 'include "message";
+          $self + {result: $result, job_id: (($job.id // "") | tostring), job_url: ($job.html_url // ""),
+                   started_at: ($job.started_at // ""), stopped_step: ($job | stopped), minutes: $minutes,
+                   timed_out: ($timed_out == "true")}' \
+          > "$RUNNER_TEMP/android-self.json"
+        {
+          echo "send=$send"
+          echo "slug=$(jq -r .slug <<<"$self")"
+        } >> "$GITHUB_OUTPUT"
+
+    - name: Wait for the other checks
+      id: wait
+      if: inputs.combine == 'true' && steps.self.outputs.send == 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        SELF_SLUG: ${{ steps.self.outputs.slug }}
+        WAIT_MINUTES: ${{ inputs.wait-minutes }}
+        POLL_SECONDS: "60"
+      run: |
+        api() {
+          curl -fsSL --retry 2 -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY$1" 2>/dev/null
+        }
+        deadline=$((SECONDS + WAIT_MINUTES * 60))
+        wait_for() {
+          local runs run jobs found status
+          while :; do
+            if ! runs=$(api "/actions/runs?head_sha=$HEAD_SHA&event=pull_request&per_page=100"); then
+              jq -n -c '{result: "unknown"}'
+              return
+            fi
+            run=$(jq -c --arg p "$1" '[ .workflow_runs[]? | select(.path == $p) ] | max_by(.run_number) // {}' <<<"$runs")
+            if [ -z "$(jq -r '.id // ""' <<<"$run")" ]; then
+              jq -n -c '{result: "missing"}'
+              return
+            fi
+            if ! jobs=$(api "/actions/runs/$(jq -r .id <<<"$run")/attempts/$(jq -r .run_attempt <<<"$run")/jobs?per_page=100"); then
+              jq -n -c '{result: "unknown"}'
+              return
+            fi
+            found=$(jq -c --arg j "$2" '[ .jobs[]? | select(.name == $j) ][0] // {}' <<<"$jobs")
+            status=$(jq -r '.status // ""' <<<"$found")
+            if [ "$status" = completed ]; then
+              break
+            fi
+            if [ -z "$status" ] && [ "$(jq -r .status <<<"$run")" = completed ]; then
+              jq -n -c '{result: "missing"}'
+              return
+            fi
+            if [ "$SECONDS" -ge "$deadline" ]; then
+              jq -n -c --arg url "$(jq -r '.html_url // ""' <<<"$found")" '{result: "running", job_url: $url}'
+              return
+            fi
+            sleep "$POLL_SECONDS"
+          done
+          jq -n -c -L "$GITHUB_ACTION_PATH" --argjson job "$found" --argjson run "$run" 'include "message";
+            {result: ($job.conclusion // "missing"), job_id: ($job.id | tostring), job_url: ($job.html_url // ""),
+             started_at: ($job.started_at // ""), stopped_step: ($job | stopped), minutes: ($job | minutes),
+             run_id: ($run.id | tostring), attempt: ($run.run_attempt | tostring), timed_out: false}'
+        }
+        others='{}'
+        while IFS=$'\t' read -r slug path job; do
+          others=$(jq -c --arg s "$slug" --argjson r "$(wait_for "$path" "$job")" '. + {($s): $r}' <<<"$others")
+        done < <(jq -n -r -L "$GITHUB_ACTION_PATH" --arg self "$SELF_SLUG" \
+          'include "message"; checks[] | select(.slug != $self) | [.slug, .path, .job] | @tsv')
+        echo "$others" > "$RUNNER_TEMP/android-others.json"
+        for slug in smoke-test integration-test; do
+          key=${slug%-test}
+          ran=false
+          if [ "$(jq -r --arg s "$slug" '.[$s].result // "" | IN("success", "failure", "cancelled")' <<<"$others")" = true ]; then
+            ran=true
+          fi
+          {
+            echo "${key}_ran=$ran"
+            echo "${key}_run_id=$(jq -r --arg s "$slug" '.[$s].run_id // ""' <<<"$others")"
+          } >> "$GITHUB_OUTPUT"
+        done
+
+    - name: Download the Smoke Test report
+      if: steps.wait.outputs.smoke_ran == 'true'
+      continue-on-error: true
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      with:
+        pattern: smoke-test-report-*
+        run-id: ${{ steps.wait.outputs.smoke_run_id }}
+        github-token: ${{ inputs.github-token }}
+        path: other-reports/smoke-test
+
+    - name: Download the Integration Test report
+      if: steps.wait.outputs.integration_ran == 'true'
+      continue-on-error: true
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      with:
+        pattern: integration-test-report-*
+        run-id: ${{ steps.wait.outputs.integration_run_id }}
+        github-token: ${{ inputs.github-token }}
+        path: other-reports/integration-test
+
+    - name: Fetch job logs
+      id: logs
+      if: steps.self.outputs.send == 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+      run: |
+        api() {
+          curl -fsSL --retry 2 -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY$1" 2>/dev/null
+        }
+        fetch() {
+          local out="job-logs/$1-job-log-$GITHUB_RUN_ATTEMPT.log" id="$2" attempt="$5"
+          while [ -n "$id" ]; do
+            if curl -fsSL --retry 2 -H "Authorization: Bearer $GH_TOKEN" -o "$out" \
+              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/jobs/$id/logs" 2>/dev/null && [ -s "$out" ]; then
+              echo "$out"
+              return
+            fi
+            attempt=$((attempt - 1))
+            id=""
+            # Only a job that wasn't re-run keeps its start time, so a re-run never gets an old log.
+            if [ "$attempt" -ge 1 ] && [ -n "$6" ]; then
+              id=$(api "/actions/runs/$3/attempts/$attempt/jobs?per_page=100" \
+                | jq -r --arg j "$4" --arg s "$6" '[ .jobs[]? | select(.name == $j and .started_at == $s) ][0].id // ""' || true)
+            fi
+          done
+          rm -f "$out"
+        }
+        mkdir -p job-logs
+        all=$(jq -c -s '.[0] as $self | (.[1] // {}) + {($self.slug): ($self + {run_id: env.GITHUB_RUN_ID, attempt: env.GITHUB_RUN_ATTEMPT})}' \
+          "$RUNNER_TEMP/android-self.json" <(cat "$RUNNER_TEMP/android-others.json" 2>/dev/null || echo '{}'))
+        while IFS=$'\t' read -r slug job id run attempt started; do
+          echo "${slug//-/_}=$(fetch "$slug" "$id" "$run" "$job" "$attempt" "$started")" >> "$GITHUB_OUTPUT"
+        done < <(jq -r -L "$GITHUB_ACTION_PATH" 'include "message"; . as $all | checks[] | . as $k
+          | ($all[$k.slug] // {}) | select((.job_id // "") != "" and .result != "skipped")
+          | [$k.slug, $k.job, .job_id, .run_id, .attempt, (.started_at // "")] | @tsv' <<<"$all")
+
+    - name: Upload the Android CI log
+      id: android-ci-log
+      if: steps.logs.outputs.android_ci != ''
+      continue-on-error: true
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        path: ${{ steps.logs.outputs.android_ci }}
+        archive: false
+        retention-days: 14
+
+    - name: Upload the Smoke Test log
+      id: smoke-test-log
+      if: steps.logs.outputs.smoke_test != ''
+      continue-on-error: true
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        path: ${{ steps.logs.outputs.smoke_test }}
+        archive: false
+        retention-days: 14
+
+    - name: Upload the Integration Test log
+      id: integration-test-log
+      if: steps.logs.outputs.integration_test != ''
+      continue-on-error: true
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        path: ${{ steps.logs.outputs.integration_test }}
+        archive: false
+        retention-days: 14
+
+    - name: Build Slack payload
+      id: payload
+      if: steps.self.outputs.send == 'true'
+      shell: bash
+      env:
+        COMBINE: ${{ inputs.combine }}
+        REPORT: ${{ inputs.report }}
+        LOG_ANDROID_CI: ${{ steps.android-ci-log.outputs.artifact-url }}
+        LOG_SMOKE_TEST: ${{ steps.smoke-test-log.outputs.artifact-url }}
+        LOG_INTEGRATION_TEST: ${{ steps.integration-test-log.outputs.artifact-url }}
+        EVENT: ${{ github.event_name }}
+        PR_ACTION: ${{ github.event.action }}
+        REF_NAME: ${{ github.ref_name }}
+        RUN_ATTEMPT: ${{ github.run_attempt }}
+        REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+        # PR fields can come from a fork, so they only reach the script through env.
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        PR_TITLE: ${{ github.event.pull_request.title }}
+        PR_URL: ${{ github.event.pull_request.html_url }}
+        PR_BRANCH: ${{ github.event.pull_request.head.ref }}
+        HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      run: |
+        if ! jq -e 'type == "object"' >/dev/null 2>&1 <<<"$REPORT"; then
+          REPORT='{}'
+        fi
+        others='{}'
+        if [ -s "$RUNNER_TEMP/android-others.json" ]; then
+          others=$(cat "$RUNNER_TEMP/android-others.json")
+        fi
+        # Each attempt uploads its own report, so take the newest.
+        reports='{}'
+        for slug in smoke-test integration-test; do
+          found=$(find "other-reports/$slug" -name "$slug-report.json" 2>/dev/null | sort -V | tail -n 1 || true)
+          if [ -n "$found" ] && jq -e 'type == "object"' "$found" >/dev/null 2>&1; then
+            reports=$(jq -c --arg s "$slug" --slurpfile r "$found" '. + {($s): $r[0]}' <<<"$reports")
+          fi
+        done
+        logs=$(jq -n -c --arg a "$LOG_ANDROID_CI" --arg s "$LOG_SMOKE_TEST" --arg i "$LOG_INTEGRATION_TEST" \
+          '{"android-ci": $a, "smoke-test": $s, "integration-test": $i}')
+
+        jq -n -L "$GITHUB_ACTION_PATH" --slurpfile self "$RUNNER_TEMP/android-self.json" \
+          --argjson report "$REPORT" --argjson others "$others" --argjson reports "$reports" --argjson logs "$logs" \
+          --arg combine "$COMBINE" --arg event "$EVENT" --arg pr_action "$PR_ACTION" --arg ref "$REF_NAME" \
+          --arg run_attempt "$RUN_ATTEMPT" --arg repo_url "$REPO_URL" --arg pr_number "$PR_NUMBER" \
+          --arg pr_title "$PR_TITLE" --arg pr_url "$PR_URL" --arg pr_branch "$PR_BRANCH" --arg sha "$HEAD_SHA" \
+          --arg tick "'" 'include "message";
+          ($self[0] + {report: $report, log_url: $logs[$self[0].slug]}) as $me
+          | {self: $me,
+             others: ($others | with_entries(.value += {report: ($reports[.key] // {}), log_url: $logs[.key]})),
+             event: $event, pr_action: $pr_action, ref: $ref, run_attempt: $run_attempt, repo_url: $repo_url,
+             pr_number: $pr_number, pr_title: $pr_title, pr_url: $pr_url, pr_branch: $pr_branch, sha: $sha, tick: $tick}
+          | if $combine == "true" then combined else single end' > payload.json
+
+    - name: Send to Slack
+      if: inputs.webhook != '' && steps.self.outputs.send == 'true'
+      continue-on-error: true
+      uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
+      with:
+        webhook: ${{ inputs.webhook }}
+        webhook-type: incoming-webhook
+        payload-file-path: payload.json
