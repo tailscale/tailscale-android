@@ -12,7 +12,7 @@ func TestAndroidSmoke(t *testing.T) {
 	prepareDeviceForUI(t, e.adb)
 	disableBrowser(t, e)
 
-	var launched bool
+	var launched, loggedIn bool
 	t.Run("App launches", func(t *testing.T) {
 		recordScreen(t, e.adb)
 		launchApp(t, e)
@@ -31,5 +31,31 @@ func TestAndroidSmoke(t *testing.T) {
 		waitForNodeCount(t, e.control, 2)
 		e.checkPeerTraffic(t)
 		checkSettingsShowServer(t, e)
+		loggedIn = true
+	})
+	t.Run("Taildrop Send", func(t *testing.T) {
+		if !loggedIn {
+			t.Skip("needs Log in to a custom control server to pass")
+		}
+		recordScreen(t, e.adb)
+		name, content := taildropFile(t, "send", 4<<10)
+		shareFromProbe(t, e, name, content)
+		waitForPeerFile(t, e, name)
+		e.checkPeerFile(t, name, []byte(content))
+	})
+	t.Run("Taildrop receive", func(t *testing.T) {
+		if !loggedIn {
+			t.Skip("needs Log in to a custom control server to pass")
+		}
+		recordScreen(t, e.adb)
+		showMainScreen(t, e)
+		waitForConnected(t, e)
+		name, content := taildropFile(t, "receive", 32<<10)
+		sent := e.peerSendsFile(t, name, []byte(content))
+		pickTaildropFolder(t, e)
+		if err := <-sent; err != nil {
+			t.Fatalf("tsnet peer PushFile: %v", err)
+		}
+		checkDeviceFile(t, e, "/sdcard/Documents/"+name, content)
 	})
 }

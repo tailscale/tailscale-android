@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 )
 
 const (
@@ -16,6 +17,7 @@ const (
 	settingsDesc      = "Open settings"
 	accountsMenuDesc  = "menu"
 	settingsDeepLink  = "tailscale://navigate/settings"
+	mainDeepLink      = "tailscale://navigate/main/devices"
 )
 
 func isVPNConsentOK(n uiNode) bool {
@@ -46,14 +48,25 @@ func disableBrowser(t *testing.T, e *androidEnv) {
 	if out, err := e.adb.runOutputAllowError("shell", "pm", "disable-user", "--user", "0", chromePackage); err != nil {
 		t.Logf("pm disable-user %s: %v\n%s", chromePackage, err, out)
 	}
-	if out := e.adb.runOutput(t, "shell", "cmd", "package", "query-activities", "-a", "android.intent.action.VIEW", "-d", "https://login.tailscale.com/"); !strings.Contains(out, "No activities found") {
+	if out := e.adb.shellOutput(t, "cmd", "package", "query-activities", "-a", "android.intent.action.VIEW", "-d", "https://login.tailscale.com/"); !strings.Contains(out, "No activities found") {
 		t.Fatalf("an app can still open the login page over the test:\n%s", out)
 	}
 }
 
 func launchApp(t *testing.T, e *androidEnv) {
 	t.Helper()
-	e.adb.run(t, "shell", "am", "start", "-W", "-n", androidPackage+"/.MainActivity")
+	e.adb.startActivity(t, mainActivity)
+}
+
+func openDeepLink(t *testing.T, e *androidEnv, link string) {
+	t.Helper()
+	e.adb.startActivity(t, mainActivity, "-a", "android.intent.action.VIEW", "-d", link)
+}
+
+// showMainScreen uses a deep link, since launching a running app leaves it on its last screen.
+func showMainScreen(t *testing.T, e *androidEnv) {
+	t.Helper()
+	openDeepLink(t, e, mainDeepLink)
 }
 
 func dismissForeignApp(t *testing.T, e *androidEnv, pkg string) {
@@ -62,7 +75,7 @@ func dismissForeignApp(t *testing.T, e *androidEnv, pkg string) {
 		return
 	}
 	t.Logf("%s is in front of %s, pressing BACK", pkg, androidPackage)
-	e.adb.run(t, "shell", "input", "keyevent", "KEYCODE_BACK")
+	e.adb.shell(t, "input", "keyevent", "KEYCODE_BACK")
 }
 
 // waitForAppNode presses BACK while another app, such as a login browser, is in front.
@@ -170,6 +183,75 @@ func checkSettingsShowServer(t *testing.T, e *androidEnv) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	e.adb.run(t, "shell", "am", "start", "-W", "-a", "android.intent.action.VIEW", "-d", settingsDeepLink, "-n", androidPackage+"/.MainActivity")
+	openDeepLink(t, e, settingsDeepLink)
 	waitForAppNode(t, e, "the account row showing "+u.Hostname(), withText(u.Hostname()))
+}
+
+func shareFromProbe(t *testing.T, e *androidEnv, name, content string) {
+	t.Helper()
+	tailscale := appString(t, strAppName)
+	shareTitle := appString(t, strShare)
+	e.adb.startActivity(t, probePackage+"/.ShareFileActivity", "--es", "name", name, "--es", "content", content)
+	var polls, tappedAt, misses int
+	pollUI(t, e.adb, "the tsnet peer on Tailscale's share screen", func(s uiScreen) bool {
+		polls++
+		switch pkg := s.pkg(); {
+		case pkg == androidPackage && s.has(withText(shareTitle)):
+			if n, ok := s.find(withText(peerHostname)); ok {
+				tap(t, e.adb, n)
+				return true
+			}
+		case pkg == "android" || strings.HasSuffix(pkg, ".intentresolver"):
+			if n, ok := s.find(withText(tailscale)); ok {
+				// A second tap could land on the share screen as it opens, so wait a few polls first.
+				if tappedAt == 0 || polls-tappedAt >= 4 {
+					tap(t, e.adb, n)
+					tappedAt = polls
+				}
+				return false
+			}
+			if misses++; misses%3 == 0 {
+				swipeUp(t, e.adb)
+			}
+		}
+		return false
+	})
+}
+
+func waitForPeerFile(t *testing.T, e *androidEnv, name string) {
+	t.Helper()
+	failures := []string{appString(t, strTaildropShareFailedTitle), appString(t, strTaildropShareFailedShort)}
+	pollUI(t, e.adb, "the tsnet peer to receive "+name, func(s uiScreen) bool {
+		for _, f := range failures {
+			if s.has(withText(f)) {
+				t.Fatalf("Tailscale's share screen shows %q", f)
+			}
+		}
+		return e.peerHasFile(t, name)
+	})
+}
+
+func pickTaildropFolder(t *testing.T, e *androidEnv) {
+	t.Helper()
+	saved := appString(t, strTaildropSavedInDirectory)
+	steps := []func(uiNode) bool{
+		withText(appString(t, strTaildropDirPickerButton)),
+		withTextFold("Use this folder"),
+		withTextPrefixFold("Allow access to"),
+		withTextFold("Allow"),
+		withTextFold("Documents"),
+	}
+	pollUIFor(t, e.adb, "the Taildrop folder picked and the received-file banner", 3*time.Minute, func(s uiScreen) bool {
+		if s.pkg() == androidPackage && s.has(withText(saved)) {
+			return true
+		}
+		for _, match := range steps {
+			if n, ok := s.find(func(n uiNode) bool { return n.Enabled && match(n) }); ok {
+				tap(t, e.adb, n)
+				return false
+			}
+		}
+		return false
+	})
+	waitForNode(t, e.adb, "the banner title", withText(strings.ToUpper(appString(t, strTaildropFileReceived))))
 }

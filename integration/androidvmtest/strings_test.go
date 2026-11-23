@@ -13,23 +13,31 @@ import (
 )
 
 const (
-	strAccounts           = "accounts"
-	strAddAccount         = "add_account_short"
-	strAddProfileFailed   = "add_profile_failed_title"
-	strAuthKeyExplanation = "auth_key_explanation"
-	strAuthKeyMenu        = "auth_key_menu"
-	strConnected          = "connected"
-	strContinue           = "_continue"
-	strCustomControlDesc  = "custom_control_menu_desc"
-	strCustomControlMenu  = "custom_control_menu"
-	strGetStarted         = "getStarted"
-	strLoginToJoin        = "login_to_join_your_tailnet"
+	strAccounts                 = "accounts"
+	strAddAccount               = "add_account_short"
+	strAddProfileFailed         = "add_profile_failed_title"
+	strAppName                  = "app_name"
+	strAuthKeyExplanation       = "auth_key_explanation"
+	strAuthKeyMenu              = "auth_key_menu"
+	strConnected                = "connected"
+	strContinue                 = "_continue"
+	strCustomControlDesc        = "custom_control_menu_desc"
+	strCustomControlMenu        = "custom_control_menu"
+	strGetStarted               = "getStarted"
+	strLoginToJoin              = "login_to_join_your_tailnet"
+	strShare                    = "share"
+	strTaildropDirPickerButton  = "taildrop_directory_picker_button"
+	strTaildropFileReceived     = "taildrop_file_received"
+	strTaildropSavedInDirectory = "taildrop_saved_in_directory"
+	strTaildropShareFailedShort = "taildrop_share_failed_short"
+	strTaildropShareFailedTitle = "taildrop_share_failed_title"
 )
 
 var smokeStrings = []string{
 	strAccounts,
 	strAddAccount,
 	strAddProfileFailed,
+	strAppName,
 	strAuthKeyExplanation,
 	strAuthKeyMenu,
 	strConnected,
@@ -38,6 +46,12 @@ var smokeStrings = []string{
 	strCustomControlMenu,
 	strGetStarted,
 	strLoginToJoin,
+	strShare,
+	strTaildropDirPickerButton,
+	strTaildropFileReceived,
+	strTaildropSavedInDirectory,
+	strTaildropShareFailedShort,
+	strTaildropShareFailedTitle,
 }
 
 var androidStringEscapes = strings.NewReplacer(`\'`, `'`, `\"`, `"`, `\n`, "\n", `\\`, `\`)
