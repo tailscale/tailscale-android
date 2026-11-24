@@ -27,6 +27,12 @@ export TS_USE_TOOLCHAIN=1
 # affordances for debugging it.
 GOMOBILE_BUILD_TAGS := ts_omit_cachenetmap
 
+# GOMOBILE_TARGET is the gomobile bind -target value. The default builds
+# libtailscale for all Android ABIs. CI jobs that only run the APK on an
+# x86_64 emulator set it to android/amd64, which builds a quarter as much Go
+# code.
+GOMOBILE_TARGET ?= android
+
 # Pull androidApiLevel from gradle.properties.
 ANDROID_API_LEVEL := $(shell grep '^androidApiLevel=' android/gradle.properties | cut -d'=' -f2)
 # Pull androidCompileSdkPackage from gradle.properties.
@@ -58,7 +64,14 @@ export VERSION_CODE_BASE
 # Define output filenames.
 LIBTAILSCALE_AAR := android/libs/libtailscale.aar
 UNSTRIPPED_AAR := android/libs/libtailscale_unstripped.aar
-ARM64_SO_PATH := jni/arm64-v8a/libgojni.so
+
+# GOJNI_SO_PATH is the libgojni.so within the AAR that we strip and from which
+# we extract debug symbols.
+ifeq ($(GOMOBILE_TARGET),android/amd64)
+GOJNI_SO_PATH := jni/x86_64/libgojni.so
+else
+GOJNI_SO_PATH := jni/arm64-v8a/libgojni.so
+endif
 
 # Compute an absolute path for the unstripped AAR.
 ABS_UNSTRIPPED_AAR := $(shell pwd)/$(UNSTRIPPED_AAR)
@@ -229,7 +242,7 @@ build-unstripped-aar: tailscale.version $(GOBIN)/gomobile
 	rm -f $(ABS_UNSTRIPPED_AAR)
 	# The -linkmode=external -extldflags=-Wl,-z,max-page-size=16384 is specific to NDK 23
 	# to support 16kb page sizes.  Your mileage may vary with other NDK versions.
-	$(GOBIN)/gomobile bind -target android -androidapi 26 \
+	$(GOBIN)/gomobile bind -target $(GOMOBILE_TARGET) -androidapi 26 \
 		-tags "$$(./build-tags.sh) $(GOMOBILE_BUILD_TAGS)" \
 		-ldflags "-linkmode=external -extldflags=-Wl,-z,max-page-size=16384 $$(./version-ldflags.sh)" \
 		-o $(ABS_UNSTRIPPED_AAR) ./libtailscale || { echo "gomobile bind failed"; exit 1; }
@@ -242,12 +255,10 @@ $(UNSTRIPPED_AAR): build-unstripped-aar
 
 libgojni.so.unstripped: $(UNSTRIPPED_AAR)
 	@echo "Extracting libgojni.so from unstripped AAR..."
-	@if unzip -p $(ABS_UNSTRIPPED_AAR) jni/arm64-v8a/libgojni.so > libgojni.so.unstripped; then \
-	    echo "Found arm64-v8a libgojni.so"; \
-	elif unzip -p $(ABS_UNSTRIPPED_AAR) jni/armeabi-v7a/libgojni.so > libgojni.so.unstripped; then \
-	    echo "Found armeabi-v7a libgojni.so"; \
+	@if unzip -p $(ABS_UNSTRIPPED_AAR) $(GOJNI_SO_PATH) > libgojni.so.unstripped; then \
+	    echo "Found $(GOJNI_SO_PATH)"; \
 	else \
-	    echo "Neither jni/arm64-v8a/libgojni.so nor jni/armeabi-v7a/libgojni.so was found."; \
+	    echo "$(GOJNI_SO_PATH) was not found."; \
 	    echo "Listing contents of $(ABS_UNSTRIPPED_AAR):"; \
 	    unzip -l $(ABS_UNSTRIPPED_AAR); exit 1; \
 	fi
@@ -265,7 +276,7 @@ $(LIBTAILSCALE_AAR): libgojni.so.stripped $(UNSTRIPPED_AAR)
 	rm -rf temp_aar
 	mkdir temp_aar
 	unzip $(ABS_UNSTRIPPED_AAR) -d temp_aar
-	cp libgojni.so.stripped temp_aar/$(ARM64_SO_PATH)
+	cp libgojni.so.stripped temp_aar/$(GOJNI_SO_PATH)
 	(cd temp_aar && zip -r ../$(LIBTAILSCALE_AAR) .)
 	rm -rf temp_aar
 
@@ -457,7 +468,7 @@ docker-run-build: clean jarsign-env docker-build-image docker-android-dir ## Run
 
 .PHONY: docker-tailscale-debug
 docker-tailscale-debug: docker-build-image docker-android-dir ## Build tailscale-debug.apk inside the docker env (stable signer across runs)
-	@docker run --rm $(DOCKER_RUN_VOLS) $(DOCKER_IMAGE) make tailscale-debug
+	@docker run --rm $(DOCKER_RUN_VOLS) $(DOCKER_IMAGE) make tailscale-debug GOMOBILE_TARGET=$(GOMOBILE_TARGET)
 
 define run-androidvmtest
 	@rm -f $(ANDROID_TEST_SUMMARY)
