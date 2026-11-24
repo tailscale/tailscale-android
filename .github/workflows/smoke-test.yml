@@ -34,7 +34,8 @@ jobs:
         run: make docker-build-image
 
       - name: Build debug APK
-        run: make docker-tailscale-debug
+        # The emulator is x86_64, so skip building Go for the other ABIs.
+        run: make docker-tailscale-debug GOMOBILE_TARGET=android/amd64
 
       - name: Build Docker test image
         run: make docker-build-android-integration-image
