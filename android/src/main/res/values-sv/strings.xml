@@ -13,6 +13,11 @@
     <string name="accessibility_device_requires_authentication">Enheten kräver autentisering</string>
     <string name="accessibility_single_file">En fil</string>
     <string name="accessibility_files">Filer</string>
+    <string name="mdm_debug_policies_active">Värdena kommer från den felsökningspolicyfil som är inbäddad i det här bygget, inte från en MDM-leverantör.</string>
+    <string name="shortcut_connect_short">Anslut</string>
+    <string name="shortcut_connect_long">Anslut till Tailscale</string>
+    <string name="shortcut_disconnect_short">Koppla från</string>
+    <string name="shortcut_disconnect_long">Koppla från Tailscale</string>
     <string name="log_in">Logga in</string>
     <string name="log_out">Logga ut</string>
     <string name="none">Ingen</string>
