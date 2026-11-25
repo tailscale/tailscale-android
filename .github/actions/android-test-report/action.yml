@@ -1,0 +1,170 @@
+name: android-test-report
+description: Summarize each test case for the job summary and Slack, and upload the failed cases' recordings
+
+inputs:
+  check:
+    description: Name of the test job, used to find the test log and name the uploads
+    required: true
+  all-recordings-url:
+    description: Download URL of the zip with every recording, if one was uploaded
+    required: false
+    default: ""
+
+outputs:
+  report:
+    description: JSON with the counts, the failed and flaky cases, and the download links
+    value: ${{ steps.report.outputs.report }}
+
+runs:
+  using: composite
+  steps:
+    - name: Collect results
+      id: collect
+      shell: bash
+      env:
+        CHECK: ${{ inputs.check }}
+      run: |
+        log="${CHECK}-${GITHUB_RUN_ATTEMPT}.log"
+        [ -s "$log" ] || log=/dev/null
+        rows='[]'
+        has_results=false
+        if [ -s android-test-results.json ]; then
+          case "$(jq -r 'type' android-test-results.json 2>/dev/null || true)" in
+            array)
+              rows=$(jq -c '[ .[] | objects ] | unique_by([.Package, .Test])' android-test-results.json)
+              has_results=true
+              ;;
+            null)
+              has_results=true
+              ;;
+          esac
+        fi
+
+        recordings='[]'
+        while IFS= read -r -d '' f; do
+          dir=$(basename "$(dirname "$(dirname "$f")")")
+          recordings=$(jq -c --arg n "${dir//__//}" --arg f "$f" 'if any(.[]; .name == $n) then . else . + [{name: $n, file: $f}] end' <<<"$recordings")
+        done < <(find integration-artifacts/_artifacts -name screen.mp4 -print0 2>/dev/null | sort -z)
+
+        # Go prints case results in a block under the test's result, so a log line can't add a case.
+        jq -n -c --argjson rows "$rows" --rawfile log "$log" --argjson recordings "$recordings" --argjson has "$has_results" '
+          ($rows | map({key: .Test, value: .Outcome}) | from_entries) as $out
+          | [ foreach ($log | split("\n")[]) as $l ({};
+                ([ $l | select(contains("--- ")) | capture("^(?<i>(?: {4})*)--- (?<r>PASS|FAIL|SKIP): (?<n>[^ ]+) \\([0-9]+\\.[0-9]+s\\)$") ][0]) as $m
+                | if $m != null and ($m.i == "" or .in) then {in: true, m: $m} else {} end;
+                .m // empty | select($out[.n | split("/")[0]] != null)) ] as $lines
+          | (reduce $lines[].n as $n ([]; if any(.[]; . == $n) then . else . + [$n] end)) as $names
+          | ([ $names[] | select(contains("/") | not) ] as $seen | $seen + [ $rows[].Test | select(IN($seen[]) | not) ]) as $tops
+          | def result($n):
+              [ $lines[] | select(.n == $n) | .r | select(. != "SKIP") ] as $rs
+              | if $rs == [] then "skip" elif $rs[-1] == "FAIL" then "fail" elif any($rs[]; . == "FAIL") then "flaky" else "pass" end;
+          [ $tops[] as $t | $out[$t] as $o
+            | [ $names[] | select(. == $t or startswith($t + "/")) | . as $n | select(any($names[]; startswith($n + "/")) | not)
+                | {name: ., result: (result(.) | if . == "fail" and $o != "fail" then "flaky" else . end)} ] as $cs
+            | $cs[],
+              (if $o == "fail" and all($cs[]; .result != "fail") then {name: $t, result: "fail"}
+               elif $o == "retried" and all($cs[]; .result != "flaky") then {name: $t, result: "flaky"}
+               elif $cs == [] then {name: $t, result: $o}
+               else empty end) ] as $cases
+          | [ $cases[] | select(.result == "fail") | .name ] as $failed
+          | [ $cases[] | select(.result == "flaky") | .name ] as $flaky
+          | [ ($failed[], $flaky[]) as $n | $recordings[] | select(.name == $n) ] as $wanted
+          | {
+              has_results: $has,
+              cases: $cases,
+              passed: ([ $cases[] | select(.result == "pass" or .result == "flaky") ] | length),
+              failed: ($failed | length),
+              skipped: ([ $cases[] | select(.result == "skip") ] | length),
+              retried: ($flaky | length),
+              failed_cases: $failed,
+              flaky_cases: $flaky,
+              wanted: $wanted[:3],
+              more_recordings: ([ ($wanted | length) - 3, 0 ] | max)
+            }' > "$RUNNER_TEMP/android-test-report.json"
+
+        mkdir -p recordings
+        i=0
+        while IFS=$'\t' read -r name file; do
+          i=$((i + 1))
+          out="recordings/${CHECK}-${GITHUB_RUN_ATTEMPT}-${name//\//__}.mp4"
+          cp "$file" "$out"
+          echo "video$i=$out" >> "$GITHUB_OUTPUT"
+          echo "case$i=$name" >> "$GITHUB_OUTPUT"
+        done < <(jq -r '.wanted[] | [.name, .file] | @tsv' "$RUNNER_TEMP/android-test-report.json")
+
+        jq -r '
+          def pretty: if test("/") then split("/")[1:] | join(" › ") | gsub("_"; " ") else . end;
+          select(.has_results)
+          | "### Test results", "",
+            if .cases == [] then "_No tests ran._"
+            else "| Result | Test case |", "|--------|-----------|",
+              (.cases[] | "| " + {pass: "✅ Passed", fail: "❌ Failed", flaky: "⚠️ Passed on retry", skip: "⏭️ Skipped"}[.result] + " | " + (.name | pretty | gsub("[|]"; "\\|")) + " |"),
+              "", "**\(.passed) passed, \(.failed) failed, \(.skipped) skipped"
+                + (if .passed + .failed > 0 then " (\(.passed * 100 / (.passed + .failed) | floor)%)" else "" end) + "**"
+            end' "$RUNNER_TEMP/android-test-report.json" >> "$GITHUB_STEP_SUMMARY"
+
+    - name: Upload recording 1
+      id: video-1
+      if: always() && steps.collect.outputs.video1 != ''
+      continue-on-error: true
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        path: ${{ steps.collect.outputs.video1 }}
+        archive: false
+        retention-days: 14
+
+    - name: Upload recording 2
+      id: video-2
+      if: always() && steps.collect.outputs.video2 != ''
+      continue-on-error: true
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        path: ${{ steps.collect.outputs.video2 }}
+        archive: false
+        retention-days: 14
+
+    - name: Upload recording 3
+      id: video-3
+      if: always() && steps.collect.outputs.video3 != ''
+      continue-on-error: true
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        path: ${{ steps.collect.outputs.video3 }}
+        archive: false
+        retention-days: 14
+
+    - name: Summarize for Slack
+      id: report
+      if: always()
+      shell: bash
+      env:
+        CHECK: ${{ inputs.check }}
+        CASE1: ${{ steps.collect.outputs.case1 }}
+        CASE2: ${{ steps.collect.outputs.case2 }}
+        CASE3: ${{ steps.collect.outputs.case3 }}
+        URL1: ${{ steps.video-1.outputs.artifact-url }}
+        URL2: ${{ steps.video-2.outputs.artifact-url }}
+        URL3: ${{ steps.video-3.outputs.artifact-url }}
+        ALL_URL: ${{ inputs.all-recordings-url }}
+      run: |
+        report="$RUNNER_TEMP/android-test-report.json"
+        if [ ! -s "$report" ]; then
+          echo '{}' > "$report"
+        fi
+        summary=$(jq -c --arg c1 "$CASE1" --arg c2 "$CASE2" --arg c3 "$CASE3" \
+          --arg u1 "$URL1" --arg u2 "$URL2" --arg u3 "$URL3" \
+          --arg all "$ALL_URL" '
+          del(.wanted, .cases)
+          | .recordings = ([ {name: $c1, url: $u1}, {name: $c2, url: $u2}, {name: $c3, url: $u3} ] | map(select(.name != "" and .url != "")))
+          | .all_recordings_url = $all' "$report")
+        echo "report=$summary" >> "$GITHUB_OUTPUT"
+        printf '%s\n' "$summary" > "${CHECK}-report.json"
+
+    - name: Upload report
+      if: always() && steps.report.outputs.report != ''
+      continue-on-error: true
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: ${{ inputs.check }}-report-${{ github.run_attempt }}
+        path: ${{ inputs.check }}-report.json
+        retention-days: 14
