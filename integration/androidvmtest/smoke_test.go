@@ -12,11 +12,10 @@ func TestAndroidSmoke(t *testing.T) {
 	prepareDeviceForUI(t, e.adb)
 	disableBrowser(t, e)
 
-	var launched, loggedIn bool
+	var launched, loggedIn, usingExitNode bool
 	t.Run("App launches", func(t *testing.T) {
 		recordScreen(t, e.adb)
-		launchApp(t, e)
-		completeFirstRun(t, e)
+		appLaunches(t, e)
 		launched = true
 	})
 	t.Run("Log in to a custom control server", func(t *testing.T) {
@@ -24,13 +23,7 @@ func TestAndroidSmoke(t *testing.T) {
 			t.Skip("needs App launches to pass")
 		}
 		recordScreen(t, e.adb)
-		addAccountWithCustomServer(t, e)
-		addAccountWithAuthKey(t, e)
-		allowNotifications(t, e)
-		waitForConnected(t, e)
-		waitForNodeCount(t, e.control, 2)
-		e.checkPeerTraffic(t)
-		checkSettingsShowServer(t, e)
+		logInToCustomControlServer(t, e)
 		loggedIn = true
 	})
 	t.Run("Taildrop Send", func(t *testing.T) {
@@ -38,24 +31,28 @@ func TestAndroidSmoke(t *testing.T) {
 			t.Skip("needs Log in to a custom control server to pass")
 		}
 		recordScreen(t, e.adb)
-		name, content := taildropFile(t, "send", 4<<10)
-		shareFromProbe(t, e, name, content)
-		waitForPeerFile(t, e, name)
-		e.checkPeerFile(t, name, []byte(content))
+		taildropSend(t, e)
 	})
 	t.Run("Taildrop receive", func(t *testing.T) {
 		if !loggedIn {
 			t.Skip("needs Log in to a custom control server to pass")
 		}
 		recordScreen(t, e.adb)
-		showMainScreen(t, e)
-		waitForConnected(t, e)
-		name, content := taildropFile(t, "receive", 32<<10)
-		sent := e.peerSendsFile(t, name, []byte(content))
-		pickTaildropFolder(t, e)
-		if err := <-sent; err != nil {
-			t.Fatalf("tsnet peer PushFile: %v", err)
+		taildropReceive(t, e)
+	})
+	t.Run("Exit node can be enabled", func(t *testing.T) {
+		if !loggedIn {
+			t.Skip("needs Log in to a custom control server to pass")
 		}
-		checkDeviceFile(t, e, "/sdcard/Documents/"+name, content)
+		recordScreen(t, e.adb)
+		exitNodeCanBeEnabled(t, e)
+		usingExitNode = true
+	})
+	t.Run("Do not allow device access to its local network when routing traffic through an exit node", func(t *testing.T) {
+		if !usingExitNode {
+			t.Skip("needs Exit node can be enabled to pass")
+		}
+		recordScreen(t, e.adb)
+		exitNodeLANAccess(t, e)
 	})
 }

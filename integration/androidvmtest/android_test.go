@@ -4,12 +4,9 @@
 package androidvmtest
 
 import (
-	"bytes"
 	"context"
-	"crypto/rand"
 	"crypto/tls"
 	_ "embed"
-	"encoding/hex"
 	"flag"
 	"fmt"
 	"io"
@@ -22,13 +19,11 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"slices"
 	"strings"
 	"testing"
 	"time"
 
 	"tailscale.com/client/local"
-	"tailscale.com/client/tailscale/apitype"
 	"tailscale.com/derp/derpserver"
 	_ "tailscale.com/feature/taildrop"
 	"tailscale.com/ipn/store/mem"
@@ -195,18 +190,7 @@ func (e *androidEnv) resetApp(t *testing.T) {
 
 func (e *androidEnv) checkPeerTraffic(t *testing.T) {
 	t.Helper()
-	probeResultPath := "files/result"
-	e.adb.shell(t, "run-as", probePackage, "mkdir", "-p", "files")
-
-	peerURL := fmt.Sprintf("http://%s/", e.peerIP)
-	t.Logf("running Android netprobe against tsnet peer URL %s", peerURL)
-	e.adb.runAllowError(t, "shell", "run-as", probePackage, "rm", "-f", probeResultPath)
-	e.adb.shell(t,
-		"am", "broadcast",
-		"-n", probeReceiver,
-		"--es", "url", peerURL,
-	)
-	got := waitForProbeResult(t, e.adb, probeResultPath)
+	got := e.probe(t, fmt.Sprintf("http://%s/", e.peerIP))
 	if !strings.Contains(got, "exit=0\n") {
 		t.Fatalf("Android probe failed: %q", got)
 	}
@@ -218,6 +202,34 @@ func (e *androidEnv) checkPeerTraffic(t *testing.T) {
 	}
 }
 
+func (e *androidEnv) probe(t *testing.T, rawURL string) string {
+	t.Helper()
+	probeResultPath := "files/result"
+	e.adb.shell(t, "run-as", probePackage, "mkdir", "-p", "files")
+
+	t.Logf("running Android netprobe against %s", rawURL)
+	e.adb.runAllowError(t, "shell", "run-as", probePackage, "rm", "-f", probeResultPath)
+	e.adb.shell(t,
+		"am", "broadcast",
+		"-n", probeReceiver,
+		"--es", "url", rawURL,
+	)
+	return waitForProbeResult(t, e.adb, probeResultPath)
+}
+
+func (e *androidEnv) waitForProbeBody(t *testing.T, rawURL, want string) {
+	t.Helper()
+	var got string
+	for deadline := time.Now().Add(*waitTimeout); time.Now().Before(deadline); time.Sleep(time.Second) {
+		if got = e.probe(t, rawURL); strings.Contains(got, "body="+want+"\n") {
+			return
+		}
+	}
+	addrs, _ := e.adb.runOutputAllowError("shell", "ip", "-4", "addr")
+	routes, _ := e.adb.runOutputAllowError("shell", "ip -4 rule; ip -4 route show table all | grep tun")
+	t.Fatalf("GET %s never returned %q; last probe result %q; device addresses:\n%s\nrules and VPN routes:\n%s", rawURL, want, got, addrs, routes)
+}
+
 func (e *androidEnv) peerClient(t *testing.T) *local.Client {
 	t.Helper()
 	lc, err := e.peer.LocalClient()
@@ -225,92 +237,6 @@ func (e *androidEnv) peerClient(t *testing.T) *local.Client {
 		t.Fatalf("tsnet peer LocalClient: %v", err)
 	}
 	return lc
-}
-
-func (e *androidEnv) peerHasFile(t *testing.T, name string) bool {
-	t.Helper()
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	files, err := e.peerClient(t).WaitingFiles(ctx)
-	if err != nil {
-		t.Fatalf("tsnet peer WaitingFiles: %v", err)
-	}
-	return slices.ContainsFunc(files, func(f apitype.WaitingFile) bool { return f.Name == name })
-}
-
-func (e *androidEnv) checkPeerFile(t *testing.T, name string, want []byte) {
-	t.Helper()
-	lc := e.peerClient(t)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-	defer cancel()
-	rc, size, err := lc.GetWaitingFile(ctx, name)
-	if err != nil {
-		t.Fatalf("tsnet peer GetWaitingFile(%q): %v", name, err)
-	}
-	got, err := io.ReadAll(rc)
-	rc.Close()
-	if err != nil {
-		t.Fatalf("reading %q on the tsnet peer: %v", name, err)
-	}
-	if size != int64(len(want)) || !bytes.Equal(got, want) {
-		t.Fatalf("tsnet peer got %d bytes (size %d) for %q; want the %d bytes the device sent", len(got), size, name, len(want))
-	}
-	if err := lc.DeleteWaitingFile(ctx, name); err != nil {
-		t.Logf("tsnet peer DeleteWaitingFile(%q): %v", name, err)
-	}
-}
-
-func (e *androidEnv) peerSendsFile(t *testing.T, name string, data []byte) <-chan error {
-	t.Helper()
-	lc := e.peerClient(t)
-	var target tailcfg.StableNodeID
-	var lastErr error
-	for deadline := time.Now().Add(*waitTimeout); target == "" && time.Now().Before(deadline); {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		targets, err := lc.FileTargets(ctx)
-		cancel()
-		lastErr = err
-		for _, ft := range targets {
-			if ft.Node.Hostinfo.OS() == "android" {
-				target = ft.Node.StableID
-			}
-		}
-		if target == "" {
-			time.Sleep(time.Second)
-		}
-	}
-	if target == "" {
-		t.Fatalf("the device never became a Taildrop target for the tsnet peer (last FileTargets error: %v)", lastErr)
-	}
-	// The device holds the transfer until a folder is picked, so PushFile runs in the background.
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
-	t.Cleanup(cancel)
-	done := make(chan error, 1)
-	go func() {
-		done <- lc.PushFile(ctx, target, int64(len(data)), name, bytes.NewReader(data))
-	}()
-	return done
-}
-
-func taildropFile(t *testing.T, kind string, n int) (name, content string) {
-	t.Helper()
-	b := make([]byte, n)
-	if _, err := rand.Read(b); err != nil {
-		t.Fatal(err)
-	}
-	return fmt.Sprintf("taildrop-%s-%d.bin", kind, time.Now().UnixNano()), hex.EncodeToString(b)
-}
-
-func checkDeviceFile(t *testing.T, e *androidEnv, path, want string) {
-	t.Helper()
-	t.Cleanup(func() { e.adb.runAllowError(t, "shell", "rm", "-f", path) })
-	for deadline := time.Now().Add(*waitTimeout); time.Now().Before(deadline); time.Sleep(time.Second) {
-		if got, err := e.adb.runOutputAllowError("exec-out", "cat", path); err == nil && got == want {
-			return
-		}
-	}
-	found, _ := e.adb.runOutputAllowError("shell", "find", "/sdcard", "-name", filepath.Base(path))
-	t.Fatalf("%s never had the %d bytes the tsnet peer sent; find /sdcard shows:\n%s", path, len(want), found)
 }
 
 func buildAndroidProbe(t *testing.T) string {

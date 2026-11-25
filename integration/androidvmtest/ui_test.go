@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -31,6 +32,7 @@ type uiNode struct {
 	Desc       string   `xml:"content-desc,attr"`
 	Checkable  bool     `xml:"checkable,attr"`
 	Checked    bool     `xml:"checked,attr"`
+	Clickable  bool     `xml:"clickable,attr"`
 	Enabled    bool     `xml:"enabled,attr"`
 	Focused    bool     `xml:"focused,attr"`
 	Bounds     string   `xml:"bounds,attr"`
@@ -88,6 +90,25 @@ func (s uiScreen) has(match func(uiNode) bool) bool {
 
 func (s uiScreen) pkg() string {
 	return s.nodes[0].Package
+}
+
+// row returns the innermost clickable node that holds a match, which is the row a text sits in.
+func (s uiScreen) row(match func(uiNode) bool) (uiNode, bool) {
+	var row uiNode
+	var found bool
+	for _, n := range s.nodes {
+		if n.Clickable && n.holds(match) {
+			row, found = n, true
+		}
+	}
+	return row, found
+}
+
+func (n uiNode) holds(match func(uiNode) bool) bool {
+	if match(n) {
+		return true
+	}
+	return slices.ContainsFunc(n.Children, func(c uiNode) bool { return c.holds(match) })
 }
 
 func withText(text string) func(uiNode) bool {
@@ -339,5 +360,25 @@ func TestParseUIDump(t *testing.T) {
 		if err := checkDumpOutput(out); err == nil {
 			t.Errorf("checkDumpOutput accepted %q", out)
 		}
+	}
+}
+
+func TestUIRow(t *testing.T) {
+	const dump = `<hierarchy rotation="0"><node clickable="true" package="com.tailscale.ipn" bounds="[0,0][1080,2400]"><node clickable="true" bounds="[42,300][1038,470]"><node text="EXIT NODE" bounds="[84,320][300,350]" /><node text="%s" bounds="[84,360][400,410]" /></node><node clickable="true" bounds="[0,600][1080,700]"><node text="tsnetpeer" bounds="[84,620][400,680]" /></node></node></hierarchy>`
+	for _, headline := range []string{"None", "tsnetpeer"} {
+		s, err := parseUIDump(fmt.Sprintf(dump, headline))
+		if err != nil {
+			t.Fatal(err)
+		}
+		row, found := s.row(withText("EXIT NODE"))
+		if !found || row.Bounds != "[42,300][1038,470]" {
+			t.Fatalf("row bounds = %q, found=%v; want [42,300][1038,470]", row.Bounds, found)
+		}
+		if got, want := row.holds(withText("tsnetpeer")), headline == "tsnetpeer"; got != want {
+			t.Errorf("with headline %q, the row holds tsnetpeer = %v; want %v", headline, got, want)
+		}
+	}
+	if _, found := (uiScreen{nodes: []uiNode{{Text: "EXIT NODE"}}}).row(withText("EXIT NODE")); found {
+		t.Errorf("row found a row with no clickable node")
 	}
 }
