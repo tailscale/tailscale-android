@@ -13,15 +13,20 @@ import androidx.lifecycle.viewModelScope
 import com.tailscale.ipn.R
 import com.tailscale.ipn.ui.dataSource.DNSSettingsDataSource
 import com.tailscale.ipn.ui.model.Ipn
+import com.tailscale.ipn.ui.model.StableNodeID
 import com.tailscale.ipn.ui.model.Tailcfg
 import com.tailscale.ipn.ui.theme.off
 import com.tailscale.ipn.ui.theme.success
+import com.tailscale.ipn.util.TSLog
+import kotlin.coroutines.resume
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.suspendCancellableCoroutine
 
 class DNSSettingsViewModelFactory(
     private val dataSource: DNSSettingsDataSource,
@@ -45,15 +50,35 @@ data class DNSSettingsUiState(
 class DNSSettingsViewModel(
     private val dataSource: DNSSettingsDataSource,
 ) : ViewModel() {
+  private val TAG = "DNSSettingsViewModel"
+  private var lastNodeID: StableNodeID? = null
+
+  @OptIn(ExperimentalCoroutinesApi::class)
   private val dnsConfig: StateFlow<Tailcfg.DNSConfig?> =
-      dataSource.netmap
-          .filterNotNull()
-          .map { it.DNS }
-          .stateIn(
-              viewModelScope,
-              SharingStarted.WhileSubscribed(5_000),
-              null,
-          )
+      combine(dataSource.state, dataSource.selfNodeUpdate) { state, update -> state to update }
+          .flatMapLatest { (state, update) ->
+            val nodeID = update?.stableID
+            flow {
+              if (state != Ipn.State.Running || nodeID.isNullOrEmpty()) {
+                lastNodeID = null
+                emit(null)
+                return@flow
+              }
+              if (nodeID != lastNodeID) {
+                lastNodeID = nodeID
+                emit(null)
+              }
+              fetchDNSConfig()
+                  .onSuccess { emit(it) }
+                  .onFailure { TSLog.w(TAG, "Failed to fetch DNS configuration: $it") }
+            }
+          }
+          .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+  private suspend fun fetchDNSConfig(): Result<Tailcfg.DNSConfig> =
+      suspendCancellableCoroutine { cont ->
+        dataSource.dnsConfig(viewModelScope) { cont.resume(it) }
+      }
 
   val uiState: StateFlow<DNSSettingsUiState> =
       combine(

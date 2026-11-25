@@ -33,6 +33,7 @@ private object Endpoint {
   const val DEBUG = "debug"
   const val DEBUG_LOG = "debug-log"
   const val BUG_REPORT = "bugreport"
+  const val DNS_CONFIG = "dns-config"
   const val PREFS = "prefs"
   const val FILE_TARGETS = "file-targets"
   const val UPLOAD_METRICS = "upload-client-metrics"
@@ -107,6 +108,10 @@ class Client(
     return patch(Endpoint.PREFS, body, responseHandler = responseHandler)
   }
 
+  fun dnsConfig(responseHandler: (Result<Tailcfg.DNSConfig>) -> Unit) {
+    get(Endpoint.DNS_CONFIG, responseHandler = responseHandler)
+  }
+
   fun setUseExitNode(use: Boolean, responseHandler: (Result<Ipn.Prefs>) -> Unit) {
     val path = "${Endpoint.ENABLE_EXIT_NODE}?enabled=$use"
     return post(path, responseHandler = responseHandler)
@@ -179,7 +184,7 @@ class Client(
             part.contentLength = file.DeclaredSize
             part.body = InputStreamAdapter(stream)
             part
-          }
+          },
       )
     } catch (e: Exception) {
       parts.forEach { it.body.close() }
@@ -365,7 +370,7 @@ private class Request<T>(
                         jsonDecoder.decodeFromStream(
                             Json.serializersModule.serializer(responseType),
                             respData.inputStream(),
-                        ) as T
+                        ) as T,
                     )
                   } catch (t: Throwable) {
                     // If we couldn't parse the response body, assume it's an error response
@@ -380,7 +385,7 @@ private class Request<T>(
             }
         if (resp.statusCode() >= 400) {
           throw Exception(
-              "Request failed with status ${resp.statusCode()}: ${respData.toString(Charset.defaultCharset())}"
+              "Request failed with status ${resp.statusCode()}: ${respData.toString(Charset.defaultCharset())}",
           )
         }
         // The response handler will invoked internally by the request parser
