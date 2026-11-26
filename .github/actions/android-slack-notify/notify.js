@@ -25,8 +25,28 @@ function minutes(job) {
 }
 
 function stopped(job) {
-  const step = (job.steps || []).find(({ conclusion }) => conclusion === "failure" || conclusion === "cancelled");
+  let step = (job.steps || []).find(({ conclusion }) => conclusion === "failure" || conclusion === "cancelled");
+  // A runner lost mid-step leaves that step unfinished, so that's where the job stopped.
+  step = step || (job.steps || []).find(({ conclusion }) => !conclusion);
   return step ? step.name : "";
+}
+
+async function createdAt(github, context) {
+  const { data } = await github.rest.actions.getWorkflowRun({ ...context.repo, run_id: process.env.GITHUB_RUN_ID });
+  return data.created_at;
+}
+
+// A nightly slot's two runs start within 3 minutes of each other, and slots are 20 minutes apart.
+async function scheduledRun(github, context, path, at) {
+  const { data } = await github.rest.actions.listWorkflowRunsForRepo({
+    ...context.repo,
+    event: "schedule",
+    per_page: 100,
+  });
+  const gap = (r) => Math.abs(Date.parse(r.created_at) - Date.parse(at));
+  return (data.workflow_runs || [])
+    .filter((r) => r.path === path && gap(r) <= 10 * 60000)
+    .reduce((best, r) => (best && gap(best) <= gap(r) ? best : r), undefined);
 }
 
 function readJSON(path) {
@@ -42,7 +62,8 @@ exports.self = async ({ github, context, core, exec }) => {
   const prefix = `${env.GITHUB_REPOSITORY}/`;
   const ref = env.GITHUB_WORKFLOW_REF;
   const path = (ref.startsWith(prefix) ? ref.slice(prefix.length) : ref).split("@")[0];
-  const self = (await checks(exec)).find((check) => check.path === path);
+  const all = await checks(exec);
+  const self = all.find((check) => check.path === path);
   if (!self) {
     throw new Error(`${path} is missing from the checks table in message.jq`);
   }
@@ -55,12 +76,22 @@ exports.self = async ({ github, context, core, exec }) => {
 
   // A timed-out job ends cancelled, so its duration tells a timeout from a newer push.
   const timedOut = env.RESULT === "cancelled" && mins !== "" && Number(mins) >= Number(env.TIMEOUT) - 5;
-  const send = !(env.RESULT === "cancelled" && !timedOut && context.eventName === "pull_request");
-  // Only a push's first run waits for the other checks, so each re-run posts its own message.
+  let send = !(env.RESULT === "cancelled" && !timedOut && context.eventName === "pull_request");
+  // Only a push's or nightly's first run waits for the others, so a re-run posts its own message.
   let mode = "single";
   if (context.eventName === "pull_request") {
     const first = env.COMBINE === "true" && env.GITHUB_RUN_ATTEMPT === "1" && context.payload.action !== "labeled";
     mode = first ? "combined" : "rerun";
+  } else if (context.eventName === "schedule" && env.GITHUB_RUN_ATTEMPT === "1") {
+    if (self.nightly === "posts") {
+      mode = "combined";
+    } else if (self.nightly === "joins") {
+      const poster = all.find(({ nightly }) => nightly === "posts");
+      // GitHub can drop a scheduled run, so stay quiet only if the poster has one in this slot.
+      send = !(await createdAt(github, context)
+        .then((at) => scheduledRun(github, context, poster.path, at))
+        .catch(() => undefined));
+    }
   }
   fs.writeFileSync(
     `${env.RUNNER_TEMP}/android-self.json`,
@@ -84,22 +115,29 @@ exports.wait = async ({ github, context, core, exec }) => {
   const env = process.env;
   // A re-run doesn't wait, so it shows the other checks as they are now.
   const deadline = Date.now() + (env.MODE === "rerun" ? 0 : Number(env.WAIT_MINUTES)) * 60000;
-  const sha = context.payload.pull_request.head.sha;
+  const scheduled = context.eventName === "schedule";
+  const sha = scheduled ? "" : context.payload.pull_request.head.sha;
+  let at = "";
 
   const waitFor = async ({ path, job: name }) => {
     for (;;) {
       let run;
       let found;
       try {
-        const { data } = await github.rest.actions.listWorkflowRunsForRepo({
-          ...context.repo,
-          head_sha: sha,
-          event: "pull_request",
-          per_page: 100,
-        });
-        run = (data.workflow_runs || [])
-          .filter((r) => r.path === path)
-          .reduce((newest, r) => (newest && newest.run_number > r.run_number ? newest : r), undefined);
+        if (scheduled) {
+          at = at || (await createdAt(github, context));
+          run = await scheduledRun(github, context, path, at);
+        } else {
+          const { data } = await github.rest.actions.listWorkflowRunsForRepo({
+            ...context.repo,
+            head_sha: sha,
+            event: "pull_request",
+            per_page: 100,
+          });
+          run = (data.workflow_runs || [])
+            .filter((r) => r.path === path)
+            .reduce((newest, r) => (newest && newest.run_number > r.run_number ? newest : r), undefined);
+        }
         if (!run) {
           return { result: "missing" };
         }
@@ -131,7 +169,10 @@ exports.wait = async ({ github, context, core, exec }) => {
   };
 
   const others = {};
-  for (const check of (await checks(exec)).filter(({ slug }) => slug !== env.SELF_SLUG)) {
+  const waitList = (await checks(exec)).filter(
+    (check) => check.slug !== env.SELF_SLUG && (!scheduled || check.nightly),
+  );
+  for (const check of waitList) {
     others[check.slug] = await waitFor(check);
   }
   fs.writeFileSync(`${env.RUNNER_TEMP}/android-others.json`, JSON.stringify(others));
