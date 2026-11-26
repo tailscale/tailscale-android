@@ -57,6 +57,9 @@
     <string name="use_ts_dns">Use Tailscale DNS</string>
     <string name="internal_debug_options">Internal debug options</string>
 
+    <!-- Strings for the home screen widget -->
+    <string name="widget_vpn_toggle_description">Connect or disconnect Tailscale</string>
+
     <!-- Strings for the main screen -->
     <string name="exit_node">EXIT NODE</string>
     <string name="exit_node_offline">EXIT NODE OFFLINE</string>
