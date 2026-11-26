@@ -74,7 +74,11 @@ class HealthNotifier(
           }
           .collect { health ->
             TSLog.d(TAG, "Health updated: ${health?.Warnings?.keys?.sorted()}")
-            health?.Warnings?.values?.filterNotNull()?.toTypedArray()?.let(::notifyHealthUpdated)
+            // A healthy backend sends Warnings = null; treat it as empty so that
+            // previously shown warnings are dropped.
+            notifyHealthUpdated(
+                health?.Warnings?.values?.filterNotNull()?.toTypedArray() ?: emptyArray()
+            )
           }
     }
   }
