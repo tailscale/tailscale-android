@@ -1,7 +1,7 @@
 def checks: [
   {check: "Android CI", path: ".github/workflows/android.yml", job: "build", slug: "android-ci"},
-  {check: "Smoke Test", path: ".github/workflows/smoke-test.yml", job: "smoke-test", slug: "smoke-test"},
-  {check: "Integration Test", path: ".github/workflows/integration-test.yml", job: "integration-test", slug: "integration-test"}
+  {check: "Smoke Test", path: ".github/workflows/smoke-test.yml", job: "smoke-test", slug: "smoke-test", nightly: "posts"},
+  {check: "Integration Test", path: ".github/workflows/integration-test.yml", job: "integration-test", slug: "integration-test", nightly: "joins"}
 ];
 
 def esc: gsub("&"; "&amp;") | gsub("<"; "&lt;") | gsub(">"; "&gt;");
@@ -69,9 +69,9 @@ def subs($c):
 
 def line($c): [ emoji($c) + " " + ($c.check | esc) + ": " + detail($c) ] + subs($c);
 
-def heading:
+def heading($mode):
   if .event == "pull_request" then .pr_title | if length > 80 then .[:79] + "…" else . end
-  elif .event == "schedule" then "Android Nightly " + .self.check
+  elif .event == "schedule" then "Android Nightly " + (if $mode == "combined" then "Tests" else .self.check end)
   else "Android " + .self.check end;
 
 def context:
@@ -92,11 +92,11 @@ def overall($all):
 
 def message($mode):
   . as $in
-  | [ checks[] as $k | (if $k.slug == $in.self.slug then $in.self else ($in.others[$k.slug] // {result: "missing"}) end) + {check: $k.check, slug: $k.slug} ] as $all
+  | [ checks[] | select(.nightly or $in.event != "schedule") as $k | (if $k.slug == $in.self.slug then $in.self else ($in.others[$k.slug] // {result: "missing"}) end) + {check: $k.check, slug: $k.slug} ] as $all
   | (if $mode == "combined" then overall($all) else $in.self.result end) as $result
   | (if $mode == "combined" then ({success: ["✅", "success"], failure: ["❌", "failure"]}[$result] // ["⚠️", "incomplete"]) else state($in.self) end) as [$e, $w]
-  | (if $mode == "combined" then $in.pr_url + "/checks" else $in.repo_url + "/actions/runs/" + $in.run_id end) as $url
-  | ($e + " " + ($in | heading) + ": " + $w | esc) as $title
+  | (if $mode == "combined" and $in.event == "pull_request" then $in.pr_url + "/checks" else $in.repo_url + "/actions/runs/" + $in.run_id end) as $url
+  | ($e + " " + ($in | heading($mode)) + ": " + $w | esc) as $title
   | {attachments: [{
       fallback: $title,
       color: color($result),
