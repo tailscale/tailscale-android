@@ -16,15 +16,20 @@ const (
 	strAccounts                 = "accounts"
 	strAddAccount               = "add_account_short"
 	strAddProfileFailed         = "add_profile_failed_title"
+	strAllowLANAccess           = "allow_lan_access"
 	strAppName                  = "app_name"
 	strAuthKeyExplanation       = "auth_key_explanation"
 	strAuthKeyMenu              = "auth_key_menu"
+	strChooseExitNode           = "choose_exit_node"
 	strConnected                = "connected"
 	strContinue                 = "_continue"
 	strCustomControlDesc        = "custom_control_menu_desc"
 	strCustomControlMenu        = "custom_control_menu"
+	strDisable                  = "disable"
+	strExitNode                 = "exit_node"
 	strGetStarted               = "getStarted"
 	strLoginToJoin              = "login_to_join_your_tailnet"
+	strNone                     = "none"
 	strShare                    = "share"
 	strTaildropDirPickerButton  = "taildrop_directory_picker_button"
 	strTaildropFileReceived     = "taildrop_file_received"
@@ -37,15 +42,20 @@ var smokeStrings = []string{
 	strAccounts,
 	strAddAccount,
 	strAddProfileFailed,
+	strAllowLANAccess,
 	strAppName,
 	strAuthKeyExplanation,
 	strAuthKeyMenu,
+	strChooseExitNode,
 	strConnected,
 	strContinue,
 	strCustomControlDesc,
 	strCustomControlMenu,
+	strDisable,
+	strExitNode,
 	strGetStarted,
 	strLoginToJoin,
+	strNone,
 	strShare,
 	strTaildropDirPickerButton,
 	strTaildropFileReceived,
