@@ -106,6 +106,7 @@ func newAndroidEnv(t *testing.T) *androidEnv {
 		AllOnline:      true,
 		// Taildrop only sends between a user's own devices, so every node gets the same user.
 		AllNodesSameUser: true,
+		MagicDNSDomain:   magicDNSDomain,
 	}
 	controlServer := httptest.NewServer(control)
 	t.Cleanup(controlServer.Close)

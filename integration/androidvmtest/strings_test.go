@@ -25,17 +25,21 @@ const (
 	strContinue                 = "_continue"
 	strCustomControlDesc        = "custom_control_menu_desc"
 	strCustomControlMenu        = "custom_control_menu"
+	strDNSSettings              = "dns_settings"
 	strDisable                  = "disable"
 	strExitNode                 = "exit_node"
 	strGetStarted               = "getStarted"
 	strLoginToJoin              = "login_to_join_your_tailnet"
 	strNone                     = "none"
+	strResolvers                = "resolvers"
+	strSettingsTitle            = "settings_title"
 	strShare                    = "share"
 	strTaildropDirPickerButton  = "taildrop_directory_picker_button"
 	strTaildropFileReceived     = "taildrop_file_received"
 	strTaildropSavedInDirectory = "taildrop_saved_in_directory"
 	strTaildropShareFailedShort = "taildrop_share_failed_short"
 	strTaildropShareFailedTitle = "taildrop_share_failed_title"
+	strUseTSDNS                 = "use_ts_dns"
 )
 
 var smokeStrings = []string{
@@ -51,17 +55,21 @@ var smokeStrings = []string{
 	strContinue,
 	strCustomControlDesc,
 	strCustomControlMenu,
+	strDNSSettings,
 	strDisable,
 	strExitNode,
 	strGetStarted,
 	strLoginToJoin,
 	strNone,
+	strResolvers,
+	strSettingsTitle,
 	strShare,
 	strTaildropDirPickerButton,
 	strTaildropFileReceived,
 	strTaildropSavedInDirectory,
 	strTaildropShareFailedShort,
 	strTaildropShareFailedTitle,
+	strUseTSDNS,
 }
 
 var androidStringEscapes = strings.NewReplacer(`\'`, `'`, `\"`, `"`, `\n`, "\n", `\\`, `\`)
