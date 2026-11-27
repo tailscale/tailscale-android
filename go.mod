@@ -5,6 +5,7 @@ go 1.27.4
 require (
 	github.com/tailscale/wireguard-go v0.0.0-20261121000637-a8c4fbf26d6c
 	golang.org/x/mobile v0.0.0-20240806205939-81131f6468ab
+	golang.org/x/net v0.62.0
 	tailscale.com v1.107.0-pre.0.20261124123425-6dce0b211825
 )
 
@@ -80,7 +81,6 @@ require (
 	golang.org/x/crypto v0.59.0 // indirect
 	golang.org/x/exp v0.0.0-20260908205506-85c1c2202aba // indirect
 	golang.org/x/mod v0.43.0 // indirect
-	golang.org/x/net v0.62.0 // indirect
 	golang.org/x/oauth2 v0.37.0 // indirect
 	golang.org/x/sync v0.25.0 // indirect
 	golang.org/x/sys v0.50.0 // indirect

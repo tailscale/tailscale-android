@@ -62,6 +62,13 @@ func showMainScreen(t *testing.T, e *androidEnv) {
 	openDeepLink(t, e, mainDeepLink)
 }
 
+func openSettings(t *testing.T, e *androidEnv) {
+	t.Helper()
+	openDeepLink(t, e, settingsDeepLink)
+	settings := appString(t, strSettingsTitle)
+	waitForAppNode(t, e, settings, withText(settings))
+}
+
 func dismissForeignApp(t *testing.T, e *androidEnv, pkg string) {
 	t.Helper()
 	if pkg == vpnDialogsPackage || strings.HasSuffix(pkg, ".permissioncontroller") {

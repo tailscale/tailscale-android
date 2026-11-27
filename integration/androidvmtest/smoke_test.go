@@ -12,7 +12,7 @@ func TestAndroidSmoke(t *testing.T) {
 	prepareDeviceForUI(t, e.adb)
 	disableBrowser(t, e)
 
-	var launched, loggedIn, usingExitNode bool
+	var launched, loggedIn, magicDNS, usingExitNode bool
 	t.Run("App launches", func(t *testing.T) {
 		recordScreen(t, e.adb)
 		appLaunches(t, e)
@@ -40,6 +40,37 @@ func TestAndroidSmoke(t *testing.T) {
 		recordScreen(t, e.adb)
 		taildropReceive(t, e)
 	})
+	dnsIP := e.startDNSPeer(t)
+	t.Run("MagicDNS can add multiple devices", func(t *testing.T) {
+		if !loggedIn {
+			t.Skip("needs Log in to a custom control server to pass")
+		}
+		recordScreen(t, e.adb)
+		magicDNSCanAddMultipleDevices(t, e)
+		magicDNS = true
+	})
+	t.Run("Magic DNS device reachable via device hostname in browser", func(t *testing.T) {
+		if !magicDNS {
+			t.Skip("needs MagicDNS can add multiple devices to pass")
+		}
+		recordScreen(t, e.adb)
+		magicDNSDeviceReachableViaHostname(t, e)
+	})
+	t.Run("SplitDNS can be configured", func(t *testing.T) {
+		if !loggedIn {
+			t.Skip("needs Log in to a custom control server to pass")
+		}
+		recordScreen(t, e.adb)
+		splitDNSCanBeConfigured(t, e, dnsIP)
+	})
+	t.Run("Override Global DNS", func(t *testing.T) {
+		if !loggedIn {
+			t.Skip("needs Log in to a custom control server to pass")
+		}
+		recordScreen(t, e.adb)
+		overrideGlobalDNS(t, e, dnsIP)
+	})
+	e.control.SetDNSConfig(nil)
 	t.Run("Exit node can be enabled", func(t *testing.T) {
 		if !loggedIn {
 			t.Skip("needs Log in to a custom control server to pass")
