@@ -58,12 +58,14 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.mdm.ShowHide
+import com.tailscale.ipn.ui.components.TaildropDirectoryPickerPrompt
 import com.tailscale.ipn.ui.dataSource.DNSSettingsDataSourceImpl
 import com.tailscale.ipn.ui.dataSource.ExitNodePickerDataSourceImpl
 import com.tailscale.ipn.ui.dataSource.HealthDataSourceImpl
 import com.tailscale.ipn.ui.dataSource.LoginActionsDataSourceImpl
 import com.tailscale.ipn.ui.dataSource.LoginQRDataSourceImpl
 import com.tailscale.ipn.ui.dataSource.PeerDetailsDataSourceImpl
+import com.tailscale.ipn.ui.dataSource.PingDataSourceImpl
 import com.tailscale.ipn.ui.dataSource.RunExitNodeDataSourceImpl
 import com.tailscale.ipn.ui.dataSource.SettingsDataSourceImpl
 import com.tailscale.ipn.ui.dataSource.SubnetRoutingDataSourceImpl
@@ -127,7 +129,6 @@ import com.tailscale.ipn.ui.view.SettingsView
 import com.tailscale.ipn.ui.view.SplitTunnelAppPickerView
 import com.tailscale.ipn.ui.view.SubnetRoutingView
 import com.tailscale.ipn.ui.view.TaildropDirView
-import com.tailscale.ipn.ui.view.TaildropDirectoryPickerPrompt
 import com.tailscale.ipn.ui.view.TailnetLockSetupView
 import com.tailscale.ipn.ui.view.UserSwitcherView
 import com.tailscale.ipn.ui.viewModel.AppViewModel
@@ -163,7 +164,6 @@ class MainActivity : ComponentActivity() {
 
   private inline fun <reified T : Any> backTo(): () -> Unit = {
     navController.popBackStack<T>(inclusive = false)
-    Unit
   }
 
   private fun Context.isLandscapeCapable(): Boolean {
@@ -417,10 +417,12 @@ class MainActivity : ComponentActivity() {
                   )
 
               composable<MainRoute>(enterTransition = { fadeIn(animationSpec = tween(150)) }) {
+                val pingDataSource = remember { PingDataSourceImpl() }
                 MainView(
                     loginAtUrl = ::login,
                     navigation = mainViewNav,
                     viewModel = viewModel,
+                    pingDataSource = pingDataSource,
                 )
               }
               composable<SearchRoute> {
@@ -482,10 +484,12 @@ class MainActivity : ComponentActivity() {
               composable<PeerDetailsRoute> { entry ->
                 val route = entry.toRoute<PeerDetailsRoute>()
                 val dataSource = remember { PeerDetailsDataSourceImpl() }
+                val pingDataSource = remember { PingDataSourceImpl() }
                 PeerDetailsView(
                     onNavigateBack = { navController.popBackStack() },
                     nodeId = route.nodeId,
                     dataSource = dataSource,
+                    pingDataSource = pingDataSource,
                 )
               }
               composable<BugReportRoute> { BugReportView(backTo<SettingsRoute>()) }

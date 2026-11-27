@@ -19,12 +19,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -36,10 +36,14 @@ import com.tailscale.ipn.ui.components.Header
 import com.tailscale.ipn.ui.theme.logoBackground
 import com.tailscale.ipn.ui.util.AndroidTVUtil
 import com.tailscale.ipn.ui.util.AppVersion
+import com.tailscale.ipn.ui.util.copyText
+import kotlinx.coroutines.launch
 
 @Composable
 fun AboutView(backToSettings: () -> Unit) {
-  val localClipboardManager = LocalClipboardManager.current
+  val clipboard = LocalClipboard.current
+  val scope = rememberCoroutineScope()
+  val versionLabel = stringResource(R.string.version)
 
   Scaffold(
       topBar = {
@@ -83,10 +87,7 @@ fun AboutView(backToSettings: () -> Unit) {
         Text(
             modifier =
                 Modifier.clickable {
-                  // When users tap on the version number, the extended version string
-                  // (including commit hashes) is copied to the clipboard.
-                  // This may be useful for debugging purposes...
-                  localClipboardManager.setText(AnnotatedString(BuildConfig.VERSION_NAME))
+                  scope.launch { clipboard.copyText(versionLabel, BuildConfig.VERSION_NAME) }
                 },
             // ... but we always display the short version in the UI to avoid user
             // confusion.

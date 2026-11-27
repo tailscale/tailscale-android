@@ -21,7 +21,7 @@ import com.tailscale.ipn.R
 
 object Permissions {
   /** Permissions to prompt for on MainView. */
-  val prompt: List<Pair<Permission, () -> Unit>>
+  val prompts: List<Pair<Permission, () -> Unit>>
     @Composable
     get() {
       val context = LocalContext.current
