@@ -45,6 +45,9 @@ var shareFileActivityKotlin []byte
 //go:embed testdata/FilesProvider.kt
 var filesProviderKotlin []byte
 
+//go:embed testdata/LoginPageActivity.kt
+var loginPageActivityKotlin []byte
+
 var (
 	adbPath       = flag.String("android.adb", "adb", "path to adb")
 	apkPath       = flag.String("android.apk", os.Getenv("TAILSCALE_ANDROID_APK"), "path to Tailscale Android APK")
@@ -79,6 +82,7 @@ type androidEnv struct {
 	controlURL string
 	peer       *tsnet.Server
 	peerIP     netip.Addr
+	derpMap    *tailcfg.DERPMap
 }
 
 func newAndroidEnv(t *testing.T) *androidEnv {
@@ -154,7 +158,7 @@ func newAndroidEnv(t *testing.T) *androidEnv {
 	adb.run(t, "install", "-r", "-t", probeAPKPath)
 	t.Cleanup(func() { adb.runAllowError(t, "uninstall", probePackage) })
 	t.Cleanup(func() { adb.runAllowError(t, "shell", "am", "force-stop", androidPackage) })
-	return &androidEnv{adb: adb, control: control, controlURL: controlURL, peer: peer, peerIP: peerIP}
+	return &androidEnv{adb: adb, control: control, controlURL: controlURL, peer: peer, peerIP: peerIP, derpMap: derpMap}
 }
 
 func (e *androidEnv) loginWithDebugBroadcast(t *testing.T) {
@@ -265,15 +269,23 @@ func buildProbeAPK(t *testing.T, probePath string) string {
 	root := repoRoot(t)
 	dir := t.TempDir()
 	manifest := filepath.Join(dir, "AndroidManifest.xml")
-	if err := os.WriteFile(manifest, []byte(`<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.tailscale.ipn.integrationprobe">
+	if err := os.WriteFile(manifest, fmt.Appendf(nil, `<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.tailscale.ipn.integrationprobe">
     <uses-permission android:name="android.permission.INTERNET"/>
     <application android:debuggable="true" android:extractNativeLibs="true" android:label="Tailscale Integration Probe">
         <receiver android:name=".NetprobeReceiver" android:exported="true"/>
         <activity android:name=".ShareFileActivity" android:exported="true"/>
+        <activity android:name=".LoginPageActivity" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="http" android:host="%s"/>
+            </intent-filter>
+        </activity>
         <provider android:name=".FilesProvider" android:authorities="com.tailscale.ipn.integrationprobe.files" android:exported="false" android:grantUriPermissions="true"/>
     </application>
 </manifest>
-`), 0644); err != nil {
+`, *emulatorHost), 0644); err != nil {
 		t.Fatal(err)
 	}
 	unsignedAPK := filepath.Join(dir, "probe-unsigned.apk")
@@ -307,6 +319,7 @@ func buildProbeAPK(t *testing.T, probePath string) string {
 		{"NetprobeReceiver.kt", netprobeReceiverKotlin},
 		{"ShareFileActivity.kt", shareFileActivityKotlin},
 		{"FilesProvider.kt", filesProviderKotlin},
+		{"LoginPageActivity.kt", loginPageActivityKotlin},
 	} {
 		path := filepath.Join(kotlinSrcDir, src.name)
 		if err := os.WriteFile(path, src.data, 0644); err != nil {

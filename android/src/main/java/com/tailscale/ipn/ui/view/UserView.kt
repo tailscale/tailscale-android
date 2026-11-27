@@ -18,6 +18,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.tailscale.ipn.R
@@ -51,6 +53,9 @@ fun UserView(
   Box {
     var modifier: Modifier = Modifier
     onClick?.let { modifier = modifier.clickable { it() } }
+    if (actionState == UserActionState.CURRENT) {
+      modifier = modifier.semantics { selected = true }
+    }
     profile?.let {
       ListItem(
           modifier = modifier,
