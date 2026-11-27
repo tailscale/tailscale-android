@@ -11,8 +11,10 @@ func TestAndroidSmoke(t *testing.T) {
 	e.resetApp(t)
 	prepareDeviceForUI(t, e.adb)
 	disableBrowser(t, e)
+	browser := e.startBrowserTailnet(t)
 
-	var launched, loggedIn, usingExitNode bool
+	var launched, loggedIn, usingExitNode, loggedOut bool
+	var firstAccount string
 	t.Run("App launches", func(t *testing.T) {
 		recordScreen(t, e.adb)
 		appLaunches(t, e)
@@ -54,5 +56,27 @@ func TestAndroidSmoke(t *testing.T) {
 		}
 		recordScreen(t, e.adb)
 		exitNodeLANAccess(t, e)
+	})
+	t.Run("Log Out", func(t *testing.T) {
+		if !loggedIn {
+			t.Skip("needs Log in to a custom control server to pass")
+		}
+		recordScreen(t, e.adb)
+		logOut(t, e)
+		loggedOut = true
+	})
+	t.Run("Log In", func(t *testing.T) {
+		if !loggedOut {
+			t.Skip("needs Log Out to pass")
+		}
+		recordScreen(t, e.adb)
+		firstAccount = logIn(t, e, browser)
+	})
+	t.Run("Fast User Switching", func(t *testing.T) {
+		if firstAccount == "" {
+			t.Skip("needs Log In to pass")
+		}
+		recordScreen(t, e.adb)
+		fastUserSwitching(t, e, browser, firstAccount)
 	})
 }

@@ -15,6 +15,7 @@ import (
 const (
 	strAccounts                 = "accounts"
 	strAddAccount               = "add_account_short"
+	strAddAnotherAccount        = "add_account"
 	strAddProfileFailed         = "add_profile_failed_title"
 	strAllowLANAccess           = "allow_lan_access"
 	strAppName                  = "app_name"
@@ -28,8 +29,11 @@ const (
 	strDisable                  = "disable"
 	strExitNode                 = "exit_node"
 	strGetStarted               = "getStarted"
+	strLogOut                   = "log_out"
 	strLoginToJoin              = "login_to_join_your_tailnet"
+	strLogoutFailed             = "logout_failed_title"
 	strNone                     = "none"
+	strSettingsTitle            = "settings_title"
 	strShare                    = "share"
 	strTaildropDirPickerButton  = "taildrop_directory_picker_button"
 	strTaildropFileReceived     = "taildrop_file_received"
@@ -41,6 +45,7 @@ const (
 var smokeStrings = []string{
 	strAccounts,
 	strAddAccount,
+	strAddAnotherAccount,
 	strAddProfileFailed,
 	strAllowLANAccess,
 	strAppName,
@@ -54,8 +59,11 @@ var smokeStrings = []string{
 	strDisable,
 	strExitNode,
 	strGetStarted,
+	strLogOut,
 	strLoginToJoin,
+	strLogoutFailed,
 	strNone,
+	strSettingsTitle,
 	strShare,
 	strTaildropDirPickerButton,
 	strTaildropFileReceived,
