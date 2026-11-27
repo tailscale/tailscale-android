@@ -1,21 +1,21 @@
 // Copyright (c) Tailscale Inc & AUTHORS
 // SPDX-License-Identifier: BSD-3-Clause
-package com.tailscale.ipn.ui.viewModel
+
+package com.tailscale.ipn.ui.controller
 
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.provider.DocumentsContract
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import androidx.core.net.toUri
 import com.tailscale.ipn.TaildropDirectoryStore
 import com.tailscale.ipn.ui.model.Ipn
+import com.tailscale.ipn.ui.model.PendingTaildropItem
 import com.tailscale.ipn.ui.notifier.Notifier
 import com.tailscale.ipn.ui.notifier.TaildropNotifier
 import com.tailscale.ipn.util.InlineShare
 import com.tailscale.ipn.util.InlineShareConsumer
-import com.tailscale.ipn.util.PendingInlineShare
 import com.tailscale.ipn.util.TSLog
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -24,21 +24,10 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class PendingTaildropViewModel : ViewModel() {
-  private val TAG = "PendingTaildropViewModel"
-
-  sealed class PendingTaildropItem {
-    abstract val id: String
-
-    data class File(val partial: Ipn.PartialFile) : PendingTaildropItem() {
-      override val id: String =
-          partial.FinalPath ?: partial.PartialPath ?: "${partial.Name}-${partial.Started}"
-    }
-
-    data class InlineShareItem(val share: PendingInlineShare) : PendingTaildropItem() {
-      override val id: String = share.id
-    }
-  }
+class PendingTaildropController(
+    scope: CoroutineScope,
+) {
+  private val TAG = "PendingTaildropController"
 
   private val consumedFileIds = MutableStateFlow<Set<String>>(emptySet())
 
@@ -51,7 +40,7 @@ class PendingTaildropViewModel : ViewModel() {
           .combine(consumedFileIds) { files, consumed ->
             files.filter { PendingTaildropItem.File(it).id !in consumed }
           }
-          .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+          .stateIn(scope, SharingStarted.Eagerly, emptyList())
 
   val pendingItems: StateFlow<List<PendingTaildropItem>> =
       Notifier.inlineShareInbox
@@ -59,12 +48,12 @@ class PendingTaildropViewModel : ViewModel() {
             files.map { PendingTaildropItem.File(it) } +
                 shares.map { PendingTaildropItem.InlineShareItem(it) }
           }
-          .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+          .stateIn(scope, SharingStarted.Eagerly, emptyList())
 
   val isPresentingPendingItemsList = MutableStateFlow(false)
 
   init {
-    viewModelScope.launch {
+    scope.launch {
       Notifier.incomingFiles.collect { list ->
         val arrivals =
             list.orEmpty().filter { f ->
@@ -79,7 +68,7 @@ class PendingTaildropViewModel : ViewModel() {
     }
     // Auto-dismiss the bottom sheet when the queue empties out, so the dismissal
     // tracks pendingItems instead of relying on a stale .value check after each consume.
-    viewModelScope.launch {
+    scope.launch {
       pendingItems.collect { items ->
         if (items.isEmpty()) isPresentingPendingItemsList.value = false
       }
@@ -123,7 +112,7 @@ class PendingTaildropViewModel : ViewModel() {
 
   private fun openFile(context: Context, partial: Ipn.PartialFile) {
     val uri =
-        partial.FinalPath?.let { runCatching { Uri.parse(it) }.getOrNull() }
+        partial.FinalPath?.let { runCatching { it.toUri() }.getOrNull() }
             ?: return openTaildropFolder(context)
     val mime = runCatching { context.contentResolver.getType(uri) }.getOrNull() ?: "*/*"
     val intent =

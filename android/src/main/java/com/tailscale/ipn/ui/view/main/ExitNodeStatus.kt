@@ -24,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,8 +48,10 @@ import com.tailscale.ipn.ui.theme.primaryListItem
 import com.tailscale.ipn.ui.theme.secondaryButton
 import com.tailscale.ipn.ui.theme.warningButton
 import com.tailscale.ipn.ui.theme.warningListItem
+import com.tailscale.ipn.ui.util.LoadingIndicator
 import com.tailscale.ipn.ui.view.MainViewNavigation
 import com.tailscale.ipn.ui.viewModel.MainViewModel
+import kotlinx.coroutines.launch
 
 @Composable
 internal fun ExitNodeStatus(
@@ -59,6 +62,7 @@ internal fun ExitNodeStatus(
   val nodeState by viewModel.nodeState.collectAsState()
   val netmap by viewModel.netmap.collectAsState()
   val managedByOrganization by viewModel.managedByOrganization.collectAsState()
+  val actionScope = rememberCoroutineScope()
 
   ExitNodeStatus(
       state =
@@ -68,8 +72,26 @@ internal fun ExitNodeStatus(
               netmap = netmap,
               managedByOrganization = managedByOrganization.value,
           ),
-      toggleExitNode = viewModel::toggleExitNode,
-      setRunningExitNode = viewModel::setRunningExitNode,
+      toggleExitNode = {
+        actionScope.launch {
+          LoadingIndicator.start()
+          try {
+            viewModel.toggleExitNode()
+          } finally {
+            LoadingIndicator.stop()
+          }
+        }
+      },
+      setRunningExitNode = { isOn ->
+        actionScope.launch {
+          LoadingIndicator.start()
+          try {
+            viewModel.setRunningExitNode(isOn)
+          } finally {
+            LoadingIndicator.stop()
+          }
+        }
+      },
       navAction = navigation.onNavigateToExitNodes,
   )
 }

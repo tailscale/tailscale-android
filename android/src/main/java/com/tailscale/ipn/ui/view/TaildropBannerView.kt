@@ -24,7 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -39,22 +39,22 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tailscale.ipn.R
+import com.tailscale.ipn.ui.controller.PendingTaildropController
+import com.tailscale.ipn.ui.model.PendingTaildropItem
 import com.tailscale.ipn.ui.theme.onWarning
 import com.tailscale.ipn.ui.theme.warning
-import com.tailscale.ipn.ui.viewModel.PendingTaildropViewModel
 import com.tailscale.ipn.util.InlineShare
 import kotlin.math.abs
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
 
 @Composable
-fun TaildropBannerView(viewModel: PendingTaildropViewModel) {
+fun TaildropBannerView(viewModel: PendingTaildropController) {
   val items by viewModel.pendingItems.collectAsState()
   val context = LocalContext.current
 
-  if (items.isEmpty()) return
-
   val onlyItem = items.singleOrNull()
-  val inlineShareItem = onlyItem as? PendingTaildropViewModel.PendingTaildropItem.InlineShareItem
+  val inlineShareItem = onlyItem as? PendingTaildropItem.InlineShareItem
 
   val density = LocalDensity.current
   val dismissThresholdPx = with(density) { 60.dp.toPx() }
@@ -62,12 +62,20 @@ fun TaildropBannerView(viewModel: PendingTaildropViewModel) {
   val flingTriggerPx = with(density) { 667.dp.toPx() }
   val fadeRangePx = with(density) { 200.dp.toPx() }
 
-  var dragOffsetPx by remember { mutableStateOf(0f) }
+  var dragOffsetPx by remember { mutableFloatStateOf(0f) }
   val animatedOffset by
       animateFloatAsState(targetValue = dragOffsetPx, animationSpec = tween(durationMillis = 60))
   val opacity = 1f - (abs(animatedOffset) / fadeRangePx).coerceAtMost(0.5f)
 
   LaunchedEffect(onlyItem?.id) { dragOffsetPx = 0f }
+
+  LaunchedEffect(dragOffsetPx, inlineShareItem?.id) {
+    if (inlineShareItem != null && abs(dragOffsetPx) >= flingTriggerPx) {
+      delay(120.milliseconds)
+      viewModel.dismiss(context, inlineShareItem)
+      dragOffsetPx = 0f
+    }
+  }
 
   Surface(
       modifier =
@@ -107,13 +115,13 @@ fun TaildropBannerView(viewModel: PendingTaildropViewModel) {
       )
       Column(modifier = Modifier.padding(start = 12.dp).weight(1f)) {
         Text(
-            text = titleFor(items).uppercase(),
+            text = items.title.uppercase(),
             style = MaterialTheme.typography.labelMedium,
             fontSize = 11.sp,
         )
-        Text(text = subtitleFor(items), style = MaterialTheme.typography.bodyMedium)
+        Text(text = items.subtitle, style = MaterialTheme.typography.bodyMedium)
       }
-      if (onlyItem is PendingTaildropViewModel.PendingTaildropItem.File) {
+      if (onlyItem is PendingTaildropItem.File) {
         IconButton(onClick = { viewModel.openTaildropFolder(context) }) {
           Icon(
               painter = painterResource(id = R.drawable.baseline_folder_open_24),
@@ -124,46 +132,34 @@ fun TaildropBannerView(viewModel: PendingTaildropViewModel) {
       }
     }
   }
+}
 
-  LaunchedEffect(dragOffsetPx, inlineShareItem?.id) {
-    if (inlineShareItem != null && abs(dragOffsetPx) >= flingTriggerPx) {
-      delay(120)
-      viewModel.dismiss(context, inlineShareItem)
-      dragOffsetPx = 0f
+private fun iconFor(items: List<PendingTaildropItem>): Int {
+  val only = items.singleOrNull() ?: return R.drawable.baseline_drive_folder_upload_24
+  return only.icon
+}
+
+private val List<PendingTaildropItem>.title: String
+  @Composable
+  get() {
+    val only = singleOrNull() ?: return stringResource(R.string.taildrop_pending_count, size)
+    return when (only) {
+      is PendingTaildropItem.File -> stringResource(R.string.taildrop_file_received)
+      is PendingTaildropItem.InlineShareItem ->
+          if (only.share.kind == InlineShare.Kind.URL)
+              stringResource(R.string.taildrop_link_received)
+          else stringResource(R.string.taildrop_text_received)
     }
   }
-}
 
-private fun iconFor(items: List<PendingTaildropViewModel.PendingTaildropItem>): Int {
-  val only = items.singleOrNull() ?: return R.drawable.baseline_drive_folder_upload_24
-  return when (only) {
-    is PendingTaildropViewModel.PendingTaildropItem.File -> R.drawable.single_file
-    is PendingTaildropViewModel.PendingTaildropItem.InlineShareItem ->
-        if (only.share.kind == InlineShare.Kind.URL) R.drawable.link else R.drawable.single_file
+private val List<PendingTaildropItem>.subtitle: String
+  @Composable
+  get() {
+    val only = singleOrNull() ?: return stringResource(R.string.taildrop_tap_to_open)
+    return when (only) {
+      is PendingTaildropItem.File -> stringResource(R.string.taildrop_saved_in_directory)
+      is PendingTaildropItem.InlineShareItem ->
+          if (only.share.kind == InlineShare.Kind.URL) stringResource(R.string.taildrop_tap_to_open)
+          else stringResource(R.string.taildrop_tap_to_copy)
+    }
   }
-}
-
-@Composable
-private fun titleFor(items: List<PendingTaildropViewModel.PendingTaildropItem>): String {
-  val only =
-      items.singleOrNull() ?: return stringResource(R.string.taildrop_pending_count, items.size)
-  return when (only) {
-    is PendingTaildropViewModel.PendingTaildropItem.File ->
-        stringResource(R.string.taildrop_file_received)
-    is PendingTaildropViewModel.PendingTaildropItem.InlineShareItem ->
-        if (only.share.kind == InlineShare.Kind.URL) stringResource(R.string.taildrop_link_received)
-        else stringResource(R.string.taildrop_text_received)
-  }
-}
-
-@Composable
-private fun subtitleFor(items: List<PendingTaildropViewModel.PendingTaildropItem>): String {
-  val only = items.singleOrNull() ?: return stringResource(R.string.taildrop_tap_to_open)
-  return when (only) {
-    is PendingTaildropViewModel.PendingTaildropItem.File ->
-        stringResource(R.string.taildrop_saved_in_directory)
-    is PendingTaildropViewModel.PendingTaildropItem.InlineShareItem ->
-        if (only.share.kind == InlineShare.Kind.URL) stringResource(R.string.taildrop_tap_to_open)
-        else stringResource(R.string.taildrop_tap_to_copy)
-  }
-}

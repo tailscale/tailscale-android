@@ -8,14 +8,12 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.tailscale.ipn.ui.dataSource.LoginActionsDataSource
 import com.tailscale.ipn.ui.dataSource.UserSwitcherDataSource
+import com.tailscale.ipn.ui.model.ErrorDialogType
 import com.tailscale.ipn.ui.model.IpnLocal
-import com.tailscale.ipn.ui.model.UserID
-import com.tailscale.ipn.ui.view.ErrorDialogType
-import com.tailscale.ipn.util.TSLog
+import com.tailscale.ipn.ui.repository.ProfilesRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 
 data class UserSwitcherNav(
     val backToSettings: () -> Unit,
@@ -27,11 +25,12 @@ data class UserSwitcherNav(
 class UserSwitcherViewModelFactory(
     private val dataSource: UserSwitcherDataSource,
     private val loginActions: LoginActionsDataSource,
+    private val profilesRepository: ProfilesRepository,
 ) : ViewModelProvider.Factory {
   @Suppress("UNCHECKED_CAST")
   override fun <T : ViewModel> create(modelClass: Class<T>): T {
     if (modelClass.isAssignableFrom(UserSwitcherViewModel::class.java)) {
-      return UserSwitcherViewModel(dataSource, loginActions) as T
+      return UserSwitcherViewModel(dataSource, loginActions, profilesRepository) as T
     }
     throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
   }
@@ -40,51 +39,18 @@ class UserSwitcherViewModelFactory(
 class UserSwitcherViewModel(
     private val dataSource: UserSwitcherDataSource,
     private val loginActions: LoginActionsDataSource,
+    private val profilesRepository: ProfilesRepository,
 ) : ViewModel() {
-
-  private val tag = this::class.simpleName
-
   val netmap = dataSource.netmap
-  private val _loggedInUser = MutableStateFlow<IpnLocal.LoginProfile?>(null)
-  val loggedInUser: StateFlow<IpnLocal.LoginProfile?> = _loggedInUser
-
-  private val _loginProfiles = MutableStateFlow<List<IpnLocal.LoginProfile>?>(null)
-  val loginProfiles: StateFlow<List<IpnLocal.LoginProfile>?> = _loginProfiles
+  val loggedInUser = profilesRepository.currentProfile
+  val loginProfiles = profilesRepository.profiles
 
   // Set to a non-null value to show the appropriate error dialog
   private val _errorDialog = MutableStateFlow<ErrorDialogType?>(null)
   val errorDialog: StateFlow<ErrorDialogType?> = _errorDialog.asStateFlow()
 
-  private var selfNodeUserId: UserID? = null
-
   init {
-    viewModelScope.launch { dataSource.state.collect { loadProfiles() } }
-
-    viewModelScope.launch {
-      dataSource.netmap.collect { netmap ->
-        val userId = netmap?.SelfNode?.User
-        if (userId != selfNodeUserId) {
-          selfNodeUserId = userId
-          loadProfiles()
-        }
-      }
-    }
-  }
-
-  private fun loadProfiles() {
-    dataSource.loadProfiles(
-        scope = viewModelScope,
-        onProfiles = { result ->
-          result
-              .onSuccess { _loginProfiles.value = it }
-              .onFailure { TSLog.e(tag, "Error loading profiles: ${it.message}") }
-        },
-        onCurrentProfile = { result ->
-          result
-              .onSuccess { _loggedInUser.value = if (it.isEmpty()) null else it }
-              .onFailure { TSLog.e(tag, "Error loading current profile: ${it.message}") }
-        },
-    )
+    profilesRepository.refresh()
   }
 
   fun login(completionHandler: (Result<Unit>) -> Unit = {}) {
@@ -117,7 +83,7 @@ class UserSwitcherViewModel(
       completionHandler: (Result<String>) -> Unit,
   ) {
     dataSource.deleteProfile(viewModelScope, profile) { result ->
-      loadProfiles()
+      profilesRepository.refresh()
       completionHandler(result)
     }
   }

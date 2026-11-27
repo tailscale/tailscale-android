@@ -17,7 +17,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tailscale.ipn.R
 import com.tailscale.ipn.mdm.DebugPolicies
 import com.tailscale.ipn.mdm.MDMSetting
@@ -25,12 +24,10 @@ import com.tailscale.ipn.mdm.MDMSettings
 import com.tailscale.ipn.ui.components.Header
 import com.tailscale.ipn.ui.util.AndroidTVUtil
 import com.tailscale.ipn.ui.util.itemsWithDividers
-import com.tailscale.ipn.ui.viewModel.IpnViewModel
 
 @Composable
 fun MDMSettingsDebugView(
     backToSettings: () -> Unit,
-    @Suppress("UNUSED_PARAMETER") model: IpnViewModel = viewModel(),
 ) {
   val debugPoliciesActive by DebugPolicies.isActive.collectAsState()
 
