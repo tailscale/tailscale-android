@@ -459,7 +459,7 @@ private fun SettingsButton(action: () -> Unit) {
   IconButton(modifier = Modifier.size(24.dp), onClick = { action() }) {
     Icon(
         Icons.Outlined.Settings,
-        contentDescription = "Open settings",
+        contentDescription = stringResource(R.string.accessibility_open_settings),
         tint = MaterialTheme.colorScheme.onSurfaceVariant,
     )
   }
@@ -539,7 +539,8 @@ fun ConnectView(
           Icon(
               modifier = Modifier.size(40.dp),
               imageVector = Icons.Outlined.Lock,
-              contentDescription = "Device requires authentication",
+              contentDescription =
+                  stringResource(R.string.accessibility_device_requires_authentication),
           )
           Text(
               text = stringResource(id = R.string.machine_auth_required),
@@ -755,7 +756,10 @@ fun PeerList(
               shape = MaterialTheme.shapes.extraLarge,
               colors = MaterialTheme.colorScheme.searchBarColors,
               leadingIcon = {
-                Icon(imageVector = Icons.Outlined.Search, contentDescription = "search")
+                Icon(
+                    imageVector = Icons.Outlined.Search,
+                    contentDescription = stringResource(R.string.search),
+                )
               },
               trailingIcon = {
                 if (isSearchFocussed) {
@@ -769,7 +773,7 @@ fun PeerList(
                         imageVector =
                             if (searchTermStr.isEmpty()) Icons.Outlined.Close
                             else Icons.Outlined.Clear,
-                        contentDescription = "clear search",
+                        contentDescription = stringResource(R.string.clear_search),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                   }
@@ -1083,7 +1087,7 @@ fun Search(
         // Leading Icon
         Icon(
             imageVector = Icons.Outlined.Search,
-            contentDescription = "Search",
+            contentDescription = stringResource(R.string.search),
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(start = 0.dp), // Optional start padding for alignment
         )

@@ -24,7 +24,9 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.tailscale.ipn.R
 
 @Composable
 fun BackArrow(
@@ -57,7 +59,7 @@ fun BackArrow(
   Box(modifier = boxModifier.padding(start = 8.dp, end = 8.dp)) {
     Icon(
         Icons.AutoMirrored.Filled.ArrowBack,
-        contentDescription = "Go back to the previous screen",
+        contentDescription = stringResource(R.string.back),
         modifier = iconModifier,
     )
   }
