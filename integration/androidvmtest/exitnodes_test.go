@@ -4,10 +4,8 @@
 package androidvmtest
 
 import (
-	"bufio"
 	"context"
 	"fmt"
-	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -64,18 +62,7 @@ func (e *androidEnv) makePeerExitNode(t *testing.T) {
 		if dst.Addr() != internetAddr {
 			return nil, true // reject with a RST
 		}
-		// netstack drops the routed address when this returns, so reply before returning.
-		return func(c net.Conn) {
-			defer c.Close()
-			req, err := http.ReadRequest(bufio.NewReader(c))
-			if err != nil {
-				return
-			}
-			body := fmt.Sprintf("exit node got %v", dst)
-			res := &http.Response{StatusCode: http.StatusOK, ProtoMajor: 1, ProtoMinor: 1, Request: req, Close: true,
-				ContentLength: int64(len(body)), Body: io.NopCloser(strings.NewReader(body))}
-			res.Write(c)
-		}, true
+		return func(c net.Conn) { replyHTTP(c, fmt.Sprintf("exit node got %v", dst)) }, true
 	})
 
 	lc := e.peerClient(t)

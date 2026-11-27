@@ -4,6 +4,7 @@
 package androidvmtest
 
 import (
+	"bufio"
 	"context"
 	"crypto/tls"
 	_ "embed"
@@ -209,10 +210,11 @@ func (e *androidEnv) probe(t *testing.T, rawURL string) string {
 
 	t.Logf("running Android netprobe against %s", rawURL)
 	e.adb.runAllowError(t, "shell", "run-as", probePackage, "rm", "-f", probeResultPath)
+	// The device shell would treat an IPv6 URL's brackets as a glob.
 	e.adb.shell(t,
 		"am", "broadcast",
 		"-n", probeReceiver,
-		"--es", "url", rawURL,
+		"--es", "url", "'"+rawURL+"'",
 	)
 	return waitForProbeResult(t, e.adb, probeResultPath)
 }
@@ -225,8 +227,8 @@ func (e *androidEnv) waitForProbeBody(t *testing.T, rawURL, want string) {
 			return
 		}
 	}
-	addrs, _ := e.adb.runOutputAllowError("shell", "ip", "-4", "addr")
-	routes, _ := e.adb.runOutputAllowError("shell", "ip -4 rule; ip -4 route show table all | grep tun")
+	addrs, _ := e.adb.runOutputAllowError("shell", "ip", "addr")
+	routes, _ := e.adb.runOutputAllowError("shell", "ip -4 rule; ip -4 route show table all | grep tun; ip -6 route show table all | grep tun")
 	t.Fatalf("GET %s never returned %q; last probe result %q; device addresses:\n%s\nrules and VPN routes:\n%s", rawURL, want, got, addrs, routes)
 }
 
@@ -237,6 +239,18 @@ func (e *androidEnv) peerClient(t *testing.T) *local.Client {
 		t.Fatalf("tsnet peer LocalClient: %v", err)
 	}
 	return lc
+}
+
+// replyHTTP replies before returning, since netstack drops a routed address once a handler returns.
+func replyHTTP(c net.Conn, body string) {
+	defer c.Close()
+	req, err := http.ReadRequest(bufio.NewReader(c))
+	if err != nil {
+		return
+	}
+	res := &http.Response{StatusCode: http.StatusOK, ProtoMajor: 1, ProtoMinor: 1, Request: req, Close: true,
+		ContentLength: int64(len(body)), Body: io.NopCloser(strings.NewReader(body))}
+	res.Write(c)
 }
 
 func buildAndroidProbe(t *testing.T) string {

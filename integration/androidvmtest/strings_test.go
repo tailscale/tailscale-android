@@ -15,6 +15,7 @@ import (
 const (
 	strAccounts                 = "accounts"
 	strAddAccount               = "add_account_short"
+	strAddNewRoute              = "add_new_route"
 	strAddProfileFailed         = "add_profile_failed_title"
 	strAllowLANAccess           = "allow_lan_access"
 	strAppName                  = "app_name"
@@ -25,22 +26,28 @@ const (
 	strContinue                 = "_continue"
 	strCustomControlDesc        = "custom_control_menu_desc"
 	strCustomControlMenu        = "custom_control_menu"
+	strDeleteRoute              = "delete_route"
 	strDisable                  = "disable"
 	strExitNode                 = "exit_node"
+	strFailedToSave             = "failed_to_save"
 	strGetStarted               = "getStarted"
 	strLoginToJoin              = "login_to_join_your_tailnet"
 	strNone                     = "none"
+	strOK                       = "ok"
 	strShare                    = "share"
+	strSubnetRouting            = "subnet_routing"
 	strTaildropDirPickerButton  = "taildrop_directory_picker_button"
 	strTaildropFileReceived     = "taildrop_file_received"
 	strTaildropSavedInDirectory = "taildrop_saved_in_directory"
 	strTaildropShareFailedShort = "taildrop_share_failed_short"
 	strTaildropShareFailedTitle = "taildrop_share_failed_title"
+	strUseTailscaleSubnets      = "use_tailscale_subnets"
 )
 
 var smokeStrings = []string{
 	strAccounts,
 	strAddAccount,
+	strAddNewRoute,
 	strAddProfileFailed,
 	strAllowLANAccess,
 	strAppName,
@@ -51,17 +58,22 @@ var smokeStrings = []string{
 	strContinue,
 	strCustomControlDesc,
 	strCustomControlMenu,
+	strDeleteRoute,
 	strDisable,
 	strExitNode,
+	strFailedToSave,
 	strGetStarted,
 	strLoginToJoin,
 	strNone,
+	strOK,
 	strShare,
+	strSubnetRouting,
 	strTaildropDirPickerButton,
 	strTaildropFileReceived,
 	strTaildropSavedInDirectory,
 	strTaildropShareFailedShort,
 	strTaildropShareFailedTitle,
+	strUseTailscaleSubnets,
 }
 
 var androidStringEscapes = strings.NewReplacer(`\'`, `'`, `\"`, `"`, `\n`, "\n", `\\`, `\`)
