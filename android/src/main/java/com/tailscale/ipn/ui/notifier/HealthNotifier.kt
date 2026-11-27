@@ -74,7 +74,10 @@ class HealthNotifier(
           }
           .collect { health ->
             TSLog.d(TAG, "Health updated: ${health?.Warnings?.keys?.sorted()}")
-            health?.Warnings?.values?.filterNotNull()?.toTypedArray()?.let(::notifyHealthUpdated)
+            health?.let {
+              val warnings = it.Warnings?.values?.filterNotNull().orEmpty()
+              notifyHealthUpdated(warnings.toTypedArray())
+            }
           }
     }
   }
