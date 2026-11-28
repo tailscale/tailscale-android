@@ -69,6 +69,7 @@ fun SettingsView(
   val corpDNSEnabled by settingsViewModel.corpDNSEnabled.collectAsStateWithLifecycle()
   val isClientRemoteLoggingEnabled by
       settingsViewModel.isClientRemoteLoggingEnabled.collectAsStateWithLifecycle()
+  val isTunnelWatchdogEnabled by settingsViewModel.isTunnelWatchdogEnabled.collectAsStateWithLifecycle()
   val isVPNPrepared by appViewModel.vpnPrepared.collectAsStateWithLifecycle()
   val showTailnetLock by MDMSettings.manageTailnetLock.flow.collectAsStateWithLifecycle()
   val useTailscaleSubnets by MDMSettings.useTailscaleSubnets.flow.collectAsStateWithLifecycle()
@@ -87,6 +88,7 @@ fun SettingsView(
               showTailnetLock = showTailnetLock.value == ShowHide.Show,
               showSubnetRouting = useTailscaleSubnets.value == AlwaysNeverUserDecides.UserDecides,
               isClientRemoteLoggingEnabled = isClientRemoteLoggingEnabled,
+              isTunnelWatchdogEnabled = isTunnelWatchdogEnabled,
               isMDMConfigured = MDMSettings.isMDMConfigured,
               isDebugBuild = BuildConfig.DEBUG,
               appVersion = AppVersion.Short(),
@@ -94,6 +96,7 @@ fun SettingsView(
       nav = settingsNav,
       isTv = isAndroidTV(),
       toggleIsClientRemoteLoggingEnabled = settingsViewModel::toggleIsClientRemoteLoggingEnabled,
+      toggleTunnelWatchdog = settingsViewModel::toggleTunnelWatchdog,
       showDisableLoggingDialog = { showDisableLoggingDialog = true },
       openAdmin = { handler.openUri(Links.ADMIN_URL) },
   )
@@ -155,6 +158,7 @@ private data class SettingsUIState(
     val showTailnetLock: Boolean,
     val showSubnetRouting: Boolean,
     val isClientRemoteLoggingEnabled: Boolean,
+    val isTunnelWatchdogEnabled: Boolean,
     val isMDMConfigured: Boolean,
     val isDebugBuild: Boolean,
     val appVersion: String,
@@ -166,6 +170,7 @@ private fun SettingsScreen(
     nav: SettingsNav,
     isTv: Boolean,
     toggleIsClientRemoteLoggingEnabled: () -> Unit,
+    toggleTunnelWatchdog: () -> Unit,
     showDisableLoggingDialog: () -> Unit,
     openAdmin: () -> Unit,
 ) {
@@ -247,6 +252,15 @@ private fun SettingsScreen(
           },
       )
 
+      Lists.ItemDivider()
+      ListItemSwitch(
+          R.string.tunnel_watchdog_enabled,
+          subtitle = stringResource(R.string.tunnel_watchdog_enabled_subtitle),
+          isOn = state.isTunnelWatchdogEnabled,
+          enabled = true,
+          onToggle = { toggleTunnelWatchdog() },
+      )
+
       if (!isTv) {
         Lists.ItemDivider()
         ListItemText(R.string.permissions, onClick = nav.onNavigateToPermissions)
@@ -296,6 +310,7 @@ private fun SettingsPreview() {
                 showTailnetLock = true,
                 showSubnetRouting = true,
                 isClientRemoteLoggingEnabled = true,
+                isTunnelWatchdogEnabled = true,
                 isMDMConfigured = true,
                 isDebugBuild = true,
                 appVersion = "1.104.0",
@@ -317,6 +332,7 @@ private fun SettingsPreview() {
             ),
         isTv = false,
         toggleIsClientRemoteLoggingEnabled = {},
+        toggleTunnelWatchdog = {},
         showDisableLoggingDialog = {},
         openAdmin = {},
     )
