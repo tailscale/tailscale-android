@@ -5,6 +5,7 @@ package com.tailscale.ipn
 import android.app.PendingIntent
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.ConnectivityManager
 import android.net.Network
 import android.net.VpnService
 import android.os.Build
@@ -68,6 +69,7 @@ open class IPNService : VpnService(), libtailscale.IPNService {
         }
         ACTION_START_VPN -> {
           showForegroundNotification()
+          refreshUnderlyingNetwork()
           app.setWantRunning(true)
           Libtailscale.requestVPN(this)
           START_STICKY
@@ -83,6 +85,7 @@ open class IPNService : VpnService(), libtailscale.IPNService {
                 UninitializedApp.getExitNodeName(Notifier.prefs.value, Notifier.netmap.value)
             app.notifyStatus(true, hideDisconnectAction.value, exitNodeName)
           }
+          refreshUnderlyingNetwork()
           app.setWantRunning(true)
           Libtailscale.requestVPN(this)
           START_STICKY
@@ -93,6 +96,7 @@ open class IPNService : VpnService(), libtailscale.IPNService {
           if (UninitializedApp.get().isAbleToStartVPN()) {
             showForegroundNotification()
             App.get()
+            refreshUnderlyingNetwork()
             Libtailscale.requestVPN(this)
             START_STICKY
           } else {
@@ -100,6 +104,13 @@ open class IPNService : VpnService(), libtailscale.IPNService {
           }
         }
       }
+
+  private fun refreshUnderlyingNetwork() {
+    NetworkChangeCallback.refreshDefaultNetwork(
+        getSystemService(ConnectivityManager::class.java),
+        app.dns,
+    )
+  }
 
   override fun close() {
     if (closed) return
