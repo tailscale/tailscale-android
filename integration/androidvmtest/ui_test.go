@@ -232,6 +232,23 @@ func typeInto(t *testing.T, adb adbRunner, field uiNode, text string) {
 	waitForNode(t, adb, fmt.Sprintf("a text field showing %q", text), func(n uiNode) bool { return n.Class == editTextClass && n.Text == text })
 }
 
+// hideKeyboard presses BACK only while the keyboard shows, since BACK also closes a dialog.
+func hideKeyboard(t *testing.T, adb adbRunner) {
+	t.Helper()
+	shown := func() bool {
+		return strings.Contains(adb.shellOutput(t, "dumpsys", "input_method"), "mInputShown=true")
+	}
+	if !shown() {
+		return
+	}
+	adb.shell(t, "input", "keyevent", "KEYCODE_BACK")
+	for deadline := time.Now().Add(*waitTimeout); shown(); time.Sleep(500 * time.Millisecond) {
+		if time.Now().After(deadline) {
+			t.Fatal("the soft keyboard still shows after BACK")
+		}
+	}
+}
+
 func prepareDeviceForUI(t *testing.T, adb adbRunner) {
 	t.Helper()
 	adb.shell(t, "svc", "power", "stayon", "true")

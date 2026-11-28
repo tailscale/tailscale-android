@@ -40,6 +40,21 @@ func TestAndroidSmoke(t *testing.T) {
 		recordScreen(t, e.adb)
 		taildropReceive(t, e)
 	})
+	sp := e.startSubnetPeer(t)
+	t.Run("4 Via 6", func(t *testing.T) {
+		if !loggedIn {
+			t.Skip("needs Log in to a custom control server to pass")
+		}
+		recordScreen(t, e.adb)
+		fourViaSix(t, e, sp)
+	})
+	t.Run("Running as a subnet router", func(t *testing.T) {
+		if !loggedIn {
+			t.Skip("needs Log in to a custom control server to pass")
+		}
+		recordScreen(t, e.adb)
+		runningAsSubnetRouter(t, e, sp)
+	})
 	t.Run("Exit node can be enabled", func(t *testing.T) {
 		if !loggedIn {
 			t.Skip("needs Log in to a custom control server to pass")
